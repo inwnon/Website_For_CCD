@@ -31,7 +31,7 @@
   function side(page, role) {
     const items = MENU.filter((m) => m.sep || (role && m.roles.includes(role)));
     return `
-      <a href="index.html" class="press t-quick flex items-center gap-3 rounded-2xl px-2 hover:opacity-90" aria-label="ไปหน้าเว็บไซต์ ข่าว มรส.">
+      <a href="index.html" class="press t-quick flex items-center gap-3 rounded-2xl px-2 hover:opacity-90"><span class="sr-only">ไปหน้าเว็บไซต์ </span>
         <span class="logo-crop h-11 w-11 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
           <span class="block font-display text-[19px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>

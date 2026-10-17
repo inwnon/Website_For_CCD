@@ -57,7 +57,7 @@
     @media (prefers-reduced-motion: reduce) { .fdrop[open] .fpanel { animation: none; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+  <link rel="stylesheet" href="/assets/app.css?v=c98edbb527">
 </head>
 
 <body class="min-h-screen">
@@ -66,13 +66,13 @@
   <!-- ===== Header (same as index.html) ===== -->
   <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
     <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
-      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90" aria-label="ข่าว มรส. หน้าแรก">
+      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
           <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
           <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
         </span>
-      </a>
+      <span class="sr-only"> หน้าแรก</span></a>
 
       <form id="search" class="mx-auto hidden w-full max-w-[680px] md:block" role="search" action="search.html">
         <label for="q" class="sr-only">ค้นหาข่าว</label>
@@ -235,7 +235,7 @@
           </div>
         </div>
         <!-- Placeholders hold the space until the results come (no jump of the page below) -->
-        <ol id="results" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"><li class="overflow-hidden rounded-card border border-line bg-surface" aria-hidden="true"><div class="aspect-[16/9] bg-surface2"></div><div class="grid gap-2 p-4"><div class="h-3 w-1/3 rounded bg-surface2"></div><div class="h-4 rounded bg-surface2"></div><div class="h-4 w-4/5 rounded bg-surface2"></div><div class="h-3 w-1/2 rounded bg-surface2"></div></div></li><li class="overflow-hidden rounded-card border border-line bg-surface" aria-hidden="true"><div class="aspect-[16/9] bg-surface2"></div><div class="grid gap-2 p-4"><div class="h-3 w-1/3 rounded bg-surface2"></div><div class="h-4 rounded bg-surface2"></div><div class="h-4 w-4/5 rounded bg-surface2"></div><div class="h-3 w-1/2 rounded bg-surface2"></div></div></li><li class="overflow-hidden rounded-card border border-line bg-surface" aria-hidden="true"><div class="aspect-[16/9] bg-surface2"></div><div class="grid gap-2 p-4"><div class="h-3 w-1/3 rounded bg-surface2"></div><div class="h-4 rounded bg-surface2"></div><div class="h-4 w-4/5 rounded bg-surface2"></div><div class="h-3 w-1/2 rounded bg-surface2"></div></div></li><li class="overflow-hidden rounded-card border border-line bg-surface" aria-hidden="true"><div class="aspect-[16/9] bg-surface2"></div><div class="grid gap-2 p-4"><div class="h-3 w-1/3 rounded bg-surface2"></div><div class="h-4 rounded bg-surface2"></div><div class="h-4 w-4/5 rounded bg-surface2"></div><div class="h-3 w-1/2 rounded bg-surface2"></div></div></li></ol>
+        <ol id="results" class="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"><li class="overflow-hidden rounded-card border border-line bg-surface" aria-hidden="true"><div class="aspect-[16/9] bg-surface2"></div><div class="grid gap-2 p-4"><div class="h-3 w-1/3 rounded bg-surface2"></div><div class="h-4 rounded bg-surface2"></div><div class="h-4 w-4/5 rounded bg-surface2"></div><div class="h-3 w-1/2 rounded bg-surface2"></div></div></li><li class="overflow-hidden rounded-card border border-line bg-surface" aria-hidden="true"><div class="aspect-[16/9] bg-surface2"></div><div class="grid gap-2 p-4"><div class="h-3 w-1/3 rounded bg-surface2"></div><div class="h-4 rounded bg-surface2"></div><div class="h-4 w-4/5 rounded bg-surface2"></div><div class="h-3 w-1/2 rounded bg-surface2"></div></div></li><li class="overflow-hidden rounded-card border border-line bg-surface" aria-hidden="true"><div class="aspect-[16/9] bg-surface2"></div><div class="grid gap-2 p-4"><div class="h-3 w-1/3 rounded bg-surface2"></div><div class="h-4 rounded bg-surface2"></div><div class="h-4 w-4/5 rounded bg-surface2"></div><div class="h-3 w-1/2 rounded bg-surface2"></div></div></li><li class="overflow-hidden rounded-card border border-line bg-surface" aria-hidden="true"><div class="aspect-[16/9] bg-surface2"></div><div class="grid gap-2 p-4"><div class="h-3 w-1/3 rounded bg-surface2"></div><div class="h-4 rounded bg-surface2"></div><div class="h-4 w-4/5 rounded bg-surface2"></div><div class="h-3 w-1/2 rounded bg-surface2"></div></div></li></ol>
         <div class="mt-8 flex justify-center">
           <button id="more" type="button" hidden class="press t-spring inline-flex h-12 items-center rounded-2xl border border-line bg-shell px-6 font-display text-[16px] font-medium text-ink shadow-raised hover:-translate-y-0.5">แสดงข่าวเพิ่ม</button>
         </div>
@@ -406,7 +406,8 @@
     // ---- View: card or list ----
     let view = 'card';
     try { view = localStorage.getItem('searchView') === 'list' ? 'list' : 'card'; } catch (e) {}
-    const GRID = { card: 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', list: 'grid gap-3' };
+    // minmax(0,1fr): on a phone a card is never wider than the screen, whatever it holds
+    const GRID = { card: 'grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', list: 'grid grid-cols-[minmax(0,1fr)] gap-3' };
     const render = (n, i) => (view === 'card' ? card(n, i) : item(n, i));
     let shown = [];
     function setView(v) {

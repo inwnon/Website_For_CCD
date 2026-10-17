@@ -108,7 +108,8 @@
     function paint() {
       const d = parse(datePart());
       btn.innerHTML = `<span class="${d ? '' : 'tdp-ph'}">${d ? thai(d) : 'เลือกวันที่'}</span>${svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>')}`;
-      btn.setAttribute('aria-label', `${labelText()}${required ? ' (จำเป็น)' : ''} ${d ? longThai(d) : 'ยังไม่ได้เลือก'}`);
+      // (the name contains what the button shows, so voice control can say it: WCAG 2.5.3)
+      btn.setAttribute('aria-label', `${labelText()}${required ? ' (จำเป็น)' : ''} ${d ? `${thai(d)} (${longThai(d)})` : 'เลือกวันที่ (ยังไม่ได้เลือก)'}`);
       if (time) time.value = (desc.get.call(input) || '').slice(11, 16);
     }
     // Page code that sets .value (or reads it) still talks to the input; the button follows

@@ -306,7 +306,7 @@
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+  <link rel="stylesheet" href="/assets/app.css?v=c98edbb527">
 </head>
 
 <body class="min-h-screen">
@@ -315,13 +315,13 @@
   <!-- ===== Header ===== -->
   <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
     <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
-      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90" aria-label="ข่าว มรส. หน้าแรก">
+      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
           <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
           <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
         </span>
-      </a>
+      <span class="sr-only"> หน้าแรก</span></a>
 
       <div class="ml-auto flex shrink-0 items-center gap-2">
         <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
@@ -510,6 +510,7 @@
           <span class="min-w-0 text-[14px] leading-[1.5]"><span class="block font-display font-semibold">${esc(st.title)}</span><span class="text-[12px] text-ink2">${esc(st.unit)}</span></span>
         </li>`).join('');
       $('#heroBook').innerHTML = coverMini(latest);
+      $('#heroBook').setAttribute('aria-label', DigestBook.coverName(latest, 'เปิดพลิกอ่านฉบับล่าสุด'));
     }
     document.querySelectorAll('[data-open-view]').forEach((b) => b.addEventListener('click', () => PUBLISHED[0] && openReader(PUBLISHED[0].id, b.dataset.openView)));
 
@@ -533,7 +534,7 @@
           ${isPr ? `<a href="digest-studio.html?draft=${d.id}" class="press t-quick mt-1 inline-flex min-h-[32px] items-center rounded text-[13px] font-medium text-purple underline-offset-4 hover:underline">จัดทำเล่มนี้</a>` : ''}
         </li>`).join('') + list.map((d) => `
         <li class="group">
-          <button type="button" data-issue="${d.id}" class="book press block w-full" aria-label="พลิกอ่านเล่มสรุปข่าว${KIND[d.kind].label} ฉบับ ${esc(d.range)}">${coverMini(d)}</button>
+          <button type="button" data-issue="${d.id}" class="book press block w-full" aria-label="${esc(DigestBook.coverName(d, `พลิกอ่านเล่มสรุปข่าว${KIND[d.kind].label}`))}">${coverMini(d)}</button>
           <div class="mt-3 flex items-center gap-2 text-[12px] text-ink2">
             <span class="rounded-full ${d.kind === 'weekly' ? 'bg-gold-soft text-gold' : 'bg-purple-soft text-purple'} px-2.5 font-display font-semibold leading-6">${KIND[d.kind].label}</span>
             <span>${d.count != null ? `${d.count} ข่าว · ` : ''}${d.pages} หน้า</span>

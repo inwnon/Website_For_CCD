@@ -177,7 +177,7 @@
     }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+  <link rel="stylesheet" href="/assets/app.css?v=c98edbb527">
 </head>
 
 <body class="min-h-screen">
@@ -186,13 +186,13 @@
   <!-- ===== Header: brand · search · actions / tab nav ===== -->
   <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
     <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
-      <a href="#" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90" aria-label="ข่าว มรส. หน้าแรก">
+      <a href="#" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
           <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
           <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
         </span>
-      </a>
+      <span class="sr-only"> หน้าแรก</span></a>
 
       <form id="search" class="mx-auto hidden w-full max-w-[680px] md:block" role="search" action="search.html">
         <label for="q" class="sr-only">ค้นหาข่าว</label>
@@ -646,7 +646,7 @@
       const label = DIGEST_KIND[d.kind].label;
       return `
       <article class="reveal lift group flex flex-col overflow-hidden rounded-card border border-line bg-surface">
-        <a href="digest.html?issue=${d.id}&view=flip" class="press block" aria-label="พลิกอ่านเล่มสรุปข่าว${label} ${esc(d.range)}">
+        <a href="digest.html?issue=${d.id}&view=flip" class="press block" aria-label="${esc(DigestBook.coverName(d, `พลิกอ่านเล่มสรุปข่าว${label}`))}">
           <div class="relative grid aspect-[16/9] place-items-center overflow-hidden ${d.soft}">
             <div class="t-spring relative h-[84%] w-auto translate-y-[14%] group-hover:translate-y-[8%] group-hover:-rotate-3 [&_.book-cover]:h-full [&_.book-cover]:rounded-lg [&_.book-cover]:shadow-float">${DigestBook.coverMini(d)}</div>
           </div>

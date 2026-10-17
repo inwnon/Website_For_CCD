@@ -36,11 +36,10 @@ services:
     volumes:
       - ./:/app
       - /app/node_modules   # the container installs its own (Linux) packages
-      - uploads:/app/uploads
+      - ./uploads:/app/uploads   # a folder on this machine, so the nightly backup (ops/BACKUP.md) can read it
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   pgdata:
-  uploads:

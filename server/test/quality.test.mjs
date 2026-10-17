@@ -148,6 +148,17 @@ describe('SEO', () => {
     for (const page of ['/admin.html', '/pr.html', '/login.html', '/submit.html']) assert.match((await request('GET', page)).headers.get('x-robots-tag') || '', /noindex/, page);
     assert.equal((await request('GET', '/index.html')).headers.get('x-robots-tag'), null);
   });
+  test('search page: results, heading and filter bar come from the server as the script shows them (no jump on a phone)', async () => {
+    const html = String((await request('GET', `/search.html?q=${encodeURIComponent('ทดสอบคุณภาพ $&')}`)).body);
+    assert.match(html, /window\.__SEARCH = \{"query":/);
+    assert.match(html, /<form id="bigSearch" role="search" action="search.html">/);
+    assert.match(html, /<button id="clear"[^>]*class="[^"]*"\s*>/, '"ล้างตัวกรอง" shown');
+    assert.match(html, /<label id="sortBox"[^>]*class="[^"]*">/, '"เรียงตาม" shown');
+    assert.ok(html.includes('id="resultTitle" class="font-display text-[22px] font-semibold text-royal">ผลการค้นหา “ทดสอบคุณภาพ $&amp;”<'), 'heading, with the words escaped');
+    const plain = String((await request('GET', '/search.html')).body);
+    assert.match(plain, /<button id="clear"[^>]*hidden>/, 'nothing to clear');
+    assert.match(plain, /<label id="sortBox"[^>]*hidden>/);
+  });
 });
 
 describe('edit history of stories', () => {

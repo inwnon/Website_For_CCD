@@ -47,7 +47,7 @@
     .toc-link:active { transform: scale(.98); }
     .toc-link[aria-current] { color: rgb(var(--purple)); font-weight: 600; border-left-color: rgb(var(--purple)); border-radius: 0 .6rem .6rem 0; }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+  <link rel="stylesheet" href="/assets/app.css?v=c98edbb527">
 </head>
 
 <body class="min-h-screen">
@@ -56,13 +56,13 @@
   <!-- ===== Header (same as index.html) ===== -->
   <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
     <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
-      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90" aria-label="ข่าว มรส. หน้าแรก">
+      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
           <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
           <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
         </span>
-      </a>
+      <span class="sr-only"> หน้าแรก</span></a>
 
       <form id="search" class="mx-auto hidden w-full max-w-[680px] md:block" role="search" action="search.html">
         <label for="q" class="sr-only">ค้นหาข่าว</label>

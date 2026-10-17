@@ -18,6 +18,7 @@
   <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/assets/fonts.css">
   <style>
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     :root {
       --bg: 245 244 255; --shell: 255 255 255; --surface-2: 244 242 255; --ink: 27 37 96; --ink-2: 92 102 148; --line: 224 226 250;
       --royal: 38 66 200; --red: 209 19 39; --purple: 122 60 226; --gold: 148 94 0; --gold-soft: 255 244 208;
@@ -100,7 +101,7 @@
       <img class="hawky" src="/assets/img/hawky-480.webp" alt="" width="1254" height="1254">
     </div>
     <div>
-      <a class="brand" href="/" aria-label="ข่าว มรส. หน้าแรก"><img src="/assets/img/logo-192.webp" alt=""><b><span>ข่าว</span> <span>มรส.</span></b></a>
+      <a class="brand" href="/"><img src="/assets/img/logo-192.webp" alt=""><b><span>ข่าว</span> <span>มรส.</span></b><span class="sr-only"> หน้าแรก</span></a>
       <h1 data-title>บัญชีนี้ไม่ใช่อีเมลของมหาวิทยาลัย</h1>
       <p class="text" data-text>การส่งข่าวเปิดให้บุคลากร (@sru.ac.th) และนักศึกษา (@student.sru.ac.th) ออกจากระบบแล้วเข้าสู่ระบบใหม่ด้วยอีเมลของมหาวิทยาลัย หรืออ่านข่าวสาธารณะต่อได้</p>
       <div class="actions" data-actions><a class="btn primary" href="#switch">เข้าสู่ระบบด้วยบัญชีอื่น</a><a class="btn" href="/">อ่านข่าวต่อ</a></div>

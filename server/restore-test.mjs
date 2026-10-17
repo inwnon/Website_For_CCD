@@ -14,6 +14,8 @@ const VIA = process.env.RESTORE_VIA || 'docker';
 const IMAGE = process.env.RESTORE_IMAGE || 'postgres:16-alpine';
 const SAMPLE = Number(process.env.RESTORE_SAMPLE) || 40;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// The checks are shown in admin.html, in Thai
+const TABLE = { news: 'ข่าว', users: 'ผู้ใช้', submissions: 'งานที่ส่ง', submission_files: 'ไฟล์แนบ', audit_log: 'ประวัติการใช้งาน', news_revisions: 'ประวัติการแก้ไขข่าว' };
 
 async function latest(dir, re) {
   const names = (await readdir(dir).catch(() => [])).filter((n) => re.test(n)).sort();
@@ -41,7 +43,7 @@ export async function restoreTest() {
   const check = (ok, what) => { result.checks.push({ ok, what }); if (!ok) result.errors.push(what); };
   const dump = await latest(join(BACKUP_DIR, 'db'), /^prsru-\d{8}-\d{4}\.dump$/);
   const snapDir = await latest(join(BACKUP_DIR, 'media'), /^\d{4}-\d{2}-\d{2}$/);
-  if (!dump) { result.errors.push('no database dump to restore'); await writeStatus({ restoreTest: result }); return result; }
+  if (!dump) { result.errors.push('ไม่มีไฟล์สำรองฐานข้อมูลให้กู้คืน'); await writeStatus({ restoreTest: result }); return result; }
   result.dump = dump.split(/[\\/]/).slice(-2).join('/');
   result.snapshot = snapDir ? snapDir.split(/[\\/]/).slice(-2).join('/') : null;
   const expected = existsSync(`${dump}.json`) ? JSON.parse(await readFile(`${dump}.json`, 'utf8')) : null;
@@ -53,13 +55,13 @@ export async function restoreTest() {
     const q = async (sql) => (await db.tool('psql', ['-At', '-c', sql])).trim();
     // 2. same rows as when it was made
     const tables = Number(await q("select count(*) from information_schema.tables where table_schema = 'public'"));
-    check(tables >= 15, `restored ${tables} tables`);
+    check(tables >= 15, `กู้คืนฐานข้อมูลได้ ${tables} ตาราง`);
     if (expected) {
       const got = JSON.parse(await q("select json_build_object('news', (select count(*) from news), 'users', (select count(*) from users), 'submissions', (select count(*) from submissions), 'submission_files', (select count(*) from submission_files), 'audit_log', (select count(*) from audit_log), 'news_revisions', (select count(*) from news_revisions))"));
-      for (const [k, v] of Object.entries(expected.counts)) check(got[k] === v, `${k}: ${got[k]} rows (backup had ${v})`);
-    } else check(false, 'the dump has no .json with its row counts');
+      for (const [k, v] of Object.entries(expected.counts)) check(got[k] === v, `${TABLE[k] || k}: ${got[k]} แถว (ตอนสำรองมี ${v})`);
+    } else check(false, 'ไฟล์สำรองไม่มีจำนวนแถวไว้เทียบ (.json)');
     const migrations = Number(await q('select count(*) from schema_migrations').catch(() => '0'));
-    check(migrations > 0, `migrations recorded: ${migrations}`);
+    check(migrations > 0, `โครงสร้างฐานข้อมูลครบ ${migrations} รุ่น`);
     // 3. media snapshot
     if (snapDir) {
       const manifest = JSON.parse(await readFile(join(snapDir, 'manifest.json'), 'utf8')).files;
@@ -68,19 +70,19 @@ export async function restoreTest() {
         const p = join(snapDir, ...f.path.split('/'));
         if (!existsSync(p)) missing++; else if ((await stat(p)).size !== f.size) wrongSize++;
       }
-      check(!missing && !wrongSize, `media: ${manifest.length} files, ${missing} missing, ${wrongSize} with the wrong size`);
+      check(!missing && !wrongSize, `ไฟล์ภาพและเอกสาร ${manifest.length} ไฟล์ หาย ${missing} ขนาดไม่ตรง ${wrongSize}`);
       // (missing files are counted above; the sample is of the ones that are there)
       const sample = manifest.filter((f) => existsSync(join(snapDir, ...f.path.split('/')))).sort(() => Math.random() - 0.5).slice(0, SAMPLE);
       let bad = 0;
       for (const f of sample) if (f.sha256 && (await sha256(join(snapDir, ...f.path.split('/')))) !== f.sha256) bad++;
-      check(!bad, `media: ${sample.length} files checked by SHA-256, ${bad} different`);
+      check(!bad, `สุ่มตรวจเนื้อไฟล์ (SHA-256) ${sample.length} ไฟล์ ไม่ตรง ${bad}`);
       // what the restored database points to is in the snapshot
       const paths = (await q("select path from submission_files union all select 'media/' || cover_path from news where cover_path is not null union all select 'media/' || g from news, unnest(gallery) g"))
         .split('\n').filter(Boolean);
       const have = new Set(manifest.map((f) => f.path));
       const absent = paths.filter((p) => !have.has(p));
-      check(!absent.length, `files the database uses: ${paths.length}, missing from the snapshot ${absent.length}${absent.length ? ` (e.g. ${absent[0]})` : ''}`);
-    } else check(false, 'no media snapshot');
+      check(!absent.length, `ไฟล์ที่ฐานข้อมูลอ้างถึง ${paths.length} ไฟล์ ไม่มีในสำเนา ${absent.length}${absent.length ? ` (เช่น ${absent[0]})` : ''}`);
+    } else check(false, 'ไม่มีสำเนาไฟล์ภาพและเอกสาร');
     result.ok = result.errors.length === 0;
   } catch (err) {
     result.errors.push(err.message);

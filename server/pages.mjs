@@ -183,6 +183,14 @@ router.get('/search.html', loadUser, async (req, res, next) => {
   page = P.get('unit') && !P.get('q')
     ? swap(page, '<section id="unitHead" class="', '<section id="unitHead" data-ssr class="').replace(/(<section id="unitHead" data-ssr [^>]*?) hidden/, '$1')
     : swap(page, '<form id="bigSearch" role="search" action="search.html" hidden>', '<form id="bigSearch" role="search" action="search.html">');
+  // ...and the filter bar and the result heading as the script sets them (paint() and load() in search.html): on a phone
+  // "ล้างตัวกรอง" and "เรียงตาม" each wrap to a new line, which pushed the results down once the script ran
+  const q = P.get('q') || '', unitPage = P.get('unit') && !q;
+  if (q || P.get('kind') || P.getAll('cat').length || P.get('range') || (P.get('unit') && !unitPage)) page = page.replace(/(<button id="clear"[^>]*?) hidden>/, '$1>');
+  if (q) page = page.replace(/(<label id="sortBox"[^>]*?) hidden>/, '$1>');
+  const title = q ? `ผลการค้นหา “${esc(q)}”` : unitPage ? 'ข่าวทั้งหมดของหน่วยงาน' : 'ข่าวทั้งหมด';
+  page = page.replace(/(<h2 id="resultTitle"[^>]*>)[^<]*</, (m, open) => `${open}${title}<`) // (functions: the search words may hold "$")
+    .replace(/(<p id="resultCount"[^>]*>)[^<]*</, (m, open) => `${open}${result.total ? `พบ ${result.total.toLocaleString('th-TH')} ข่าว` : ''}<`);
   res.type('html').send(swap(page, '<script>window.SERVER_AUTH = true;</script>',
     `<script>window.SERVER_AUTH = true; window.__SEARCH = ${scriptJson({ query: p.toString(), result })};</script>`));
 });

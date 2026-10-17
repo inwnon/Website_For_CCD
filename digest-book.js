@@ -162,7 +162,7 @@
         <div class="absolute inset-0" style="background:${glow(d)}"></div>
         <div class="grain-abs"></div>
         <div class="relative flex h-full flex-col p-[7cqw] text-white">
-          <p class="flex justify-between font-display text-[3cqw] font-semibold tracking-[.18em]"><span>${esc(KIND[d.kind].masthead)}</span><span>No.${esc(d.no)}</span></p>
+          <p class="flex justify-between font-display text-[3cqw] font-semibold tracking-[.18em]"><span>${esc(KIND[d.kind].masthead)}</span> <span>No.${esc(d.no)}</span></p>
           <p class="mt-[8cqw] font-display text-[13cqw] font-bold leading-[1.05] tracking-[-0.03em]">${esc(shortRange(d))}</p>
           <p class="mt-[1.5cqw] font-display text-[4cqw] font-medium text-white/80">${year(d)} · ${iss.count} ข่าว</p>
           <ol class="mt-[7cqw] grid gap-[2.4cqw] border-t border-white/25 pt-[4cqw]">
@@ -236,7 +236,7 @@
       <span class="absolute inset-0" style="background:${glow(d)}"></span>
       <span class="grain-abs"></span>
       <span class="relative flex h-full flex-col p-[8cqw] text-left text-white">
-        <span class="flex justify-between font-display text-[4cqw] font-semibold tracking-[.16em]"><span>${esc(KIND[d.kind].masthead)}</span><span>No.${esc(d.no)}</span></span>
+        <span class="flex justify-between font-display text-[4cqw] font-semibold tracking-[.16em]"><span>${esc(KIND[d.kind].masthead)}</span> <span>No.${esc(d.no)}</span></span>
         <span class="mt-[8cqw] font-display text-[15cqw] font-bold leading-[1.05] tracking-[-0.03em]">${esc(shortRange(d))}</span>
         <span class="mt-[2cqw] font-display text-[5cqw] font-medium text-white/80">${year(d)}</span>
         <img src="/assets/img/hawky-960.webp" srcset="/assets/img/hawky-480.webp 480w, /assets/img/hawky-640.webp 640w, /assets/img/hawky-960.webp 960w" sizes="(min-width: 768px) 380px, (min-width: 640px) 300px, 245px" alt="" class="absolute bottom-[-3cqw] right-[-6cqw] h-auto w-[62cqw] drop-shadow-[0_3cqw_4cqw_rgb(0_0_0/.35)]">
@@ -244,10 +244,14 @@
     </span>`;
   }
 
+  // Name for a button or link around coverMini: starts with the action and contains the text printed on the cover,
+  // so voice control users can say what they see (WCAG 2.5.3)
+  const coverName = (d, action) => (d.coverURL ? `${action} ${d.range}` : `${action} ${KIND[d.kind].masthead} No.${d.no} ${shortRange(d)} ${year(d)}`);
+
   const thaiDate = (iso, opts = {}) => new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok', ...opts });
 
   window.DigestBook = {
     KIND, RULES, FIXED_PAGES, COVER_SIZE, MAX_COVER_MB, MAX_PDF_MB,
-    esc, addBlock, pageCount, pagesOfCat, build, openPdf, hydrate, shelf, issue, fromServer, renderPage, coverMini, thaiDate, shortRange,
+    esc, addBlock, pageCount, pagesOfCat, build, openPdf, hydrate, shelf, issue, fromServer, renderPage, coverMini, coverName, thaiDate, shortRange,
   };
 })();

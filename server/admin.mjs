@@ -94,7 +94,6 @@ router.put('/admin/roles', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ---- Usage history ----
 // ---- Backups: what the nightly backup and the monthly restore test last did ----
 // Late: no good backup in 26 hours, no passed restore test in 35 days, or nothing copied off this machine
 router.get('/admin/backups', async (req, res) => {
@@ -111,6 +110,7 @@ router.get('/admin/backups', async (req, res) => {
   });
 });
 
+// ---- Usage history ----
 router.get('/admin/audit', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
   const offset = Math.max(Number(req.query.offset) || 0, 0);

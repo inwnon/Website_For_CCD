@@ -175,7 +175,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+  <link rel="stylesheet" href="/assets/app.css?v=c98edbb527">
 </head>
 
 <body class="min-h-screen">
@@ -184,13 +184,13 @@
   <!-- ===== Header (same as index.html) ===== -->
   <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
     <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
-      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90" aria-label="ข่าว มรส. หน้าแรก">
+      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
           <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
           <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
         </span>
-      </a>
+      <span class="sr-only"> หน้าแรก</span></a>
 
       <form class="mx-auto hidden w-full max-w-[680px] md:block" role="search" action="search.html">
         <label for="q" class="sr-only">ค้นหาข่าว</label>
@@ -264,7 +264,7 @@
         <!-- ===== Top: lead photo + summary ===== -->
         <div class="mt-4 grid gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
           <figure id="leadFig" class="self-start rounded-card border border-line bg-surface p-3 shadow-raised">
-            <button type="button" data-open="0" class="press t-quick group relative block w-full overflow-hidden rounded-2xl" aria-label="เปิดดูภาพข่าวแบบเต็มจอ ภาพที่ 1">
+            <button type="button" data-open="0" class="press t-quick group relative block w-full overflow-hidden rounded-2xl" aria-label="ขยายภาพ ภาพที่ 1 แบบเต็มจอ">
               <img id="leadImg" alt="" class="t-spring aspect-[3/2] w-full object-cover group-hover:scale-[1.03]" width="1200" height="800">
               <span class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></span>
               <span class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-60"></span>
