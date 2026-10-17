@@ -81,6 +81,7 @@ async function backupMedia() {
   if (prevDir) try { prev = Object.fromEntries(JSON.parse(await readFile(join(prevDir, 'manifest.json'), 'utf8')).files.map((f) => [f.path, f])); } catch {}
   const dest = join(root, today);
   await rm(dest, { recursive: true, force: true }); // a second run on the same day starts the day's snapshot again
+  await mkdir(dest, { recursive: true }); // made even when uploads/ is still empty, so the manifest has a place
   const files = [];
   let copied = 0, linked = 0, bytesCopied = 0;
   for await (const src of walk(UPLOADS)) {
