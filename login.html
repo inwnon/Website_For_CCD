@@ -846,8 +846,9 @@
       // Staff: the 4-digit internal extension. Students and external users: a number to call
       const ext = !student && !external;
       $('#phoneLabel').textContent = ext ? 'เบอร์โทรศัพท์ภายใน (4 หลัก)' : 'เบอร์โทรศัพท์ที่ติดต่อได้';
-      $('#phone').placeholder = ext ? '' : 'เช่น 081 234 5678';
-      $('#phone').maxLength = ext ? 4 : 13;
+      $('#phone').placeholder = ext ? '' : 'เช่น 0812345678';
+      // Digits only (the input handler drops anything else), so this is the number of digits: never more than 10
+      $('#phone').maxLength = ext ? 4 : 10;
       $('#phone').autocomplete = ext ? 'off' : 'tel';
       $('#phoneError').textContent = ext ? 'กรุณากรอกเบอร์โทรศัพท์ภายใน' : 'กรุณากรอกเบอร์โทรศัพท์';      $('#positionLabel').textContent = external ? 'ตำแหน่ง (ไม่บังคับ)' : 'ตำแหน่ง';
       $('[data-step="2"] .step-title').textContent = external ? 'ข้อมูลของคุณ' : 'สังกัดของคุณ';
@@ -915,13 +916,19 @@
     });
     $('#firstName').addEventListener('input', (e) => { state.firstName = e.target.value.trim(); if (state.firstName) showError('#firstNameError', false, e.target); });
     $('#lastName').addEventListener('input', (e) => { state.lastName = e.target.value.trim(); if (state.lastName) showError('#lastNameError', false, e.target); });
-    $('#phone').addEventListener('input', (e) => { state.phone = e.target.value.replace(/[\s-]/g, ''); if (state.phone) showError('#phoneError', false, e.target); });
+    $('#phone').addEventListener('input', (e) => {
+      // Typed or pasted "081-234-5678" becomes 0812345678; digits past the limit are dropped
+      const digits = e.target.value.replace(/\D/g, '').slice(0, e.target.maxLength > 0 ? e.target.maxLength : 10);
+      if (digits !== e.target.value) e.target.value = digits;
+      state.phone = digits;
+      if (state.phone) showError('#phoneError', false, e.target);
+    });
     // Same rules as the server (auth.mjs); returns the message, or '' when the number is fine
     function phoneProblem() {
       const ext = state.role === 'staff';
       if (!state.phone) return ext ? 'กรุณากรอกเบอร์โทรศัพท์ภายใน' : 'กรุณากรอกเบอร์โทรศัพท์';
       if (ext) return !/^\d{4}$/.test(state.phone) ? 'เบอร์โทรศัพท์ภายในเป็นตัวเลข 4 หลัก' : state.phone[0] === '0' ? 'เบอร์โทรศัพท์ภายในขึ้นต้นด้วย 0 ไม่ได้' : '';
-      return /^0\d{8,9}$/.test(state.phone) ? '' : 'เบอร์โทรศัพท์ขึ้นต้นด้วย 0 และมี 9–10 หลัก เช่น 081 234 5678';
+      return /^0\d{9}$/.test(state.phone) ? '' : 'เบอร์โทรศัพท์ต้องมี 10 หลัก ขึ้นต้นด้วย 0 เช่น 0812345678';
     }
     $('[data-step="2"]').addEventListener('submit', (e) => {
       e.preventDefault();

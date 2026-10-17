@@ -36,16 +36,17 @@ describe('profile: name and phone', () => {
     const e = await external.call('PUT', '/api/me/profile', { org: 'บริษัทตัวอย่าง', consent: true });
     for (const k of ['firstName', 'lastName', 'phone']) assert.ok(e.body.details[k], k);
   });
-  test('staff: a 4-digit internal extension; students and external users: a Thai phone number', async () => {
+  test('staff: a 4-digit internal extension; students and external users: a 10-digit phone number', async () => {
     for (const phone of ['123', '12345', '081-234-5678', 'abcd', '0123']) {
       assert.equal((await staff.call('PUT', '/api/me/profile', { ...STAFF_UNIT, ...ID_STAFF, phone })).body.details?.phone && true, true, phone);
     }
-    for (const phone of ['1234', '81234567', '0812', '+66812345678']) {
+    // 9 digits (077 123 456) and 11 digits are refused too: exactly 10, starting with 0
+    for (const phone of ['1234', '81234567', '0812', '+66812345678', '077123456', '08123456789', '1812345678']) {
       assert.equal((await external.call('PUT', '/api/me/profile', { ...ID_OTHER, org: 'บริษัทตัวอย่าง', phone, consent: true })).status, 400, phone);
     }
-    const ok = await external.call('PUT', '/api/me/profile', { ...ID_OTHER, org: 'บริษัทตัวอย่าง', phone: '077 123 456', consent: true });
+    const ok = await external.call('PUT', '/api/me/profile', { ...ID_OTHER, org: 'บริษัทตัวอย่าง', phone: '077 123 4567', consent: true });
     assert.equal(ok.status, 200);
-    assert.equal(ok.body.user.phone, '077123456', 'stored as digits');
+    assert.equal(ok.body.user.phone, '0771234567', 'stored as digits');
   });
   test('the typed name becomes the display name and signing in again keeps it', async () => {
     const r = await staff.call('PUT', '/api/me/profile', { ...STAFF_UNIT, ...ID_STAFF });

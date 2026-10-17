@@ -183,7 +183,7 @@ router.put('/me/profile', requireUser, limit('profile', { max: 30, windowMs: 10 
   if (!phone) errors.phone = ext ? 'กรุณากรอกเบอร์โทรศัพท์ภายใน' : 'กรุณากรอกเบอร์โทรศัพท์';
   else if (ext && !/^\d{4}$/.test(phone)) errors.phone = 'เบอร์โทรศัพท์ภายในเป็นตัวเลข 4 หลัก';
   else if (ext && phone[0] === '0') errors.phone = 'เบอร์โทรศัพท์ภายในขึ้นต้นด้วย 0 ไม่ได้';
-  else if (!ext && !/^0\d{8,9}$/.test(phone)) errors.phone = 'เบอร์โทรศัพท์ขึ้นต้นด้วย 0 และมี 9–10 หลัก เช่น 081 234 5678';
+  else if (!ext && !/^0\d{9}$/.test(phone)) errors.phone = 'เบอร์โทรศัพท์ต้องมี 10 หลัก ขึ้นต้นด้วย 0 เช่น 0812345678';
 
   if (role === 'external') {
     p.org = str(b.org, 200, 'หน่วยงาน / องค์กร');
