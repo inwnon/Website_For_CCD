@@ -1,0 +1,46 @@
+# Development: `npm run db:up` starts PostgreSQL only; the app runs with `npm run dev`.
+# Server: `docker compose --profile app up -d` runs the database and the app together.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-prsru}
+      POSTGRES_USER: ${PGUSER:-prsru}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-prsru-dev}
+      TZ: Asia/Bangkok
+    ports:
+      - "127.0.0.1:${PGPORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-prsru} -d ${PGDATABASE:-prsru}"]
+      interval: 5s
+      retries: 10
+
+  app:
+    profiles: ["app"]
+    image: node:22-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm ci --omit=dev && node server/migrate.mjs && node server/index.mjs"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0       # inside the container; the port below is published on this machine only
+      PGHOST: db
+      PGPORT: 5432
+      TZ: Asia/Bangkok
+    ports:
+      - "127.0.0.1:${PORT:-3000}:3000"   # reached through the reverse proxy (HTTPS), not from other machines
+    volumes:
+      - ./:/app
+      - /app/node_modules   # the container installs its own (Linux) packages
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:

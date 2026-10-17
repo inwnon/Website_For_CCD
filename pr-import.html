@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>นำเข้าข่าวย้อนหลัง | หลังบ้าน ข่าว มรส.</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="desk.css">
+  <style>
+    .img-pick { position: relative; cursor: pointer; }
+    .img-pick input { position: absolute; opacity: 0; pointer-events: none; }
+    .img-pick .box { transition: transform .4s var(--spring), opacity .2s var(--ease-out); }
+    .img-pick:hover .box { transform: translateY(-2px); }
+    .img-pick:has(input:not(:checked)) .box { opacity: .4; }
+    .img-pick:has(input:checked) .box { box-shadow: 0 0 0 3px rgb(var(--purple)); }
+    .img-pick:has(input:focus-visible) .box { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+    .img-pick .tick { opacity: 0; transform: scale(.5); transition: opacity .2s var(--ease-out), transform .45s var(--spring); }
+    .img-pick:has(input:checked) .tick { opacity: 1; transform: none; }
+    .err { color: rgb(var(--red)); font-size: 13px; font-weight: 500; margin-top: 4px; }
+  </style>
+  <script src="thai-date.js" defer></script>
+  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+</head>
+<body class="app">
+  <a href="#importForm" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่ฟอร์ม</a>
+  <div class="flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
+    <header id="mbar" class="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-shell/95 px-4 py-2.5 shadow-raised backdrop-blur-xl lg:hidden"></header>
+    <div id="scrim" class="fixed inset-0 z-40 bg-[rgb(10_11_32/.45)] lg:hidden" aria-hidden="true"></div>
+    <aside id="side" class="scroll-thin fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto bg-bg px-4 pb-4 pt-5 shadow-float lg:static lg:z-auto lg:w-[248px] lg:shrink-0 lg:bg-transparent lg:shadow-none" aria-label="เมนูหลังบ้าน"></aside>
+
+    <main id="main" class="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-2 sm:p-3 lg:flex-row lg:pl-0">
+      <section id="gate" class="m-auto flex max-w-[520px] flex-col items-center gap-4 rounded-card border border-line bg-shell p-8 text-center shadow-float" hidden></section>
+
+      <!-- ===== Form ===== -->
+      <form id="importForm" class="flex min-h-0 min-w-0 flex-1 flex-col rounded-card bg-shell shadow-raised" novalidate hidden aria-labelledby="pageTitle">
+        <div class="scroll-thin min-h-0 flex-1 overflow-y-auto">
+          <div class="border-b border-line p-4 sm:p-6">
+            <h1 id="pageTitle" class="font-display tight text-[26px] font-bold text-royal">นำเข้าข่าวย้อนหลัง</h1>
+            <p class="mt-1 max-w-[70ch] text-[14px] text-ink2">ข่าวที่นำเข้าจะเผยแพร่ทันทีตามวันที่เดิม ไม่ผ่านคิวตรวจและไม่แจ้งผู้ส่ง จะไม่ขึ้นเป็นข่าวล่าสุดบนหน้าแรก แต่อยู่ในคลังข่าว ผลค้นหา หน้าหน่วยงาน และรายงาน</p>
+
+            <!-- Facebook -->
+            <div class="mt-5 rounded-card border border-line bg-surface2/60 p-4 sm:p-5">
+              <label for="fbUrl" class="font-display text-[16px] font-semibold">วางลิงก์โพสต์จากเพจ Facebook ของมหาวิทยาลัย</label>
+              <p class="text-[13px] text-ink2">ระบบจะดึงข้อความ ภาพ และวันที่มาใส่ฟอร์มให้ ตรวจแล้วแก้ได้ก่อนนำเข้า ถ้าไม่มีลิงก์ กรอกเองด้านล่างได้เลย</p>
+              <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input id="fbUrl" type="url" inputmode="url" placeholder="https://www.facebook.com/…/posts/…" class="field h-12 min-w-0 flex-1 rounded-2xl px-4 text-[15px]">
+                <button id="fetchBtn" type="button" class="press t-spring inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-royal px-5 font-display text-[15px] font-semibold text-white dark:text-bg shadow-raised hover:-translate-y-0.5 disabled:opacity-60">
+                  <svg id="fetchIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                  ดึงข้อมูลจากโพสต์
+                </button>
+              </div>
+              <ul id="fetchNotes" class="mt-3 grid gap-1 text-[13px] text-gold" hidden></ul>
+            </div>
+          </div>
+
+          <div class="grid gap-6 p-4 sm:p-6">
+            <fieldset>
+              <legend class="mb-2 font-display text-[15px] font-semibold">ประเภทเนื้อหา <span class="text-brand">*</span></legend>
+              <div class="flex flex-wrap gap-2">
+                <label class="opt chip-opt"><input type="radio" name="kind" value="news" checked><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">ข่าวพร้อมภาพ</span></label>
+                <label class="opt chip-opt"><input type="radio" name="kind" value="video"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">วิดีโอ</span></label>
+                <label class="opt chip-opt"><input type="radio" name="kind" value="banner"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">แบนเนอร์ / อินโฟกราฟิก</span></label>
+              </div>
+            </fieldset>
+
+            <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px_140px]">
+              <label class="grid content-start gap-1.5">
+                <span class="font-display text-[15px] font-semibold">หน่วยงาน <span class="text-brand">*</span></span>
+                <input id="unit" list="units" autocomplete="off" placeholder="พิมพ์ชื่อหน่วยงานเพื่อค้นหา" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="unitErr">
+                <datalist id="units"></datalist>
+                <span id="unitErr" class="err" hidden></span>
+              </label>
+              <label class="grid content-start gap-1.5">
+                <span class="font-display text-[15px] font-semibold">วันที่เผยแพร่เดิม <span class="text-brand">*</span></span>
+                <input id="date" type="date" class="field h-12 w-full min-w-0 rounded-2xl px-3 text-[15px]" aria-describedby="dateErr">
+                <span id="dateErr" class="err" hidden></span>
+              </label>
+              <label class="grid content-start gap-1.5">
+                <span class="font-display text-[15px] font-semibold">เวลา</span>
+                <input id="time" type="time" value="12:00" class="field h-12 w-full min-w-0 rounded-2xl px-3 text-[15px]">
+              </label>
+            </div>
+
+            <label class="grid gap-1.5">
+              <span class="font-display text-[15px] font-semibold">หัวข้อข่าว <span class="text-brand">*</span></span>
+              <input id="title" maxlength="200" class="field h-12 rounded-2xl px-4 text-[16px]" aria-describedby="titleErr">
+              <span id="titleErr" class="err" hidden></span>
+            </label>
+            <label class="grid gap-1.5">
+              <span class="font-display text-[15px] font-semibold">คำโปรย / สรุปข่าว</span>
+              <input id="lead" maxlength="300" class="field h-12 rounded-2xl px-4 text-[15px]">
+            </label>
+            <label class="grid gap-1.5" id="bodyBox">
+              <span class="font-display text-[15px] font-semibold">เนื้อหาข่าว <span id="bodyStar" class="text-brand">*</span></span>
+              <textarea id="body" rows="8" class="field rounded-2xl px-4 py-3 text-[15px] leading-relaxed" aria-describedby="bodyErr"></textarea>
+              <span id="bodyErr" class="err" hidden></span>
+            </label>
+
+            <fieldset id="catSet">
+              <legend class="mb-2 font-display text-[15px] font-semibold">ประเภทข่าว <span id="catStar" class="text-brand">*</span> <span class="font-sans text-[13px] font-normal text-ink2">เลือกได้สูงสุด 5 ประเภท</span></legend>
+              <div id="cats" class="flex flex-wrap gap-2"></div>
+              <span id="categoriesErr" class="err" hidden></span>
+            </fieldset>
+
+            <fieldset>
+              <legend class="mb-2 font-display text-[15px] font-semibold">ใครเห็นข่าวนี้ได้ <span class="text-brand">*</span></legend>
+              <div class="flex flex-wrap gap-2">
+                <label class="opt chip-opt"><input type="radio" name="aud" value="public" checked><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">บุคคลทั่วไป</span></label>
+                <label class="opt chip-opt"><input type="radio" name="aud" value="uni"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">ภายในมหาวิทยาลัย</span></label>
+                <label class="opt chip-opt"><input type="radio" name="aud" value="staff"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">เฉพาะบุคลากร</span></label>
+                <label class="opt chip-opt"><input type="radio" name="aud" value="student"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">เฉพาะนักศึกษา</span></label>
+              </div>
+            </fieldset>
+
+            <section aria-labelledby="photosTitle">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 id="photosTitle" class="font-display text-[15px] font-semibold">ภาพ <span id="photoStar" class="text-brand">*</span> <span class="font-sans text-[13px] font-normal text-ink2">ภาพแรกเป็นภาพปก</span></h2>
+                <span id="photoCount" class="text-[13px] text-ink2"></span>
+              </div>
+              <div id="photoGrid" class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5 xl:grid-cols-6"></div>
+              <label id="drop" class="drop mt-2 flex cursor-pointer items-center gap-4 rounded-2xl border-2 border-dashed border-line px-5 py-4">
+                <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,.heic" multiple class="sr-only">
+                <span class="drop-icon bg-grad grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white shadow-glow" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg>
+                </span>
+                <span><span class="block font-display text-[15px] font-semibold">เพิ่มภาพจากเครื่อง <span class="text-purple underline underline-offset-4">เลือกไฟล์</span> หรือลากมาวาง</span>
+                <span class="block text-[13px] text-ink2">JPG, PNG, WebP, HEIC ไม่เกิน 15 MB ต่อภาพ</span></span>
+              </label>
+              <span id="photosErr" class="err" hidden></span>
+            </section>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="grid content-start gap-1.5">
+                <span class="font-display text-[15px] font-semibold">ลิงก์วิดีโอ <span id="videoStar" class="text-brand" hidden>*</span></span>
+                <input id="videoUrl" type="url" inputmode="url" placeholder="YouTube, Facebook, TikTok หรือ Google Drive" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="videoUrlErr">
+                <span id="videoUrlErr" class="err" hidden></span>
+              </label>
+              <label class="grid content-start gap-1.5">
+                <span class="font-display text-[15px] font-semibold">เครดิตภาพ</span>
+                <input id="credit" maxlength="80" placeholder="งานประชาสัมพันธ์ มรส." class="field h-12 rounded-2xl px-4 text-[15px]">
+              </label>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="grid content-start gap-1.5">
+                <span class="font-display text-[15px] font-semibold">ลิงก์ต้นฉบับ</span>
+                <input id="sourceUrl" type="url" inputmode="url" placeholder="ลิงก์โพสต์เดิม ใช้ตรวจข่าวซ้ำ" class="field h-12 rounded-2xl px-4 text-[15px]">
+              </label>
+              <label class="grid content-start gap-1.5">
+                <span class="font-display text-[15px] font-semibold">ลิงก์ภาพเพิ่มเติม</span>
+                <input id="albumUrl" type="url" inputmode="url" placeholder="อัลบั้ม Facebook หรือ Google Drive" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="albumUrlHint albumUrlErr">
+                <span id="albumUrlHint" class="text-[13px] text-ink2">ผู้อ่านจะเห็นปุ่ม "ดูรูปภาพเพิ่มเติม" ในหน้าข่าว</span>
+                <span id="albumUrlErr" class="err" hidden></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-end gap-2 border-t border-line p-3 sm:px-5">
+          <button id="resetBtn" type="button" class="press t-quick mr-auto h-11 rounded-2xl px-4 font-display text-[15px] font-medium text-ink2 hover:-translate-y-0.5 hover:text-ink">ล้างฟอร์ม</button>
+          <button type="submit" data-next="0" class="press t-spring h-11 rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5 disabled:opacity-60">นำเข้า</button>
+          <button type="submit" data-next="1" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">นำเข้าแล้วเพิ่มข่าวถัดไป</button>
+        </div>
+      </form>
+
+      <!-- ===== Side: duplicates + this session ===== -->
+      <aside id="sidePanel" class="grid min-h-0 content-start gap-3 lg:w-[340px] lg:shrink-0 lg:overflow-y-auto scroll-thin" hidden>
+        <section class="rounded-card bg-shell p-4 shadow-raised" aria-labelledby="dupTitle">
+          <h2 id="dupTitle" class="font-display text-[17px] font-semibold">ตรวจข่าวซ้ำ</h2>
+          <div id="dupList" class="mt-2 text-[14px] text-ink2" aria-live="polite">เลือกหน่วยงานและวันที่ หรือวางลิงก์ต้นฉบับ ระบบจะเตือนถ้ามีข่าวที่อาจซ้ำ</div>
+        </section>
+        <section class="rounded-card bg-shell p-4 shadow-raised" aria-labelledby="doneTitle">
+          <div class="flex items-baseline justify-between gap-2">
+            <h2 id="doneTitle" class="font-display text-[17px] font-semibold">นำเข้าในรอบนี้</h2>
+            <a href="pr-news.html?show=imported" class="rounded text-[13px] font-medium text-purple hover:underline">ดูข่าวนำเข้าทั้งหมด</a>
+          </div>
+          <ol id="doneList" class="mt-2 grid gap-2 text-[14px]"><li class="text-ink2">ยังไม่มี</li></ol>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Duplicate confirmation -->
+  <dialog id="dupDlg" class="desk-dlg w-[min(560px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="dupDlgTitle">
+    <div class="grid gap-4 p-6">
+      <h2 id="dupDlgTitle" class="font-display text-[21px] font-semibold">ข่าวนี้อาจมีอยู่แล้ว</h2>
+      <ul id="dupDlgList" class="grid gap-2"></ul>
+      <p class="text-[14px] text-ink2">ถ้าเป็นคนละข่าวกัน นำเข้าต่อได้ ถ้าซ้ำ ยกเลิกแล้วตรวจข่าวเดิมแทน</p>
+      <div class="flex justify-end gap-2">
+        <button id="dupCancel" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ยกเลิก</button>
+        <button id="dupOk" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">เป็นคนละข่าว นำเข้าต่อ</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="auth.js"></script>
+  <script src="org-data.js"></script>
+  <script src="site-config.js"></script>
+  <script src="desk.js"></script>
+  <script>
+    const { esc, day, isoDay, toast } = DESK;
+    const $ = (s) => document.querySelector(s);
+    const SITE = window.SITE || { categories: [], photos: { max: 60 } };
+    const UNITS = [...new Set([...ORG.staffGroups.flatMap((g) => g.units), ...Object.values(ORG.subUnits).flatMap((s) => s.units), ...Object.keys(ORG.faculties)])];
+    const AUD = { public: ['public'], uni: ['student', 'staff'], staff: ['staff'], student: ['student'] };
+    const MAX_CATS = 5;
+    // Photos in order: [{ kind: 'remote', url } | { kind: 'file', file, url }], each with on = include
+    let photos = [];
+
+    $('#units').innerHTML = UNITS.map((u) => `<option value="${esc(u)}"></option>`).join('');
+    $('#cats').innerHTML = SITE.categories.map((c) => `<label class="opt chip-opt"><input type="checkbox" name="cat" value="${esc(c)}"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">${esc(c)}</span></label>`).join('');
+    $('#date').max = isoDay();
+
+    const radio = (n) => document.querySelector(`input[name=${n}]:checked`)?.value;
+    const cats = () => [...document.querySelectorAll('input[name=cat]:checked')].map((i) => i.value);
+    function setErr(key, msg) {
+      const el = document.getElementById(key + 'Err');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.hidden = !msg;
+      const field = document.getElementById(key);
+      if (field) field.setAttribute('aria-invalid', String(!!msg));
+    }
+    const clearErrs = () => ['unit', 'date', 'title', 'body', 'categories', 'photos', 'videoUrl', 'albumUrl'].forEach((k) => setErr(k));
+
+    // Kind decides which fields are required
+    function syncKind() {
+      const k = radio('kind');
+      $('#bodyStar').hidden = k !== 'news';
+      $('#catStar').hidden = k === 'banner';
+      $('#photoStar').hidden = k === 'video';
+      $('#videoStar').hidden = k !== 'video';
+    }
+    document.querySelectorAll('input[name=kind]').forEach((r) => r.addEventListener('change', syncKind));
+    // At most 5 categories
+    $('#cats').addEventListener('change', () => {
+      const full = cats().length >= MAX_CATS;
+      document.querySelectorAll('input[name=cat]').forEach((i) => { i.disabled = full && !i.checked; });
+    });
+
+    // ---- Photos ----
+    function paintPhotos() {
+      const on = photos.filter((p) => p.on);
+      $('#photoCount').textContent = photos.length ? `เลือก ${on.length} จาก ${photos.length} ภาพ` : '';
+      $('#photoGrid').innerHTML = photos.map((p, i) => `
+        <label class="img-pick">
+          <input type="checkbox" data-i="${i}" ${p.on ? 'checked' : ''} aria-label="ใช้ภาพที่ ${i + 1}">
+          <span class="box relative block aspect-square overflow-hidden rounded-2xl bg-surface2">
+            <img src="${esc(p.url)}" alt="" class="h-full w-full object-cover" referrerpolicy="no-referrer">
+            ${on[0] === p ? '<span class="absolute bottom-1.5 left-1.5 rounded-lg bg-shell px-2 font-display text-[11px] font-semibold leading-5 text-royal shadow-raised">ภาพปก</span>' : ''}
+            <span class="absolute right-1.5 top-1.5 rounded-lg bg-black/45 px-1.5 text-[11px] font-medium leading-5 text-white">${p.kind === 'remote' ? 'Facebook' : 'จากเครื่อง'}</span>
+            <span class="tick absolute left-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-grad text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
+          </span>
+        </label>`).join('');
+    }
+    $('#photoGrid').addEventListener('change', (e) => { const i = e.target.dataset.i; if (i != null) { photos[i].on = e.target.checked; paintPhotos(); } });
+    function addFiles(list) {
+      for (const f of list) {
+        if (!/^image\//.test(f.type) && !/\.heic$/i.test(f.name)) { toast(`${f.name} ไม่ใช่ไฟล์ภาพ`, true); continue; }
+        if (f.size > 15 * 1024 * 1024) { toast(`${f.name} ใหญ่เกิน 15 MB`, true); continue; }
+        photos.push({ kind: 'file', file: f, url: URL.createObjectURL(f), on: true });
+      }
+      paintPhotos();
+      setErr('photos');
+    }
+    $('#photoInput').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+    const drop = $('#drop');
+    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('is-over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('is-over'));
+    drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('is-over'); addFiles(e.dataTransfer.files); });
+
+    // ---- Fetch from Facebook ----
+    $('#fetchBtn').addEventListener('click', async () => {
+      const url = $('#fbUrl').value.trim();
+      if (!url) { $('#fbUrl').focus(); return; }
+      const btn = $('#fetchBtn');
+      btn.disabled = true;
+      $('#fetchIcon').classList.add('spin');
+      try {
+        const r = await api('/pr/import/fetch', { method: 'POST', body: { url } });
+        if (r.title) $('#title').value = r.title;
+        if (r.body) $('#body').value = r.body;
+        if (r.date) $('#date').value = r.date;
+        $('#sourceUrl').value = r.sourceUrl;
+        photos = photos.filter((p) => p.kind === 'file');
+        photos.unshift(...r.images.map((u) => ({ kind: 'remote', url: u, on: true })));
+        paintPhotos();
+        $('#fetchNotes').innerHTML = ['ดึงข้อมูลแล้ว เลือกหน่วยงานและประเภทข่าวเอง แล้วตรวจข้อความก่อนนำเข้า', ...r.notes].map((n) => `<li>${esc(n)}</li>`).join('');
+        $('#fetchNotes').hidden = false;
+        checkDupes();
+        (!$('#unit').value ? $('#unit') : $('#title')).focus();
+      } catch (err) {
+        $('#fetchNotes').innerHTML = `<li class="text-brand">${esc(err.message)}</li>`;
+        $('#fetchNotes').hidden = false;
+      } finally {
+        btn.disabled = false;
+        $('#fetchIcon').classList.remove('spin');
+      }
+    });
+
+    // ---- Duplicate check (as the PR types) ----
+    let dupTimer, dupSeq = 0;
+    function dupItem(d) {
+      return `<li class="rounded-2xl border border-[rgb(var(--gold)/.5)] bg-gold-soft/60 p-3">
+        <a href="news.html?id=${d.id}" target="_blank" rel="noopener" class="font-display text-[15px] font-semibold text-ink hover:underline">${esc(d.title)}</a>
+        <span class="mt-0.5 block text-[13px] text-ink2">${esc(d.unit)}, ${day(d.publishedAt)}${d.imported ? ', นำเข้าย้อนหลัง' : ''}</span>
+        <span class="mt-1 flex flex-wrap gap-1">${d.reasons.map((r) => `<span class="rounded-full bg-shell px-2 text-[12px] font-medium leading-5 text-gold">${esc(r)}</span>`).join('')}</span>
+      </li>`;
+    }
+    function checkDupes() {
+      clearTimeout(dupTimer);
+      dupTimer = setTimeout(async () => {
+        const p = new URLSearchParams();
+        const unit = $('#unit').value.trim(), date = $('#date').value, url = $('#sourceUrl').value.trim(), title = $('#title').value.trim();
+        if (unit) p.set('unit', unit);
+        if (date) p.set('date', date);
+        if (url) p.set('url', url);
+        if (title.length >= 8) p.set('title', title);
+        if (![...p.keys()].length) return;
+        const seq = ++dupSeq;
+        try {
+          const r = await api('/pr/import/check?' + p);
+          if (seq !== dupSeq) return;
+          $('#dupList').innerHTML = r.duplicates.length
+            ? `<p class="mb-2 font-medium text-gold">พบ ${r.duplicates.length} ข่าวที่อาจซ้ำ</p><ul class="grid gap-2">${r.duplicates.map(dupItem).join('')}</ul>`
+            : '<p class="text-ink2">ไม่พบข่าวที่อาจซ้ำ</p>';
+        } catch (e) {}
+      }, 350);
+    }
+    ['unit', 'date', 'sourceUrl', 'title'].forEach((id) => $('#' + id).addEventListener('input', checkDupes));
+
+    // ---- Submit ----
+    let nextAfter = false;
+    $('#importForm').addEventListener('click', (e) => { const b = e.target.closest('[data-next]'); if (b) nextAfter = b.dataset.next === '1'; });
+    function data(confirmDuplicate) {
+      return {
+        kind: radio('kind'), title: $('#title').value, lead: $('#lead').value, body: $('#body').value,
+        unit: $('#unit').value.trim(), date: $('#date').value, time: $('#time').value || '12:00',
+        categories: cats(), audience: AUD[radio('aud')], videoUrl: $('#videoUrl').value.trim() || null,
+        credit: $('#credit').value, sourceUrl: $('#sourceUrl').value.trim() || null, albumUrl: $('#albumUrl').value.trim() || null,
+        remoteImages: photos.filter((p) => p.on && p.kind === 'remote').map((p) => p.url), confirmDuplicate,
+      };
+    }
+    // Client-side checks mirror the server's (newsdesk.mjs checkImport)
+    function check() {
+      clearErrs();
+      const d = data(false), on = photos.filter((p) => p.on).length;
+      const errs = {};
+      if (!UNITS.includes(d.unit)) errs.unit = 'เลือกหน่วยงานจากรายการ';
+      if (!d.date) errs.date = 'เลือกวันที่เผยแพร่เดิม';
+      else if (d.date > isoDay()) errs.date = 'วันที่เผยแพร่เดิมต้องไม่เกินวันนี้';
+      if (!d.title.trim()) errs.title = 'กรอกหัวข้อข่าว';
+      if (d.kind === 'news' && d.body.trim().length < 20) errs.body = 'ใส่เนื้อหาข่าว';
+      if (d.kind !== 'banner' && !d.categories.length) errs.categories = 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท';
+      if (d.kind !== 'video' && !on) errs.photos = 'เลือกหรือแนบภาพอย่างน้อย 1 ภาพ';
+      if (d.kind === 'video' && !d.videoUrl) errs.videoUrl = 'ใส่ลิงก์วิดีโอ';
+      Object.entries(errs).forEach(([k, m]) => setErr(k, m));
+      const first = Object.keys(errs)[0];
+      if (first) (document.getElementById(first) || document.getElementById(first + 'Err')).scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return !first;
+    }
+    async function send(confirmDuplicate) {
+      const fd = new FormData();
+      fd.append('data', JSON.stringify(data(confirmDuplicate)));
+      for (const p of photos) if (p.on && p.kind === 'file') fd.append('photo', p.file, p.file.name);
+      const buttons = document.querySelectorAll('#importForm [type=submit]');
+      buttons.forEach((b) => { b.disabled = true; });
+      try {
+        const res = await fetch('/api/pr/import', { method: 'POST', body: fd, credentials: 'same-origin' });
+        const r = await res.json().catch(() => ({}));
+        if (res.status === 409 && r.details?.duplicates) {
+          $('#dupDlgList').innerHTML = r.details.duplicates.map(dupItem).join('');
+          $('#dupDlg').showModal();
+          return;
+        }
+        if (!res.ok) {
+          Object.entries(r.details || {}).forEach(([k, m]) => setErr(k, m));
+          throw new Error(r.error || 'นำเข้าไม่สำเร็จ');
+        }
+        done(r.news);
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        buttons.forEach((b) => { b.disabled = false; });
+      }
+    }
+    function done(n) {
+      const list = $('#doneList');
+      if (list.querySelector('.text-ink2')) list.innerHTML = '';
+      list.insertAdjacentHTML('afterbegin', `<li class="rounded-2xl bg-surface2 p-3"><a href="${n.url}" target="_blank" rel="noopener" class="font-display font-semibold hover:underline">${esc(n.title)}</a><span class="block text-[13px] text-ink2">${esc(n.unit)}, ${day(n.publishedAt)}</span></li>`);
+      toast('นำเข้าแล้ว ข่าวเผยแพร่ตามวันที่เดิม');
+      // "Import and add the next one" keeps the date, time, unit and kind
+      const keep = nextAfter ? { unit: $('#unit').value, date: $('#date').value, time: $('#time').value } : null;
+      reset();
+      if (keep) { Object.entries(keep).forEach(([k, v]) => { $('#' + k).value = v; }); checkDupes(); }
+      $(nextAfter ? '#fbUrl' : '#fbUrl').focus();
+    }
+    function reset() {
+      const kind = radio('kind');
+      $('#importForm').reset();
+      if (nextAfter) document.querySelector(`input[name=kind][value=${kind}]`).checked = true;
+      photos.forEach((p) => p.kind === 'file' && URL.revokeObjectURL(p.url));
+      photos = [];
+      paintPhotos();
+      clearErrs();
+      $('#fbUrl').value = '';
+      $('#fetchNotes').hidden = true;
+      $('#time').value = '12:00';
+      $('#dupList').innerHTML = 'เลือกหน่วยงานและวันที่ หรือวางลิงก์ต้นฉบับ ระบบจะเตือนถ้ามีข่าวที่อาจซ้ำ';
+      document.querySelectorAll('input[name=cat]').forEach((i) => { i.disabled = false; });
+      syncKind();
+    }
+    $('#importForm').addEventListener('submit', (e) => { e.preventDefault(); if (check()) send(false); });
+    $('#resetBtn').addEventListener('click', () => { nextAfter = false; reset(); });
+    $('#dupCancel').addEventListener('click', () => $('#dupDlg').close());
+    $('#dupOk').addEventListener('click', () => { $('#dupDlg').close(); send(true); });
+
+    DESK.start({ page: 'import', allow: ['pr', 'admin'] }).then((user) => {
+      if (!user) return;
+      $('#importForm').hidden = false;
+      $('#sidePanel').hidden = false;
+      syncKind();
+    });
+  </script>
+</body>
+</html>

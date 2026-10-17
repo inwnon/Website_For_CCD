@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ข่าวที่เผยแพร่ | หลังบ้าน ข่าว มรส.</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="desk.css">
+  <style>
+    .row-item { position: relative; isolation: isolate; }
+    .row-item::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: rgb(var(--surface-2)); opacity: 0; transition: opacity .2s var(--ease-out); }
+    .row-item:hover::before, .row-item:focus-within::before { opacity: 1; }
+    .row-item.is-gone img { filter: grayscale(1); opacity: .6; }
+    .star[aria-pressed="true"] svg { fill: currentColor; }
+  </style>
+  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+</head>
+<body class="app">
+  <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการข่าว</a>
+  <div class="flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
+    <header id="mbar" class="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-shell/95 px-4 py-2.5 shadow-raised backdrop-blur-xl lg:hidden"></header>
+    <div id="scrim" class="fixed inset-0 z-40 bg-[rgb(10_11_32/.45)] lg:hidden" aria-hidden="true"></div>
+    <aside id="side" class="scroll-thin fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto bg-bg px-4 pb-4 pt-5 shadow-float lg:static lg:z-auto lg:w-[248px] lg:shrink-0 lg:bg-transparent lg:shadow-none" aria-label="เมนูหลังบ้าน"></aside>
+
+    <main id="main" class="flex min-h-0 min-w-0 flex-1 p-2 sm:p-3 lg:pl-0">
+      <section id="gate" class="m-auto flex max-w-[520px] flex-col items-center gap-4 rounded-card border border-line bg-shell p-8 text-center shadow-float" hidden></section>
+
+      <section id="app" class="flex min-h-0 w-full flex-col rounded-card bg-shell shadow-raised" aria-labelledby="pageTitle" hidden>
+        <div class="grid grid-cols-[minmax(0,1fr)] gap-4 border-b border-line p-4 sm:p-5">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="mr-auto">
+              <h1 id="pageTitle" class="font-display tight text-[26px] font-bold text-royal">ข่าวที่เผยแพร่</h1>
+              <p class="text-[13px] text-ink2">ตั้งข่าวเด่น ถอนข่าวที่ผิดพลาด หรือคืนข่าวที่ถอนไว้ ข่าวที่ทีม PR นำเข้าเองมีป้าย “นำเข้าย้อนหลัง”</p>
+            </div>
+            <a href="pr-import.html" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+              นำเข้าข่าวย้อนหลัง
+            </a>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <div id="tabs" class="no-scrollbar -mx-1 flex min-w-0 max-w-full gap-1 overflow-x-auto px-1" role="tablist" aria-label="แสดงข่าว"></div>
+            <label class="relative ml-auto w-full sm:w-[300px]">
+              <span class="sr-only">ค้นหาชื่อข่าวหรือหน่วยงาน</span>
+              <svg class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink2" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input id="q" type="search" placeholder="ค้นหาชื่อข่าวหรือหน่วยงาน" class="field h-11 w-full rounded-full pl-11 pr-4 text-[15px]">
+            </label>
+          </div>
+        </div>
+        <div id="list" class="scroll-thin min-h-0 flex-1 overflow-y-auto p-2 sm:p-3" aria-live="polite"></div>
+        <div class="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-[13px] text-ink2">
+          <span id="pageInfo"></span>
+          <span class="flex gap-2">
+            <button id="prev" type="button" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5 disabled:opacity-40">ก่อนหน้า</button>
+            <button id="next" type="button" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5 disabled:opacity-40">ถัดไป</button>
+          </span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Withdraw -->
+  <dialog id="wdDlg" class="desk-dlg w-[min(560px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="wdTitle">
+    <form id="wdForm" method="dialog" class="grid gap-4 p-6">
+      <div>
+        <h2 id="wdTitle" class="font-display text-[21px] font-semibold">ถอนข่าวนี้?</h2>
+        <p id="wdNews" class="mt-1 text-[14px] text-ink2"></p>
+      </div>
+      <p class="rounded-2xl bg-gold-soft px-4 py-3 text-[14px] text-gold">ผู้ที่เปิดลิงก์ข่าวจะเห็นว่าข่าวถูกถอน พร้อมเหตุผลด้านล่าง ข่าวและภาพจะหายจากหน้าแรก คลังข่าว และผลค้นหา คืนข่าวได้ภายหลัง</p>
+      <label class="grid gap-2">
+        <span class="font-display text-[15px] font-semibold">เหตุผลที่ผู้อ่านจะเห็น <span class="text-brand">*</span></span>
+        <textarea id="wdReason" rows="3" maxlength="300" required class="field rounded-2xl px-4 py-3 text-[15px]"></textarea>
+      </label>
+      <div class="flex flex-wrap gap-2" id="wdPresets">
+        <button type="button" class="press t-quick h-9 rounded-full border border-line px-4 text-[13px] hover:-translate-y-0.5">ข้อมูลในข่าวคลาดเคลื่อน อยู่ระหว่างแก้ไข</button>
+        <button type="button" class="press t-quick h-9 rounded-full border border-line px-4 text-[13px] hover:-translate-y-0.5">หน่วยงานเจ้าของข่าวขอถอน</button>
+        <button type="button" class="press t-quick h-9 rounded-full border border-line px-4 text-[13px] hover:-translate-y-0.5">ข่าวซ้ำกับข่าวที่เผยแพร่แล้ว</button>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="wdCancel" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ยกเลิก</button>
+        <button type="submit" value="ok" class="press t-spring h-11 rounded-2xl bg-brand px-5 font-display text-[15px] font-semibold text-white dark:text-bg shadow-glow hover:-translate-y-0.5">ถอนข่าว</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- More photos link -->
+  <dialog id="alDlg" class="desk-dlg w-[min(560px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="alTitle">
+    <form id="alForm" method="dialog" class="grid gap-4 p-6">
+      <div>
+        <h2 id="alTitle" class="font-display text-[21px] font-semibold">ลิงก์ภาพเพิ่มเติม</h2>
+        <p id="alNews" class="mt-1 text-[14px] text-ink2"></p>
+      </div>
+      <label class="grid gap-2">
+        <span class="font-display text-[15px] font-semibold">ลิงก์อัลบั้ม</span>
+        <input id="alUrl" type="url" inputmode="url" placeholder="https://www.facebook.com/media/set/... หรือ https://drive.google.com/..." class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="alHint alErr">
+        <span id="alHint" class="text-[13px] text-ink2">อัลบั้ม Facebook หรือโฟลเดอร์ Google Drive ผู้อ่านจะเห็นปุ่ม "ดูรูปภาพเพิ่มเติม" ในหน้าข่าว เว้นว่างเพื่อลบปุ่ม</span>
+        <span id="alErr" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="alCancel" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ยกเลิก</button>
+        <button type="submit" value="ok" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">บันทึกลิงก์</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit history of one story (news_revisions) -->
+  <dialog id="hsDlg" class="desk-dlg w-[min(680px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="hsTitle">
+    <div class="grid max-h-[min(80vh,760px)] grid-rows-[auto_minmax(0,1fr)_auto]">
+      <div class="border-b border-line p-6 pb-4">
+        <h2 id="hsTitle" class="font-display text-[21px] font-semibold">ประวัติการแก้ไขข่าว</h2>
+        <p id="hsNews" class="mt-1 text-[14px] text-ink2"></p>
+      </div>
+      <ol id="hsList" class="scroll-thin grid content-start gap-3 overflow-y-auto p-6" tabindex="0" aria-label="ทุกฉบับของข่าวนี้ ใหม่สุดก่อน"></ol>
+      <div class="flex justify-end border-t border-line p-4">
+        <button type="button" id="hsClose" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="auth.js"></script>
+  <script src="desk.js"></script>
+  <script>
+    const { esc, day, dayTime, num, toast } = DESK;
+    const $ = (s) => document.querySelector(s);
+    const TABS = [['all', 'ทั้งหมด'], ['live', 'เผยแพร่อยู่'], ['imported', 'นำเข้าย้อนหลัง'], ['scheduled', 'ตั้งเวลาไว้'], ['withdrawn', 'ถอนแล้ว']];
+    const KIND = { news: 'ข่าวพร้อมภาพ', video: 'วิดีโอ', banner: 'แบนเนอร์' };
+    const PAGE = 30;
+    const state = { show: 'all', q: '', offset: 0, items: [], seq: 0 };
+
+    const badge = (cls, text) => `<span class="inline-flex shrink-0 items-center rounded-full ${cls} px-2.5 font-display text-[12px] font-semibold leading-6">${text}</span>`;
+    function row(n) {
+      const badges = [
+        n.imported && badge('bg-gold-soft text-gold', 'นำเข้าย้อนหลัง'),
+        n.featured && badge('bg-red-soft text-brand', 'ข่าวเด่น'),
+        n.scheduled && !n.withdrawn && badge('bg-sky-soft text-sky', `ตั้งเวลา ${day(n.publishedAt)}`),
+        n.audience !== 'บุคคลทั่วไป' && badge('bg-purple-soft text-purple', esc(n.audience)),
+        n.withdrawn && badge('bg-brand text-white dark:text-bg', 'ถอนแล้ว'),
+      ].filter(Boolean).join('');
+      const thumb = n.cover
+        ? `<img src="${esc(n.cover)}" alt="" class="h-full w-full object-cover" loading="lazy" width="112" height="72">`
+        : `<span class="grid h-full w-full place-items-center bg-grad text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>`;
+      return `
+      <article class="row-item ${n.withdrawn ? 'is-gone' : ''} grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-2xl p-2.5 sm:grid-cols-[112px_minmax(0,1fr)_auto] sm:items-center sm:gap-4" data-id="${n.id}">
+        <div class="relative aspect-[14/9] overflow-hidden rounded-xl bg-surface2">${thumb}</div>
+        <div class="min-w-0">
+          <div class="flex flex-wrap gap-1.5">${badges}</div>
+          <h2 class="clamp-2 mt-1 font-display text-[16px] font-semibold leading-snug">
+            ${n.withdrawn ? esc(n.title) : `<a href="news.html?id=${n.id}" target="_blank" rel="noopener" class="rounded hover:text-purple hover:underline">${esc(n.title)}</a>`}
+          </h2>
+          <p class="mt-0.5 flex flex-wrap gap-x-3 text-[13px] text-ink2">
+            <span>${esc(n.unit)}</span><span>${day(n.publishedAt)}</span><span>${KIND[n.kind]}${n.photos ? ` ${n.photos} ภาพ` : ''}</span><span>อ่าน ${num(n.views)} ครั้ง</span>
+            ${n.ref ? `<span>จากงาน ${esc(n.ref)}</span>` : ''}${n.imported && n.createdBy ? `<span>นำเข้าโดย ${esc(n.createdBy)}</span>` : ''}
+          </p>
+          ${n.withdrawn ? `<p class="mt-1 text-[13px] text-brand">ถอนเมื่อ ${day(n.withdrawn.at)}${n.withdrawn.by ? ` โดย ${esc(n.withdrawn.by)}` : ''}: ${esc(n.withdrawn.reason)}</p>` : ''}
+          ${n.sourceUrl ? `<a href="${esc(n.sourceUrl)}" target="_blank" rel="noopener" class="mt-0.5 block max-w-full truncate text-[12px] text-sky hover:underline">ต้นฉบับ: ${esc(n.sourceUrl)}</a>` : ''}
+          ${n.albumUrl ? `<a href="${esc(n.albumUrl)}" target="_blank" rel="noopener" class="mt-0.5 block max-w-full truncate text-[12px] text-sky hover:underline">ภาพเพิ่มเติม: ${esc(n.albumUrl)}</a>` : ''}
+        </div>
+        <div class="col-span-2 flex flex-wrap justify-end gap-2 sm:col-span-1">
+          <button type="button" data-act="history" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">ประวัติ</button>
+          ${n.withdrawn
+            ? `<button type="button" data-act="restore" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">คืนข่าว</button>`
+            : `<button type="button" data-act="feature" aria-pressed="${n.featured}" aria-label="${n.featured ? 'เลิกเป็นข่าวเด่น' : 'ตั้งเป็นข่าวเด่น'}" title="${n.featured ? 'เลิกเป็นข่าวเด่น' : 'ตั้งเป็นข่าวเด่น'}" class="star icon-btn grid h-10 w-10 place-items-center rounded-full border border-line text-brand">
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>
+               </button>
+               <button type="button" data-act="album" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">${n.albumUrl ? 'แก้ลิงก์ภาพ' : 'เพิ่มลิงก์ภาพ'}</button>
+               <button type="button" data-act="withdraw" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium text-brand hover:-translate-y-0.5">ถอนข่าว</button>`}
+        </div>
+      </article>`;
+    }
+
+    // ---- Edit history ----
+    const ACTION = { created: 'สร้างข่าว', edited: 'แก้ไขข่าว', featured: 'ตั้งเป็นข่าวเด่น', unfeatured: 'เลิกเป็นข่าวเด่น', withdrawn: 'ถอนข่าว', restored: 'คืนข่าว', album: 'ลิงก์ภาพเพิ่มเติม' };
+    const FIELD = { kind: 'ประเภทเนื้อหา', title: 'หัวข้อข่าว', title_en: 'หัวข้อข่าว (อังกฤษ)', lead: 'สรุปข่าว', body: 'เนื้อข่าว', body_en: 'เนื้อข่าว (อังกฤษ)', unit: 'หน่วยงาน',
+      categories: 'ประเภทข่าว', audience: 'ผู้อ่าน', cover_path: 'ภาพปก', gallery: 'ภาพข่าว', video_url: 'ลิงก์วิดีโอ', album_url: 'ลิงก์ภาพเพิ่มเติม', credit: 'เครดิตภาพ',
+      event_date: 'วันที่จัดกิจกรรม', place: 'สถานที่', featured: 'ข่าวเด่น', published_at: 'เวลาเผยแพร่', withdrawn_at: 'ถอนข่าว', withdrawn_reason: 'เหตุผลที่ถอน', source_url: 'ต้นฉบับ' };
+    const AUD = { public: 'บุคคลทั่วไป', staff: 'บุคลากร', student: 'นักศึกษา', uni: 'ภายในมหาวิทยาลัย' };
+    // A value as people read it: dates in Thai, lists joined, pictures counted, empty as "ไม่มี"
+    function shown(field, v) {
+      if (v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length)) return 'ไม่มี';
+      if (field === 'gallery') return `${v.length} ภาพ`;
+      if (field === 'cover_path') return 'มีภาพปก';
+      if (field === 'featured') return v ? 'เป็นข่าวเด่น' : 'ไม่เป็นข่าวเด่น';
+      if (field === 'kind') return KIND[v] || v;
+      if (field === 'audience') return v.map((a) => AUD[a] || a).join(', ');
+      if (Array.isArray(v)) return v.join(', ');
+      if (['published_at', 'withdrawn_at'].includes(field)) return dayTime(v);
+      if (field === 'event_date') return day(v);
+      return String(v);
+    }
+    function change({ field, from, to }) {
+      const label = FIELD[field] || field;
+      const a = shown(field, from), b = shown(field, to);
+      // Long texts: say what changed, the two versions open on request
+      if (Math.max(a.length, b.length) > 90) {
+        return `<li><span class="font-medium">${label}</span> <span class="text-ink2">แก้ไข (${num(a.length)} → ${num(b.length)} ตัวอักษร)</span>
+          <details class="mt-1 rounded-xl bg-surface2/70 px-3 py-2"><summary class="cursor-pointer rounded text-[13px] font-medium text-purple">ดูข้อความเดิมและข้อความใหม่</summary>
+            <p class="mt-2 text-[12px] text-ink2">เดิม</p><p class="whitespace-pre-line text-[13px]">${esc(a)}</p>
+            <p class="mt-2 text-[12px] text-ink2">ใหม่</p><p class="whitespace-pre-line text-[13px]">${esc(b)}</p></details></li>`;
+      }
+      return `<li><span class="font-medium">${label}</span> <span class="text-ink2">${esc(a)}</span> <span aria-hidden="true">→</span><span class="sr-only">เป็น</span> <span>${esc(b)}</span></li>`;
+    }
+    async function openHistory(n) {
+      $('#hsNews').textContent = n.title;
+      $('#hsList').innerHTML = '<li class="text-[14px] text-ink2">กำลังโหลด…</li>';
+      $('#hsDlg').showModal();
+      try {
+        const r = await api(`/pr/news/${n.id}/revisions`);
+        $('#hsList').innerHTML = r.items.map((v) => `
+          <li class="rounded-2xl border border-line p-4">
+            <p class="flex flex-wrap items-baseline gap-x-3 gap-y-1"><span class="font-display text-[15px] font-semibold">${ACTION[v.action] || esc(v.action)}</span>
+              <time class="text-[13px] text-ink2" datetime="${esc(v.at)}">${dayTime(v.at)}</time>
+              <span class="text-[13px] text-ink2">${v.actor ? `โดย ${esc(v.actor.name || v.actor.email)}` : 'โดยระบบ'}</span></p>
+            ${v.changes.length ? `<ul class="mt-2 grid gap-1.5 text-[14px]">${v.changes.map(change).join('')}</ul>` : ''}
+          </li>`).join('') || '<li class="text-[14px] text-ink2">ยังไม่มีประวัติ</li>';
+      } catch (err) {
+        $('#hsList').innerHTML = `<li class="text-[14px] text-brand">${esc(err.message)}</li>`;
+      }
+    }
+    $('#hsClose').addEventListener('click', () => $('#hsDlg').close());
+
+    async function load() {
+      const seq = ++state.seq;
+      $('#list').classList.add('is-loading');
+      const p = new URLSearchParams({ show: state.show, limit: PAGE, offset: state.offset });
+      if (state.q) p.set('q', state.q);
+      try {
+        const r = await api('/pr/news?' + p);
+        if (seq !== state.seq) return;
+        state.items = r.items;
+        $('#tabs').innerHTML = TABS.map(([k, label]) => `
+          <button type="button" role="tab" data-show="${k}" aria-selected="${k === state.show}" class="tab press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium ${k === state.show ? '' : 'text-ink2'}">
+            ${label}<span class="rounded-full bg-surface2 px-2 text-[12px] leading-5">${num(r.counts[k])}</span></button>`).join('');
+        $('#list').innerHTML = r.items.length ? r.items.map(row).join('')
+          : `<div class="grid place-items-center gap-2 p-12 text-center text-ink2"><p class="font-display text-[17px] font-semibold text-ink">${state.q ? `ไม่พบข่าวที่ตรงกับ “${esc(state.q)}”` : 'ยังไม่มีข่าวในกลุ่มนี้'}</p>
+             ${state.show === 'imported' ? '<a href="pr-import.html" class="text-purple underline underline-offset-4">นำเข้าข่าวย้อนหลังข่าวแรก</a>' : ''}</div>`;
+        const from = r.total ? state.offset + 1 : 0;
+        $('#pageInfo').textContent = r.total ? `${num(from)}–${num(state.offset + r.items.length)} จาก ${num(r.total)} ข่าว` : '';
+        $('#prev').disabled = state.offset === 0;
+        $('#next').disabled = state.offset + r.items.length >= r.total;
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        if (seq === state.seq) $('#list').classList.remove('is-loading');
+      }
+    }
+
+    // ---- Actions ----
+    let pending = null;
+    $('#list').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      const n = state.items.find((x) => x.id === b.closest('[data-id]').dataset.id);
+      try {
+        if (b.dataset.act === 'feature') {
+          const r = await api(`/pr/news/${n.id}/feature`, { method: 'POST', body: { featured: !n.featured } });
+          toast(r.featured ? 'ตั้งเป็นข่าวเด่นแล้ว แสดงบนหน้าแรก' : 'เลิกเป็นข่าวเด่นแล้ว');
+          load();
+        } else if (b.dataset.act === 'withdraw') {
+          pending = n;
+          $('#wdNews').textContent = n.title;
+          $('#wdReason').value = '';
+          $('#wdDlg').showModal();
+        } else if (b.dataset.act === 'album') {
+          pending = n;
+          $('#alNews').textContent = n.title;
+          $('#alUrl').value = n.albumUrl || '';
+          $('#alErr').hidden = true;
+          $('#alDlg').showModal();
+        } else if (b.dataset.act === 'history') {
+          openHistory(n);
+        } else if (b.dataset.act === 'restore') {
+          await api(`/pr/news/${n.id}/restore`, { method: 'POST' });
+          toast('คืนข่าวแล้ว ข่าวกลับมาแสดงบนเว็บไซต์');
+          load();
+        }
+      } catch (err) { toast(err.message, true); }
+    });
+    $('#wdPresets').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { $('#wdReason').value = b.textContent; $('#wdReason').focus(); } });
+    $('#wdCancel').addEventListener('click', () => $('#wdDlg').close());
+    $('#wdForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await api(`/pr/news/${pending.id}/withdraw`, { method: 'POST', body: { reason: $('#wdReason').value } });
+        $('#wdDlg').close();
+        toast('ถอนข่าวแล้ว');
+        load();
+      } catch (err) { toast(err.message, true); }
+    });
+
+    $('#alCancel').addEventListener('click', () => $('#alDlg').close());
+    $('#alForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const r = await api(`/pr/news/${pending.id}/album`, { method: 'PUT', body: { albumUrl: $('#alUrl').value.trim() } });
+        $('#alDlg').close();
+        toast(r.albumUrl ? 'บันทึกลิงก์แล้ว หน้าข่าวแสดงปุ่ม "ดูรูปภาพเพิ่มเติม"' : 'ลบลิงก์ภาพเพิ่มเติมแล้ว');
+        load();
+      } catch (err) {
+        if (err.details?.albumUrl) { $('#alErr').textContent = err.details.albumUrl; $('#alErr').hidden = false; $('#alUrl').focus(); }
+        else toast(err.message, true);
+      }
+    });
+
+    $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-show]'); if (b) { state.show = b.dataset.show; state.offset = 0; load(); } });
+    let qTimer;
+    $('#q').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value.trim(); state.offset = 0; load(); }, 250); });
+    $('#prev').addEventListener('click', () => { state.offset = Math.max(0, state.offset - PAGE); load(); });
+    $('#next').addEventListener('click', () => { state.offset += PAGE; load(); });
+
+    DESK.start({ page: 'news', allow: ['pr', 'admin'] }).then((user) => {
+      if (!user) return;
+      const show = new URLSearchParams(location.search).get('show');
+      if (TABS.some(([k]) => k === show)) state.show = show;
+      $('#app').hidden = false;
+      load();
+    });
+  </script>
+</body>
+</html>

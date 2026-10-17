@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>กล่องข้อความ | ข่าว มรส.</title>
+  <meta name="description" content="ติดตามสถานะงานที่ส่งให้งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี และตอบข้อความจาก PR">
+  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+
+
+  <style>
+    :root {
+      --bg: 245 244 255;
+      --shell: 255 255 255;
+      --surface: 255 255 255;
+      --surface-2: 244 242 255;
+      --ink: 27 37 96;
+      --ink-2: 92 102 148;
+      --line: 224 226 250;
+      --royal: 38 66 200;
+      --red: 209 19 39;
+      --purple: 122 60 226;
+      --sky: 0 112 161;
+      --gold: 148 94 0;
+      --royal-soft: 232 237 255;
+      --red-soft: 255 232 236;
+      --purple-soft: 241 233 255;
+      --sky-soft: 224 244 253;
+      --gold-soft: 255 244 208;
+      --focus: 122 60 226;
+      --grad: linear-gradient(120deg, #DE142A 0%, #B3218F 55%, #7A3CE2 100%);
+      --shadow-raised:
+        0 1px 2px rgb(27 37 96 / .04),
+        0 6px 18px -6px rgb(38 66 200 / .08);
+      --shadow-float:
+        0 2px 6px rgb(27 37 96 / .05),
+        0 14px 30px -10px rgb(38 66 200 / .14),
+        0 32px 60px -24px rgb(122 60 226 / .18);
+      --shadow-glow:
+        0 4px 10px -2px rgb(222 20 42 / .25),
+        0 10px 24px -8px rgb(122 60 226 / .35);
+      --spring: cubic-bezier(.34, 1.56, .64, 1);
+      --ease-out: cubic-bezier(.22, 1, .36, 1);
+      color-scheme: light;
+    }
+    .dark {
+      --bg: 10 11 32;
+      --shell: 17 19 50;
+      --surface: 24 27 66;
+      --surface-2: 32 36 82;
+      --ink: 240 240 255;
+      --ink-2: 178 184 222;
+      --line: 50 56 110;
+      --royal: 146 166 255;
+      --red: 255 110 124;
+      --purple: 188 156 255;
+      --sky: 96 202 245;
+      --gold: 255 206 96;
+      --royal-soft: 34 44 108;
+      --red-soft: 78 24 52;
+      --purple-soft: 52 36 104;
+      --sky-soft: 14 56 88;
+      --gold-soft: 70 54 20;
+      --focus: 96 202 245;
+      --shadow-raised:
+        0 1px 2px rgb(0 0 0 / .3),
+        0 8px 20px -8px rgb(0 0 0 / .45);
+      --shadow-float:
+        0 2px 6px rgb(0 0 0 / .3),
+        0 18px 36px -12px rgb(0 0 0 / .5),
+        0 36px 64px -24px rgb(90 60 200 / .35);
+      color-scheme: dark;
+    }
+
+    body {
+      font-family: "Noto Sans Thai", system-ui, sans-serif;
+      line-height: 1.7;
+      color: rgb(var(--ink));
+      background:
+        radial-gradient(50% 40% at 0% 0%, rgb(var(--purple-soft)), transparent 70%),
+        radial-gradient(40% 35% at 100% 10%, rgb(var(--sky-soft)), transparent 70%),
+        radial-gradient(60% 40% at 50% 100%, rgb(var(--red-soft) / .7), transparent 70%),
+        rgb(var(--bg));
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+    [hidden] { display: none !important; }
+    .font-display { line-height: 1.3; }
+    .tight { letter-spacing: -0.03em; }
+    .bg-grad { background: var(--grad); }
+
+    a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid rgb(var(--focus));
+      outline-offset: 3px;
+    }
+    [tabindex="-1"]:focus { outline: none; }
+
+    /* Motion: transform + opacity only */
+    .t-spring { transition-property: transform, opacity; transition-duration: .5s; transition-timing-function: var(--spring); }
+    .t-quick  { transition-property: transform, opacity; transition-duration: .2s; transition-timing-function: var(--ease-out); }
+    .press:active { transform: scale(.96); }
+
+    .hover-fill { position: relative; isolation: isolate; }
+    .hover-fill::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+      background: rgb(var(--surface-2)); opacity: 0; transform: scale(.9);
+      transition: opacity .2s var(--ease-out), transform .35s var(--spring);
+    }
+    .hover-fill:hover::before { opacity: 1; transform: none; }
+
+    .grain::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .08; mix-blend-mode: overlay; border-radius: inherit;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .dark .grain::after { opacity: .14; }
+
+    .logo-crop { overflow: hidden; border-radius: 9999px; background: rgb(200 160 255); }
+    .logo-crop img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.42) translateY(3%); }
+
+    .no-scrollbar { scrollbar-width: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+
+    /* Text fields */
+    .field { border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
+    .field::placeholder { color: rgb(var(--ink-2) / .8); }
+    .field:hover { border-color: rgb(var(--purple) / .45); }
+    .field:focus { border-color: rgb(var(--purple)); outline: none; }
+    .field:focus-visible { outline: 3px solid rgb(var(--focus) / .35); outline-offset: 0; }
+    .field[aria-invalid="true"] { border-color: rgb(var(--red)); }
+    .sel {
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 16px center;
+    }
+
+    /* Selectable option cards (radio/checkbox inside label) */
+    .opt { position: relative; isolation: isolate; cursor: pointer; }
+    .opt input { position: absolute; opacity: 0; pointer-events: none; }
+    .opt .opt-box { transition: transform .45s var(--spring); }
+    .opt:hover .opt-box { transform: translateY(-2px); }
+    .opt:active .opt-box { transform: scale(.97); }
+    .opt:has(input:focus-visible) .opt-box { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+    .opt:has(input:checked) .opt-box { border-color: transparent; box-shadow: 0 0 0 2px rgb(var(--purple)), var(--shadow-float); background: rgb(var(--purple-soft)); }
+    .opt .tick { opacity: 0; transform: scale(.5); transition: opacity .2s var(--ease-out), transform .45s var(--spring); }
+    .opt:has(input:checked) .tick { opacity: 1; transform: none; }
+    .chip-opt:has(input:checked) .opt-box { background: var(--grad); color: #fff; box-shadow: var(--shadow-glow); }
+    fieldset[aria-invalid="true"] .opt-box { border-color: rgb(var(--red) / .7); }
+
+    /* Type chooser: the icon tile lifts when its card is chosen */
+    .type-opt .type-icon { transition: transform .5s var(--spring); }
+    .type-opt:hover .type-icon { transform: rotate(-6deg) scale(1.06); }
+    .type-opt:has(input:checked) .type-icon { transform: scale(1.08); }
+
+    /* Chips that are locked (e.g. implied by another choice, or over the limit) */
+    .opt:has(input:disabled) { cursor: not-allowed; }
+    .opt:has(input:disabled) .opt-box { opacity: .55; transform: none; }
+    .opt:has(input:disabled:checked) .opt-box { opacity: .75; }
+
+    /* Switch */
+    .switch { position: relative; width: 52px; height: 30px; flex-shrink: 0; }
+    .switch input { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 1; margin: 0; }
+    .switch .track { position: absolute; inset: 0; border-radius: 9999px; background: rgb(var(--line)); }
+    .switch .track::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--grad); opacity: 0; transition: opacity .25s var(--ease-out); }
+    .switch .knob { position: absolute; top: 3px; left: 3px; z-index: 1; width: 24px; height: 24px; border-radius: 9999px; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .25); transition: transform .45s var(--spring); }
+    .switch input:checked ~ .track::after { opacity: 1; }
+    .switch input:checked ~ .knob { transform: translateX(22px); }
+    .switch:has(input:focus-visible) { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; border-radius: 9999px; }
+
+    /* Drop zones */
+    .drop { position: relative; isolation: isolate; }
+    .drop::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+      background: radial-gradient(60% 80% at 50% 0%, rgb(var(--purple-soft)), transparent 70%), rgb(var(--sky-soft) / .4);
+      opacity: 0; transition: opacity .25s var(--ease-out);
+    }
+    .drop:hover::before, .drop.is-over::before, .drop:has(input:focus-visible)::before { opacity: 1; }
+    .drop .drop-icon { transition: transform .5s var(--spring); }
+    .drop:hover .drop-icon, .drop.is-over .drop-icon { transform: translateY(-4px) scale(1.06); }
+    .drop:has(input:focus-visible) { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+    .drop[aria-invalid="true"] { border-color: rgb(var(--red) / .8); }
+
+    /* Thumbnails + file rows */
+    .thumb, .file-row { animation: popIn .45s var(--spring); }
+    @keyframes popIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+    .thumb .thumb-actions { opacity: 0; transition: opacity .2s var(--ease-out); }
+    .thumb:hover .thumb-actions, .thumb:focus-within .thumb-actions { opacity: 1; }
+    @media (hover: none) { .thumb .thumb-actions { opacity: 1; } }
+    .icon-btn { transition: transform .4s var(--spring); }
+    .icon-btn:hover { transform: scale(1.1); }
+    .icon-btn:active { transform: scale(.88); }
+    .icon-btn[aria-pressed="true"] svg { fill: currentColor; }
+
+    /* Checklist + progress ring */
+    .check-dot .ok { opacity: 0; transform: scale(.4); transition: opacity .2s var(--ease-out), transform .45s var(--spring); }
+    [data-done="true"] .check-dot .ok { opacity: 1; transform: none; }
+    [data-done="true"] .check-dot .todo { opacity: 0; }
+    .check-dot .todo { transition: opacity .2s var(--ease-out); }
+    .ring-fg { transition: stroke-dashoffset .7s var(--spring); }
+
+    .step-enter { animation: stepIn .55s var(--spring); }
+    @keyframes stepIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+    @keyframes bob { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-10px) rotate(1deg); } }
+    .bob { animation: bob 6s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+    .saved-flash { animation: flash 1.6s var(--ease-out); }
+    @keyframes flash { 0% { opacity: 0; transform: translateY(4px); } 15%, 100% { opacity: 1; transform: none; } }
+
+    .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    summary::-webkit-details-marker { display: none; }
+    summary:focus-visible { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+    }
+  </style>
+  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+</head>
+
+<body class="min-h-screen">
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปเนื้อหา</a>
+
+  <!-- ===== Header ===== -->
+  <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
+    <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
+      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90" aria-label="ข่าว มรส. หน้าแรก">
+        <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
+        <span class="leading-tight">
+          <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
+          <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
+        </span>
+      </a>
+
+      <div class="ml-auto flex shrink-0 items-center gap-2">
+        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
+          <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
+          <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+          <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
+        </button>
+        <a id="login" href="login.html" class="press t-spring grid h-11 w-11 place-items-center rounded-full bg-purple-soft text-purple hover:-translate-y-0.5" aria-label="เข้าสู่ระบบด้วยบัญชี Google ของมหาวิทยาลัย">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <nav class="no-scrollbar mx-auto flex max-w-page gap-1 overflow-x-auto px-shell py-2 md:justify-center" aria-label="เมนูหลัก">
+      <a href="index.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>หน้าแรก
+      </a>
+      <a href="index.html#latest" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>ข่าวล่าสุด
+      </a>
+      <a href="index.html#featured" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>ข่าวเด่น
+      </a>
+      <a href="search.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>คลังข่าว
+      </a>
+      <a href="digest.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>เล่มสรุปข่าว
+      </a>
+      <a href="submit.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>ส่งข่าว
+      </a>
+    </nav>
+  </header>
+
+  <!-- ===== Shell ===== -->
+  <main id="main" class="mx-auto max-w-page px-2 py-4 sm:px-4">
+    <div class="rounded-shell bg-shell px-shell pb-shelf pt-shell shadow-float">
+
+      <!-- Page head: who is signed in + main actions -->
+      <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div class="min-w-0">
+          <h1 class="font-display tight text-[clamp(28px,3.2vw,40px)] font-bold text-royal">กล่องข้อความ</h1>
+          <p class="mt-1 text-[15px] text-ink2">ติดตามสถานะงานที่คุณส่ง และตอบข้อความจากงานประชาสัมพันธ์</p>
+        </div>
+        <div id="who" class="flex flex-wrap items-center gap-2" hidden>
+          <span id="whoChip" class="inline-flex min-w-0 items-center gap-3 rounded-full bg-surface2/80 py-1.5 pl-1.5 pr-4 text-[14px]"></span>
+          <a href="submit.html" class="bg-grad press t-spring inline-flex h-11 items-center gap-1.5 rounded-full px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            ส่งงานใหม่
+          </a>
+          <button id="notifyBtn" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium text-ink2 hover:text-ink" aria-haspopup="dialog">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+            อีเมลแจ้งเตือน
+          </button>
+          <button id="logout" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium text-ink2 hover:text-ink">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l-5-5 5-5M5 12h12"/></svg>
+            ออกจากระบบ
+          </button>
+        </div>
+      </div>
+
+      <!-- Not signed in -->
+      <section id="gate" class="mt-8 flex flex-col items-center gap-4 rounded-card border border-line bg-surface p-8 text-center shadow-raised" aria-labelledby="gateTitle" hidden>
+        <img src="/assets/img/hawky-480.webp" alt="" class="bob h-auto w-[140px] drop-shadow-[0_20px_28px_rgb(38_66_200/.22)]" width="1254" height="1254">
+        <h2 id="gateTitle" class="font-display text-[22px] font-semibold">เข้าสู่ระบบเพื่อดูกล่องข้อความ</h2>
+        <p class="max-w-[460px] text-[15px] text-ink2">กล่องข้อความแสดงงานที่คุณส่งและผลการตรวจจากงานประชาสัมพันธ์</p>
+        <a id="gateLogin" href="login.html?next=inbox.html" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">เข้าสู่ระบบ</a>
+        <div id="gateDev" class="flex flex-wrap justify-center gap-2" hidden>
+          <span class="w-full text-[13px] text-ink2">ล็อกอินจำลอง (เครื่องพัฒนา)</span>
+          <button type="button" data-dev="staff" class="press t-spring inline-flex h-10 items-center rounded-full border border-dashed border-[rgb(var(--gold)/.7)] px-4 font-display text-[14px] font-semibold text-gold hover:-translate-y-0.5">บุคลากร</button>
+          <button type="button" data-dev="student" class="press t-spring inline-flex h-10 items-center rounded-full border border-dashed border-[rgb(var(--gold)/.7)] px-4 font-display text-[14px] font-semibold text-gold hover:-translate-y-0.5">นักศึกษา</button>
+        </div>
+      </section>
+
+      <!-- Inbox -->
+      <div id="inbox" class="mt-8" hidden>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <fieldset class="min-w-0">
+            <legend class="sr-only">กรองตามสถานะ</legend>
+            <div id="filters" class="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"></div>
+          </fieldset>
+          <div class="relative lg:w-[300px]">
+            <label for="q" class="sr-only">ค้นหางาน</label>
+            <svg class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="q" type="search" placeholder="ค้นหาชื่องานหรือเลขที่อ้างอิง" class="field h-11 w-full rounded-full pl-11 pr-4 text-[15px]">
+          </div>
+        </div>
+
+        <div class="mt-5 grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)]">
+          <!-- List -->
+          <div id="listPane">
+            <ul id="list" class="grid grid-cols-[minmax(0,1fr)] gap-3" aria-label="งานที่ส่ง"></ul>
+            <div id="empty" class="flex flex-col items-center gap-3 rounded-card border-2 border-dashed border-line px-6 py-12 text-center" hidden>
+              <p id="emptyTitle" class="font-display text-[17px] font-semibold"></p>
+              <p id="emptyText" class="text-[14px] text-ink2"></p>
+              <a id="emptyCta" href="submit.html" class="bg-grad press t-spring inline-flex h-11 items-center rounded-full px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">ส่งงานชิ้นแรก</a>
+            </div>
+          </div>
+
+          <!-- Detail -->
+          <section id="detail" class="rounded-card border border-line bg-surface shadow-float lg:sticky lg:top-[150px] lg:max-h-[calc(100dvh-170px)] lg:overflow-y-auto" aria-live="polite" aria-labelledby="dTitle" hidden></section>
+          <div id="detailEmpty" class="hidden place-items-center rounded-card border-2 border-dashed border-line px-6 py-16 text-center text-[15px] text-ink2 lg:grid">เลือกงานทางซ้ายเพื่อดูสถานะและข้อความ</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="mx-auto max-w-page px-shell pb-10 pt-8">
+    <div class="flex flex-col gap-4 border-t border-line pt-8 text-[14px] text-ink2 md:flex-row md:items-center">
+      <a href="index.html" class="press t-quick flex items-center gap-3 rounded-xl hover:opacity-80">
+        <span class="logo-crop h-9 w-9"><img src="/assets/img/logo-192.webp" alt=""></span>
+        <span class="font-display font-semibold text-purple">ข่าว มรส.</span>
+      </a>
+      <span>คลังข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
+      <span class="flex gap-6 md:ml-auto">
+        <a href="privacy.html" class="press t-quick rounded hover:text-ink hover:underline">นโยบายความเป็นส่วนตัว</a>
+        <span>โดยงานประชาสัมพันธ์ มรส.</span>
+      </span>
+    </div>
+  </footer>
+
+  <!-- Email notifications -->
+  <dialog id="notifyDlg" class="w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float backdrop:bg-[rgb(10_11_32/.5)]" aria-labelledby="notifyTitle">
+    <form id="notifyForm" method="dialog" class="grid gap-4 p-6">
+      <div>
+        <h2 id="notifyTitle" class="font-display text-[21px] font-semibold">อีเมลแจ้งเตือน</h2>
+        <p id="notifyTo" class="mt-1 text-[14px] text-ink2"></p>
+      </div>
+      <ul id="notifyList" class="grid gap-2"></ul>
+      <p id="notifyOff" class="rounded-2xl bg-gold-soft px-4 py-3 text-[13px] text-gold" hidden>ระบบยังไม่ได้เปิดการส่งอีเมล ตั้งค่าไว้ก่อนได้ จะมีผลเมื่อเปิดใช้</p>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="notifyCancel" class="hover-fill press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium">ยกเลิก</button>
+        <button type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <p id="liveMsg" class="sr-only" role="status" aria-live="polite"></p>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="org-data.js"></script>
+  <script src="auth.js"></script>
+  <script src="site-config.js"></script>
+  <script>
+    const $ = (s, r = document) => r.querySelector(s);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    const announce = (msg) => { $('#liveMsg').textContent = ''; setTimeout(() => { $('#liveMsg').textContent = msg; }, 50); };
+    const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    const hm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} น.`;
+    function when(iso, withTime = true) {
+      const d = new Date(iso), now = new Date();
+      const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+      const diff = Math.round((day(now) - day(d)) / 864e5);
+      const t = withTime ? ' ' + hm(d) : '';
+      if (diff === 0) return 'วันนี้' + t;
+      if (diff === 1) return 'เมื่อวาน' + t;
+      return `${d.getDate()} ${TH_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}${t}`;
+    }
+
+    const TYPE = {
+      news: { label: 'ข่าวพร้อมภาพ', cls: 'bg-red-soft text-brand', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>' },
+      video: { label: 'วิดีโอ', cls: 'bg-purple-soft text-purple', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="15" height="14" rx="2"/><path d="m17 10 5-3v10l-5-3z"/></svg>' },
+      banner: { label: 'แบนเนอร์ / อินโฟกราฟิก', cls: 'bg-gold-soft text-gold', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 15v2M11 11v6M15 13v4M7 7h10"/></svg>' },
+    };
+    const STATUS = {
+      review: { label: 'รอ PR ตรวจ', cls: 'bg-purple-soft text-purple', title: 'รองานประชาสัมพันธ์ตรวจ', desc: `PR จะตรวจและแจ้งผลภายใน ${window.SITE?.reviewDays ?? 2} วันทำการ`, log: 'รอ PR ตรวจ' },
+      writing: { label: 'PR กำลังเขียนข่าว', cls: 'bg-gold-soft text-gold', title: 'ทีม PR กำลังเขียนข่าวให้', desc: 'PR เขียนข่าวจากเอกสารที่คุณแนบ และจะส่งร่างให้ตรวจทานก่อนเผยแพร่', log: 'PR เริ่มเขียนข่าว' },
+      revise: { label: 'ขอให้แก้ไข', cls: 'bg-red-soft text-brand', title: 'PR ขอให้แก้ไขก่อนเผยแพร่', desc: 'อ่านข้อความจาก PR ด้านล่าง แล้วแก้ไขงานและส่งให้ตรวจอีกครั้ง เลขที่งานเดิม', log: 'PR ขอให้แก้ไข' },
+      published: { label: 'เผยแพร่แล้ว', cls: 'bg-sky-soft text-sky', title: 'เผยแพร่แล้ว', desc: 'งานของคุณขึ้นเว็บไซต์มหาวิทยาลัยแล้ว', log: 'เผยแพร่แล้ว' },
+      rejected: { label: 'ไม่เผยแพร่', cls: 'bg-surface2 text-ink2', title: 'งานนี้ไม่ได้เผยแพร่', desc: 'ดูเหตุผลจาก PR ด้านล่าง หากมีข้อมูลใหม่ ส่งเป็นงานชิ้นใหม่ได้', log: 'ไม่เผยแพร่' },
+      sent: { log: 'ส่งงาน' },
+      resent: { log: 'ส่งงานที่แก้ไขแล้ว' },
+    };
+    const FILTERS = [
+      { key: 'all', label: 'ทั้งหมด', test: () => true },
+      { key: 'action', label: 'ต้องแก้ไข', test: (s) => s.status === 'revise' },
+      { key: 'progress', label: 'กำลังดำเนินการ', test: (s) => s.status === 'review' || s.status === 'writing' },
+      { key: 'published', label: 'เผยแพร่แล้ว', test: (s) => s.status === 'published' },
+      { key: 'rejected', label: 'ไม่เผยแพร่', test: (s) => s.status === 'rejected' },
+    ];
+
+    let profile = null;
+    let subs = [];
+    let filter = 'all', query = '', current = new URLSearchParams(location.search).get('ref');
+
+    // ---- Signed-in state ----
+    const ROLE_LABEL = { staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน' };
+    async function load() {
+      const r = await api('/submissions');
+      subs = r.submissions;
+    }
+    window.ME.then(async (m) => {
+      if (!m.user) {
+        $('#gate').hidden = false;
+        $('#gateLogin').href = window.loginUrl();
+        $('#gateDev').hidden = !m.devLogin;
+        return;
+      }
+      profile = m.user;
+      $('#who').hidden = false;
+      $('#inbox').hidden = false;
+      const name = profile.name || profile.email;
+      const where = profile.org || ORG.displayUnit(profile) || '';
+      $('#whoChip').innerHTML = `
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-purple-soft font-display text-[14px] font-semibold text-purple">${esc(name[0])}</span>
+        <span class="min-w-0"><span class="block truncate font-display font-semibold leading-tight">${esc(name)}${profile.position ? ` <span class="font-sans font-normal text-ink2">${esc(profile.position)}</span>` : ''}</span>
+        <span class="block truncate text-[12px] leading-tight text-ink2">${esc(ROLE_LABEL[profile.role] || '')}${where ? ' · ' + esc(where) : ''}</span></span>`;
+      if (profile.role === 'external') { const a = $('#who a[href="submit.html"]'); if (a) a.hidden = true; }
+      try { await load(); } catch (err) {
+        $('#list').innerHTML = `<li class="rounded-card border border-dashed border-line p-6 text-center text-brand">โหลดงานไม่สำเร็จ: ${esc(err.message)}</li>`;
+        return;
+      }
+      render();
+    });
+    document.querySelectorAll('[data-dev]').forEach((b) => b.addEventListener('click', () => window.devLogin(b.dataset.dev)));
+
+    // New replies from PR while the page is open: refresh when the tab comes back
+    document.addEventListener('visibilitychange', async () => {
+      if (document.hidden || !profile) return;
+      try { await load(); } catch (e) { return; }
+      renderFilters(); renderList();
+      const s = subs.find((x) => x.ref === current);
+      if (s && !$('#detail').hidden && !$('#replyText')?.value) renderDetail(s);
+    });
+    const refreshBadge = () => { window.ME = api('/me').catch(() => ({ user: null, unread: 0 })); window.renderAccountButton?.(); };
+
+    // ---- Email notifications (inbox.html#notify opens it, the link at the bottom of every email) ----
+    const notifyDlg = $('#notifyDlg');
+    async function openNotify() {
+      let r;
+      try { r = await api('/me/notify'); } catch (err) { announce(err.message); return; }
+      $('#notifyTo').textContent = `ส่งถึง ${r.email}`;
+      $('#notifyOff').hidden = r.smtp;
+      $('#notifyList').innerHTML = r.prefs.map((p) => `
+        <li><label class="flex cursor-pointer items-center gap-4 rounded-2xl bg-surface2/70 px-4 py-3">
+          <span class="min-w-0 flex-1 text-[15px]">${esc(p.label)}</span>
+          <span class="switch"><input type="checkbox" name="${p.key}" ${p.on ? 'checked' : ''} aria-label="${esc(p.label)}"><span class="track"></span><span class="knob"></span></span>
+        </label></li>`).join('');
+      notifyDlg.showModal();
+    }
+    $('#notifyBtn').addEventListener('click', openNotify);
+    $('#notifyCancel').addEventListener('click', () => notifyDlg.close());
+    notifyDlg.addEventListener('close', () => { if (location.hash === '#notify') history.replaceState(null, '', location.pathname + location.search); });
+    $('#notifyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = Object.fromEntries([...$('#notifyList').querySelectorAll('input')].map((i) => [i.name, i.checked]));
+      try { await api('/me/notify', { method: 'PUT', body }); notifyDlg.close(); announce('บันทึกการแจ้งเตือนแล้ว'); } catch (err) { announce(err.message); }
+    });
+    window.ME.then((m) => { if (m.user && location.hash === '#notify') openNotify(); });
+    // The account menu links here too, without reloading when already on this page
+    addEventListener('hashchange', () => { if (location.hash === '#notify' && !notifyDlg.open) openNotify(); });
+
+    $('#logout').addEventListener('click', async () => {
+      await api('/auth/logout', { method: 'POST' }).catch(() => {});
+      try { localStorage.removeItem('newsDraft'); } catch (e) {}
+      location.href = 'index.html';
+    });
+
+    // ---- Filters + search ----
+    function renderFilters() {
+      $('#filters').innerHTML = FILTERS.map((f) => {
+        const n = subs.filter(f.test).length;
+        const hot = f.key === 'action' && n > 0;
+        return `<label class="opt chip-opt shrink-0"><input type="radio" name="filter" value="${f.key}"${f.key === filter ? ' checked' : ''}><span class="opt-box inline-flex h-10 items-center gap-2 rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">${f.label}<span class="rounded-full ${hot ? 'bg-brand text-white dark:text-bg' : 'bg-surface2 text-ink2'} px-2 text-[12px] leading-5">${n}</span></span></label>`;
+      }).join('');
+    }
+    $('#filters').addEventListener('change', (e) => { filter = e.target.value; renderList(); });
+    $('#q').addEventListener('input', (e) => { query = e.target.value.trim().toLowerCase(); renderList(); });
+
+    // ---- List ----
+    function visible() {
+      const f = FILTERS.find((x) => x.key === filter);
+      return subs.filter((s) => f.test(s) && (!query || s.title.toLowerCase().includes(query) || s.ref.toLowerCase().includes(query)));
+    }
+    function renderList() {
+      const list = visible();
+      $('#list').innerHTML = list.map((s) => {
+        const T = TYPE[s.type], S = STATUS[s.status];
+        const last = s.thread[s.thread.length - 1];
+        const on = s.ref === current;
+        return `<li>
+          <button type="button" data-ref="${esc(s.ref)}" aria-current="${on}" class="press t-spring group relative flex w-full items-start gap-4 rounded-card border p-4 text-left hover:-translate-y-0.5 ${on ? 'border-transparent bg-purple-soft shadow-float ring-2 ring-[rgb(var(--purple))]' : 'border-line bg-surface shadow-raised'}">
+            <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${T.cls}">${T.icon}</span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center gap-2">
+                <span class="rounded-full ${S.cls} px-2.5 font-display text-[12px] font-semibold leading-6">${S.label}</span>
+                <span class="ml-auto inline-flex shrink-0 items-center gap-1.5 text-[12px] text-ink2">${s.unread ? '<span class="h-2.5 w-2.5 rounded-full bg-brand" aria-hidden="true"></span><span class="sr-only">ข้อความใหม่</span>' : ''}${when(last?.at || s.sentAt, false)}</span>
+              </span>
+              <span class="clamp-2 mt-1.5 block font-display text-[16px] font-semibold leading-snug ${s.unread ? '' : 'text-ink/90'}">${esc(s.title)}</span>
+              <span class="mt-1 block truncate text-[13px] text-ink2">${last ? `${last.from === 'pr' ? 'PR: ' : 'คุณ: '}${esc(last.text)}` : `${esc(s.ref)} · ${T.label}`}</span>
+            </span>
+          </button>
+        </li>`;
+      }).join('');
+      const none = !list.length;
+      $('#empty').hidden = !none;
+      if (none) {
+        const external = profile.role === 'external';
+        $('#emptyTitle').textContent = !subs.length ? (external ? 'ยังไม่มีข้อความ' : 'ยังไม่มีงานที่ส่ง') : 'ไม่พบงานที่ตรงกับตัวกรอง';
+        $('#emptyText').textContent = !subs.length ? (external ? 'บุคคลภายนอกจะได้รับข้อความจาก PR ที่นี่' : 'งานที่คุณส่งจะแสดงที่นี่ พร้อมสถานะและข้อความจาก PR') : 'ลองเลือกตัวกรอง "ทั้งหมด" หรือเปลี่ยนคำค้นหา';
+        $('#emptyCta').hidden = !!subs.length || external;
+      }
+    }
+    $('#list').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ref]');
+      if (b) open(b.dataset.ref, true);
+    });
+
+    // ---- Detail ----
+    function isMobile() { return matchMedia('(max-width: 1023px)').matches; }
+    function open(ref, fromClick) {
+      const s = subs.find((x) => x.ref === ref);
+      if (!s) return;
+      current = ref;
+      if (s.unread) {
+        s.unread = false;
+        renderFilters();
+        api(`/submissions/${encodeURIComponent(s.ref)}/read`, { method: 'POST' }).then(refreshBadge).catch(() => {});
+      }
+      try { history.replaceState(null, '', `?ref=${encodeURIComponent(ref)}`); } catch (e) {}
+      renderList();
+      renderDetail(s);
+      // Phones: the detail replaces the list
+      if (isMobile()) { $('#listPane').hidden = true; window.scrollTo({ top: $('#inbox').offsetTop - 120, behavior: fromClick ? 'smooth' : 'auto' }); }
+      if (fromClick) $('#dTitle').focus({ preventScroll: !isMobile() });
+    }
+    function closeDetail() {
+      current = null;
+      try { history.replaceState(null, '', location.pathname); } catch (e) {}
+      $('#detail').hidden = true;
+      $('#listPane').hidden = false;
+      renderList();
+    }
+
+    // Files the sender attached (photos as thumbnails, documents as links)
+    const fmtSize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+    function filesBlock(s) {
+      if (!s.files?.length) return s.filesRemovedAt ? `<p class="mt-6 rounded-2xl bg-surface2 px-4 py-3 text-[14px] text-ink2">ไฟล์ของงานนี้ถูกลบเมื่อ ${when(s.filesRemovedAt, false)} ตามนโยบายการเก็บข้อมูล (งานที่ไม่ได้เผยแพร่เก็บไฟล์ ${window.SITE?.retentionDays ?? 180} วัน) <a href="privacy.html#s5" class="text-purple underline underline-offset-4">อ่านนโยบาย</a></p>` : '';
+      const pics = s.files.filter((f) => f.thumb);
+      const docs = s.files.filter((f) => !f.thumb);
+      return `<details class="group mt-6 rounded-2xl border border-line">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 font-display text-[15px] font-semibold">
+          ไฟล์ที่ส่ง <span class="ml-auto font-sans text-[13px] font-normal text-ink2">${s.files.length} ไฟล์</span>
+          <svg class="t-spring group-open:rotate-180" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="grid gap-3 px-4 pb-4">
+          ${pics.length ? `<ul class="grid grid-cols-4 gap-2 sm:grid-cols-6">${pics.map((f) => `<li><a href="${esc(f.url)}" target="_blank" rel="noopener" class="press t-spring block overflow-hidden rounded-xl hover:-translate-y-0.5" aria-label="เปิดภาพ ${esc(f.name)}"><img src="${esc(f.thumb)}" alt="" class="aspect-square w-full object-cover" loading="lazy"></a></li>`).join('')}</ul>` : ''}
+          ${docs.length ? `<ul class="grid gap-2">${docs.map((f) => `<li><a href="${esc(f.url)}" target="_blank" rel="noopener" class="press t-quick flex items-center gap-3 rounded-xl bg-surface2/70 px-3 py-2 text-[14px] hover:bg-surface2"><span class="min-w-0 flex-1 truncate font-medium">${esc(f.name)}</span><span class="shrink-0 text-[12px] text-ink2">${fmtSize(f.size)}</span></a></li>`).join('')}</ul>` : ''}
+        </div>
+      </details>`;
+    }
+
+    function renderDetail(s) {
+      const T = TYPE[s.type], S = STATUS[s.status];
+      const d = $('#detail');
+      d.hidden = false;
+      $('#detailEmpty').classList.add('lg:hidden');
+      const canReply = s.status !== 'rejected' && s.status !== 'published';
+      const action = s.status === 'published' && s.url
+        ? `<a href="${esc(s.url)}" class="press t-spring mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-shell px-5 font-display text-[15px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ดูงานที่เผยแพร่ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></a>`
+        : s.status === 'revise' ? `<a href="submit.html?edit=${encodeURIComponent(s.ref)}" class="bg-grad press t-spring mt-4 inline-flex h-11 items-center gap-2 rounded-full px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>แก้ไขงานและส่งอีกครั้ง</a>`
+        : s.status === 'rejected' ? `<a href="submit.html?type=${s.type}" class="press t-spring mt-4 inline-flex h-11 items-center rounded-full bg-shell px-5 font-display text-[15px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ส่งเป็นงานชิ้นใหม่</a>` : '';
+      d.innerHTML = `
+        <div class="border-b border-line p-5 sm:p-6">
+          <button type="button" id="back" class="hover-fill press t-quick -ml-2 mb-3 inline-flex h-10 items-center gap-2 rounded-full px-3 font-display text-[14px] font-medium text-ink2 hover:text-ink lg:hidden">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>กลับไปที่รายการ
+          </button>
+          <div class="flex flex-wrap items-center gap-2 text-[13px]">
+            <span class="inline-flex items-center gap-1.5 rounded-full ${T.cls} px-2.5 font-display font-semibold leading-6">${T.label}</span>
+            <span class="text-ink2">${esc(s.ref)}</span>
+          </div>
+          <h2 id="dTitle" tabindex="-1" class="mt-2 font-display text-[clamp(20px,2vw,24px)] font-semibold leading-snug">${esc(s.title)}</h2>
+          <dl class="mt-3 grid gap-x-6 gap-y-1 text-[13px] sm:grid-cols-3">
+            <div><dt class="text-ink2">หน่วยงาน</dt><dd class="font-medium">${esc(s.unit || '–')}</dd></div>
+            <div><dt class="text-ink2">ส่งเมื่อ</dt><dd class="font-medium">${when(s.sentAt)}</dd></div>
+            <div><dt class="text-ink2">ใครเห็นได้</dt><dd class="font-medium">${esc(s.audience || '–')}</dd></div>
+          </dl>
+        </div>
+
+        <div class="p-5 sm:p-6">
+          <div class="grain relative overflow-hidden rounded-2xl p-5 ${S.cls}">
+            <p class="relative font-display text-[17px] font-semibold">${S.title}</p>
+            <p class="relative mt-1 text-[14px] text-ink">${S.desc}</p>
+            ${action ? `<div class="relative">${action}</div>` : ''}
+          </div>
+
+          <h3 class="mt-6 font-display text-[16px] font-semibold">ข้อความ</h3>
+          <ol class="mt-3 grid gap-3" aria-label="ข้อความ">
+            ${s.thread.length ? s.thread.map((m) => `
+              <li class="flex ${m.from === 'me' ? 'justify-end' : ''}">
+                <div class="max-w-[85%] rounded-2xl px-4 py-3 ${m.from === 'me' ? 'rounded-br-md bg-royal-soft' : 'rounded-bl-md bg-surface2'}">
+                  <p class="font-display text-[13px] font-semibold ${m.from === 'me' ? 'text-royal' : 'text-purple'}">${m.from === 'me' ? 'คุณ' : esc(m.name || 'งานประชาสัมพันธ์')}</p>
+                  <p class="mt-0.5 whitespace-pre-line text-[15px]">${esc(m.text)}</p>
+                  <p class="mt-1 text-[12px] text-ink2">${when(m.at)}</p>
+                </div>
+              </li>`).join('') : '<li class="rounded-2xl border border-dashed border-line px-4 py-5 text-center text-[14px] text-ink2">ยังไม่มีข้อความ PR จะแจ้งที่นี่เมื่อตรวจงานแล้ว</li>'}
+          </ol>
+
+          ${canReply ? `
+          <form id="reply" class="mt-4" novalidate>
+            <label for="replyText" class="sr-only">ข้อความถึง PR</label>
+            <textarea id="replyText" rows="3" maxlength="1000" placeholder="${s.status === 'revise' ? 'ถาม PR หรือบอกรายละเอียดเพิ่มเติม (แก้ไขงานด้วยปุ่มด้านบน)' : 'พิมพ์ข้อความถึง PR'}" class="field w-full resize-y rounded-2xl px-4 py-3 text-[15px]" aria-describedby="replyError"></textarea>
+            <p id="replyError" class="mt-1 text-[14px] font-medium text-brand" hidden>พิมพ์ข้อความก่อนส่ง</p>
+            <div class="mt-3 flex flex-wrap justify-end gap-2">
+              <button type="submit" data-mode="message" class="press t-spring inline-flex h-11 items-center gap-2 rounded-full border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">ส่งข้อความ</button>
+            </div>
+          </form>` : ''}
+
+          ${filesBlock(s)}
+
+          <details class="group mt-6 rounded-2xl border border-line">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 font-display text-[15px] font-semibold">
+              ประวัติสถานะ
+              <svg class="t-spring group-open:rotate-180" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <ol class="grid gap-0 px-4 pb-4">
+              ${[...s.history].reverse().map((h, i) => `
+                <li class="relative flex gap-3 pb-4 last:pb-0">
+                  <span class="relative z-[1] mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${i === 0 ? 'bg-grad' : 'bg-line'}"></span>
+                  ${i < s.history.length - 1 ? '<span class="absolute left-[4px] top-4 h-full w-px bg-line" aria-hidden="true"></span>' : ''}
+                  <span><span class="block text-[14px] font-medium">${STATUS[h.status]?.log || h.status}</span><span class="text-[12px] text-ink2">${when(h.at)}</span></span>
+                </li>`).join('')}
+            </ol>
+          </details>
+        </div>`;
+      $('#back').addEventListener('click', () => { closeDetail(); $(`[data-ref="${CSS.escape(s.ref)}"]`)?.focus(); });
+      const form = $('#reply');
+      if (form) form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = $('#replyText').value.trim();
+        if (!text) { $('#replyError').textContent = 'พิมพ์ข้อความก่อนส่ง'; $('#replyError').hidden = false; $('#replyText').setAttribute('aria-invalid', 'true'); $('#replyText').focus(); return; }
+        const btn = e.submitter || form.querySelector('[type=submit]');
+        btn.disabled = true;
+        try {
+          const r = await api(`/submissions/${encodeURIComponent(s.ref)}/messages`, { method: 'POST', body: { text } });
+          subs = subs.map((x) => (x.ref === s.ref ? r.submission : x));
+          renderFilters(); renderList(); renderDetail(r.submission);
+          announce('ส่งข้อความแล้ว');
+          $('#dTitle').focus({ preventScroll: true });
+        } catch (err) {
+          btn.disabled = false;
+          $('#replyError').textContent = err.message;
+          $('#replyError').hidden = false;
+        }
+      });
+    }
+
+    function render() {
+      renderFilters();
+      renderList();
+      if (current && subs.some((s) => s.ref === current)) open(current, false);
+      else if (!isMobile() && subs.length) open(visible()[0]?.ref || subs[0].ref, false);
+    }
+
+    // ---- Theme switch ----
+    const themeSwitch = document.getElementById('themeToggle');
+    themeSwitch.setAttribute('aria-checked', document.documentElement.classList.contains('dark'));
+    themeSwitch.addEventListener('click', () => {
+      const dark = document.documentElement.classList.toggle('dark');
+      themeSwitch.setAttribute('aria-checked', dark);
+      try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ตั้งค่าระบบ | หลังบ้าน ข่าว มรส.</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="desk.css">
+  <style>
+    .sec-link[aria-current="true"] { background: rgb(var(--purple-soft)); color: rgb(var(--purple)); }
+    .sec-link { position: relative; isolation: isolate; }
+    .sec-link::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: rgb(var(--surface-2)); opacity: 0; transition: opacity .2s var(--ease-out); }
+    .sec-link:hover::before { opacity: 1; }
+    .code-area { font-family: "Noto Sans Thai", ui-monospace, monospace; font-size: 14px; line-height: 1.75; tab-size: 2; }
+    .swatch { background: radial-gradient(90% 60% at 100% 0%, var(--glow), transparent 65%), radial-gradient(80% 50% at 0% 100%, rgb(122 60 226 / .6), transparent 70%), var(--bg-c); }
+  </style>
+  <script src="thai-date.js" defer></script>
+  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+</head>
+<body class="app">
+  <a href="#panel" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่การตั้งค่า</a>
+  <div class="flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
+    <header id="mbar" class="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-shell/95 px-4 py-2.5 shadow-raised backdrop-blur-xl lg:hidden"></header>
+    <div id="scrim" class="fixed inset-0 z-40 bg-[rgb(10_11_32/.45)] lg:hidden" aria-hidden="true"></div>
+    <aside id="side" class="scroll-thin fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto bg-bg px-4 pb-4 pt-5 shadow-float lg:static lg:z-auto lg:w-[248px] lg:shrink-0 lg:bg-transparent lg:shadow-none" aria-label="เมนูหลังบ้าน"></aside>
+
+    <main id="main" class="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-2 sm:p-3 lg:flex-row lg:pl-0">
+      <section id="gate" class="m-auto flex max-w-[520px] flex-col items-center gap-4 rounded-card border border-line bg-shell p-8 text-center shadow-float" hidden></section>
+
+      <nav id="secNav" class="no-scrollbar flex gap-1 overflow-x-auto rounded-card bg-shell p-2 shadow-raised lg:w-[210px] lg:shrink-0 lg:flex-col lg:overflow-visible lg:p-3" aria-label="หมวดการตั้งค่า" hidden></nav>
+      <section id="panel" class="scroll-thin min-h-0 min-w-0 flex-1 overflow-y-auto rounded-card bg-shell shadow-raised" aria-live="polite" hidden></section>
+    </main>
+  </div>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="auth.js"></script>
+  <script src="desk.js"></script>
+  <script>
+    const { esc, day, dayTime, num, toast, ROLE_TH } = DESK;
+    const $ = (s) => document.querySelector(s);
+    const SECTIONS = [
+      ['users', 'ผู้ใช้และบทบาท'], ['org', 'ผังหน่วยงาน'], ['categories', 'ประเภทข่าว'], ['media', 'ภาพและวิดีโอ'],
+      ['review', 'เวลาตรวจข่าว'], ['digest', 'แม่แบบเล่มสรุปข่าว'], ['messages', 'ข้อความแจ้งเตือน'], ['mail', 'อีเมลแจ้งเตือน'], ['requests', 'คำขอข้อมูลส่วนบุคคล'], ['retention', 'ระยะเวลาเก็บข้อมูล'], ['backups', 'สำรองข้อมูล'], ['audit', 'ประวัติการใช้งาน'],
+    ];
+    const PLATFORM = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
+    const SOFT = { 'bg-red-soft': 'ชมพู', 'bg-purple-soft': 'ม่วง', 'bg-sky-soft': 'ฟ้า', 'bg-royal-soft': 'น้ำเงิน', 'bg-gold-soft': 'ทอง' };
+    const MSG = { published: 'เมื่อเผยแพร่แล้ว', revise: 'เมื่อขอให้แก้ไข', rejected: 'เมื่อไม่เผยแพร่', writing: 'เมื่อ PR รับไปเขียนข่าว' };
+    let S = null; // { settings, defaults, fileOrg, ... }
+    let me = null;
+
+    const head = (title, text) => `<div class="border-b border-line p-5 sm:px-6"><h1 class="font-display tight text-[24px] font-bold text-royal">${title}</h1><p class="mt-1 max-w-[72ch] text-[14px] text-ink2">${text}</p></div>`;
+    const saveBar = (id, extra = '') => `<div class="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 border-t border-line bg-shell/95 px-5 py-3 backdrop-blur sm:px-6">${extra}
+      <button type="button" id="${id}" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">บันทึก</button></div>`;
+    async function save(key, value, btn) {
+      if (btn) btn.disabled = true;
+      try {
+        const r = await api(`/admin/settings/${key}`, { method: 'PUT', body: { value } });
+        S.settings[key] = r.value;
+        toast('บันทึกแล้ว มีผลกับทุกหน้าทันที');
+        return true;
+      } catch (err) { toast(err.message, true); return false; } finally { if (btn) btn.disabled = false; }
+    }
+
+    // ================= Users and roles =================
+    const ROLE_OPTS = [['default', 'ตามโดเมนอีเมล'], ['coordinator', 'ผู้ประสานงานหน่วยงาน'], ['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ']];
+    const UNITS = () => { const o = S.settings.org || S.fileOrg; return [...o.staffGroups.flatMap((g) => g.units), ...Object.keys(o.faculties)]; };
+    const usersState = { q: '', role: '', offset: 0 };
+    function roleSelect(u) {
+      const v = ['coordinator', 'pr', 'admin'].includes(u.role) ? u.role : 'default';
+      return `<select data-role class="field sel h-10 rounded-xl pl-3 pr-9 text-[14px]" aria-label="บทบาทของ ${esc(u.email)}">${ROLE_OPTS.map(([k, l]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+    }
+    async function users() {
+      $('#panel').innerHTML = head('ผู้ใช้และบทบาท', 'ทุกคนที่เคยเข้าสู่ระบบ บทบาทเริ่มต้นมาจากโดเมนอีเมล (@sru.ac.th = บุคลากร, @student.sru.ac.th = นักศึกษา) ให้สิทธิ์ทีม PR ผู้ดูแลระบบ หรือผู้ประสานงานหน่วยงาน ได้ที่นี่ ให้สิทธิ์ล่วงหน้าก่อนผู้ใช้เข้าสู่ระบบครั้งแรกได้') + `
+        <div class="grid gap-4 p-5 sm:px-6">
+          <form id="grant" class="grid gap-2 rounded-card border border-line bg-surface2/50 p-4 sm:grid-cols-[minmax(0,1.3fr)_200px_minmax(0,1fr)_auto] sm:items-end">
+            <label class="grid gap-1"><span class="font-display text-[14px] font-semibold">ให้สิทธิ์อีเมล</span><input name="email" type="email" required placeholder="ชื่อ@sru.ac.th" class="field h-11 rounded-xl px-3 text-[15px]"></label>
+            <label class="grid gap-1"><span class="font-display text-[14px] font-semibold">บทบาท</span><select name="role" class="field sel h-11 rounded-xl pl-3 pr-9 text-[15px]">${ROLE_OPTS.slice(1).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
+            <label class="grid gap-1" data-unitbox><span class="font-display text-[14px] font-semibold">หน่วยงานที่ดูแล</span><input name="unit" list="unitList" placeholder="สำหรับผู้ประสานงาน" class="field h-11 rounded-xl px-3 text-[15px]"></label>
+            <button class="press t-spring h-11 rounded-xl bg-royal px-5 font-display text-[15px] font-semibold text-white dark:text-bg hover:-translate-y-0.5">ให้สิทธิ์</button>
+          </form>
+          <datalist id="unitList">${UNITS().map((u) => `<option value="${esc(u)}"></option>`).join('')}</datalist>
+          <div class="flex flex-wrap items-center gap-2">
+            <div id="roleChips" class="flex flex-wrap gap-1"></div>
+            <input id="userQ" type="search" placeholder="ค้นหาชื่อ อีเมล หรือหน่วยงาน" value="${esc(usersState.q)}" class="field ml-auto h-10 w-full rounded-full px-4 text-[14px] sm:w-[280px]">
+          </div>
+          <div id="userList" class="grid gap-1"></div>
+        </div>`;
+      const form = $('#grant');
+      const syncUnit = () => { form.querySelector('[data-unitbox]').hidden = form.role.value !== 'coordinator'; };
+      form.role.addEventListener('change', syncUnit); syncUnit();
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+          await api('/admin/roles', { method: 'PUT', body: { email: form.email.value, role: form.role.value, unit: form.unit.value } });
+          toast(`ให้สิทธิ์ ${form.email.value} แล้ว`);
+          form.reset(); syncUnit(); loadUsers();
+        } catch (err) { toast(err.message, true); }
+      });
+      let t;
+      $('#userQ').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => { usersState.q = e.target.value.trim(); usersState.offset = 0; loadUsers(); }, 250); });
+      loadUsers();
+    }
+    async function loadUsers() {
+      const p = new URLSearchParams({ limit: 50, offset: usersState.offset });
+      if (usersState.q) p.set('q', usersState.q);
+      if (usersState.role) p.set('role', usersState.role);
+      const r = await api('/admin/users?' + p).catch((err) => { toast(err.message, true); return null; });
+      if (!r) return;
+      const chip = (k, l) => `<button type="button" data-rolef="${k}" aria-pressed="${usersState.role === k}" class="press t-quick h-9 rounded-full px-3 font-display text-[13px] font-semibold ${usersState.role === k ? 'bg-grad text-white shadow-glow' : 'border border-line'}">${l}${k ? ` ${num(r.counts[k] || 0)}` : ''}</button>`;
+      $('#roleChips').innerHTML = chip('', 'ทั้งหมด') + ['admin', 'pr', 'coordinator', 'staff', 'student', 'external'].map((k) => chip(k, ROLE_TH[k])).join('');
+      $('#userList').innerHTML = r.items.length ? r.items.map((u) => `
+        <div class="grid items-center gap-2 rounded-2xl border border-line p-3 sm:grid-cols-[minmax(0,1fr)_200px_minmax(0,220px)_auto]" data-email="${esc(u.email)}">
+          <div class="min-w-0"><p class="truncate font-display text-[15px] font-semibold">${esc(u.name || u.email)}</p>
+            <p class="truncate text-[13px] text-ink2">${esc(u.email)}${u.affiliation ? `, ${esc(u.affiliation)}` : ''}</p>
+            <p class="text-[12px] text-ink2">${u.signedIn ? (u.lastLoginAt ? `เข้าสู่ระบบล่าสุด ${dayTime(u.lastLoginAt)}` : '') : 'ให้สิทธิ์ล่วงหน้า ยังไม่เคยเข้าสู่ระบบ'}</p></div>
+          ${roleSelect(u)}
+          <input data-unit list="unitList" value="${esc(u.coordUnit || '')}" placeholder="หน่วยงานที่ดูแล" aria-label="หน่วยงานที่ ${esc(u.email)} ดูแล" class="field h-10 rounded-xl px-3 text-[14px]" ${u.role === 'coordinator' ? '' : 'hidden'}>
+          <button type="button" data-apply class="press t-quick h-10 rounded-xl border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5" hidden>บันทึก</button>
+        </div>`).join('') : '<p class="rounded-2xl border border-dashed border-line p-8 text-center text-ink2">ไม่พบผู้ใช้</p>';
+    }
+    document.addEventListener('click', (e) => { const b = e.target.closest('[data-rolef]'); if (b) { usersState.role = b.dataset.rolef; usersState.offset = 0; loadUsers(); } });
+    document.addEventListener('change', (e) => {
+      const row = e.target.closest('[data-email]');
+      if (!row || !e.target.matches('[data-role], [data-unit]')) return;
+      row.querySelector('[data-unit]').hidden = row.querySelector('[data-role]').value !== 'coordinator';
+      row.querySelector('[data-apply]').hidden = false;
+    });
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-apply]');
+      if (!b) return;
+      const row = b.closest('[data-email]');
+      try {
+        await api('/admin/roles', { method: 'PUT', body: { email: row.dataset.email, role: row.querySelector('[data-role]').value, unit: row.querySelector('[data-unit]').value } });
+        toast('บันทึกบทบาทแล้ว มีผลเมื่อผู้ใช้โหลดหน้าใหม่');
+        loadUsers();
+      } catch (err) { toast(err.message, true); }
+    });
+
+    // ================= Org chart =================
+    // Text format: "# group", unit lines, "- sub-unit" under a unit. Faculties: name lines, "- major" or "- major: track, track".
+    function orgToText(o) {
+      const staff = o.staffGroups.map((g) => [`# ${g.label}`, ...g.units.flatMap((u) => [u, ...(o.subUnits[u]?.units || []).map((s) => `- ${s}`)])].join('\n')).join('\n\n');
+      const fac = Object.entries(o.faculties).map(([f, v]) => [f, ...v.majors.map((m) => typeof m === 'string' ? `- ${m}` : `- ${m.name}: ${m.tracks.join(', ')}`)].join('\n')).join('\n\n');
+      return { staff, fac };
+    }
+    function textToOrg(staff, fac, prev) {
+      const staffGroups = [], subUnits = {}, faculties = {};
+      let group = null, unit = null;
+      staff.split('\n').map((l) => l.trim()).forEach((l, i) => {
+        if (!l) return;
+        if (l.startsWith('#')) { group = { label: l.replace(/^#+\s*/, ''), units: [] }; staffGroups.push(group); unit = null; return; }
+        if (l.startsWith('-')) {
+          if (!unit) throw new Error(`บรรทัด ${i + 1}: หน่วยงานย่อยต้องอยู่ใต้หน่วยงานหลัก`);
+          const p = prev.subUnits[unit];
+          subUnits[unit] ||= { label: p?.label || 'หน่วยงานย่อย', required: p ? p.required !== false : true, units: [] };
+          subUnits[unit].units.push(l.replace(/^-\s*/, ''));
+          return;
+        }
+        if (!group) throw new Error(`บรรทัด ${i + 1}: ขึ้นต้นด้วยชื่อกลุ่ม เช่น # คณะ / วิทยาลัย`);
+        unit = l; group.units.push(l);
+      });
+      let f = null;
+      fac.split('\n').map((l) => l.trim()).forEach((l, i) => {
+        if (!l) return;
+        if (l.startsWith('-')) {
+          if (!f) throw new Error(`คณะ บรรทัด ${i + 1}: สาขาต้องอยู่ใต้ชื่อคณะ`);
+          const [name, tracks] = l.replace(/^-\s*/, '').split(/:\s*/);
+          faculties[f].majors.push(tracks ? { name: name.trim(), tracks: tracks.split(',').map((t) => t.trim()).filter(Boolean) } : name.trim());
+          return;
+        }
+        f = l;
+        faculties[f] = { ...(prev.faculties[f]?.majorLabel ? { majorLabel: prev.faculties[f].majorLabel } : {}), majors: [] };
+      });
+      return { staffGroups, subUnits, faculties };
+    }
+    function org() {
+      const o = S.settings.org || S.fileOrg;
+      const t = orgToText(o);
+      const count = o.staffGroups.reduce((a, g) => a + g.units.length, 0);
+      $('#panel').innerHTML = head('ผังหน่วยงาน', `รายชื่อหน่วยงานที่ใช้ในหน้าเข้าสู่ระบบ ฟอร์มส่งข่าว ตัวกรองค้นหา และรายงาน ตอนนี้มี ${count} หน่วยงาน ${Object.keys(o.faculties).length} คณะ${S.settings.org ? ' (แก้ไขจากหน้านี้)' : ' (จากไฟล์ org-data.js)'}`) + `
+        <div class="grid gap-5 p-5 sm:px-6 xl:grid-cols-2">
+          <label class="grid content-start gap-2"><span class="font-display text-[16px] font-semibold">หน่วยงานของบุคลากร</span>
+            <span class="text-[13px] text-ink2"><b># ชื่อกลุ่ม</b> ขึ้นกลุ่มใหม่, หนึ่งบรรทัดต่อหนึ่งหน่วยงาน, <b>- ชื่อ</b> ใต้หน่วยงานคือหน่วยงานย่อย</span>
+            <textarea id="orgStaff" rows="22" spellcheck="false" class="code-area field scroll-thin rounded-2xl px-4 py-3">${esc(t.staff)}</textarea></label>
+          <label class="grid content-start gap-2"><span class="font-display text-[16px] font-semibold">คณะและสาขาของนักศึกษา</span>
+            <span class="text-[13px] text-ink2">หนึ่งบรรทัดต่อหนึ่งคณะ, <b>- สาขา</b> ใต้คณะ, <b>- สาขา: วิชาเอก, วิชาเอก</b> เมื่อสาขามีวิชาเอก</span>
+            <textarea id="orgFac" rows="22" spellcheck="false" class="code-area field scroll-thin rounded-2xl px-4 py-3">${esc(t.fac)}</textarea></label>
+        </div>
+        <p id="orgErr" class="px-6 pb-2 text-[14px] font-medium text-brand" hidden></p>` +
+        saveBar('orgSave', S.settings.org ? '<button type="button" id="orgReset" class="press t-quick mr-auto h-11 rounded-2xl px-4 font-display text-[15px] font-medium text-ink2 hover:text-ink">คืนค่าจากไฟล์ org-data.js</button>' : '');
+      $('#orgSave').addEventListener('click', async (e) => {
+        $('#orgErr').hidden = true;
+        let value;
+        try { value = textToOrg($('#orgStaff').value, $('#orgFac').value, o); } catch (err) { $('#orgErr').textContent = err.message; $('#orgErr').hidden = false; return; }
+        if (await save('org', value, e.currentTarget)) org();
+      });
+      $('#orgReset')?.addEventListener('click', async (e) => { if (await save('org', null, e.currentTarget)) org(); });
+    }
+
+    // ================= Categories =================
+    function categories() {
+      let list = [...S.settings.categories];
+      $('#panel').innerHTML = head('ประเภทข่าว', 'ตัวเลือกในฟอร์มส่งข่าว หน้าเผยแพร่ หน้านำเข้า และตัวกรองค้นหา ผู้ส่งเลือกได้สูงสุด 5 ประเภทต่อข่าว ข่าวเก่าที่ใช้ประเภทที่ลบไปแล้วยังคงแสดงชื่อเดิม') + `
+        <div class="grid max-w-[720px] gap-3 p-5 sm:px-6">
+          <ol id="catList" class="grid gap-1.5"></ol>
+          <form id="catAdd" class="flex gap-2"><input name="c" maxlength="40" placeholder="เพิ่มประเภทข่าว" class="field h-11 flex-1 rounded-xl px-3 text-[15px]" aria-label="ชื่อประเภทข่าวใหม่">
+            <button class="press t-spring h-11 rounded-xl bg-royal px-5 font-display text-[15px] font-semibold text-white dark:text-bg hover:-translate-y-0.5">เพิ่ม</button></form>
+        </div>` + saveBar('catSave');
+      const paint = () => {
+        $('#catList').innerHTML = list.map((c, i) => `<li class="flex items-center gap-2 rounded-2xl border border-line py-1.5 pl-4 pr-1.5">
+          <span class="w-6 text-[13px] text-ink2">${i + 1}</span><span class="flex-1 font-display text-[15px] font-medium">${esc(c)}</span>
+          <button type="button" data-mv="${i},-1" class="icon-btn grid h-9 w-9 place-items-center rounded-full text-ink2 hover:text-ink disabled:opacity-30" ${i ? '' : 'disabled'} aria-label="เลื่อน ${esc(c)} ขึ้น"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+          <button type="button" data-mv="${i},1" class="icon-btn grid h-9 w-9 place-items-center rounded-full text-ink2 hover:text-ink disabled:opacity-30" ${i < list.length - 1 ? '' : 'disabled'} aria-label="เลื่อน ${esc(c)} ลง"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+          <button type="button" data-rm="${i}" class="icon-btn grid h-9 w-9 place-items-center rounded-full text-brand" aria-label="ลบ ${esc(c)}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></li>`).join('');
+      };
+      paint();
+      $('#catList').addEventListener('click', (e) => {
+        const mv = e.target.closest('[data-mv]'), rm = e.target.closest('[data-rm]');
+        if (mv) { const [i, d] = mv.dataset.mv.split(',').map(Number); [list[i], list[i + d]] = [list[i + d], list[i]]; paint(); }
+        if (rm) { list.splice(Number(rm.dataset.rm), 1); paint(); }
+      });
+      $('#catAdd').addEventListener('submit', (e) => { e.preventDefault(); const v = e.target.c.value.trim(); if (v && !list.includes(v)) { list.push(v); paint(); } e.target.reset(); });
+      $('#catSave').addEventListener('click', (e) => save('categories', list, e.currentTarget));
+    }
+
+    // ================= Photos + video platforms =================
+    function media() {
+      const p = S.settings.photos, pf = S.settings.platforms;
+      $('#panel').innerHTML = head('ภาพและวิดีโอ', 'จำนวนภาพที่ผู้ส่งต้องแนบในข่าวพร้อมภาพ และแหล่งวิดีโอที่รับ วิดีโอรับเป็นลิงก์เท่านั้น ไม่เก็บไฟล์วิดีโอบนเซิร์ฟเวอร์') + `
+        <div class="grid max-w-[720px] gap-6 p-5 sm:px-6">
+          <fieldset class="grid gap-3 sm:grid-cols-2"><legend class="mb-2 font-display text-[16px] font-semibold">จำนวนภาพต่อข่าว</legend>
+            <label class="grid gap-1"><span class="text-[14px]">ขั้นต่ำ</span><input id="pMin" type="number" min="1" max="20" value="${p.min}" class="field h-11 rounded-xl px-3 text-[15px]"></label>
+            <label class="grid gap-1"><span class="text-[14px]">สูงสุด</span><input id="pMax" type="number" min="1" max="100" value="${p.max}" class="field h-11 rounded-xl px-3 text-[15px]"></label>
+          </fieldset>
+          <fieldset><legend class="mb-2 font-display text-[16px] font-semibold">แหล่งวิดีโอที่รับ</legend>
+            <div class="flex flex-wrap gap-2">${S.platforms.map((k) => `<label class="opt chip-opt"><input type="checkbox" name="pf" value="${k}" ${pf.includes(k) ? 'checked' : ''}><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">${PLATFORM[k]}</span></label>`).join('')}</div>
+          </fieldset>
+        </div>` + saveBar('mediaSave');
+      $('#mediaSave').addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        const ok = await save('photos', { min: Number($('#pMin').value), max: Number($('#pMax').value) }, btn);
+        if (ok) await save('platforms', [...document.querySelectorAll('input[name=pf]:checked')].map((i) => i.value), btn);
+      });
+    }
+
+    // ================= Review time =================
+    function review() {
+      const d = S.settings.review.days;
+      $('#panel').innerHTML = head('เวลาตรวจข่าว', 'ระยะเวลาที่บอกผู้ส่งในฟอร์มส่งข่าว และใช้นับงานที่ “เกินเวลาตรวจ” ในหน้ารายงาน นับเฉพาะวันจันทร์ถึงศุกร์') + `
+        <div class="grid max-w-[720px] gap-5 p-5 sm:px-6">
+          <label class="flex items-center gap-3"><span class="font-display text-[16px] font-semibold">ตรวจและแจ้งผลภายใน</span>
+            <input id="days" type="number" min="1" max="30" value="${d}" class="field h-11 w-24 rounded-xl px-3 text-center text-[16px]"><span class="text-[15px]">วันทำการ</span></label>
+          <div class="rounded-card border border-line bg-surface2/60 p-4"><p class="text-[13px] text-ink2">ผู้ส่งจะเห็นข้อความนี้</p>
+            <p id="daysPreview" class="mt-1 text-[15px]"></p></div>
+        </div>` + saveBar('reviewSave');
+      const sync = () => { $('#daysPreview').textContent = `งานประชาสัมพันธ์จะตรวจและแจ้งผลกลับภายใน ${$('#days').value || '…'} วันทำการ ทางอีเมลและกล่องข้อความ`; };
+      $('#days').addEventListener('input', sync); sync();
+      $('#reviewSave').addEventListener('click', (e) => save('review', { days: Number($('#days').value) }, e.currentTarget));
+    }
+
+    // ================= Digest template =================
+    function digest() {
+      const d = structuredClone(S.settings.digest);
+      $('#panel').innerHTML = head('แม่แบบเล่มสรุปข่าว', 'หัวเล่มและชุดสีปกของเล่มรายสัปดาห์และรายเดือน ระบบหมุนชุดสีไปทีละฉบับตอนสร้างร่างอัตโนมัติ') + `
+        <div class="grid gap-6 p-5 sm:px-6">
+          <div class="grid max-w-[720px] gap-3 sm:grid-cols-2">
+            <label class="grid gap-1"><span class="font-display text-[15px] font-semibold">หัวเล่มรายสัปดาห์</span><input id="mWeekly" maxlength="30" value="${esc(d.mastheads.weekly)}" class="field h-11 rounded-xl px-3 text-[15px]"></label>
+            <label class="grid gap-1"><span class="font-display text-[15px] font-semibold">หัวเล่มรายเดือน</span><input id="mMonthly" maxlength="30" value="${esc(d.mastheads.monthly)}" class="field h-11 rounded-xl px-3 text-[15px]"></label>
+          </div>
+          <div><h2 class="font-display text-[16px] font-semibold">ชุดสีปก</h2>
+            <div id="themes" class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"></div>
+            <button type="button" id="addTheme" class="press t-quick mt-3 h-10 rounded-full border border-dashed border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">เพิ่มชุดสี</button></div>
+        </div>` + saveBar('digestSave');
+      const hex = (v) => (/^#[0-9a-f]{6}/i.test(v) ? v.slice(0, 7) : '#7A3CE2');
+      const paint = () => {
+        $('#themes').innerHTML = d.themes.map((t, i) => `<div class="flex gap-3 rounded-2xl border border-line p-3" data-t="${i}">
+          <div class="swatch relative grid aspect-[1240/1754] w-[86px] shrink-0 overflow-hidden rounded-lg p-2 text-white shadow-raised" style="--bg-c:${esc(t.bg)}; --glow:${esc(t.glow)}">
+            <p class="font-display text-[7px] font-semibold tracking-[.12em]">${esc(d.mastheads.weekly)}</p><p class="mt-1 font-display text-[13px] font-bold leading-tight">1–7 ต.ค.</p></div>
+          <div class="grid min-w-0 flex-1 content-start gap-1.5 text-[13px]">
+            <label class="flex items-center justify-between gap-2 whitespace-nowrap">พื้นปก <input type="color" data-k="bg" value="${hex(t.bg)}" class="h-8 w-12 cursor-pointer rounded border border-line bg-transparent"></label>
+            <label class="flex items-center justify-between gap-2 whitespace-nowrap">แสงมุม <input data-k="glow" value="${esc(t.glow)}" class="field h-8 w-full min-w-0 max-w-[140px] rounded-lg px-2 text-[12px]"></label>
+            <label class="flex items-center justify-between gap-2 whitespace-nowrap">พื้นการ์ด <select data-k="soft" class="field sel h-8 rounded-lg pl-2 pr-8 text-[12px]">${S.softBg.map((s) => `<option value="${s}" ${s === t.soft ? 'selected' : ''}>${SOFT[s]}</option>`).join('')}</select></label>
+            <button type="button" data-del class="mt-1 justify-self-end rounded text-[12px] font-medium text-brand hover:underline" ${d.themes.length > 1 ? '' : 'hidden'}>ลบชุดนี้</button>
+          </div></div>`).join('');
+      };
+      paint();
+      $('#themes').addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k) return; d.themes[e.target.closest('[data-t]').dataset.t][k] = e.target.value; if (k !== 'soft') paint(); });
+      $('#themes').addEventListener('click', (e) => { if (e.target.closest('[data-del]')) { d.themes.splice(e.target.closest('[data-t]').dataset.t, 1); paint(); } });
+      $('#addTheme').addEventListener('click', () => { d.themes.push({ bg: '#2642C8', glow: 'rgb(255 206 96 / .5)', soft: 'bg-royal-soft' }); paint(); });
+      ['mWeekly', 'mMonthly'].forEach((id) => $('#' + id).addEventListener('input', () => { d.mastheads = { weekly: $('#mWeekly').value, monthly: $('#mMonthly').value }; paint(); }));
+      $('#digestSave').addEventListener('click', (e) => save('digest', d, e.currentTarget));
+    }
+
+    // ================= Message templates =================
+    function messages() {
+      const m = S.settings.messages;
+      $('#panel').innerHTML = head('ข้อความแจ้งเตือน', 'ข้อความตั้งต้นที่ส่งถึงผู้ส่งในกล่องข้อความและในอีเมลแจ้งเตือน ทีม PR แก้ไขได้ทุกครั้งก่อนส่ง') + `
+        <div class="grid max-w-[760px] gap-4 p-5 sm:px-6">${Object.entries(MSG).map(([k, l]) => `
+          <label class="grid gap-1.5"><span class="font-display text-[15px] font-semibold">${l}</span>
+            <textarea data-msg="${k}" rows="3" maxlength="500" class="field rounded-2xl px-4 py-3 text-[15px]">${esc(m[k])}</textarea></label>`).join('')}</div>` + saveBar('msgSave');
+      $('#msgSave').addEventListener('click', (e) => save('messages', Object.fromEntries([...document.querySelectorAll('[data-msg]')].map((t) => [t.dataset.msg, t.value])), e.currentTarget));
+    }
+
+    // ================= Email notifications =================
+    const MAIL_KIND = {
+      'submission.status': 'สถานะงานถึงผู้ส่ง', 'submission.message': 'ข้อความ PR ถึงผู้ส่ง', 'pr.new': 'งานใหม่ถึงทีม PR', 'pr.resent': 'งานที่แก้ไขแล้ว',
+      'pr.message': 'ข้อความผู้ส่งถึงทีม PR', 'pr.daily': 'สรุปงานเช้า', 'digest.reminder': 'เตือนเล่มรออนุมัติ', 'privacy.request': 'คำขอลบข้อมูล', 'privacy.done': 'ผลคำขอลบข้อมูล', test: 'อีเมลทดสอบ',
+    };
+    const MAIL_TONE = { sent: ['ส่งแล้ว', 'bg-sky-soft text-sky'], queued: ['รอส่ง', 'bg-gold-soft text-gold'], failed: ['ส่งไม่สำเร็จ', 'bg-red-soft text-brand'], skipped: ['ไม่ได้ส่ง (ยังไม่ตั้ง SMTP)', 'bg-surface2 text-ink2'] };
+    async function mail() {
+      const r = await api('/admin/mail').catch((err) => { toast(err.message, true); return null; });
+      if (!r) return;
+      const c = r.counts || {};
+      $('#panel').innerHTML = head('อีเมลแจ้งเตือน', 'อีเมลที่ระบบส่งถึงผู้ส่งงานและทีม PR: สถานะงาน ข้อความ งานใหม่ สรุปงานทุกเช้า 08:00 น. และเตือนเล่มสรุปข่าวที่รออนุมัติ ผู้ใช้แต่ละคนปิดบางประเภทได้ที่กล่องข้อความ') + `
+        <div class="grid gap-4 p-5 sm:px-6">
+          <div class="flex flex-wrap items-center gap-3 rounded-card border p-4 ${r.smtp ? 'border-[rgb(var(--sky)/.3)] bg-sky-soft' : 'border-[rgb(var(--gold)/.35)] bg-gold-soft'}">
+            <div class="min-w-0 flex-1">
+              <p class="font-display text-[16px] font-semibold">${r.smtp ? 'เชื่อมต่อ SMTP แล้ว' : 'ยังไม่ได้ตั้งค่า SMTP'}</p>
+              <p class="text-[14px] text-ink2">${r.smtp ? `ส่งในนาม ${esc(r.from)}` : 'ระบบบันทึกอีเมลไว้ด้านล่างแต่ยังไม่ส่งจริง ตั้งค่า SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS และ MAIL_FROM ใน .env แล้วรีสตาร์ตแอป'}</p>
+            </div>
+            <button id="mailTest" type="button" class="press t-spring h-11 shrink-0 rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">ส่งอีเมลทดสอบถึงฉัน</button>
+          </div>
+          <p class="text-[14px] text-ink2">7 วันล่าสุด: ส่งแล้ว ${num(c.sent || 0)} · รอส่ง ${num(c.queued || 0)} · ไม่สำเร็จ ${num(c.failed || 0)} · ไม่ได้ส่ง ${num(c.skipped || 0)}</p>
+          <ol class="grid gap-1">${r.items.length ? r.items.map((m) => {
+            const [sl, sc] = MAIL_TONE[m.status] || [m.status, 'bg-surface2 text-ink2'];
+            return `<li><button type="button" data-mail="${m.id}" class="press t-quick grid w-full gap-1 rounded-2xl border border-line px-4 py-2.5 text-left hover:bg-surface2/60 sm:grid-cols-[150px_minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+              <time datetime="${m.created_at}" class="text-[13px] text-ink2">${dayTime(m.created_at)}</time>
+              <span class="min-w-0"><span class="block truncate text-[15px]">${esc(m.subject)}</span><span class="block truncate text-[12px] text-ink2">ถึง ${esc(m.to_email)} · ${esc(MAIL_KIND[m.kind] || m.kind)}${m.error && m.status !== 'skipped' ? ` · ${esc(m.error)}` : ''}</span></span>
+              <span class="justify-self-start rounded-full px-2.5 font-display text-[12px] font-semibold leading-6 sm:justify-self-end ${sc}">${sl}</span>
+            </button></li>`;
+          }).join('') : '<li class="rounded-2xl border border-dashed border-line p-8 text-center text-ink2">ยังไม่มีอีเมล</li>'}</ol>
+        </div>
+        <dialog id="mailDlg" class="desk-dlg w-[min(680px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="mailTitle">
+          <div class="flex items-start gap-3 border-b border-line p-5">
+            <div class="min-w-0 flex-1"><h2 id="mailTitle" class="font-display text-[18px] font-semibold"></h2><p id="mailTo" class="text-[13px] text-ink2"></p></div>
+            <button type="button" id="mailClose" class="press t-quick grid h-10 w-10 place-items-center rounded-full border border-line hover:bg-surface2" aria-label="ปิด"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          </div>
+          <iframe id="mailFrame" title="ตัวอย่างอีเมล" sandbox="" class="h-[60vh] w-full bg-[#F5F4FF]"></iframe>
+        </dialog>`;
+      $('#mailTest').addEventListener('click', async (e) => {
+        e.currentTarget.disabled = true;
+        try { await api('/admin/mail/test', { method: 'POST' }); toast(`ส่งอีเมลทดสอบถึง ${me.email} แล้ว`); setTimeout(mail, 1500); } catch (err) { toast(err.message, true); e.currentTarget.disabled = false; }
+      });
+      // #panel stays between sections: bind once
+      if (!mail.bound) mail.bound = $('#panel').addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-mail]');
+        if (!b) return;
+        const { mail: m } = await api(`/admin/mail/${b.dataset.mail}`);
+        $('#mailTitle').textContent = m.subject;
+        $('#mailTo').textContent = `ถึง ${m.to_email}`;
+        $('#mailFrame').srcdoc = m.html;
+        $('#mailDlg').showModal();
+      }) || true;
+      $('#mailClose').addEventListener('click', () => $('#mailDlg').close());
+    }
+
+    // ================= PDPA: requests from users =================
+    const REQ = { pending: ['รอดำเนินการ', 'bg-gold-soft text-gold'], done: ['ลบแล้ว', 'bg-sky-soft text-sky'], rejected: ['ไม่ลบ', 'bg-red-soft text-brand'], cancelled: ['ผู้ขอยกเลิก', 'bg-surface2 text-ink2'] };
+    async function requests() {
+      const r = await api('/admin/requests').catch((err) => { toast(err.message, true); return null; });
+      if (!r) return;
+      const pending = r.items.filter((x) => x.status === 'pending');
+      $('#panel').innerHTML = head('คำขอข้อมูลส่วนบุคคล', 'คำขอลบข้อมูลจากผู้ใช้ (หน้านโยบายความเป็นส่วนตัว) ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล ต้องดำเนินการภายใน 30 วัน การลบจะลบชื่อ อีเมล สังกัด งานที่ยังไม่เผยแพร่และไฟล์ ข่าวที่เผยแพร่แล้วยังอยู่โดยไม่แสดงชื่อผู้ส่ง ผู้ใช้ดาวน์โหลดข้อมูลของตนเองได้เองที่หน้านั้น') + `
+        <div class="grid gap-3 p-5 sm:px-6">
+          <p class="text-[14px] text-ink2">${pending.length ? `รอดำเนินการ ${num(pending.length)} คำขอ` : 'ไม่มีคำขอที่รอดำเนินการ'}</p>
+          <ol class="grid gap-2">${r.items.length ? r.items.map((x) => {
+            const [sl, sc] = REQ[x.status];
+            const late = x.status === 'pending' && new Date(x.due) < new Date();
+            return `<li class="rounded-2xl border ${late ? 'border-[rgb(var(--red)/.5)]' : 'border-line'} p-4" data-req="${x.id}">
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="min-w-0 flex-1 font-display text-[16px] font-semibold">${esc(x.name || x.email)} <span class="font-sans text-[13px] font-normal text-ink2">${esc(x.email)}</span></p>
+                <span class="rounded-full px-2.5 font-display text-[12px] font-semibold leading-6 ${sc}">${sl}</span>
+              </div>
+              <p class="mt-1 text-[13px] text-ink2">ขอเมื่อ ${dayTime(x.createdAt)}${x.status === 'pending' ? ` · ต้องดำเนินการภายใน ${day(x.due)}${late ? ' (เลยกำหนดแล้ว)' : ''}` : x.handledAt ? ` · ดำเนินการ ${dayTime(x.handledAt)}${x.handledBy ? ` โดย ${esc(x.handledBy)}` : ''}` : ''}</p>
+              <p class="mt-1 text-[13px] text-ink2">งานที่ส่ง ${num(x.submissions)} งาน (เผยแพร่แล้ว ${num(x.published)} งาน จะยังอยู่โดยไม่แสดงชื่อ)</p>
+              ${x.reason ? `<p class="mt-2 rounded-xl bg-surface2 px-3 py-2 text-[14px]">${esc(x.reason)}</p>` : ''}
+              ${x.note ? `<p class="mt-2 text-[13px] text-ink2">บันทึก: ${esc(x.note)}</p>` : ''}
+              ${x.status === 'pending' ? `<div class="mt-3 flex flex-wrap gap-2">
+                <button type="button" data-erase class="press t-spring h-10 rounded-full bg-brand px-4 font-display text-[14px] font-semibold text-white dark:text-bg hover:-translate-y-0.5">ลบข้อมูลตามคำขอ</button>
+                <button type="button" data-reject class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">ไม่ลบ แจ้งเหตุผล</button>
+              </div>` : ''}
+            </li>`;
+          }).join('') : '<li class="rounded-2xl border border-dashed border-line p-8 text-center text-ink2">ยังไม่มีคำขอ</li>'}</ol>
+        </div>`;
+      $('#panel').querySelectorAll('[data-req]').forEach((li) => {
+        const id = li.dataset.req;
+        li.querySelector('[data-erase]')?.addEventListener('click', async (e) => {
+          const x = r.items.find((i) => String(i.id) === id);
+          if (!confirm(`ลบข้อมูลส่วนบุคคลของ ${x.email}? ทำย้อนกลับไม่ได้`)) return;
+          e.currentTarget.disabled = true;
+          try { await api(`/admin/requests/${id}/erase`, { method: 'POST', body: {} }); toast('ลบข้อมูลแล้ว และแจ้งผู้ขอทางอีเมลแล้ว'); requests(); } catch (err) { toast(err.message, true); e.currentTarget.disabled = false; }
+        });
+        li.querySelector('[data-reject]')?.addEventListener('click', async () => {
+          const note = prompt('เหตุผลที่ยังลบไม่ได้ (ผู้ขอจะเห็นข้อความนี้)');
+          if (!note) return;
+          try { await api(`/admin/requests/${id}/reject`, { method: 'POST', body: { note } }); toast('บันทึกแล้ว และแจ้งผู้ขอทางอีเมลแล้ว'); requests(); } catch (err) { toast(err.message, true); }
+        });
+      });
+    }
+
+    // ================= PDPA: retention =================
+    function retention() {
+      const d = S.settings.retention?.days ?? 180;
+      $('#panel').innerHTML = head('ระยะเวลาเก็บข้อมูล', 'ไฟล์ภาพและเอกสารของงานที่ไม่ได้เผยแพร่ (ไม่เผยแพร่ หรือขอให้แก้ไขแล้วผู้ส่งไม่ได้ส่งกลับ) ถูกลบอัตโนมัติเมื่อไม่มีความเคลื่อนไหวครบกำหนด ตัวงานและข้อความยังอยู่ให้ผู้ส่งดูได้ ค่านี้แสดงในหน้านโยบายความเป็นส่วนตัวด้วย') + `
+        <div class="grid max-w-[720px] gap-5 p-5 sm:px-6">
+          <label class="flex flex-wrap items-center gap-3"><span class="font-display text-[16px] font-semibold">ลบไฟล์ของงานที่ไม่ได้เผยแพร่หลัง</span>
+            <input id="retDays" type="number" min="30" max="3650" value="${d}" class="field h-11 w-28 rounded-xl px-3 text-center text-[16px]"><span class="text-[15px]">วัน</span></label>
+          <div class="rounded-card border border-line bg-surface2/60 p-4 text-[14px]">
+            <p class="font-display text-[15px] font-semibold">ระยะเวลาอื่นที่ระบบกำหนดไว้</p>
+            <ul class="mt-2 grid gap-1 text-ink2">
+              <li>การอ่านข่าวรายครั้ง 90 วัน (ยอดรวมรายวันเก็บต่อ)</li>
+              <li>การเข้าสู่ระบบ 30 วัน</li>
+              <li>อีเมลแจ้งเตือน 180 วัน</li>
+              <li>ข่าวที่เผยแพร่แล้วและบัญชีผู้ใช้ เก็บจนกว่าจะถอนข่าวหรือผู้ใช้ขอลบ</li>
+            </ul>
+          </div>
+        </div>` + saveBar('retSave');
+      $('#retSave').addEventListener('click', (e) => save('retention', { days: Number($('#retDays').value) }, e.currentTarget));
+    }
+
+    // ================= Backups (server/backup.mjs, server/restore-test.mjs) =================
+    const mb = (b) => `${(b / 1024 / 1024).toLocaleString('th-TH', { maximumFractionDigits: 1 })} MB`;
+    const okBadge = (ok, yes, no) => `<span class="rounded-full px-2.5 font-display text-[12px] font-semibold leading-6 ${ok ? 'bg-sky-soft text-sky' : 'bg-red-soft text-brand'}">${ok ? yes : no}</span>`;
+    async function backups() {
+      const r = await api('/admin/backups').catch((err) => { toast(err.message, true); return null; });
+      if (!r) return;
+      const b = r.backup, t = r.restoreTest;
+      $('#panel').innerHTML = head('สำรองข้อมูล', 'ฐานข้อมูลสำรองทุกคืนและเก็บไว้ 30 วัน ไฟล์ภาพและเอกสารสำรองแบบเพิ่มเติมทุกคืน (เฉพาะไฟล์ที่เปลี่ยน) แล้วคัดลอกไปเก็บนอกเครื่อง และทดลองกู้คืนจริงทุกเดือน งานเหล่านี้ตั้งเวลาบนเซิร์ฟเวอร์ (ops/BACKUP.md) หน้านี้แสดงผลครั้งล่าสุด') + `
+        <div class="grid max-w-[860px] gap-4 p-5 sm:px-6">
+          ${r.warnings.length
+            ? `<div class="rounded-card border border-[rgb(var(--red)/.4)] bg-red-soft p-4" role="alert"><p class="font-display text-[15px] font-semibold text-brand">ต้องดูแล</p><ul class="mt-1 grid gap-1 text-[14px] text-brand">${r.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></div>`
+            : '<p class="rounded-card bg-sky-soft p-4 font-display text-[15px] font-semibold text-sky">สำรองข้อมูลและทดลองกู้คืนตามกำหนด</p>'}
+          <section class="rounded-card border border-line p-4" aria-labelledby="bkTitle">
+            <div class="flex flex-wrap items-center gap-2"><h2 id="bkTitle" class="mr-auto font-display text-[17px] font-semibold">สำรองข้อมูลล่าสุด</h2>${b ? okBadge(b.ok, 'สำเร็จ', 'ไม่สำเร็จ') : ''}</div>
+            ${b ? `<p class="mt-1 text-[13px] text-ink2">${dayTime(b.at)} ใช้เวลา ${num(b.seconds)} วินาที</p>
+              <dl class="mt-3 grid gap-3 text-[14px] sm:grid-cols-3">
+                <div><dt class="text-[13px] text-ink2">ฐานข้อมูล</dt><dd>${b.db ? `${mb(b.db.size)} · ${num(b.db.tables)} ตาราง · ข่าว ${num(b.db.counts.news)} · ผู้ใช้ ${num(b.db.counts.users)}` : 'ไม่มี'}</dd></div>
+                <div><dt class="text-[13px] text-ink2">ไฟล์ภาพและเอกสาร</dt><dd>${b.media ? `${num(b.media.files)} ไฟล์ ${mb(b.media.bytes)} · คัดลอกใหม่ ${num(b.media.copied)} ไฟล์` : 'ไม่มี'}</dd></div>
+                <div><dt class="text-[13px] text-ink2">สำเนานอกเครื่อง</dt><dd>${b.offsite?.ok ? 'คัดลอกแล้ว' : b.offsite?.skipped ? 'ยังไม่ได้ตั้งค่า' : b.offsite ? `ไม่สำเร็จ: ${esc(b.offsite.error || '')}` : '–'}</dd></div>
+              </dl>
+              ${b.errors.length ? `<p class="mt-3 text-[13px] text-brand">${b.errors.map(esc).join('<br>')}</p>` : ''}` : '<p class="mt-2 text-[14px] text-ink2">ยังไม่มีผลการสำรองข้อมูล เรียก npm run backup บนเซิร์ฟเวอร์</p>'}
+          </section>
+          <section class="rounded-card border border-line p-4" aria-labelledby="rtTitle">
+            <div class="flex flex-wrap items-center gap-2"><h2 id="rtTitle" class="mr-auto font-display text-[17px] font-semibold">ทดลองกู้คืนล่าสุด</h2>${t ? okBadge(t.ok, 'ผ่าน', 'ไม่ผ่าน') : ''}</div>
+            ${t ? `<p class="mt-1 text-[13px] text-ink2">${dayTime(t.at)} จาก ${esc(t.dump || '')}${t.snapshot ? ` และ ${esc(t.snapshot)}` : ''}</p>
+              <ul class="mt-3 grid gap-1 text-[14px]">${t.checks.map((c) => `<li class="flex gap-2"><span class="${c.ok ? 'text-sky' : 'text-brand'}" aria-hidden="true">${c.ok ? '✓' : '✗'}</span><span><span class="sr-only">${c.ok ? 'ผ่าน' : 'ไม่ผ่าน'}: </span>${esc(c.what)}</span></li>`).join('')}</ul>
+              ${t.errors.length && !t.checks.length ? `<p class="mt-2 text-[13px] text-brand">${t.errors.map(esc).join('<br>')}</p>` : ''}` : '<p class="mt-2 text-[14px] text-ink2">ยังไม่เคยทดลองกู้คืน เรียก npm run backup:restore-test บนเซิร์ฟเวอร์</p>'}
+          </section>
+        </div>`;
+    }
+
+    // ================= Usage history =================
+    const auditState = { action: '', q: '', from: '', to: '', offset: 0 };
+    async function audit() {
+      $('#panel').innerHTML = head('ประวัติการใช้งาน', 'ทุกการเปลี่ยนแปลงในหลังบ้าน: ใคร ทำอะไร เมื่อไร') + `
+        <div class="grid gap-3 p-5 sm:px-6">
+          <div class="flex flex-wrap items-end gap-2">
+            <label class="grid gap-1 text-[13px]">การกระทำ<select id="aAction" class="field sel h-10 rounded-xl pl-3 pr-9 text-[14px]"><option value="">ทั้งหมด</option></select></label>
+            <label class="grid gap-1 text-[13px]">ตั้งแต่<input id="aFrom" type="date" value="${auditState.from}" class="field h-10 rounded-xl px-3 text-[14px]"></label>
+            <label class="grid gap-1 text-[13px]">ถึง<input id="aTo" type="date" value="${auditState.to}" class="field h-10 rounded-xl px-3 text-[14px]"></label>
+            <input id="aQ" type="search" value="${esc(auditState.q)}" placeholder="ค้นหาชื่อ อีเมล หรือรายละเอียด" class="field ml-auto h-10 w-full rounded-full px-4 text-[14px] sm:w-[280px]">
+          </div>
+          <ol id="aList" class="grid gap-1"></ol>
+          <div class="flex items-center justify-between text-[13px] text-ink2"><span id="aInfo"></span>
+            <span class="flex gap-2"><button id="aPrev" type="button" class="press t-quick h-9 rounded-full border border-line px-4 font-display text-[14px] disabled:opacity-40">ก่อนหน้า</button>
+            <button id="aNext" type="button" class="press t-quick h-9 rounded-full border border-line px-4 font-display text-[14px] disabled:opacity-40">ถัดไป</button></span></div>
+        </div>`;
+      const reload = () => { auditState.offset = 0; loadAudit(); };
+      $('#aAction').addEventListener('change', (e) => { auditState.action = e.target.value; reload(); });
+      $('#aFrom').addEventListener('change', (e) => { auditState.from = e.target.value; reload(); });
+      $('#aTo').addEventListener('change', (e) => { auditState.to = e.target.value; reload(); });
+      let t; $('#aQ').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => { auditState.q = e.target.value.trim(); reload(); }, 250); });
+      $('#aPrev').addEventListener('click', () => { auditState.offset = Math.max(0, auditState.offset - 50); loadAudit(); });
+      $('#aNext').addEventListener('click', () => { auditState.offset += 50; loadAudit(); });
+      loadAudit(true);
+    }
+    const TONE = { 'privacy.erase': 'bg-red-soft text-brand', 'privacy.reject': 'bg-gold-soft text-gold', 'news.withdraw': 'bg-red-soft text-brand', 'settings.update': 'bg-gold-soft text-gold', 'role.set': 'bg-purple-soft text-purple', 'role.remove': 'bg-purple-soft text-purple', 'news.import': 'bg-sky-soft text-sky' };
+    async function loadAudit(first) {
+      const p = new URLSearchParams({ limit: 50, offset: auditState.offset });
+      for (const k of ['action', 'q', 'from', 'to']) if (auditState[k]) p.set(k, auditState[k]);
+      const r = await api('/admin/audit?' + p).catch((err) => { toast(err.message, true); return null; });
+      if (!r) return;
+      if (first) $('#aAction').insertAdjacentHTML('beforeend', Object.entries(r.actions).map(([k, l]) => `<option value="${k}" ${k === auditState.action ? 'selected' : ''}>${l}</option>`).join(''));
+      $('#aList').innerHTML = r.items.length ? r.items.map((a) => `
+        <li class="grid gap-1 rounded-2xl border border-line px-4 py-2.5 sm:grid-cols-[150px_minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+          <time datetime="${a.at}" class="text-[13px] text-ink2">${dayTime(a.at)}</time>
+          <span class="min-w-0"><span class="block text-[15px]">${esc(a.summary)}</span><span class="block truncate text-[12px] text-ink2">โดย ${esc(a.actor)}${a.actorEmail && a.actor !== a.actorEmail ? ` (${esc(a.actorEmail)})` : ''}</span></span>
+          <span class="justify-self-start rounded-full px-2.5 font-display text-[12px] font-semibold leading-6 sm:justify-self-end ${TONE[a.action] || 'bg-royal-soft text-royal'}">${esc(a.actionLabel)}</span>
+        </li>`).join('') : '<li class="rounded-2xl border border-dashed border-line p-8 text-center text-ink2">ยังไม่มีประวัติที่ตรงกับตัวกรอง</li>';
+      $('#aInfo').textContent = r.total ? `${num(auditState.offset + 1)}–${num(auditState.offset + r.items.length)} จาก ${num(r.total)} รายการ` : '';
+      $('#aPrev').disabled = auditState.offset === 0;
+      $('#aNext').disabled = auditState.offset + r.items.length >= r.total;
+    }
+
+    // ================= Routing (#section) =================
+    const RENDER = { users, org, categories, media, review, digest, messages, mail, requests, retention, backups, audit };
+    function show() {
+      const id = SECTIONS.some(([k]) => k === location.hash.slice(1)) ? location.hash.slice(1) : 'users';
+      document.querySelectorAll('#secNav a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.sec === id)));
+      $('#panel').scrollTop = 0;
+      RENDER[id]();
+    }
+    window.addEventListener('hashchange', show);
+
+    DESK.start({ page: 'admin', allow: ['admin'] }).then(async (user) => {
+      if (!user) return;
+      me = user;
+      try { S = await api('/admin/settings'); } catch (err) { toast(err.message, true); return; }
+      $('#secNav').innerHTML = SECTIONS.map(([k, l]) => `<a href="#${k}" data-sec="${k}" class="sec-link press t-quick inline-flex h-11 shrink-0 items-center rounded-2xl px-3 font-display text-[15px] font-medium">${l}</a>`).join('');
+      $('#secNav').hidden = false;
+      $('#panel').hidden = false;
+      show();
+    });
+  </script>
+</body>
+</html>

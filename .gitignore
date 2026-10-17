@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Secrets: only .env.example (no real values) is kept
+.env
+.env.*
+!.env.example
+
+# Uploaded files, backups and logs stay on the server, never in the repository
+uploads/
+backups/
+*.log
+
+# Per-machine Claude Code settings
+.claude/settings.local.json

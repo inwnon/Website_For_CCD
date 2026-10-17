@@ -1,0 +1,1734 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ส่งข่าว | ข่าว มรส.</title>
+  <meta name="description" content="ส่งข่าวพร้อมภาพ วิดีโอ หรือแบนเนอร์และอินโฟกราฟิก ให้งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี ตรวจและเผยแพร่">
+  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+
+
+  <style>
+    :root {
+      --bg: 245 244 255;
+      --shell: 255 255 255;
+      --surface: 255 255 255;
+      --surface-2: 244 242 255;
+      --ink: 27 37 96;
+      --ink-2: 92 102 148;
+      --line: 224 226 250;
+      --royal: 38 66 200;
+      --red: 209 19 39;
+      --purple: 122 60 226;
+      --sky: 0 112 161;
+      --gold: 148 94 0;
+      --royal-soft: 232 237 255;
+      --red-soft: 255 232 236;
+      --purple-soft: 241 233 255;
+      --sky-soft: 224 244 253;
+      --gold-soft: 255 244 208;
+      --focus: 122 60 226;
+      --grad: linear-gradient(120deg, #DE142A 0%, #B3218F 55%, #7A3CE2 100%);
+      --shadow-raised:
+        0 1px 2px rgb(27 37 96 / .04),
+        0 6px 18px -6px rgb(38 66 200 / .08);
+      --shadow-float:
+        0 2px 6px rgb(27 37 96 / .05),
+        0 14px 30px -10px rgb(38 66 200 / .14),
+        0 32px 60px -24px rgb(122 60 226 / .18);
+      --shadow-glow:
+        0 4px 10px -2px rgb(222 20 42 / .25),
+        0 10px 24px -8px rgb(122 60 226 / .35);
+      --spring: cubic-bezier(.34, 1.56, .64, 1);
+      --ease-out: cubic-bezier(.22, 1, .36, 1);
+      color-scheme: light;
+    }
+    .dark {
+      --bg: 10 11 32;
+      --shell: 17 19 50;
+      --surface: 24 27 66;
+      --surface-2: 32 36 82;
+      --ink: 240 240 255;
+      --ink-2: 178 184 222;
+      --line: 50 56 110;
+      --royal: 146 166 255;
+      --red: 255 110 124;
+      --purple: 188 156 255;
+      --sky: 96 202 245;
+      --gold: 255 206 96;
+      --royal-soft: 34 44 108;
+      --red-soft: 78 24 52;
+      --purple-soft: 52 36 104;
+      --sky-soft: 14 56 88;
+      --gold-soft: 70 54 20;
+      --focus: 96 202 245;
+      --shadow-raised:
+        0 1px 2px rgb(0 0 0 / .3),
+        0 8px 20px -8px rgb(0 0 0 / .45);
+      --shadow-float:
+        0 2px 6px rgb(0 0 0 / .3),
+        0 18px 36px -12px rgb(0 0 0 / .5),
+        0 36px 64px -24px rgb(90 60 200 / .35);
+      color-scheme: dark;
+    }
+
+    body {
+      font-family: "Noto Sans Thai", system-ui, sans-serif;
+      line-height: 1.7;
+      color: rgb(var(--ink));
+      background:
+        radial-gradient(50% 40% at 0% 0%, rgb(var(--purple-soft)), transparent 70%),
+        radial-gradient(40% 35% at 100% 10%, rgb(var(--sky-soft)), transparent 70%),
+        radial-gradient(60% 40% at 50% 100%, rgb(var(--red-soft) / .7), transparent 70%),
+        rgb(var(--bg));
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+    [hidden] { display: none !important; }
+    .font-display { line-height: 1.3; }
+    .tight { letter-spacing: -0.03em; }
+    .bg-grad { background: var(--grad); }
+
+    a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid rgb(var(--focus));
+      outline-offset: 3px;
+    }
+    [tabindex="-1"]:focus { outline: none; }
+
+    /* Motion: transform + opacity only */
+    .t-spring { transition-property: transform, opacity; transition-duration: .5s; transition-timing-function: var(--spring); }
+    .t-quick  { transition-property: transform, opacity; transition-duration: .2s; transition-timing-function: var(--ease-out); }
+    .press:active { transform: scale(.96); }
+
+    .hover-fill { position: relative; isolation: isolate; }
+    .hover-fill::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+      background: rgb(var(--surface-2)); opacity: 0; transform: scale(.9);
+      transition: opacity .2s var(--ease-out), transform .35s var(--spring);
+    }
+    .hover-fill:hover::before { opacity: 1; transform: none; }
+
+    .grain::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .08; mix-blend-mode: overlay; border-radius: inherit;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .dark .grain::after { opacity: .14; }
+
+    .logo-crop { overflow: hidden; border-radius: 9999px; background: rgb(200 160 255); }
+    .logo-crop img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.42) translateY(3%); }
+
+    .no-scrollbar { scrollbar-width: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+
+    /* Text fields */
+    .field { border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
+    .field::placeholder { color: rgb(var(--ink-2) / .8); }
+    .field:hover { border-color: rgb(var(--purple) / .45); }
+    .field:focus { border-color: rgb(var(--purple)); outline: none; }
+    .field:focus-visible { outline: 3px solid rgb(var(--focus) / .35); outline-offset: 0; }
+    .field[aria-invalid="true"] { border-color: rgb(var(--red)); }
+    .sel {
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 16px center;
+    }
+
+    /* Selectable option cards (radio/checkbox inside label) */
+    .opt { position: relative; isolation: isolate; cursor: pointer; }
+    .opt input { position: absolute; opacity: 0; pointer-events: none; }
+    .opt .opt-box { transition: transform .45s var(--spring); }
+    .opt:hover .opt-box { transform: translateY(-2px); }
+    .opt:active .opt-box { transform: scale(.97); }
+    .opt:has(input:focus-visible) .opt-box { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+    .opt:has(input:checked) .opt-box { border-color: transparent; box-shadow: 0 0 0 2px rgb(var(--purple)), var(--shadow-float); background: rgb(var(--purple-soft)); }
+    .opt .tick { opacity: 0; transform: scale(.5); transition: opacity .2s var(--ease-out), transform .45s var(--spring); }
+    .opt:has(input:checked) .tick { opacity: 1; transform: none; }
+    .chip-opt:has(input:checked) .opt-box { background: var(--grad); color: #fff; box-shadow: var(--shadow-glow); }
+    fieldset[aria-invalid="true"] .opt-box { border-color: rgb(var(--red) / .7); }
+
+    /* Type chooser: the icon tile lifts when its card is chosen */
+    .type-opt .type-icon { transition: transform .5s var(--spring); }
+    .type-opt:hover .type-icon { transform: rotate(-6deg) scale(1.06); }
+    .type-opt:has(input:checked) .type-icon { transform: scale(1.08); }
+
+    /* Chips that are locked (e.g. implied by another choice, or over the limit) */
+    .opt:has(input:disabled) { cursor: not-allowed; }
+    .opt:has(input:disabled) .opt-box { opacity: .55; transform: none; }
+    .opt:has(input:disabled:checked) .opt-box { opacity: .75; }
+
+    /* Switch */
+    .switch { position: relative; width: 52px; height: 30px; flex-shrink: 0; }
+    .switch input { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 1; margin: 0; }
+    .switch .track { position: absolute; inset: 0; border-radius: 9999px; background: rgb(var(--line)); }
+    .switch .track::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--grad); opacity: 0; transition: opacity .25s var(--ease-out); }
+    .switch .knob { position: absolute; top: 3px; left: 3px; z-index: 1; width: 24px; height: 24px; border-radius: 9999px; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .25); transition: transform .45s var(--spring); }
+    .switch input:checked ~ .track::after { opacity: 1; }
+    .switch input:checked ~ .knob { transform: translateX(22px); }
+    .switch:has(input:focus-visible) { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; border-radius: 9999px; }
+
+    /* Drop zones */
+    .drop { position: relative; isolation: isolate; }
+    .drop::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+      background: radial-gradient(60% 80% at 50% 0%, rgb(var(--purple-soft)), transparent 70%), rgb(var(--sky-soft) / .4);
+      opacity: 0; transition: opacity .25s var(--ease-out);
+    }
+    .drop:hover::before, .drop.is-over::before, .drop:has(input:focus-visible)::before { opacity: 1; }
+    .drop .drop-icon { transition: transform .5s var(--spring); }
+    .drop:hover .drop-icon, .drop.is-over .drop-icon { transform: translateY(-4px) scale(1.06); }
+    .drop:has(input:focus-visible) { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+    .drop[aria-invalid="true"] { border-color: rgb(var(--red) / .8); }
+
+    /* Thumbnails + file rows */
+    .thumb, .file-row { animation: popIn .45s var(--spring); }
+    @keyframes popIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+    .thumb .thumb-actions { opacity: 0; transition: opacity .2s var(--ease-out); }
+    .thumb:hover .thumb-actions, .thumb:focus-within .thumb-actions { opacity: 1; }
+    @media (hover: none) { .thumb .thumb-actions { opacity: 1; } }
+    .icon-btn { transition: transform .4s var(--spring); }
+    .icon-btn:hover { transform: scale(1.1); }
+    .icon-btn:active { transform: scale(.88); }
+    .icon-btn[aria-pressed="true"] svg { fill: currentColor; }
+
+    /* Checklist + progress ring */
+    .check-dot .ok { opacity: 0; transform: scale(.4); transition: opacity .2s var(--ease-out), transform .45s var(--spring); }
+    [data-done="true"] .check-dot .ok { opacity: 1; transform: none; }
+    [data-done="true"] .check-dot .todo { opacity: 0; }
+    .check-dot .todo { transition: opacity .2s var(--ease-out); }
+    .ring-fg { transition: stroke-dashoffset .7s var(--spring); }
+
+    .step-enter { animation: stepIn .55s var(--spring); }
+    @keyframes stepIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+    @keyframes bob { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-10px) rotate(1deg); } }
+    .bob { animation: bob 6s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+    .saved-flash { animation: flash 1.6s var(--ease-out); }
+    @keyframes flash { 0% { opacity: 0; transform: translateY(4px); } 15%, 100% { opacity: 1; transform: none; } }
+
+    .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+    }
+  </style>
+  <style>
+    /* ---- Section menu + submit bar ---- */
+    .sec-item { position: relative; isolation: isolate; }
+    .sec-item::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+      background: rgb(var(--surface-2)); opacity: 0; transform: scale(.94);
+      transition: opacity .2s var(--ease-out), transform .4s var(--spring);
+    }
+    .sec-item:hover::before { opacity: 1; transform: none; }
+    .sec-item[aria-current="true"]::before { opacity: 1; transform: none; background: rgb(var(--purple-soft)); }
+    .sec-item:active { transform: scale(.97); }
+    .sec-item .sec-dot { transition: transform .45s var(--spring); }
+    .sec-item:hover .sec-dot { transform: scale(1.08); }
+    @media (min-width: 1024px) { #layout.has-rail { grid-template-columns: 272px minmax(0, 1fr); } }
+    /* Short screens: the preview card needs ~860px of height; below that the menu stays whole without it */
+    @media (max-height: 860px) { #pvCard { display: none; } }
+    /* Beside the menu the type cards are narrower: smaller icon and padding keep the names on one line */
+    @media (min-width: 1024px) {
+      #layout.has-rail .type-opt .opt-box { padding: 16px; gap: 12px; }
+      #layout.has-rail .type-icon { width: 44px; height: 44px; }
+      #layout.has-rail .type-icon svg { width: 22px; height: 22px; }
+    }
+    .fold-btn svg { transition: transform .45s var(--spring); }
+    .fold-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+    /* Jumping to a section or field never hides it under the header or the submit bar */
+    html { scroll-padding-top: 150px; scroll-padding-bottom: 120px; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+  <script src="thai-date.js" defer></script>
+  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+</head>
+
+<body class="min-h-screen">
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปเนื้อหา</a>
+
+  <!-- ===== Header ===== -->
+  <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
+    <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
+      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90" aria-label="ข่าว มรส. หน้าแรก">
+        <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
+        <span class="leading-tight">
+          <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
+          <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
+        </span>
+      </a>
+
+      <div class="ml-auto flex shrink-0 items-center gap-2">
+        <p id="draftState" class="mr-1 hidden items-center gap-1.5 text-[13px] text-ink2 lg:inline-flex" aria-live="polite"></p>
+        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
+          <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
+          <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+          <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
+        </button>
+        <a id="login" href="login.html" class="press t-spring grid h-11 w-11 place-items-center rounded-full bg-purple-soft text-purple hover:-translate-y-0.5" aria-label="เข้าสู่ระบบด้วยบัญชี Google ของมหาวิทยาลัย">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <nav class="no-scrollbar mx-auto flex max-w-page gap-1 overflow-x-auto px-shell py-2 md:justify-center" aria-label="เมนูหลัก">
+      <a href="index.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>หน้าแรก
+      </a>
+      <a href="index.html#latest" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>ข่าวล่าสุด
+      </a>
+      <a href="index.html#featured" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>ข่าวเด่น
+      </a>
+      <a href="index.html#archive" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>คลังข่าว
+      </a>
+      <a href="digest.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>เล่มสรุปข่าว
+      </a>
+      <a href="submit.html" aria-current="page" class="press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-red-soft px-4 font-display text-[15px] font-medium text-brand hover:opacity-90">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>ส่งข่าว
+      </a>
+    </nav>
+  </header>
+
+  <!-- ===== Shell ===== -->
+  <main id="main" class="mx-auto max-w-page px-2 py-4 sm:px-4">
+    <div class="rounded-shell bg-shell px-shell pb-shelf pt-shell shadow-float">
+      <div id="layout" class="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:gap-8">
+        <!-- ===== Section menu ===== -->
+        <aside id="rail" class="hidden lg:sticky lg:top-[136px] lg:flex lg:h-[calc(100dvh-196px)] lg:flex-col lg:gap-4" aria-label="ส่วนต่าง ๆ ของฟอร์ม" hidden>
+          <div class="shrink-0 rounded-card border border-line bg-surface p-4 shadow-float">
+            <div class="flex items-center gap-3 px-1">
+              <svg class="-rotate-90 shrink-0" width="52" height="52" viewBox="0 0 64 64" aria-hidden="true">
+                <defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#DE142A"/><stop offset=".55" stop-color="#B3218F"/><stop offset="1" stop-color="#7A3CE2"/></linearGradient></defs>
+                <circle cx="32" cy="32" r="27" fill="none" stroke="rgb(var(--line))" stroke-width="7"/>
+                <circle id="ring" class="ring-fg" cx="32" cy="32" r="27" fill="none" stroke="url(#rg)" stroke-width="7" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="169.6"/>
+              </svg>
+              <div>
+                <p class="font-display text-[16px] font-semibold">กรอกแล้ว <span id="doneCount">0</span> จาก <span id="totalCount">0</span> ข้อ</p>
+                <p id="readyText" class="text-[13px] text-ink2">กรอกให้ครบเพื่อส่ง</p>
+              </div>
+            </div>
+            <ol id="secNav" class="mt-3 grid gap-0.5"></ol>
+          </div>
+          <div id="pvCard" class="flex min-h-0 shrink flex-col rounded-card border border-line bg-surface p-4 shadow-raised">
+            <p class="mb-2.5 flex shrink-0 items-center justify-between font-display text-[14px] font-semibold text-ink2">
+              ตัวอย่างการ์ด
+              <span id="pvAudience" class="rounded-full bg-sky-soft px-2.5 text-[12px] leading-6 text-sky">ทั่วไป</span>
+            </p>
+            <article class="flex min-h-0 shrink flex-col overflow-hidden rounded-card border border-line bg-shell" aria-label="ตัวอย่างการ์ด">
+              <div class="relative h-[140px] min-h-[56px] shrink overflow-hidden bg-surface2">
+                <img id="pvImg" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22640%22%20height%3D%22360%22%3E%3Crect%20width%3D%22640%22%20height%3D%22360%22%20fill%3D%22%232A3B9C%22%2F%3E%3Ctext%20x%3D%22320%22%20y%3D%22196%22%20font-family%3D%22Kanit%2Csans-serif%22%20font-size%3D%2244%22%20font-weight%3D%22600%22%20fill%3D%22%23C8A6FF%22%20text-anchor%3D%22middle%22%3ECover%3C%2Ftext%3E%3C%2Fsvg%3E" alt="" class="h-full w-full object-cover" width="640" height="360">
+                <div class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></div>
+                <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-50"></div>
+                <span id="pvPlay" class="absolute left-1/2 top-1/2 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-shell/90 text-brand shadow-float" hidden>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                </span>
+                <span id="pvBadge" class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-lg bg-shell px-2 py-0.5 font-display text-[12px] font-semibold text-royal shadow-raised"></span>
+              </div>
+              <div class="shrink-0 p-3.5">
+                <div class="mb-1.5 flex items-center justify-between gap-2 text-[12px] text-ink2">
+                  <span id="pvDate">–</span>
+                  <span id="pvCat" class="rounded-full bg-royal-soft px-2.5 font-display font-semibold leading-6 text-royal" hidden></span>
+                </div>
+                <h3 id="pvTitle" class="clamp-2 font-display text-[16px] font-semibold text-ink2"></h3>
+                <div class="mt-2 flex items-center gap-2 text-[12px] text-ink2">
+                  <span class="inline-flex gap-1"><span class="rounded-md bg-red-soft px-1.5 font-display text-[11px] font-semibold leading-5 text-brand">TH</span><span id="pvEn" class="rounded-md bg-royal-soft px-1.5 font-display text-[11px] font-semibold leading-5 text-royal" hidden>EN</span></span>
+                  <span id="pvUnit" class="truncate"></span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </aside>
+
+      <div class="min-w-0">
+
+      <!-- ===== Type chooser (the page's opening question) ===== -->
+      <section id="chooser" class="grain relative overflow-hidden rounded-banner border border-line shadow-raised" aria-labelledby="page-title">
+        <div class="absolute inset-0" style="background:
+          radial-gradient(55% 90% at 0% 0%, rgb(var(--red-soft)), transparent 70%),
+          radial-gradient(45% 80% at 100% 100%, rgb(var(--purple-soft)), transparent 70%),
+          radial-gradient(35% 60% at 70% 0%, rgb(var(--sky-soft)), transparent 70%),
+          rgb(var(--surface));"></div>
+        <div class="relative px-shell py-8 md:py-10">
+          <div class="grid items-center gap-6 md:grid-cols-[1fr_auto]">
+            <div>
+              <h1 id="page-title" class="font-display tight text-[clamp(28px,3.4vw,44px)] font-bold text-royal">วันนี้อยากส่งอะไรถึง PR?</h1>
+              <p class="mt-3 max-w-[560px] text-[15px] text-ink2">เลือกประเภทงาน แล้วกรอกรายละเอียดด้านล่าง งานประชาสัมพันธ์จะตรวจและแจ้งผลกลับภายใน <span data-review-days>2</span> วันทำการ ทางกล่องข้อความ</p>
+            </div>
+            <div class="relative hidden w-[150px] md:block lg:w-[170px]">
+              <div class="absolute inset-x-[15%] bottom-4 top-[20%] rounded-full bg-[rgb(var(--purple)/.2)] blur-3xl"></div>
+              <img src="/assets/img/hawky-960.webp" srcset="/assets/img/hawky-480.webp 480w, /assets/img/hawky-640.webp 640w, /assets/img/hawky-960.webp 960w" sizes="(min-width: 768px) 380px, (min-width: 640px) 300px, 245px" alt="" class="bob relative w-full drop-shadow-[0_20px_28px_rgb(38_66_200/.22)]" width="1254" height="1254">
+            </div>
+          </div>
+
+          <fieldset id="typeSet" class="mt-6" aria-describedby="typeError">
+            <legend class="sr-only">ประเภทงานที่ต้องการส่ง</legend>
+            <div class="grid gap-3 md:grid-cols-3">
+              <label class="opt type-opt">
+                <input type="radio" name="type" value="news">
+                <span class="opt-box flex h-full items-start gap-4 rounded-card border border-line bg-shell/90 p-5 shadow-raised">
+                  <span class="type-icon grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-red-soft text-brand">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="flex items-center justify-between gap-2">
+                      <span class="font-display text-[18px] font-semibold">ข่าวพร้อมภาพ</span>
+                      <span class="tick bg-grad grid h-6 w-6 shrink-0 place-items-center rounded-full text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
+                    </span>
+                    <span class="mt-1 block text-[14px] leading-[1.6] text-ink2">กิจกรรม ความร่วมมือ หรือความสำเร็จ พร้อมภาพประกอบ เขียนข่าวเองหรือแนบเอกสารให้ PR เขียนให้</span>
+                  </span>
+                </span>
+              </label>
+              <label class="opt type-opt">
+                <input type="radio" name="type" value="video">
+                <span class="opt-box flex h-full items-start gap-4 rounded-card border border-line bg-shell/90 p-5 shadow-raised">
+                  <span class="type-icon grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-purple-soft text-purple">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="15" height="14" rx="2"/><path d="m17 10 5-3v10l-5-3z"/></svg>
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="flex items-center justify-between gap-2">
+                      <span class="font-display text-[18px] font-semibold">วิดีโอ</span>
+                      <span class="tick bg-grad grid h-6 w-6 shrink-0 place-items-center rounded-full text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
+                    </span>
+                    <span class="mt-1 block text-[14px] leading-[1.6] text-ink2">คลิปกิจกรรมหรือสื่อวิดีโอของหน่วยงาน ส่งเป็นลิงก์ YouTube, Facebook, TikTok หรือ Google Drive</span>
+                  </span>
+                </span>
+              </label>
+              <label class="opt type-opt">
+                <input type="radio" name="type" value="banner">
+                <span class="opt-box flex h-full items-start gap-4 rounded-card border border-line bg-shell/90 p-5 shadow-raised">
+                  <span class="type-icon grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gold-soft text-gold">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 15v2M11 11v6M15 13v4M7 7h10"/></svg>
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="flex items-center justify-between gap-2">
+                      <span class="font-display text-[18px] font-semibold">แบนเนอร์ / อินโฟกราฟิก</span>
+                      <span class="tick bg-grad grid h-6 w-6 shrink-0 place-items-center rounded-full text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
+                    </span>
+                    <span class="mt-1 block text-[14px] leading-[1.6] text-ink2">ภาพประชาสัมพันธ์ที่ออกแบบเสร็จแล้ว พร้อมให้ PR นำขึ้นเว็บไซต์และโซเชียล</span>
+                  </span>
+                </span>
+              </label>
+            </div>
+            <p id="typeError" class="mt-3 text-[14px] font-medium text-brand" hidden>เลือกประเภทงานก่อนกรอกรายละเอียด</p>
+          </fieldset>
+        </div>
+      </section>
+
+      <!-- Not signed in notice -->
+      <div id="guestNote" class="mt-6 flex flex-col gap-3 rounded-card border border-[rgb(var(--gold)/.35)] bg-gold-soft p-4 text-[14px] sm:flex-row sm:items-center" role="status" hidden>
+        <svg class="shrink-0 text-gold" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <p class="flex-1"><span class="font-semibold">เข้าสู่ระบบด้วยบัญชีมหาวิทยาลัยก่อนส่งงาน</span> กรอกฟอร์มไว้ก่อนได้ ระบบบันทึกฉบับร่างในเครื่องนี้ (ไม่รวมไฟล์ที่แนบ)</p>
+        <div class="flex shrink-0 flex-wrap gap-2">
+          <span id="devSignIn" class="flex flex-wrap gap-2" hidden>
+            <button type="button" data-dev="staff" class="press t-spring inline-flex h-10 items-center rounded-full border border-dashed border-[rgb(var(--gold)/.7)] px-4 font-display text-[14px] font-semibold text-gold hover:-translate-y-0.5">ล็อกอินจำลอง: บุคลากร</button>
+            <button type="button" data-dev="student" class="press t-spring inline-flex h-10 items-center rounded-full border border-dashed border-[rgb(var(--gold)/.7)] px-4 font-display text-[14px] font-semibold text-gold hover:-translate-y-0.5">นักศึกษา</button>
+          </span>
+          <a id="guestLogin" href="login.html" class="press t-spring inline-flex h-10 items-center justify-center rounded-full bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">เข้าสู่ระบบ</a>
+        </div>
+      </div>
+
+      <!-- Editing a submission PR sent back -->
+      <section id="editHead" class="grain relative overflow-hidden rounded-banner border border-line p-6 shadow-raised sm:p-8" aria-labelledby="editTitle" hidden>
+        <div class="absolute inset-0" style="background: radial-gradient(55% 90% at 0% 0%, rgb(var(--red-soft)), transparent 70%), radial-gradient(45% 80% at 100% 100%, rgb(var(--purple-soft)), transparent 70%), rgb(var(--surface));"></div>
+        <div class="relative">
+          <a href="inbox.html" id="editBack" class="hover-fill press t-quick -ml-2 inline-flex h-10 items-center gap-2 rounded-full px-3 font-display text-[14px] font-medium text-ink2 hover:text-ink">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>กลับไปที่กล่องข้อความ
+          </a>
+          <h1 id="editTitle" class="mt-2 font-display tight text-[clamp(26px,3vw,38px)] font-bold text-royal">แก้ไขงานตามที่ PR ขอ</h1>
+          <p id="editRef" class="mt-1 text-[15px] text-ink2"></p>
+          <div id="editMsg" class="mt-4 max-w-[680px] rounded-2xl bg-shell/90 px-4 py-3 shadow-raised" hidden>
+            <p class="font-display text-[13px] font-semibold text-purple">ข้อความจากงานประชาสัมพันธ์</p>
+            <p id="editMsgText" class="mt-0.5 whitespace-pre-line text-[15px]"></p>
+          </div>
+        </div>
+      </section>
+      <section id="editGone" class="mt-2 flex flex-col items-center gap-4 rounded-card border border-line bg-surface p-8 text-center shadow-raised" aria-labelledby="editGoneTitle" hidden>
+        <h2 id="editGoneTitle" class="font-display text-[22px] font-semibold"></h2>
+        <p id="editGoneText" class="max-w-[520px] text-[15px] text-ink2"></p>
+        <a href="inbox.html" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">ไปที่กล่องข้อความ</a>
+      </section>
+
+      <!-- Outside users cannot send work -->
+      <section id="externalGate" class="mt-8 flex flex-col items-center gap-4 rounded-card border border-line bg-surface p-8 text-center shadow-raised" aria-labelledby="extTitle" hidden>
+        <span class="grid h-14 w-14 place-items-center rounded-2xl bg-gold-soft text-gold" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+        <h2 id="extTitle" class="font-display text-[22px] font-semibold">การส่งงานสงวนไว้สำหรับบุคลากรและนักศึกษา มรส.</h2>
+        <p class="max-w-[520px] text-[15px] text-ink2">คุณเข้าสู่ระบบในฐานะบุคคลภายนอก หากต้องการเผยแพร่ข่าวผ่านมหาวิทยาลัย ติดต่องานประชาสัมพันธ์ หรือเข้าสู่ระบบด้วยบัญชีของมหาวิทยาลัย</p>
+        <div class="flex flex-wrap justify-center gap-3">
+          <a href="index.html" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">กลับไปอ่านข่าว</a>
+          <a href="login.html" class="press t-spring inline-flex h-12 items-center rounded-2xl border border-line bg-shell px-6 font-display text-[16px] font-medium shadow-raised hover:-translate-y-0.5">ใช้บัญชีมหาวิทยาลัย</a>
+        </div>
+      </section>
+
+      <!-- Before a type is chosen -->
+      <p id="pickHint" class="mt-8 flex items-center justify-center gap-2 rounded-card border-2 border-dashed border-line px-6 py-10 text-center text-[15px] text-ink2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        เลือกประเภทงานด้านบน แล้วฟอร์มจะปรับให้ตรงกับสิ่งที่คุณส่ง
+      </p>
+
+      <!-- ===== Form ===== -->
+      <form id="newsForm" class="mt-8 grid grid-cols-[minmax(0,1fr)]" novalidate hidden>
+        <div class="grid grid-cols-[minmax(0,1fr)] gap-6">
+
+          <!-- Details (all types) -->
+          <section class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sDetails" data-sec="details">
+            <header class="mb-6 flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-red-soft font-display text-[16px] font-semibold text-brand"></span>
+              <div>
+                <h2 id="sDetails" class="font-display text-[20px] font-semibold" data-text="detailsTitle">รายละเอียด</h2>
+                <p class="text-[13px] text-ink2">ภาษาไทย · ช่องที่มี <span class="text-brand">*</span> จำเป็นต้องกรอก</p>
+              </div>
+            </header>
+
+            <div class="grid gap-6">
+              <div>
+                <div class="mb-2 flex items-baseline justify-between gap-3">
+                  <label for="title" class="font-display text-[15px] font-semibold"><span data-text="titleLabel">หัวข้อข่าว</span> <span class="text-brand">*</span></label>
+                  <span class="text-[12px] text-ink2"><span data-count="title">0</span>/120</span>
+                </div>
+                <input id="title" name="title" type="text" maxlength="120" required autocomplete="off" class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="titleError">
+                <p id="titleError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
+              </div>
+
+              <div data-for="news">
+                <div class="mb-2 flex items-baseline justify-between gap-3">
+                  <label for="lead" class="font-display text-[15px] font-semibold">คำโปรย <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+                  <span class="text-[12px] text-ink2"><span data-count="lead">0</span>/200</span>
+                </div>
+                <textarea id="lead" name="lead" rows="2" maxlength="200" placeholder="สรุปข่าวใน 1–2 ประโยค จะแสดงใต้หัวข้อข่าว" class="field w-full resize-none rounded-2xl px-4 py-3 text-[16px]"></textarea>
+              </div>
+
+              <div data-for="video banner">
+                <div class="mb-2 flex items-baseline justify-between gap-3">
+                  <label for="desc" class="font-display text-[15px] font-semibold"><span data-text="descLabel"></span> <span id="descReq" class="text-brand">*</span><span id="descOpt" class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+                  <span class="text-[12px] text-ink2"><span data-count="desc">0</span> ตัวอักษร</span>
+                </div>
+                <textarea id="desc" name="desc" rows="5" class="field w-full resize-y rounded-2xl px-4 py-3 text-[16px] leading-[1.7]" aria-describedby="descError"></textarea>
+                <p id="descError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรอกข้อความประกอบโพสต์</p>
+              </div>
+
+              <div class="grid gap-6 sm:grid-cols-2" data-for="news video">
+                <div>
+                  <label for="eventDate" class="mb-2 block font-display text-[15px] font-semibold">วันที่จัดกิจกรรม <span class="text-brand">*</span></label>
+                  <input id="eventDate" name="eventDate" type="date" required class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="dateError">
+                  <p id="dateError" class="mt-2 text-[14px] font-medium text-brand" hidden>เลือกวันที่จัดกิจกรรม</p>
+                </div>
+                <div>
+                  <label for="place" class="mb-2 block font-display text-[15px] font-semibold">สถานที่ <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+                  <input id="place" name="place" type="text" maxlength="120" placeholder="เช่น หอประชุมมหาวิทยาลัย" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
+                </div>
+              </div>
+
+              <div>
+                <label for="unit" class="mb-2 block font-display text-[15px] font-semibold"><span data-text="unitLabel">หน่วยงานเจ้าของข่าว</span> <span class="text-brand">*</span></label>
+                <select id="unit" name="unit" required class="field sel h-14 w-full rounded-2xl pl-4 pr-12 text-[16px]" aria-describedby="unitHint unitError"></select>
+                <p id="unitHint" class="mt-2 text-[13px] text-ink2">ดึงจากสังกัดในโปรไฟล์ของคุณ เปลี่ยนได้หากส่งแทนหน่วยงานอื่น</p>
+                <p id="unitError" class="mt-2 text-[14px] font-medium text-brand" hidden>เลือกหน่วยงาน</p>
+              </div>
+
+              <fieldset id="catSet" data-for="news video" aria-describedby="catError">
+                <legend class="mb-2 font-display text-[15px] font-semibold">ประเภทข่าว <span class="text-brand">*</span> <span class="font-sans text-[13px] font-normal text-ink2">เลือกได้สูงสุด 5 ประเภท (<span id="catCount">0</span>/5)</span></legend>
+                <div id="catList" class="flex flex-wrap gap-2">
+                  <!-- filled from CATEGORIES in the script -->
+                </div>
+                <p id="catError" class="mt-2 text-[14px] font-medium text-brand" hidden>เลือกประเภทข่าว</p>
+              </fieldset>
+            </div>
+          </section>
+
+          <!-- Key people (news) -->
+          <section data-for="news" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sPeople" data-sec="people">
+            <header class="flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-royal-soft font-display text-[16px] font-semibold text-royal"></span>
+              <div>
+                <h2 id="sPeople" class="font-display text-[20px] font-semibold">บุคคลสำคัญที่เกี่ยวข้อง <span class="font-sans text-[14px] font-normal text-ink2">(ไม่บังคับ)</span></h2>
+                <p class="text-[13px] text-ink2">ชื่อและตำแหน่ง ช่วยให้ PR เขียนข่าวและสะกดชื่อได้ถูกต้อง</p>
+              </div>
+              <button id="peopleToggle" type="button" aria-expanded="false" aria-controls="peopleBody" class="fold-btn press t-spring ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium shadow-raised hover:-translate-y-0.5">
+                <span>เพิ่มรายชื่อ</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </header>
+
+            <div id="peopleBody" class="step-enter mt-6 grid gap-5" hidden>
+              <fieldset class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
+                <legend class="sr-only">ประธานในพิธี</legend>
+                <p class="font-display text-[15px] font-semibold md:pt-3.5" aria-hidden="true">ประธานในพิธี</p>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <input id="chairName" type="text" maxlength="100" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อประธานในพิธี" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
+                  <input id="chairPos" type="text" maxlength="120" placeholder="ตำแหน่ง เช่น อธิการบดี" aria-label="ตำแหน่งประธานในพิธี" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
+                </div>
+              </fieldset>
+              <fieldset class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
+                <legend class="sr-only">ผู้กล่าวรายงาน</legend>
+                <p class="font-display text-[15px] font-semibold md:pt-3.5" aria-hidden="true">ผู้กล่าวรายงาน</p>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <input id="reporterName" type="text" maxlength="100" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อผู้กล่าวรายงาน" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
+                  <input id="reporterPos" type="text" maxlength="120" placeholder="ตำแหน่ง เช่น คณบดีคณะครุศาสตร์" aria-label="ตำแหน่งผู้กล่าวรายงาน" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
+                </div>
+              </fieldset>
+              <div class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
+                <p class="font-display text-[15px] font-semibold md:pt-2.5">บุคคลสำคัญจากภายนอก</p>
+                <div>
+                  <ul id="guestList" class="grid gap-3" aria-label="บุคคลสำคัญจากภายนอก"></ul>
+                  <button id="addGuest" type="button" class="press t-spring mt-0 inline-flex h-11 items-center gap-2 rounded-full border border-dashed border-line px-4 font-display text-[14px] font-medium text-purple hover:-translate-y-0.5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    <span id="addGuestLabel">เพิ่มบุคคลสำคัญจากภายนอก</span>
+                  </button>
+                  <p id="guestMax" class="mt-3 text-[13px] text-ink2" hidden>ครบ 5 คนแล้ว หากมีมากกว่านี้ ระบุเพิ่มใน “ข้อความถึง PR”</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Content: own text or PR writes from documents (news) -->
+          <section data-for="news" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sContent" data-sec="content">
+            <header class="mb-5 flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-red-soft font-display text-[16px] font-semibold text-brand"></span>
+              <div>
+                <h2 id="sContent" class="font-display text-[20px] font-semibold">เนื้อหาข่าว <span class="text-brand">*</span></h2>
+                <p class="text-[13px] text-ink2">เขียนเนื้อหาเอง หรือแนบเอกสารให้ทีม PR เขียนให้</p>
+              </div>
+            </header>
+
+            <fieldset id="modeSet" aria-describedby="modeError">
+              <legend class="sr-only">วิธีจัดทำเนื้อหาข่าว</legend>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="opt">
+                  <input type="radio" name="contentMode" value="own">
+                  <span class="opt-box flex h-full items-center gap-3 rounded-2xl border border-line bg-surface2/60 p-4">
+                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-soft text-brand"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></span>
+                    <span class="min-w-0 flex-1"><span class="block font-display text-[16px] font-semibold">มีเนื้อหาแล้ว</span><span class="block text-[13px] leading-[1.5] text-ink2">พิมพ์หรือวางเนื้อหาข่าวเอง</span></span>
+                    <span class="tick bg-grad grid h-6 w-6 shrink-0 place-items-center rounded-full text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
+                  </span>
+                </label>
+                <label class="opt">
+                  <input type="radio" name="contentMode" value="pr">
+                  <span class="opt-box flex h-full items-center gap-3 rounded-2xl border border-line bg-surface2/60 p-4">
+                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold-soft text-gold"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+                    <span class="min-w-0 flex-1"><span class="block font-display text-[16px] font-semibold">ให้ทีม PR เขียนให้</span><span class="block text-[13px] leading-[1.5] text-ink2">แนบเอกสาร แล้ว PR เขียนข่าวให้</span></span>
+                    <span class="tick bg-grad grid h-6 w-6 shrink-0 place-items-center rounded-full text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
+                  </span>
+                </label>
+              </div>
+              <p id="modeError" class="mt-2 text-[14px] font-medium text-brand" hidden>เลือกว่ามีเนื้อหาแล้ว หรือให้ทีม PR เขียนให้</p>
+            </fieldset>
+
+            <div id="bodyBox" class="step-enter mt-5" hidden>
+              <div class="mb-2 flex items-baseline justify-between gap-3">
+                <label for="body" class="font-display text-[15px] font-semibold">เนื้อหาข่าว <span class="text-brand">*</span></label>
+                <span class="text-[12px] text-ink2"><span data-count="body">0</span> ตัวอักษร · อย่างน้อย 150</span>
+              </div>
+              <textarea id="body" name="body" rows="10" placeholder="ใคร ทำอะไร ที่ไหน เมื่อไร อย่างไร และเพื่ออะไร&#10;เว้นบรรทัดเพื่อขึ้นย่อหน้าใหม่" class="field w-full resize-y rounded-2xl px-4 py-3 text-[16px] leading-[1.7]" aria-describedby="bodyHint bodyError"></textarea>
+              <p id="bodyHint" class="mt-2 inline-flex items-start gap-1.5 text-[13px] text-ink2">
+                <svg class="mt-1 shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg>
+                ใส่คำพูดของผู้บริหารในเครื่องหมาย “ ” ระบบจะจัดเป็นกล่องคำพูดให้
+              </p>
+              <p id="bodyError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรอกเนื้อหาข่าวอย่างน้อย 150 ตัวอักษร</p>
+            </div>
+
+            <div id="attachBox" class="step-enter mt-5" hidden>
+              <div class="flex gap-3 rounded-2xl border border-[rgb(var(--gold)/.35)] bg-gold-soft p-4 text-[14px]">
+                <svg class="mt-0.5 shrink-0 text-gold" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 11-8.6 8.6a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7L10 17.4a1.7 1.7 0 0 1-2.4-2.4l8-8"/></svg>
+                <p>แนบเอกสารที่ PR ใช้เขียนข่าว: คำกล่าวรายงาน / กำหนดการ / เอกสาร MOU / เอกสารรายละเอียดรางวัลหรือผลงาน</p>
+              </div>
+              <label id="attachDrop" class="drop mt-4 flex cursor-pointer items-center gap-4 rounded-2xl border-2 border-dashed border-line px-5 py-5" aria-describedby="attachError">
+                <input id="attachInput" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,application/pdf" class="sr-only">
+                <span class="drop-icon grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gold-soft text-gold" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+                </span>
+                <span class="min-w-0">
+                  <span class="block font-display text-[16px] font-semibold">แนบเอกสาร <span class="text-purple underline underline-offset-4">เลือกไฟล์</span> หรือลากมาวาง <span class="text-brand">*</span></span>
+                  <span class="block text-[13px] text-ink2">PDF, Word, PowerPoint, Excel · สูงสุด 10 ไฟล์ ไฟล์ละไม่เกิน 20 MB</span>
+                </span>
+              </label>
+              <p id="attachError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบเอกสารอย่างน้อย 1 ไฟล์ เพื่อให้ทีม PR เขียนข่าว</p>
+              <ul id="attachList" class="mt-3 grid gap-2" aria-label="ไฟล์แนบ"></ul>
+            </div>
+          </section>
+
+          <!-- Photos (news) -->
+          <section data-for="news" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sPhotos" data-sec="photos">
+            <header class="mb-6 flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-sky-soft font-display text-[16px] font-semibold text-sky"></span>
+              <div>
+                <h2 id="sPhotos" class="font-display text-[20px] font-semibold">ภาพข่าว</h2>
+                <p class="text-[13px] text-ink2">อย่างน้อย <span data-photo-min>1</span> ภาพ <span class="text-brand">*</span> · สูงสุด <span data-photo-max>60</span> ภาพ ภาพละไม่เกิน 15 MB</p>
+              </div>
+            </header>
+
+            <label id="photoDrop" class="drop grid cursor-pointer place-items-center gap-3 rounded-card border-2 border-dashed border-line px-6 py-10 text-center" aria-describedby="photoHint photoError">
+              <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic" multiple class="sr-only">
+              <span class="drop-icon bg-grad grid h-14 w-14 place-items-center rounded-2xl text-white shadow-glow" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+              </span>
+              <span class="font-display text-[17px] font-semibold">ลากภาพมาวางที่นี่ หรือ <span class="text-purple underline underline-offset-4">เลือกจากเครื่อง</span></span>
+              <span id="photoHint" class="text-[13px] text-ink2">JPG, PNG, WEBP, HEIC · ระบบลบข้อมูลพิกัด GPS ออกจากทุกภาพก่อนเผยแพร่</span>
+            </label>
+            <p id="photoError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบภาพข่าวอย่างน้อย <span data-photo-min>1</span> ภาพ</p>
+
+            <div id="photoBar" class="mt-5 flex items-center justify-between gap-3 text-[13px] text-ink2" hidden>
+              <p><span id="photoCount" class="font-display font-semibold text-ink">0</span> ภาพ · แตะ <svg class="inline align-[-2px] text-gold" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg> เพื่อเลือกภาพปก</p>
+              <button id="photoClear" type="button" class="hover-fill press t-quick rounded-full px-3 py-1 font-medium text-ink2 hover:text-brand">ลบทั้งหมด</button>
+            </div>
+            <ul id="photoList" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" aria-label="ภาพที่แนบ"></ul>
+
+            <div class="mt-6">
+              <label for="credit" class="mb-2 block font-display text-[15px] font-semibold">เครดิตภาพ <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+              <input id="credit" name="credit" type="text" maxlength="80" placeholder="เช่น ฝ่ายประชาสัมพันธ์คณะวิทยาศาสตร์ฯ" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
+            </div>
+
+            <fieldset class="mt-6">
+              <legend class="mb-2 font-display text-[15px] font-semibold">ลิงก์วิดีโอประกอบข่าว <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></legend>
+              <div class="flex flex-wrap gap-2" data-platforms="newsPlatform"></div>
+              <input id="newsVideo" name="newsVideo" type="url" inputmode="url" class="field mt-3 h-14 w-full rounded-2xl px-4 text-[16px]" aria-label="ลิงก์วิดีโอประกอบข่าว" aria-describedby="newsVideoHint newsVideoError">
+              <p id="newsVideoHint" class="mt-2 text-[13px] text-ink2"></p>
+              <p id="newsVideoError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
+            </fieldset>
+
+            <div class="mt-6">
+              <label for="albumUrl" class="mb-2 block font-display text-[15px] font-semibold">ลิงก์ภาพเพิ่มเติม <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+              <input id="albumUrl" name="albumUrl" type="url" inputmode="url" placeholder="https://www.facebook.com/media/set/... หรือ https://drive.google.com/..." class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="albumHint albumError">
+              <p id="albumHint" class="mt-2 text-[13px] text-ink2">อัลบั้ม Facebook หรือโฟลเดอร์ Google Drive ที่มีภาพทั้งหมดของกิจกรรม ผู้อ่านจะเห็นปุ่ม "ดูรูปภาพเพิ่มเติม" ในหน้าข่าว</p>
+              <p id="albumError" class="mt-2 text-[14px] font-medium text-brand" hidden>ใส่ลิงก์ที่ขึ้นต้นด้วย https://</p>
+            </div>
+          </section>
+
+          <!-- Video (video) -->
+          <section data-for="video" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sVideo" data-sec="video">
+            <header class="mb-6 flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-purple-soft font-display text-[16px] font-semibold text-purple"></span>
+              <div>
+                <h2 id="sVideo" class="font-display text-[20px] font-semibold">ลิงก์วิดีโอ</h2>
+                <p class="text-[13px] text-ink2">อัปโหลดวิดีโอไว้ที่ YouTube, Facebook, TikTok หรือ Google Drive แล้ววางลิงก์ <span class="text-brand">*</span></p>
+              </div>
+            </header>
+
+            <fieldset id="videoLinkBox">
+              <legend class="mb-2 font-display text-[15px] font-semibold">ลิงก์จาก <span class="text-brand">*</span></legend>
+              <div class="flex flex-wrap gap-2" data-platforms="videoPlatform"></div>
+              <div class="relative mt-3">
+                <svg class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-brand" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                <input id="videoLink" name="videoLink" type="url" inputmode="url" class="field h-14 w-full rounded-2xl pl-12 pr-4 text-[16px]" aria-label="ลิงก์วิดีโอ" aria-describedby="videoLinkHint videoError">
+              </div>
+              <p id="videoLinkHint" class="mt-2 text-[13px] text-ink2"></p>
+            </fieldset>
+
+            <p id="videoError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
+          </section>
+
+          <!-- Artwork (banner) -->
+          <section data-for="banner" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sArt" data-sec="art">
+            <header class="mb-6 flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-gold-soft font-display text-[16px] font-semibold text-gold"></span>
+              <div>
+                <h2 id="sArt" class="font-display text-[20px] font-semibold">ไฟล์งาน</h2>
+                <p class="text-[13px] text-ink2">อย่างน้อย 1 ไฟล์ <span class="text-brand">*</span> · JPG, PNG, PDF · สูงสุด 10 ไฟล์ ไฟล์ละไม่เกิน 100 MB</p>
+              </div>
+            </header>
+
+            <label id="artDrop" class="drop grid cursor-pointer place-items-center gap-3 rounded-card border-2 border-dashed border-line px-6 py-10 text-center" aria-describedby="artHint artError">
+              <input id="artInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" multiple class="sr-only">
+              <span class="drop-icon bg-grad grid h-14 w-14 place-items-center rounded-2xl text-white shadow-glow" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+              </span>
+              <span class="font-display text-[17px] font-semibold">ลากไฟล์งานมาวางที่นี่ หรือ <span class="text-purple underline underline-offset-4">เลือกจากเครื่อง</span></span>
+              <span id="artHint" class="text-[13px] text-ink2">ส่งไฟล์ความละเอียดเต็ม หากมีหลายขนาด (เว็บไซต์ / Facebook / จอ LED) แนบได้ทั้งหมด</span>
+            </label>
+            <p id="artError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบไฟล์งานอย่างน้อย 1 ไฟล์</p>
+
+            <div id="artBar" class="mt-5 flex items-center justify-between gap-3 text-[13px] text-ink2" hidden>
+              <p><span id="artCount" class="font-display font-semibold text-ink">0</span> ไฟล์ · แตะ <svg class="inline align-[-2px] text-gold" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg> เพื่อเลือกไฟล์หลัก</p>
+              <button id="artClear" type="button" class="hover-fill press t-quick rounded-full px-3 py-1 font-medium text-ink2 hover:text-brand">ลบทั้งหมด</button>
+            </div>
+            <ul id="artList" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" aria-label="ไฟล์งานที่แนบ"></ul>
+          </section>
+
+          <!-- English version (news) -->
+          <section data-for="news" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sEn" data-sec="en">
+            <header class="flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-royal-soft font-display text-[16px] font-semibold text-royal"></span>
+              <div class="flex-1">
+                <h2 id="sEn" class="font-display text-[20px] font-semibold">ฉบับภาษาอังกฤษ <span class="font-sans text-[14px] font-normal text-ink2">(ไม่บังคับ)</span></h2>
+                <p class="text-[13px] text-ink2">ข่าวที่มีสองภาษาจะแสดงป้าย <span class="rounded-md bg-royal-soft px-1.5 font-display text-[11px] font-semibold leading-5 text-royal">EN</span></p>
+              </div>
+              <label class="switch" title="เพิ่มฉบับภาษาอังกฤษ">
+                <input id="enToggle" type="checkbox" aria-controls="enFields" aria-label="เพิ่มฉบับภาษาอังกฤษ">
+                <span class="track"></span><span class="knob"></span>
+              </label>
+            </header>
+            <div id="enFields" class="step-enter mt-6 grid gap-6" lang="en" hidden>
+              <div>
+                <label for="titleEn" class="mb-2 block font-display text-[15px] font-semibold">Headline</label>
+                <input id="titleEn" name="titleEn" type="text" maxlength="160" placeholder="e.g. Faculty of Science hosts Young Scientist Camp 2026" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
+              </div>
+              <div>
+                <label for="bodyEn" class="mb-2 block font-display text-[15px] font-semibold">Story</label>
+                <textarea id="bodyEn" name="bodyEn" rows="6" placeholder="Who, what, where, when, why" class="field w-full resize-y rounded-2xl px-4 py-3 text-[16px]"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- Audience (all) -->
+          <section class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sAud" data-sec="aud">
+            <header class="mb-4 flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-purple-soft font-display text-[16px] font-semibold text-purple"></span>
+              <div>
+                <h2 id="sAud" class="font-display text-[20px] font-semibold">ใครเห็นงานนี้ได้ <span class="text-brand">*</span></h2>
+                <p class="text-[13px] text-ink2">เลือกได้มากกว่า 1 กลุ่ม</p>
+              </div>
+            </header>
+            <fieldset id="audSet" aria-describedby="audHint audError">
+              <legend class="sr-only">กลุ่มผู้ที่เห็นงานนี้ได้</legend>
+              <div class="flex flex-wrap gap-2">
+                <label class="opt chip-opt"><input type="checkbox" name="audience" value="public"><span class="opt-box inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">บุคคลทั่วไป</span></label>
+                <label class="opt chip-opt"><input type="checkbox" name="audience" value="student"><span class="opt-box inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">นักศึกษา</span></label>
+                <label class="opt chip-opt"><input type="checkbox" name="audience" value="staff"><span class="opt-box inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">บุคลากร</span></label>
+              </div>
+              <p id="audHint" class="mt-3 text-[13px] text-ink2">บุคคลทั่วไป: ทุกคนเห็นได้ รวมถึงผลค้นหา Google · นักศึกษา / บุคลากร: เห็นเฉพาะผู้ที่เข้าสู่ระบบด้วยบัญชีมหาวิทยาลัย</p>
+              <p id="audError" class="mt-2 text-[14px] font-medium text-brand" hidden>เลือกอย่างน้อย 1 กลุ่ม</p>
+            </fieldset>
+          </section>
+
+          <!-- Note + consent (all); sender details come from the profile -->
+          <section class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sConfirm" data-sec="confirm">
+            <header class="mb-5 flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-gold-soft font-display text-[16px] font-semibold text-gold"></span>
+              <div class="min-w-0">
+                <h2 id="sConfirm" class="font-display text-[20px] font-semibold">ข้อความถึง PR และการยืนยัน</h2>
+                <p id="senderLine" class="text-[13px] text-ink2"></p>
+              </div>
+            </header>
+
+            <label for="note" class="mb-2 block font-display text-[15px] font-semibold">ข้อความถึง PR <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+            <textarea id="note" name="note" rows="2" maxlength="300" placeholder="เช่น ขอเผยแพร่ก่อนวันศุกร์ หรือรายละเอียดที่ PR ควรรู้" class="field w-full resize-y rounded-2xl px-4 py-3 text-[16px]"></textarea>
+
+            <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl p-1">
+              <input id="consent" type="checkbox" class="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded accent-[rgb(122,60,226)]" aria-describedby="consentError">
+              <span class="text-[15px]" data-text="consentText"></span>
+            </label>
+            <p id="consentError" class="mt-2 pl-9 text-[14px] font-medium text-brand" hidden>ยืนยันข้อมูลก่อนส่ง</p>
+          </section>
+
+          <p id="sendError" class="rounded-2xl border border-[rgb(var(--red)/.35)] bg-red-soft px-4 py-3 text-[15px] font-medium text-brand" role="alert" hidden></p>
+
+          <!-- Submit bar: stays at the bottom of the screen -->
+          <div id="sendBar" class="sticky bottom-3 z-30 flex items-center gap-2 rounded-card border border-line bg-shell/95 p-2.5 shadow-float backdrop-blur-xl sm:gap-3 sm:p-3">
+            <button id="saveDraft" type="button" class="hover-fill press t-quick inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl px-3 font-display text-[15px] font-medium text-ink2 hover:text-ink" title="ฉบับร่างบันทึกอัตโนมัติในเครื่องนี้ (ไม่รวมไฟล์)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></svg><span class="hidden sm:inline">บันทึกร่าง</span>
+            </button>
+            <button id="missingBtn" type="button" class="press t-spring ml-auto inline-flex h-12 min-w-0 items-center gap-2 rounded-2xl px-3 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5 sm:px-4">
+              <span class="grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-brand px-1.5 text-[13px] font-semibold text-white dark:text-bg" id="missingCount">0</span>
+              <span class="whitespace-nowrap sm:hidden">ไปช่องที่ขาด</span><span class="hidden sm:inline">ข้อที่ยังขาด · ไปกรอกต่อ</span>
+            </button>
+            <span id="readyNote" class="ml-auto inline-flex items-center gap-1.5 font-display text-[15px] font-medium text-purple" hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+              <span class="hidden sm:inline">ครบแล้ว พร้อมส่ง</span>
+            </span>
+            <button id="submitBtn" type="submit" class="bg-grad press t-spring inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-70">
+              <span id="submitIcon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg></span>
+              <span id="submitLabel">ส่งให้ PR ตรวจ</span>
+            </button>
+          </div>
+        </div>
+
+      </form>
+
+      <!-- ===== Success ===== -->
+      <section id="done" class="mx-auto mt-8 max-w-[760px]" aria-labelledby="doneTitle" hidden>
+        <div class="grain relative overflow-hidden rounded-banner border border-line p-6 text-center shadow-float sm:p-10">
+          <div class="absolute inset-0" style="background:
+            radial-gradient(60% 70% at 50% 0%, rgb(var(--purple-soft)), transparent 70%),
+            radial-gradient(40% 50% at 0% 100%, rgb(var(--red-soft)), transparent 70%),
+            radial-gradient(40% 50% at 100% 100%, rgb(var(--sky-soft)), transparent 70%),
+            rgb(var(--surface));"></div>
+          <div class="relative">
+            <img src="/assets/img/hawky-480.webp" alt="" class="bob mx-auto w-[150px] drop-shadow-[0_20px_28px_rgb(38_66_200/.22)]" width="1254" height="1254">
+            <h2 id="doneTitle" tabindex="-1" class="mt-2 font-display tight text-[clamp(26px,3vw,36px)] font-bold text-royal"></h2>
+            <p id="doneLead" class="mt-2 text-[15px] text-ink2"></p>
+            <p class="mt-4 inline-flex items-center gap-2 rounded-full bg-shell px-4 py-1.5 text-[14px] shadow-raised">เลขที่อ้างอิง <span id="refNo" class="font-display font-semibold text-purple"></span></p>
+
+            <ol class="mx-auto mt-8 grid max-w-[560px] gap-0 text-left sm:grid-cols-3" aria-label="สถานะ">
+              <li class="flex gap-3 sm:flex-col sm:items-center sm:text-center">
+                <span class="bg-grad grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-glow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
+                <span class="pb-5 sm:pb-0"><span class="block font-display text-[15px] font-semibold">ส่งแล้ว</span><span id="sentAt" class="text-[13px] text-ink2"></span></span>
+              </li>
+              <li class="flex gap-3 sm:flex-col sm:items-center sm:text-center" aria-current="step">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-purple-soft text-purple ring-2 ring-[rgb(var(--purple))]"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg></span>
+                <span class="pb-5 sm:pb-0"><span id="stepReview" class="block font-display text-[15px] font-semibold">รอ PR ตรวจ</span><span class="text-[13px] text-ink2">ภายใน <span data-review-days>2</span> วันทำการ</span></span>
+              </li>
+              <li class="flex gap-3 sm:flex-col sm:items-center sm:text-center">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-line text-ink2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+                <span><span class="block font-display text-[15px] font-semibold text-ink2">เผยแพร่</span><span class="text-[13px] text-ink2">แจ้งในกล่องข้อความ</span></span>
+              </li>
+            </ol>
+
+            <dl id="doneSummary" class="mt-8 grid gap-4 rounded-card border border-line bg-shell/80 p-5 text-left sm:grid-cols-2"></dl>
+
+            <div class="mt-8 flex flex-wrap justify-center gap-3">
+              <a href="submit.html" class="bg-grad press t-spring inline-flex h-12 items-center gap-2 rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                ส่งงานอีกชิ้น
+              </a>
+              <a id="trackLink" href="inbox.html" class="press t-spring inline-flex h-12 items-center gap-2 rounded-2xl border border-line bg-shell px-6 font-display text-[16px] font-medium shadow-raised hover:-translate-y-0.5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4h16v12H5.2L4 17.2z"/><path d="M8 9h8M8 12h5"/></svg> ติดตามสถานะในกล่องข้อความ</a>
+            </div>
+          </div>
+        </div>
+      </section>
+      </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="mx-auto max-w-page px-shell pb-10 pt-8">
+    <div class="flex flex-col gap-4 border-t border-line pt-8 text-[14px] text-ink2 md:flex-row md:items-center">
+      <a href="index.html" class="press t-quick flex items-center gap-3 rounded-xl hover:opacity-80">
+        <span class="logo-crop h-9 w-9"><img src="/assets/img/logo-192.webp" alt=""></span>
+        <span class="font-display font-semibold text-purple">ข่าว มรส.</span>
+      </a>
+      <span>คลังข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
+      <span class="flex gap-6 md:ml-auto">
+        <a href="privacy.html" class="press t-quick rounded hover:text-ink hover:underline">นโยบายความเป็นส่วนตัว</a>
+        <span>โดยงานประชาสัมพันธ์ มรส.</span>
+      </span>
+    </div>
+  </footer>
+
+  <p id="liveMsg" class="sr-only" role="status" aria-live="polite"></p>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="org-data.js"></script>
+  <script src="auth.js"></script>
+  <script src="site-config.js"></script>
+  <script>
+    // Sending is for university accounts; other Google accounts get the explanation page
+    window.ME.then((m) => { if (m.user?.role === 'external') location.replace('status.html?s=domain'); });
+  </script>
+  <script>
+    // ---- Per-type wording ----
+    const TYPES = {
+      news: {
+        noun: 'ข่าว', detailsTitle: 'รายละเอียดข่าว', titleLabel: 'หัวข้อข่าว', unitLabel: 'หน่วยงานผู้จัด / เจ้าของข่าว',
+        titlePh: 'เช่น คณะวิทยาศาสตร์ฯ จัดค่ายนักวิทยาศาสตร์น้อย ประจำปี 2569',
+        consentText: 'ฉันยืนยันว่าข้อมูลถูกต้อง หน่วยงานเป็นเจ้าของภาพ และบุคคลในภาพยินยอมให้เผยแพร่',
+        submit: 'ส่งข่าวให้ PR', done: 'ส่งข่าวเรียบร้อยแล้ว!',
+      },
+      video: {
+        noun: 'วิดีโอ', detailsTitle: 'รายละเอียดวิดีโอ', titleLabel: 'ชื่อวิดีโอ', unitLabel: 'หน่วยงานผู้จัด / เจ้าของวิดีโอ',
+        titlePh: 'เช่น บรรยากาศพิธีไหว้ครู ประจำปีการศึกษา 2569',
+        descLabel: 'คำอธิบายวิดีโอ', descPh: 'เล่าสั้น ๆ ว่าวิดีโอนี้เกี่ยวกับอะไร ใช้เป็นคำบรรยายใต้วิดีโอ', descRequired: false,
+        consentText: 'ฉันยืนยันว่าข้อมูลถูกต้อง หน่วยงานมีสิทธิ์ในวิดีโอ เพลง และภาพในวิดีโอ และบุคคลในวิดีโอยินยอมให้เผยแพร่',
+        submit: 'ส่งวิดีโอให้ PR', done: 'ส่งวิดีโอเรียบร้อยแล้ว!',
+      },
+      banner: {
+        noun: 'งาน', detailsTitle: 'รายละเอียดงาน', titleLabel: 'ชื่องาน', unitLabel: 'หน่วยงานเจ้าของงาน',
+        titlePh: 'เช่น รับสมัครนักศึกษาใหม่ ปีการศึกษา 2570',
+        descLabel: 'ข้อความประกอบโพสต์', descPh: 'ข้อความที่ใช้ประกอบเวลาโพสต์ เช่น รายละเอียด วันที่ ลิงก์สมัคร', descRequired: true,
+        consentText: 'ฉันยืนยันว่าข้อมูลถูกต้อง และหน่วยงานมีสิทธิ์ในภาพ ฟอนต์ และองค์ประกอบทั้งหมดในงานนี้',
+        submit: 'ส่งงานให้ PR', done: 'ส่งแบนเนอร์ / อินโฟกราฟิกเรียบร้อยแล้ว!',
+      },
+    };
+    // ---- Section menu: which checks (CHECKS keys) belong to each section; sections without checks are optional ----
+    const SECTIONS = {
+      details: { label: () => TYPES[type].detailsTitle, checks: ['title', 'date', 'desc', 'unit', 'cat'] },
+      people: { label: () => 'บุคคลสำคัญ', checks: [] },
+      content: { label: () => 'เนื้อหาข่าว', checks: ['content'] },
+      photos: { label: () => 'ภาพข่าว', checks: ['photo'] },
+      video: { label: () => 'ลิงก์วิดีโอ', checks: ['video'] },
+      art: { label: () => 'ไฟล์งาน', checks: ['art'] },
+      en: { label: () => 'ฉบับภาษาอังกฤษ', checks: [] },
+      aud: { label: () => 'ใครเห็นงานนี้ได้', checks: ['aud'] },
+      confirm: { label: () => 'ยืนยันและส่ง', checks: ['consent'] },
+    };
+    let currentSec = 'details';
+    const MAX_CATS = 5;
+    // From the settings page (site-config.js); the values here are only a fallback
+    const SITE = window.SITE || {};
+    const CATEGORIES = SITE.categories || ['ข่าวผู้บริหาร', 'ข่าวกิจกรรมนักศึกษา', 'รางวัล/ความสำเร็จ', 'ข่าวการศึกษา', 'ข่าวความร่วมมือ/MOU', 'ข่าวประชุม/สัมมนา', 'ข่าววิจัย/นวัตกรรม', 'ข่าวบริการวิชาการ', 'ข่าวกิจกรรมเพื่อชุมชน/ท้องถิ่น', 'ข่าววิศวกรสังคม'];
+    const PHOTOS = { min: SITE.photos?.min ?? 1, max: SITE.photos?.max ?? 60 };
+    const REVIEW_DAYS = SITE.reviewDays ?? 2;
+    document.querySelectorAll('[data-photo-min]').forEach((el) => { el.textContent = PHOTOS.min; });
+    document.querySelectorAll('[data-photo-max]').forEach((el) => { el.textContent = PHOTOS.max; });
+    document.querySelectorAll('[data-review-days]').forEach((el) => { el.textContent = REVIEW_DAYS; });
+    // Video link platforms: label, URL pattern, placeholder, sharing hint (only those turned on in the settings)
+    const ALL_PLATFORMS = {
+      youtube: { label: 'YouTube', re: /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/|live\/)|youtu\.be\/)([\w-]{6,})/i, ph: 'https://www.youtube.com/watch?v=...', hint: 'ตั้งค่าวิดีโอเป็น "สาธารณะ" หรือ "ไม่เป็นสาธารณะ" เพื่อให้ PR เปิดดูได้' },
+      facebook: { label: 'Facebook', re: /^https?:\/\/((www|m|web)\.)?(facebook\.com|fb\.watch)\/\S+/i, ph: 'https://www.facebook.com/.../videos/...', hint: 'ใช้ลิงก์โพสต์หรือวิดีโอที่ตั้งค่าเป็น "สาธารณะ"' },
+      tiktok: { label: 'TikTok', re: /^https?:\/\/((www|vm|vt|m)\.)?tiktok\.com\/\S+/i, ph: 'https://www.tiktok.com/@.../video/...', hint: 'ใช้ลิงก์จากปุ่ม "แชร์" ของคลิป และบัญชีต้องเป็นสาธารณะ' },
+      drive: { label: 'Google Drive', re: /^https?:\/\/drive\.google\.com\/\S+/i, ph: 'https://drive.google.com/file/d/...', hint: 'ตั้งค่าการแชร์เป็น "ทุกคนที่มีลิงก์" เพื่อให้ PR ดาวน์โหลดได้' },
+    };
+    const PLATFORMS = Object.fromEntries(Object.entries(ALL_PLATFORMS).filter(([k]) => !SITE.platforms || SITE.platforms.includes(k)));
+    const MIN_BODY = 150;
+    const MB = 1024 * 1024;
+    const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    const thDate = (iso) => { if (!iso) return '–'; const [y, m, d] = iso.split('-').map(Number); return `${d} ${TH_MONTHS[m - 1]} ${y + 543}`; };
+    const fmtSize = (b) => b >= MB * 1024 ? (b / MB / 1024).toFixed(1) + ' GB' : b >= MB ? (b / MB).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+
+    const $ = (s, r = document) => r.querySelector(s);
+    const form = $('#newsForm');
+    const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    const announce = (msg) => { $('#liveMsg').textContent = ''; setTimeout(() => { $('#liveMsg').textContent = msg; }, 50); };
+    const val = (id) => $('#' + id).value.trim();
+    const cats = () => [...document.querySelectorAll('input[name=category]:checked')].map((b) => b.value);
+    const radio = (name) => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
+    let type = '';
+
+    // ---- Category chips ----
+    $('#catList').innerHTML = CATEGORIES.map((c) => `<label class="opt chip-opt"><input type="checkbox" name="category" value="${c}"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">${c}</span></label>`).join('');
+
+    // ---- Platform chips (news link + video link) ----
+    document.querySelectorAll('[data-platforms]').forEach((box) => {
+      const name = box.dataset.platforms;
+      box.innerHTML = Object.entries(PLATFORMS).map(([k, p], i) => `<label class="opt chip-opt"><input type="radio" name="${name}" value="${k}"${i === 0 ? ' checked' : ''}><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">${p.label}</span></label>`).join('');
+    });
+    const linkOk = (url, platform) => PLATFORMS[platform].re.test(url);
+    const ytId = (u) => (u.match(PLATFORMS.youtube.re) || [])[4] || '';
+    function syncPlatform(name, inputId, hintId) {
+      const p = PLATFORMS[radio(name)];
+      $('#' + inputId).placeholder = p.ph;
+      $('#' + hintId).textContent = p.hint;
+    }
+    const platformErr = (name) => `ลิงก์ไม่ตรงกับ ${PLATFORMS[radio(name)].label} ตรวจลิงก์อีกครั้งหรือเปลี่ยนประเภทลิงก์`;
+
+    // ---- Sender: the signed-in account (null while signed out: the form can be filled, sending needs sign-in) ----
+    let profile = null;
+    let guest = true;
+    let editing = null; // the submission being fixed after "ขอให้แก้ไข" (submit.html?edit=REF)
+    const editRef = new URLSearchParams(location.search).get('edit');
+    function setupSender(p) {
+      profile = p;
+      guest = !p;
+      $('#guestNote').hidden = !guest;
+      $('#guestLogin').href = window.loginUrl();
+      $('#senderLine').textContent = guest
+        ? 'เข้าสู่ระบบก่อนส่ง ระบบจะใส่ชื่อและสังกัดของคุณให้'
+        : `ส่งในนาม ${p.name || p.email}${p.position ? ' ' + p.position : ''} (${p.email}) PR จะติดต่อกลับตามข้อมูลในโปรไฟล์ของคุณ`;
+      // Students post as their own faculty; staff may pick any unit, sub-units listed under their parent
+      const myUnit = p ? ORG.displayUnit(p) : '';
+      const groups = p?.role === 'student'
+        ? [{ label: 'คณะ / วิทยาลัย', units: ORG.faculties[p.unit] ? [p.unit] : Object.keys(ORG.faculties) }]
+        : ORG.staffGroups.flatMap((g) => [g, ...g.units.filter((u) => ORG.subUnits[u]).map((u) => ({ label: `${ORG.subUnits[u].label} (${u})`, units: ORG.subUnits[u].units }))]);
+      const keep = $('#unit').value;
+      $('#unit').innerHTML = '<option value="">เลือกหน่วยงาน</option>' +
+        groups.map((g) => `<optgroup label="${esc(g.label)}">${g.units.map((u) => `<option${u === (keep || myUnit) ? ' selected' : ''}>${esc(u)}</option>`).join('')}</optgroup>`).join('');
+      $('#submitLabel').textContent = type ? submitText() : $('#submitLabel').textContent;
+    }
+    const submitText = () => (guest ? 'เข้าสู่ระบบเพื่อส่ง' : editing ? 'ส่งงานที่แก้ไขแล้ว' : TYPES[type].submit);
+    document.querySelectorAll('[data-dev]').forEach((b) => b.addEventListener('click', () => { saveDraft(false); leaving = true; window.devLogin(b.dataset.dev); }));
+
+    // ---- Guests from outside the university (repeatable name + position) ----
+    const MAX_GUESTS = 5;
+    let guests = [];
+    function renderGuests(focusLast) {
+      $('#guestList').innerHTML = guests.map((g, i) => `
+        <li class="file-row grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <input data-guest="${i}" data-k="name" type="text" maxlength="100" value="${esc(g.name)}" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อบุคคลสำคัญคนที่ ${i + 1}" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
+          <input data-guest="${i}" data-k="pos" type="text" maxlength="160" value="${esc(g.pos)}" placeholder="ตำแหน่ง / หน่วยงาน" aria-label="ตำแหน่งบุคคลสำคัญคนที่ ${i + 1}" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
+          <button type="button" data-guest-remove="${i}" aria-label="ลบบุคคลสำคัญคนที่ ${i + 1}" class="icon-btn grid h-12 w-12 place-items-center justify-self-end rounded-full bg-surface2 text-brand">${ICON.x}</button>
+        </li>`).join('');
+      $('#addGuest').classList.toggle('mt-3', guests.length > 0);
+      const left = MAX_GUESTS - guests.length;
+      $('#addGuest').hidden = left <= 0;
+      $('#guestMax').hidden = left > 0;
+      $('#addGuestLabel').textContent = guests.length ? `เพิ่มอีกคน (เหลือ ${left})` : `เพิ่มบุคคลสำคัญจากภายนอก (สูงสุด ${MAX_GUESTS} คน)`;
+      if (focusLast) $(`[data-guest="${guests.length - 1}"][data-k="name"]`)?.focus();
+    }
+    $('#addGuest').addEventListener('click', () => { if (guests.length < MAX_GUESTS) { guests.push({ name: '', pos: '' }); renderGuests(true); } });
+    $('#guestList').addEventListener('input', (e) => { const i = e.target.dataset.guest; if (i != null) guests[i][e.target.dataset.k] = e.target.value; });
+    $('#guestList').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-guest-remove]');
+      if (!b) return;
+      guests.splice(Number(b.dataset.guestRemove), 1);
+      renderGuests();
+      $('#addGuest').focus();
+      scheduleDraft();
+    });
+
+    // ---- Uploaders: one factory for photos, artwork, attachments and the video file ----
+    const ICON = {
+      star: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>',
+      x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+      doc: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
+      film: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="15" height="14" rx="2"/><path d="m17 10 5-3v10l-5-3z"/></svg>',
+    };
+    const extOf = (name) => (name.split('.').pop() || '').toUpperCase();
+
+    function uploader({ key, input, drop, list, bar, count, clear, max, maxMB, accepts, grid, noun, onChange }) {
+      const st = { items: [], cover: null, seq: 0, removed: [] };
+      const isImg = (f) => f.type.startsWith('image/');
+      function add(files) {
+        const skipped = [];
+        for (const file of files) {
+          if (!accepts(file)) { skipped.push(`${file.name} ไม่ใช่ไฟล์ที่รองรับ`); continue; }
+          if (file.size > maxMB * MB) { skipped.push(`${file.name} ใหญ่เกิน ${maxMB >= 1024 ? maxMB / 1024 + ' GB' : maxMB + ' MB'}`); continue; }
+          if (max === 1) { st.items.forEach((x) => x.url && URL.revokeObjectURL(x.url)); st.items = []; }
+          if (st.items.length >= max) { skipped.push(`แนบได้สูงสุด ${max} ${noun}`); break; }
+          st.items.push({ id: ++st.seq, file, name: file.name, size: file.size, url: isImg(file) ? URL.createObjectURL(file) : null });
+        }
+        if (!st.items.some((x) => x.id === st.cover)) st.cover = st.items[0]?.id ?? null;
+        render(); onChange();
+        announce(skipped.length ? 'ข้ามบางไฟล์: ' + skipped.join(', ') : `แนบแล้ว ${st.items.length} ${noun}`);
+      }
+      // Files already on the server (editing): { fileId, name, size, url }
+      function addSent(files) {
+        files.forEach((f) => st.items.push({ id: ++st.seq, sent: f.id, name: f.name, size: f.size, url: f.thumb || null, doc: !f.thumb }));
+        st.cover = st.items[0]?.id ?? null;
+        render();
+      }
+      function remove(id) {
+        const it = st.items.find((x) => x.id === id);
+        if (it?.url && !it.sent) URL.revokeObjectURL(it.url);
+        if (it?.sent) st.removed.push(it.sent);
+        st.items = st.items.filter((x) => x.id !== id);
+        if (st.cover === id) st.cover = st.items[0]?.id ?? null;
+        render(); onChange();
+      }
+      function render() {
+        if (bar) bar.hidden = !st.items.length;
+        if (count) count.textContent = st.items.length;
+        list.innerHTML = st.items.map((p, i) => grid ? thumb(p, i) : row(p, i)).join('');
+      }
+      function thumb(p, i) {
+        const cover = p.id === st.cover;
+        const media = p.url
+          ? `<img src="${p.url}" alt="${noun}ที่ ${i + 1}: ${esc(p.name)}" class="h-full w-full object-cover">`
+          : `<span class="grid h-full w-full place-items-center bg-gold-soft text-gold"><span class="grid place-items-center gap-1">${ICON.doc}<span class="font-display text-[13px] font-semibold">${extOf(p.name)}</span></span></span>`;
+        return `<li class="thumb group relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface2 ${cover ? 'ring-2 ring-[rgb(var(--purple))] ring-offset-2 ring-offset-[rgb(var(--surface))]' : ''}">
+          ${media}
+          <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+          <div class="pointer-events-none absolute inset-0 bg-[rgb(38_66_200/.10)] mix-blend-multiply"></div>
+          ${cover ? `<span class="absolute left-2 top-2 rounded-lg bg-shell px-2 font-display text-[12px] font-semibold leading-6 text-purple shadow-raised">${key === 'photo' ? 'ภาพปก' : 'ไฟล์หลัก'}</span>` : ''}
+          ${p.sent ? '<span class="absolute right-2 top-2 rounded-lg bg-shell/90 px-2 text-[11px] font-semibold leading-6 text-ink2 shadow-raised">ส่งไว้แล้ว</span>' : ''}
+          <span class="pointer-events-none absolute bottom-2 left-2 right-20 truncate text-[12px] text-white">${esc(p.name)}</span>
+          <div class="thumb-actions absolute bottom-2 right-2 flex gap-1.5">
+            <button type="button" data-cover="${p.id}" aria-pressed="${cover}" aria-label="ตั้ง${noun}ที่ ${i + 1} เป็น${key === 'photo' ? 'ภาพปก' : 'ไฟล์หลัก'}" class="icon-btn grid h-9 w-9 place-items-center rounded-full bg-shell text-gold shadow-raised">${ICON.star}</button>
+            <button type="button" data-remove="${p.id}" aria-label="ลบ${noun}ที่ ${i + 1}" class="icon-btn grid h-9 w-9 place-items-center rounded-full bg-shell text-brand shadow-raised">${ICON.x}</button>
+          </div>
+        </li>`;
+      }
+      function row(p) {
+        return `<li class="file-row flex items-center gap-3 rounded-2xl border border-line bg-surface2/60 p-3">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl ${key === 'video' ? 'bg-purple-soft text-purple' : 'bg-gold-soft text-gold'}">${key === 'video' ? ICON.film : ICON.doc}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-[15px] font-medium">${esc(p.name)}</span>
+            <span class="block text-[12px] text-ink2">${extOf(p.name)} · ${fmtSize(p.size)}${p.sent ? ' · ส่งไว้แล้ว' : ''}</span>
+          </span>
+          <button type="button" data-remove="${p.id}" aria-label="ลบ ${esc(p.name)}" class="icon-btn grid h-9 w-9 shrink-0 place-items-center rounded-full bg-shell text-brand shadow-raised">${ICON.x}</button>
+        </li>`;
+      }
+      input.addEventListener('change', (e) => { add(e.target.files); e.target.value = ''; });
+      ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('is-over'); }));
+      ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('is-over'); }));
+      drop.addEventListener('drop', (e) => add(e.dataTransfer.files));
+      list.addEventListener('click', (e) => {
+        const c = e.target.closest('[data-cover]');
+        const r = e.target.closest('[data-remove]');
+        if (c) { st.cover = Number(c.dataset.cover); render(); onChange(); announce('ตั้งเป็นไฟล์หลักแล้ว'); list.querySelector(`[data-cover="${st.cover}"]`)?.focus(); }
+        if (r) { remove(Number(r.dataset.remove)); announce('ลบไฟล์แล้ว'); }
+      });
+      clear?.addEventListener('click', () => { [...st.items].forEach((p) => remove(p.id)); announce('ลบไฟล์ทั้งหมดแล้ว'); });
+      return {
+        get items() { return st.items; }, get coverItem() { return st.items.find((x) => x.id === st.cover); }, get removed() { return st.removed; }, addSent,
+        // New files to upload, the chosen cover / main file first
+        get uploads() { const list = st.items.filter((x) => x.file); const c = list.find((x) => x.id === st.cover); return (c ? [c, ...list.filter((x) => x !== c)] : list).map((x) => x.file); },
+      };
+    }
+
+    const isDoc = (f) => /\.(pdf|docx?|pptx?|xlsx?)$/i.test(f.name);
+    const up = {
+      photo: uploader({ key: 'photo', input: $('#photoInput'), drop: $('#photoDrop'), list: $('#photoList'), bar: $('#photoBar'), count: $('#photoCount'), clear: $('#photoClear'),
+        max: PHOTOS.max, maxMB: 15, grid: true, noun: 'ภาพ', accepts: (f) => f.type.startsWith('image/'), onChange: () => onFiles('photo') }),
+      attach: uploader({ key: 'attach', input: $('#attachInput'), drop: $('#attachDrop'), list: $('#attachList'),
+        max: 10, maxMB: 20, grid: false, noun: 'ไฟล์', accepts: isDoc, onChange: () => onFiles('attach') }),
+      art: uploader({ key: 'art', input: $('#artInput'), drop: $('#artDrop'), list: $('#artList'), bar: $('#artBar'), count: $('#artCount'), clear: $('#artClear'),
+        max: 10, maxMB: 100, grid: true, noun: 'ไฟล์', accepts: (f) => f.type.startsWith('image/') || /\.pdf$/i.test(f.name), onChange: () => onFiles('art') }),
+    };
+
+    // ---- Categories: lock the unchosen ones at the limit ----
+    function syncCats() {
+      const n = cats().length;
+      $('#catCount').textContent = n;
+      document.querySelectorAll('input[name=category]').forEach((b) => { b.disabled = !b.checked && n >= MAX_CATS; });
+      if (n >= MAX_CATS) announce(`เลือกครบ ${MAX_CATS} ประเภทแล้ว`);
+    }
+
+    // ---- Audience: checkboxes; "บุคคลทั่วไป" already covers students and staff ----
+    const audBoxes = [...document.querySelectorAll('input[name=audience]')];
+    const audVals = () => audBoxes.filter((b) => b.checked).map((b) => b.value);
+    function syncAudience() {
+      const pub = $('input[name=audience][value=public]').checked;
+      audBoxes.filter((b) => b.value !== 'public').forEach((b) => {
+        if (pub) b.checked = true;
+        b.disabled = pub;
+              });
+    }
+    function audLabel() {
+      const v = audVals();
+      if (v.includes('public')) return { label: 'บุคคลทั่วไป', cls: 'bg-sky-soft text-sky' };
+      if (v.includes('student') && v.includes('staff')) return { label: 'ภายในมหาวิทยาลัย', cls: 'bg-purple-soft text-purple' };
+      if (v.includes('staff')) return { label: 'เฉพาะบุคลากร', cls: 'bg-red-soft text-brand' };
+      if (v.includes('student')) return { label: 'เฉพาะนักศึกษา', cls: 'bg-royal-soft text-royal' };
+      return { label: 'ยังไม่เลือก', cls: 'bg-surface2 text-ink2' };
+    }
+
+    // ---- Rules ----
+    const prWrites = () => radio('contentMode') === 'pr';
+    const contentOk = () => radio('contentMode') === 'own' ? val('body').length >= MIN_BODY : prWrites() && up.attach.items.length > 0;
+    const videoOk = () => linkOk(val('videoLink'), radio('videoPlatform'));
+    const newsVideoOk = () => !val('newsVideo') || linkOk(val('newsVideo'), radio('newsPlatform'));
+    const descOk = () => !TYPES[type].descRequired || !!val('desc');
+    const albumOk = () => !val('albumUrl') || /^https:\/\/\S+\.\S+/i.test(val('albumUrl'));
+
+    // Each check: which types it applies to, the checklist label, and where to send focus
+    const CHECKS = [
+      { key: 'title', for: 'news video banner', label: () => TYPES[type].titleLabel, ok: () => !!val('title'), focus: '#title' },
+      { key: 'date', for: 'news video', label: () => 'วันที่และหน่วยงาน', ok: () => !!val('eventDate') && !!val('unit'), focus: '#eventDate' },
+      { key: 'desc', for: 'banner', label: () => 'ข้อความประกอบโพสต์', ok: descOk, focus: '#desc' },
+      { key: 'unit', for: 'banner', label: () => 'หน่วยงาน', ok: () => !!val('unit'), focus: '#unit' },
+      { key: 'cat', for: 'news video', label: () => 'ประเภทข่าว', ok: () => cats().length > 0, focus: 'input[name=category]' },
+      { key: 'content', for: 'news', label: () => prWrites() ? 'เอกสารให้ PR เขียนข่าว' : radio('contentMode') === 'own' ? `เนื้อหาอย่างน้อย ${MIN_BODY} ตัวอักษร` : 'เนื้อหาข่าว', ok: contentOk,
+        focus: () => !radio('contentMode') ? 'input[name=contentMode]' : prWrites() ? '#attachInput' : '#body' },
+      { key: 'photo', for: 'news', label: () => `ภาพข่าวอย่างน้อย ${PHOTOS.min} ภาพ`, ok: () => up.photo.items.length >= PHOTOS.min, focus: '#photoInput' },
+      { key: 'video', for: 'video', label: () => 'ลิงก์วิดีโอ', ok: videoOk, focus: '#videoLink' },
+      { key: 'art', for: 'banner', label: () => 'ไฟล์งานอย่างน้อย 1 ไฟล์', ok: () => up.art.items.length > 0, focus: '#artInput' },
+      { key: 'aud', for: 'news video banner', label: () => 'ใครเห็นงานนี้ได้', ok: () => audVals().length > 0, focus: 'input[name=audience]' },
+      { key: 'consent', for: 'news video banner', label: () => 'ยืนยันข้อมูลและสิทธิ์', ok: () => $('#consent').checked, focus: '#consent' },
+    ];
+    const activeChecks = () => CHECKS.filter((c) => c.for.split(' ').includes(type));
+    const focusSel = (c) => typeof c.focus === 'function' ? c.focus() : c.focus;
+
+    // ---- Switch type: show matching sections, renumber, reword ----
+    function setType(t, opts = {}) {
+      if (!TYPES[t]) return;
+      type = t;
+      const T = TYPES[t];
+      const r = document.querySelector(`input[name=type][value="${t}"]`); if (r) r.checked = true;
+      $('#typeError').hidden = true;
+      $('#pickHint').hidden = true;
+      const wasHidden = form.hidden;
+      form.hidden = false;
+      if (wasHidden && !opts.silent) { form.classList.remove('step-enter'); void form.offsetWidth; form.classList.add('step-enter'); }
+      document.querySelectorAll('[data-for]').forEach((el) => { el.hidden = !el.dataset.for.split(' ').includes(t); });
+      let n = 0;
+      form.querySelectorAll('section').forEach((s) => { const num = $('[data-num]', s); if (num && !s.hidden) num.textContent = ++n; });
+      document.querySelectorAll('[data-text]').forEach((el) => { el.textContent = T[el.dataset.text] || ''; });
+      $('#title').placeholder = T.titlePh;
+      $('#desc').placeholder = T.descPh || '';
+      $('#descReq').hidden = !T.descRequired;
+      $('#descOpt').hidden = !!T.descRequired;
+      $('#titleError').textContent = `กรอก${T.titleLabel}`;
+      $('#submitLabel').textContent = submitText();
+      document.title = `ส่ง${t === 'banner' ? 'แบนเนอร์ / อินโฟกราฟิก' : T.noun} | ข่าว มรส.`;
+      // Clear errors that belong to the old type
+      form.querySelectorAll('[id$=Error]').forEach((e) => { e.hidden = true; });
+      form.querySelectorAll('[aria-invalid]').forEach((e) => e.removeAttribute('aria-invalid'));
+      if (!editing) try { history.replaceState(null, '', `?type=${t}`); } catch (e) {}
+      $('#rail').hidden = false;
+      $('#layout').classList.add('has-rail');
+      buildChecklist();
+      update();
+    }
+    document.querySelectorAll('input[name=type]').forEach((r) => r.addEventListener('change', () => {
+      setType(r.value);
+      scheduleDraft();
+      announce(`ฟอร์มส่ง${TYPES[r.value].noun}พร้อมแล้ว`);
+    }));
+
+    // ---- Content mode (news) ----
+    function syncContentMode(animate) {
+      const mode = radio('contentMode');
+      [['#bodyBox', mode === 'own'], ['#attachBox', mode === 'pr']].forEach(([sel, on]) => {
+        const el = $(sel);
+        const was = el.hidden;
+        el.hidden = !on;
+        if (on && was && animate) { el.classList.remove('step-enter'); void el.offsetWidth; el.classList.add('step-enter'); }
+      });
+    }
+    document.querySelectorAll('input[name=contentMode]').forEach((r) => r.addEventListener('change', () => {
+      syncContentMode(true);
+      setError('#modeError', false, $('#modeSet'));
+      setError('#bodyError', false, $('#body'));
+      setError('#attachError', false, $('#attachDrop'));
+    }));
+
+    // ---- Section menu ----
+    const visibleSecs = () => [...form.querySelectorAll('section[data-sec]')].filter((x) => !x.hidden);
+    function buildChecklist() { renderNav(); watchSections(); }
+    function renderNav() {
+      if (!type) return;
+      const tick = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>';
+      const active = activeChecks();
+      $('#secNav').innerHTML = visibleSecs().map((sec, i) => {
+        const k = sec.dataset.sec;
+        const checks = active.filter((c) => SECTIONS[k].checks.includes(c.key));
+        const left = checks.filter((c) => !c.ok()).length;
+        const optional = !checks.length;
+        const done = !optional && left === 0;
+        const cur = k === currentSec;
+        const sub = optional ? 'ไม่บังคับ' : done ? 'ครบแล้ว' : `ยังขาด ${left} ข้อ`;
+        return `<li><a href="#${sec.getAttribute('aria-labelledby')}" data-jump="${k}" aria-current="${cur}" class="sec-item t-quick flex items-center gap-3 rounded-2xl px-2.5 py-1">
+          <span class="sec-dot grid h-7 w-7 shrink-0 place-items-center rounded-full font-display text-[13px] font-semibold ${done ? 'bg-grad text-white' : optional ? 'border border-dashed border-line text-ink2' : 'bg-surface2 text-ink2'}">${done ? tick : i + 1}</span>
+          <span class="min-w-0"><span class="block truncate font-display text-[15px] ${cur ? 'font-semibold text-purple' : 'font-medium'}">${SECTIONS[k].label()}</span><span class="block text-[12px] ${!optional && !done ? 'text-brand' : 'text-ink2'}">${sub}</span></span>
+        </a></li>`;
+      }).join('');
+    }
+    $('#secNav').addEventListener('click', (e) => {
+      const a = e.target.closest('[data-jump]');
+      if (!a) return;
+      e.preventDefault();
+      const sec = form.querySelector(`section[data-sec="${a.dataset.jump}"]`);
+      sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      sec.querySelector('h2').setAttribute('tabindex', '-1');
+      sec.querySelector('h2').focus({ preventScroll: true });
+      currentSec = a.dataset.jump;
+      renderNav();
+    });
+    // Highlight the section being read
+    let secObserver = null;
+    function watchSections() {
+      secObserver?.disconnect();
+      secObserver = new IntersectionObserver((entries) => {
+        const hit = entries.filter((en) => en.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (hit && hit.target.dataset.sec !== currentSec) { currentSec = hit.target.dataset.sec; renderNav(); }
+      }, { rootMargin: '-35% 0px -60% 0px' });
+      visibleSecs().forEach((sec) => secObserver.observe(sec));
+    }
+
+    // "ยังขาด n ข้อ": go to the first field that is still missing
+    $('#missingBtn').addEventListener('click', () => {
+      const first = validate();
+      if (!first) return;
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      first.focus({ preventScroll: true });
+      announce('ไปที่ช่องที่ยังไม่ได้กรอก');
+    });
+
+    // ---- Key people: folded until needed ----
+    function setPeople(open) {
+      $('#peopleBody').hidden = !open;
+      $('#peopleToggle').setAttribute('aria-expanded', String(open));
+      $('#peopleToggle span').textContent = open ? 'ซ่อน' : 'เพิ่มรายชื่อ';
+    }
+    $('#peopleToggle').addEventListener('click', () => {
+      const open = $('#peopleBody').hidden;
+      setPeople(open);
+      if (open) $('#chairName').focus();
+    });
+
+    // ---- Live update: counters, checklist, preview ----
+    function update() {
+      if (!type) return;
+      document.querySelectorAll('[data-count]').forEach((s) => { s.textContent = $('#' + s.dataset.count).value.length; });
+      const list = activeChecks();
+      const done = list.filter((c) => c.ok()).length;
+      $('#totalCount').textContent = list.length;
+      $('#missingCount').textContent = list.length - done;
+      $('#missingBtn').hidden = done === list.length;
+      $('#readyNote').hidden = done !== list.length;
+      renderNav();
+      $('#doneCount').textContent = done;
+      $('#ring').style.strokeDashoffset = String(169.6 * (1 - done / list.length));
+      const ready = done === list.length;
+      $('#readyText').textContent = ready ? 'พร้อมส่งแล้ว!' : 'กรอกให้ครบเพื่อส่ง';
+      $('#readyText').classList.toggle('text-purple', ready);
+      renderPreview();
+    }
+
+    function renderPreview() {
+      const T = TYPES[type];
+      const t = val('title');
+      $('#pvTitle').textContent = t || `${T.titleLabel}จะแสดงที่นี่`;
+      $('#pvTitle').classList.toggle('text-ink2', !t);
+      $('#pvDate').textContent = type === 'banner' ? 'แบนเนอร์ / อินโฟกราฟิก' : thDate(val('eventDate'));
+      $('#pvUnit').textContent = val('unit');
+      const cl = type === 'banner' ? [] : cats();
+      const cat = cl.length ? cl[0] + (cl.length > 1 ? ` +${cl.length - 1}` : '') : '';
+      $('#pvCat').hidden = !cat;
+      $('#pvCat').textContent = cat;
+      $('#pvEn').hidden = !(type === 'news' && $('#enToggle').checked && val('titleEn'));
+      const aud = audLabel();
+      $('#pvAudience').textContent = aud.label;
+      $('#pvAudience').className = `rounded-full px-2.5 text-[12px] leading-6 ${aud.cls}`;
+
+      // Preview placeholders drawn here (no image service): background, text colour, label
+      const ph = (bg, fg, t) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="${bg}"/><text x="320" y="196" font-family="Kanit,sans-serif" font-size="44" font-weight="600" fill="${fg}" text-anchor="middle">${esc(t)}</text></svg>`);
+      let img = ph('#2A3B9C', '#C8A6FF', 'Cover'), badge = '', play = false;
+      if (type === 'news') {
+        const c = up.photo.coverItem; if (c) img = c.url;
+        badge = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg>${up.photo.items.length} ภาพ`;
+      } else if (type === 'video') {
+        const id = radio('videoPlatform') === 'youtube' ? ytId(val('videoLink')) : '';
+        img = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : ph('#1B2560', '#7A3CE2', PLATFORMS[radio('videoPlatform')].label);
+        badge = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>วิดีโอ`;
+        play = true;
+      } else {
+        const c = up.art.coverItem; if (c?.url) img = c.url; else if (c) img = ph('#FFF4D0', '#B07000', 'PDF');
+        badge = `${up.art.items.length} ไฟล์`;
+      }
+      if ($('#pvImg').getAttribute('src') !== img) $('#pvImg').src = img;
+      $('#pvBadge').innerHTML = badge;
+      $('#pvPlay').hidden = !play;
+    }
+
+    function onFiles(key) {
+      const map = { photo: ['#photoError', '#photoDrop'], art: ['#artError', '#artDrop'], attach: ['#attachError', '#attachDrop'] };
+      if (up[key].items.length >= (key === 'photo' ? PHOTOS.min : 1)) setError(map[key][0], false, $(map[key][1]));
+      update();
+    }
+
+    // ---- Video platform ----
+    document.querySelectorAll('input[name=videoPlatform]').forEach((r) => r.addEventListener('change', () => { syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint'); if (videoOk()) setError('#videoError', false, $('#videoLink')); }));
+    document.querySelectorAll('input[name=newsPlatform]').forEach((r) => r.addEventListener('change', () => { syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint'); if (newsVideoOk()) setError('#newsVideoError', false, $('#newsVideo')); }));
+
+    // ---- English toggle ----
+    $('#enToggle').addEventListener('change', (e) => { $('#enFields').hidden = !e.target.checked; update(); });
+
+    // ---- Validation ----
+    function setError(errId, bad, field, msg) {
+      const el = $(errId);
+      if (msg) el.textContent = msg;
+      el.hidden = !bad;
+      if (field) field.setAttribute('aria-invalid', String(bad));
+    }
+    function validate() {
+      const videoMsg = val('videoLink') ? platformErr('videoPlatform') : `วางลิงก์วิดีโอจาก ${PLATFORMS[radio('videoPlatform')].label}`;
+      const mode = radio('contentMode');
+      const rules = [
+        // [types, errId, bad, field, focusSelector, message]
+        ['news video banner', '#titleError', !val('title'), $('#title')],
+        ['banner', '#descError', !descOk(), $('#desc')],
+        ['news video', '#dateError', !val('eventDate'), $('#eventDate')],
+        ['news video banner', '#unitError', !val('unit'), $('#unit')],
+        ['news video', '#catError', !cats().length, $('#catSet'), 'input[name=category]'],
+        ['news', '#modeError', !mode, $('#modeSet'), 'input[name=contentMode]'],
+        ['news', '#bodyError', mode === 'own' && val('body').length < MIN_BODY, $('#body')],
+        ['news', '#attachError', mode === 'pr' && !up.attach.items.length, $('#attachDrop'), '#attachInput'],
+        ['news', '#photoError', up.photo.items.length < PHOTOS.min, $('#photoDrop'), '#photoInput'],
+        ['news', '#albumError', !albumOk(), $('#albumUrl')],
+        ['news', '#newsVideoError', !newsVideoOk(), $('#newsVideo'), null, platformErr('newsPlatform')],
+        ['video', '#videoError', !videoOk(), $('#videoLink'), '#videoLink', videoMsg],
+        ['banner', '#artError', !up.art.items.length, $('#artDrop'), '#artInput'],
+        ['news video banner', '#audError', !audVals().length, $('#audSet'), 'input[name=audience]'],
+        ['news video banner', '#consentError', !$('#consent').checked, $('#consent')],
+      ];
+      let first = null;
+      rules.filter((r) => r[0].split(' ').includes(type)).forEach(([, err, bad, field, sel, msg]) => {
+        setError(err, bad, field, msg);
+        if (bad && !first) first = sel ? $(sel) : field;
+      });
+      return first;
+    }
+    // Clear an error as soon as the field becomes valid
+    form.addEventListener('input', onEdit);
+    form.addEventListener('change', onEdit);
+    function onEdit(e) {
+      const id = e.target.id, name = e.target.name;
+      if (name === 'audience') syncAudience();
+      update();
+      scheduleDraft();
+      if (id === 'title' && val('title')) setError('#titleError', false, e.target);
+      if (id === 'desc' && descOk()) setError('#descError', false, e.target);
+      if (id === 'body' && val('body').length >= MIN_BODY) setError('#bodyError', false, e.target);
+      if (id === 'eventDate' && val('eventDate')) setError('#dateError', false, e.target);
+      if (id === 'unit' && val('unit')) setError('#unitError', false, e.target);
+      if (id === 'newsVideo' && newsVideoOk()) setError('#newsVideoError', false, e.target);
+      if (id === 'videoLink' && videoOk()) setError('#videoError', false, e.target);
+      if (id === 'albumUrl' && albumOk()) setError('#albumError', false, e.target);
+      if (id === 'consent' && e.target.checked) setError('#consentError', false, e.target);
+      if (name === 'category') { syncCats(); if (cats().length) setError('#catError', false, $('#catSet')); }
+      if (name === 'audience' && audVals().length) setError('#audError', false, $('#audSet'));
+    }
+
+    // ---- Draft (text fields only; files cannot be stored in localStorage) ----
+    const DRAFT_KEY = 'newsDraft';
+    const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl'];
+    const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'newsPlatform'];
+    let draftTimer = null;
+    function saveDraft(manual) {
+      if (!type || editing) return;
+      const d = Object.fromEntries(DRAFT_FIELDS.map((k) => [k, $('#' + k).value]));
+      DRAFT_RADIOS.forEach((n) => { d[n] = radio(n); });
+      Object.assign(d, { type, categories: cats(), en: $('#enToggle').checked, audience: audVals(), guests: guests.filter((g) => g.name || g.pos) });
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) { return; }
+      const now = new Date();
+      const el = $('#draftState');
+      el.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>บันทึกฉบับร่าง ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} น.`;
+      el.classList.remove('saved-flash'); void el.offsetWidth; el.classList.add('saved-flash');
+      if (manual) announce('บันทึกฉบับร่างแล้ว');
+    }
+    function scheduleDraft() { clearTimeout(draftTimer); draftTimer = setTimeout(() => saveDraft(false), 800); }
+    $('#saveDraft').addEventListener('click', () => saveDraft(true));
+
+    function restoreDraft() {
+      let d = null;
+      try { d = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) {}
+      if (!d) return null;
+      DRAFT_FIELDS.forEach((k) => { if (d[k] != null && d[k] !== '') $('#' + k).value = d[k]; });
+      DRAFT_RADIOS.forEach((n) => {
+        if (!d[n]) return;
+        const r = document.querySelector(`input[name=${n}][value="${CSS.escape(d[n])}"]`);
+        if (r) r.checked = true;
+      });
+      (Array.isArray(d.categories) ? d.categories : []).forEach((v) => { const b = document.querySelector(`input[name=category][value="${CSS.escape(v)}"]`); if (b) b.checked = true; });
+      (Array.isArray(d.audience) ? d.audience : []).forEach((v) => { const b = $(`input[name=audience][value="${v}"]`); if (b) b.checked = true; });
+      guests = Array.isArray(d.guests) ? d.guests.map((g) => ({ name: g.name || '', pos: g.pos || '' })) : [];
+      $('#enToggle').checked = !!d.en; $('#enFields').hidden = !d.en;
+      return d;
+    }
+
+    // ---- Submit ----
+    // Field names the server uses (rules.mjs) → error line + field on this page
+    const SERVER_ERR = {
+      title: ['#titleError', '#title'], desc: ['#descError', '#desc'], eventDate: ['#dateError', '#eventDate'], unit: ['#unitError', '#unit'],
+      categories: ['#catError', '#catSet'], contentMode: ['#modeError', '#modeSet'], body: ['#bodyError', '#body'], attach: ['#attachError', '#attachDrop'],
+      photo: ['#photoError', '#photoDrop'], newsVideo: ['#newsVideoError', '#newsVideo'], videoLink: ['#videoError', '#videoLink'], art: ['#artError', '#artDrop'],
+      audience: ['#audError', '#audSet'], consent: ['#consentError', '#consent'], albumUrl: ['#albumError', '#albumUrl'],
+    };
+    function payload() {
+      return {
+        type, title: val('title'), lead: val('lead'), desc: val('desc'), body: val('body'), eventDate: val('eventDate'), place: val('place'), unit: val('unit'),
+        categories: cats(), contentMode: radio('contentMode'), credit: val('credit'), newsVideo: val('newsVideo'), newsPlatform: radio('newsPlatform'),
+        videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), albumUrl: val('albumUrl'),
+        chairName: val('chairName'), chairPos: val('chairPos'), reporterName: val('reporterName'), reporterPos: val('reporterPos'),
+        guests: guests.filter((g) => g.name.trim() || g.pos.trim()),
+        en: $('#enToggle').checked, titleEn: val('titleEn'), bodyEn: val('bodyEn'), audience: audVals(), note: val('note'), consent: $('#consent').checked,
+        ...(editing ? { removeFiles: Object.values(up).flatMap((u) => u.removed) } : {}),
+      };
+    }
+    // XHR for the upload progress; same errors as api() in auth.js
+    function upload(method, url, fd, onProgress) {
+      return new Promise((resolve, reject) => {
+        const x = new XMLHttpRequest();
+        x.open(method, url);
+        x.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+        x.onload = () => {
+          let data = {};
+          try { data = JSON.parse(x.responseText); } catch (e) {}
+          if (x.status >= 200 && x.status < 300) resolve(data);
+          else reject(Object.assign(new Error(data.error || 'ส่งงานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), { status: x.status, details: data.details }));
+        };
+        x.onerror = () => reject(Object.assign(new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง ข้อมูลในฟอร์มยังอยู่ครบ'), { status: 0 }));
+        x.send(fd);
+      });
+    }
+    const SEND_ICON = $('#submitIcon').innerHTML;
+    function busy(on, label) {
+      $('#submitBtn').disabled = on;
+      $('#submitLabel').textContent = label || submitText();
+      $('#submitIcon').innerHTML = on ? '<svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg>' : SEND_ICON;
+    }
+    let leaving = false;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('#sendError').hidden = true;
+      // Signed out: keep the draft and sign in first (attached files cannot be kept)
+      if (guest) { saveDraft(false); leaving = true; location.href = window.loginUrl(); return; }
+      const first = validate();
+      if (first) {
+        first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        first.focus({ preventScroll: true });
+        announce('ยังกรอกข้อมูลไม่ครบ ตรวจสอบช่องที่มีข้อความสีแดง');
+        return;
+      }
+      const fd = new FormData();
+      fd.append('data', JSON.stringify(payload()));
+      Object.entries(up).forEach(([kind, u]) => { if (type === 'news' ? kind !== 'art' : type === 'banner' ? kind === 'art' : false) u.uploads.forEach((f) => fd.append(kind, f, f.name)); });
+      busy(true, 'กำลังอัปโหลด...');
+      try {
+        const r = await upload(editing ? 'PUT' : 'POST', editing ? `/api/submissions/${encodeURIComponent(editing.ref)}` : '/api/submissions', fd, (p) => {
+          $('#submitLabel').textContent = p < 1 ? `กำลังอัปโหลด ${Math.round(p * 100)}%` : 'กำลังบันทึก...';
+        });
+        busy(false);
+        showDone(r.submission);
+      } catch (err) {
+        busy(false);
+        if (err.status === 401) { saveDraft(false); setupSender(null); }
+        let firstBad = null;
+        for (const [k, msg] of Object.entries(err.details || {})) {
+          const m = SERVER_ERR[k];
+          if (!m) continue;
+          setError(m[0], true, $(m[1]), msg);
+          firstBad = firstBad || $(m[1]);
+        }
+        const loose = Object.keys(err.details || {}).filter((k) => !SERVER_ERR[k]).map((k) => err.details[k]);
+        $('#sendError').textContent = [err.message, ...loose].join(' · ');
+        $('#sendError').hidden = false;
+        (firstBad || $('#sendError')).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstBad?.focus({ preventScroll: true });
+        announce(err.message);
+      }
+    });
+
+    function showDone(sub) {
+      const T = TYPES[type];
+      const writes = sub.prWrites;
+      $('#refNo').textContent = sub.ref;
+      $('#doneTitle').textContent = editing ? 'ส่งงานที่แก้ไขแล้ว!' : T.done;
+      $('#doneLead').textContent = writes
+        ? 'ทีม PR จะเขียนข่าวจากเอกสารที่แนบ และแจ้งให้คุณตรวจทานก่อนเผยแพร่'
+        : `งานประชาสัมพันธ์จะตรวจ${editing ? 'อีกครั้ง' : ''}และแจ้งผลภายใน ${REVIEW_DAYS} วันทำการ`;
+      $('#stepReview').textContent = writes ? 'PR เขียนข่าว' : 'รอ PR ตรวจ';
+      const now = new Date(sub.updatedAt || sub.sentAt);
+      $('#sentAt').textContent = `${now.getDate()} ${TH_MONTHS[now.getMonth()]} · ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} น.`;
+      const aud = sub.audience;
+      const people = [val('chairName') && 'ประธาน', val('reporterName') && 'ผู้กล่าวรายงาน', guests.some((g) => g.name) && `ภายนอก ${guests.filter((g) => g.name).length} คน`].filter(Boolean);
+      const videoText = () => `ลิงก์ ${PLATFORMS[radio('videoPlatform')].label}`;
+      const n = (kind) => sub.files.filter((f) => f.kind === kind).length;
+      const rows = {
+        news: [
+          ['หัวข้อข่าว', sub.title], ['หน่วยงานผู้จัด / เจ้าของข่าว', sub.unit], ['วันที่จัดกิจกรรม', thDate(val('eventDate'))],
+          ['ประเภทข่าว', cats().join(', ')],
+          ['เนื้อหาข่าว', writes ? `ให้ทีม PR เขียนให้ (แนบ ${n('attach')} ไฟล์)` : 'มีเนื้อหาแล้ว'],
+          ['ภาพ', `${n('photo')} ภาพ${val('newsVideo') ? ` · วิดีโอ ${PLATFORMS[radio('newsPlatform')].label}` : ''}${val('albumUrl') ? ' · มีลิงก์ภาพเพิ่มเติม' : ''}`],
+          ['บุคคลสำคัญ', people.length ? people.join(', ') : 'ไม่ได้ระบุ'],
+          ['ใครเห็นได้', aud],
+        ],
+        video: [
+          ['ชื่อวิดีโอ', sub.title], ['หน่วยงาน', sub.unit], ['วันที่จัดกิจกรรม', thDate(val('eventDate'))],
+          ['ประเภทข่าว', cats().join(', ')], ['วิดีโอ', videoText()], ['ใครเห็นได้', aud],
+        ],
+        banner: [
+          ['ชื่องาน', sub.title], ['หน่วยงาน', sub.unit], ['ไฟล์งาน', `${n('art')} ไฟล์`], ['ใครเห็นได้', aud],
+        ],
+      }[type];
+      $('#doneSummary').innerHTML = rows.map(([k, v]) => `<div><dt class="text-[13px] text-ink2">${k}</dt><dd class="font-display text-[16px] font-medium">${esc(v)}</dd></div>`).join('');
+      $('#trackLink').href = `inbox.html?ref=${encodeURIComponent(sub.ref)}`;
+      $('#trackLink').lastChild.textContent = ' ติดตามสถานะในกล่องข้อความ';
+      if (!editing) try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+      Object.values(up).forEach((u) => u.items.forEach((x) => { if (x.url && !x.sent) URL.revokeObjectURL(x.url); }));
+      leaving = true;
+      form.hidden = true;
+      $('#rail').hidden = true;
+      $('#layout').classList.remove('has-rail');
+      $('#chooser').hidden = true;
+      $('#editHead').hidden = true;
+      $('#guestNote').hidden = true;
+      $('#draftState').innerHTML = '';
+      try { history.replaceState(null, '', `?sent=${encodeURIComponent(sub.ref)}`); } catch (e) {}
+      window.ME = api('/me').catch(() => ({ user: null, unread: 0 }));
+      window.renderAccountButton?.();
+      const done = $('#done');
+      done.hidden = false;
+      done.classList.add('step-enter');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      $('#doneTitle').focus({ preventScroll: true });
+    }
+
+    // ---- Leave guard while there are unsent files ----
+    window.addEventListener('beforeunload', (e) => {
+      const files = Object.values(up).some((u) => u.items.some((x) => x.file));
+      if (files && !form.hidden && !leaving) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    // ---- Theme ----
+    const themeSwitch = document.getElementById('themeToggle');
+    themeSwitch.setAttribute('aria-checked', document.documentElement.classList.contains('dark'));
+    themeSwitch.addEventListener('click', () => {
+      const dark = document.documentElement.classList.toggle('dark');
+      themeSwitch.setAttribute('aria-checked', dark);
+      try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+    });
+
+    // ---- Init: ?type= wins, then the draft's type ----
+    // Editing loads the work from the server instead of the draft
+    const draft = editRef ? null : restoreDraft();
+    if (draft) { $('#draftState').textContent = 'กู้คืนฉบับร่างล่าสุดแล้ว'; announce('กู้คืนฉบับร่างล่าสุดแล้ว'); }
+    if (!val('eventDate')) {
+      const d = new Date();
+      $('#eventDate').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    renderGuests();
+    setPeople(['chairName', 'chairPos', 'reporterName', 'reporterPos'].some((k) => val(k)) || guests.length > 0);
+    syncAudience();
+    syncCats();
+    syncContentMode(false);
+    syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint');
+    syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint');
+    const startType = new URLSearchParams(location.search).get('type') || draft?.type;
+    if (!editRef && TYPES[startType]) setType(startType, { silent: true });
+    setupSender(null);
+    window.ME.then(async (m) => {
+      const u = m.user;
+      $('#devSignIn').hidden = !(m.devLogin && !u);
+      if (!u) return setupSender(null);
+      if (u.role === 'external') return; // sent to status.html?s=domain above
+      // The sender's unit and position come from the profile: set it up first
+      if (!u.onboarded) { saveDraft(false); leaving = true; location.replace(window.loginUrl()); return; }
+      setupSender(u);
+      if (editRef) await startEdit(editRef);
+      else if (type) setType(type, { silent: true });
+    });
+
+    // ---- Editing a submission PR sent back (submit.html?edit=REF) ----
+    async function startEdit(ref) {
+      $('#chooser').hidden = true;
+      $('#pickHint').hidden = true;
+      let sub;
+      try { sub = (await api(`/submissions/${encodeURIComponent(ref)}`)).submission; } catch (err) {
+        $('#editGone').hidden = false;
+        $('#editGoneTitle').textContent = 'ไม่พบงานนี้';
+        $('#editGoneText').textContent = err.message;
+        return;
+      }
+      if (sub.status !== 'revise') {
+        $('#editGone').hidden = false;
+        $('#editGoneTitle').textContent = 'งานนี้แก้ไขไม่ได้ตอนนี้';
+        $('#editGoneText').textContent = 'แก้ไขงานได้เมื่องานประชาสัมพันธ์ขอให้แก้ไขเท่านั้น ส่งข้อความถึง PR ได้ที่กล่องข้อความ';
+        return;
+      }
+      editing = sub;
+      const f = sub.fields;
+      $('#editHead').hidden = false;
+      $('#editRef').textContent = `${sub.ref} · ${sub.title}`;
+      $('#editBack').href = `inbox.html?ref=${encodeURIComponent(sub.ref)}`;
+      const msg = [...sub.thread].reverse().find((m) => m.from === 'pr');
+      $('#editMsg').hidden = !msg;
+      if (msg) $('#editMsgText').textContent = msg.text;
+      // Fill the form from what was sent
+      const set = (id, v) => { if (v != null) $('#' + id).value = v; };
+      set('title', sub.title); set('lead', f.lead); set('desc', f.desc); set('body', f.body); set('eventDate', f.eventDate?.slice(0, 10)); set('place', f.place);
+      set('credit', f.credit); set('newsVideo', f.newsVideo); set('videoLink', f.videoLink); set('titleEn', f.titleEn); set('bodyEn', f.bodyEn); set('albumUrl', f.albumUrl);
+      set('note', '');
+      if (![...$('#unit').options].some((o) => o.value === sub.unit)) $('#unit').insertAdjacentHTML('beforeend', `<option>${esc(sub.unit)}</option>`);
+      $('#unit').value = sub.unit;
+      const pick = (name, v) => { const r = v && document.querySelector(`input[name=${name}][value="${CSS.escape(v)}"]`); if (r) r.checked = true; };
+      pick('contentMode', f.contentMode); pick('newsPlatform', f.newsPlatform); pick('videoPlatform', f.videoPlatform);
+      document.querySelectorAll('input[name=category]').forEach((b) => { b.checked = (f.categories || []).includes(b.value); });
+      document.querySelectorAll('input[name=audience]').forEach((b) => { b.checked = (sub.audienceValues || []).includes(b.value); });
+      const people = f.people || {};
+      set('chairName', people.chair?.name); set('chairPos', people.chair?.pos); set('reporterName', people.reporter?.name); set('reporterPos', people.reporter?.pos);
+      guests = (people.guests || []).map((g) => ({ name: g.name || '', pos: g.pos || '' }));
+      renderGuests();
+      setPeople(!!(people.chair || people.reporter || guests.length));
+      $('#enToggle').checked = !!(f.titleEn || f.bodyEn); $('#enFields').hidden = !$('#enToggle').checked;
+      $('#consent').checked = false;
+      ['photo', 'attach', 'art'].forEach((k) => up[k].addSent(sub.files.filter((x) => x.kind === k)));
+      $('#saveDraft').hidden = true;
+      setType(sub.type, { silent: true });
+      document.querySelectorAll('input[name=type]').forEach((r) => { r.disabled = true; });
+      syncAudience(); syncCats(); syncContentMode(false);
+      syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint');
+      syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint');
+      update();
+      document.title = `แก้ไขงาน ${sub.ref} | ข่าว มรส.`;
+    }
+  </script>
+</body>
+</html>

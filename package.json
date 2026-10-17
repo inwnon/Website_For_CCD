@@ -1,0 +1,36 @@
+{
+  "name": "pr-sru-newsroom",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "db:up": "docker compose up -d db",
+    "db:migrate": "node --env-file=.env server/migrate.mjs",
+    "dev": "node --env-file=.env --watch-path=server server/index.mjs",
+    "start": "node --env-file-if-exists=.env server/index.mjs",
+    "test": "node --env-file=.env --test --test-concurrency=1 \"server/test/*.test.mjs\"",
+    "db:seed": "node --env-file=.env server/seed.mjs",
+    "build:css": "node server/build-css.mjs",
+    "build:images": "node server/build-images.mjs",
+    "build:fonts": "node server/build-fonts.mjs",
+    "backup": "node --env-file-if-exists=.env server/backup.mjs",
+    "backup:restore-test": "node --env-file-if-exists=.env server/restore-test.mjs"
+  },
+  "dependencies": {
+    "archiver": "^5.3.2",
+    "compression": "^1.8.1",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "google-auth-library": "^9.15.1",
+    "multer": "^2.4.0",
+    "nodemailer": "^6.9.16",
+    "pg": "^8.13.3",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "subset-font": "^2.4.0",
+    "tailwindcss": "^3.4.17"
+  }
+}

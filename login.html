@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>เข้าสู่ระบบ | ข่าว มรส.</title>
+  <meta name="description" content="เข้าสู่ระบบด้วยบัญชี Google ของมหาวิทยาลัย เพื่อส่งข่าวและอ่านข่าวภายใน">
+  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+
+
+  <style>
+    :root {
+      --bg: 245 244 255;
+      --shell: 255 255 255;
+      --surface: 255 255 255;
+      --surface-2: 244 242 255;
+      --ink: 27 37 96;
+      --ink-2: 92 102 148;
+      --line: 224 226 250;
+      --royal: 38 66 200;
+      --red: 209 19 39;
+      --purple: 122 60 226;
+      --sky: 0 112 161;
+      --gold: 148 94 0;
+      --royal-soft: 232 237 255;
+      --red-soft: 255 232 236;
+      --purple-soft: 241 233 255;
+      --sky-soft: 224 244 253;
+      --gold-soft: 255 244 208;
+      --focus: 122 60 226;
+      --grad: linear-gradient(120deg, #DE142A 0%, #B3218F 55%, #7A3CE2 100%);
+      --shadow-raised:
+        0 1px 2px rgb(27 37 96 / .04),
+        0 6px 18px -6px rgb(38 66 200 / .08);
+      --shadow-float:
+        0 2px 6px rgb(27 37 96 / .05),
+        0 14px 30px -10px rgb(38 66 200 / .14),
+        0 32px 60px -24px rgb(122 60 226 / .18);
+      --shadow-glow:
+        0 4px 10px -2px rgb(222 20 42 / .25),
+        0 10px 24px -8px rgb(122 60 226 / .35);
+      --spring: cubic-bezier(.34, 1.56, .64, 1);
+      --ease-out: cubic-bezier(.22, 1, .36, 1);
+      color-scheme: light;
+    }
+    .dark {
+      --bg: 10 11 32;
+      --shell: 17 19 50;
+      --surface: 24 27 66;
+      --surface-2: 32 36 82;
+      --ink: 240 240 255;
+      --ink-2: 178 184 222;
+      --line: 50 56 110;
+      --royal: 146 166 255;
+      --red: 255 110 124;
+      --purple: 188 156 255;
+      --sky: 96 202 245;
+      --gold: 255 206 96;
+      --royal-soft: 34 44 108;
+      --red-soft: 78 24 52;
+      --purple-soft: 52 36 104;
+      --sky-soft: 14 56 88;
+      --gold-soft: 70 54 20;
+      --focus: 96 202 245;
+      --shadow-raised:
+        0 1px 2px rgb(0 0 0 / .3),
+        0 8px 20px -8px rgb(0 0 0 / .45);
+      --shadow-float:
+        0 2px 6px rgb(0 0 0 / .3),
+        0 18px 36px -12px rgb(0 0 0 / .5),
+        0 36px 64px -24px rgb(90 60 200 / .35);
+      color-scheme: dark;
+    }
+
+    body {
+      font-family: "Noto Sans Thai", system-ui, sans-serif;
+      line-height: 1.7;
+      color: rgb(var(--ink));
+      background:
+        radial-gradient(50% 40% at 0% 0%, rgb(var(--purple-soft)), transparent 70%),
+        radial-gradient(40% 35% at 100% 10%, rgb(var(--sky-soft)), transparent 70%),
+        radial-gradient(60% 40% at 50% 100%, rgb(var(--red-soft) / .7), transparent 70%),
+        rgb(var(--bg));
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Utility display classes (flex/grid) must not override the hidden attribute */
+    [hidden] { display: none !important; }
+    .font-display { line-height: 1.3; }
+    .tight { letter-spacing: -0.03em; }
+    .bg-grad { background: var(--grad); }
+
+    a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid rgb(var(--focus));
+      outline-offset: 3px;
+    }
+    [tabindex="-1"]:focus { outline: none; }
+
+    .t-spring { transition-property: transform, opacity; transition-duration: .5s; transition-timing-function: var(--spring); }
+    .t-quick  { transition-property: transform, opacity; transition-duration: .2s; transition-timing-function: var(--ease-out); }
+    .press:active { transform: scale(.96); }
+
+    .hover-fill { position: relative; isolation: isolate; }
+    .hover-fill::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+      background: rgb(var(--surface-2)); opacity: 0; transform: scale(.9);
+      transition: opacity .2s var(--ease-out), transform .35s var(--spring);
+    }
+    .hover-fill:hover::before { opacity: 1; transform: none; }
+
+    .grain::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .08; mix-blend-mode: overlay; border-radius: inherit;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .dark .grain::after { opacity: .14; }
+
+    .logo-crop { overflow: hidden; border-radius: 9999px; background: rgb(200 160 255); }
+    .logo-crop img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.42) translateY(3%); }
+
+    /* Selectable option cards (radio inside label) */
+    .opt { position: relative; isolation: isolate; cursor: pointer; }
+    .opt input { position: absolute; opacity: 0; pointer-events: none; }
+    .opt .opt-box { transition: transform .45s var(--spring); }
+    .opt:hover .opt-box { transform: translateY(-2px); }
+    .opt:active .opt-box { transform: scale(.97); }
+    .opt:has(input:focus-visible) .opt-box { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+    .opt:has(input:checked) .opt-box { border-color: transparent; box-shadow: 0 0 0 2px rgb(var(--purple)), var(--shadow-float); background: rgb(var(--purple-soft)); }
+    .opt .tick { opacity: 0; transform: scale(.5); transition: opacity .2s var(--ease-out), transform .45s var(--spring); }
+    .opt:has(input:checked) .tick { opacity: 1; transform: none; }
+
+    /* Year chips */
+    .chip-opt:has(input:checked) .opt-box { background: var(--grad); color: #fff; box-shadow: var(--shadow-glow); }
+
+    /* Native select styled, keeps platform a11y */
+    .sel {
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 16px center;
+    }
+    /* Text fields and selects: the border stays purple while focused, so it doesn't drop back to grey while a select's
+       native list is open (Windows takes the pointer, :hover ends). Keyboard focus also gets the ring from :focus-visible above. */
+    .fld:focus { border-color: rgb(var(--purple) / .45); }
+    .sel[aria-invalid="true"], .chk[aria-invalid="true"] { border-color: rgb(var(--red)); }
+
+    .progress-bar { transform-origin: left; transition: transform .6s var(--spring); }
+
+    .photo-btn { transition: transform .45s var(--spring); }
+    .photo-btn:active { transform: scale(.94); }
+    .photo-btn:focus-visible { outline: 2px solid rgb(var(--focus)); outline-offset: 3px; }
+    .photo-btn:disabled { cursor: progress; }
+    .photo-spin { animation: photoSpin .8s linear infinite; }
+    @keyframes photoSpin { to { transform: rotate(360deg); } }
+    /* Crop: the whole square is what uploads; the ring shows the round avatar, the corners outside it are dimmed */
+    .crop-dlg[open] { animation: cropIn .45s var(--spring); }
+    @keyframes cropIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+    .crop-stage { position: relative; width: min(300px, calc(100vw - 96px)); aspect-ratio: 1; overflow: hidden; border-radius: 18px; background: rgb(10 11 32); cursor: grab; touch-action: none; user-select: none; }
+    .crop-stage:active { cursor: grabbing; }
+    .crop-stage:focus-visible { outline: 2px solid rgb(var(--focus)); outline-offset: 3px; }
+    .crop-stage img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; pointer-events: none; }
+    .crop-ring { position: absolute; inset: 0; border-radius: 999px; box-shadow: 0 0 0 999px rgb(10 11 32 / .58), inset 0 0 0 2px rgb(255 255 255 / .9); pointer-events: none; }
+    .crop-range { accent-color: rgb(var(--purple)); height: 28px; }
+    .crop-range:focus-visible { outline: 2px solid rgb(var(--focus)); outline-offset: 2px; border-radius: 6px; }
+    @media (prefers-reduced-motion: reduce) { .crop-dlg[open] { animation: none; } }
+    /* A field that appears inside a step (sub-unit, track): fades in where it stands, no slide */
+    .reveal { animation: revealIn .25s var(--ease-out); }
+    @keyframes revealIn { from { opacity: 0; } to { opacity: 1; } }
+    .step-enter { animation: stepIn .5s var(--spring); }
+    @keyframes stepIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+    .step-back { animation: stepBack .5s var(--spring); }
+    @keyframes stepBack { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+
+    @keyframes bob { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-10px) rotate(1deg); } }
+    .bob { animation: bob 6s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+
+    .policy-scroll { scrollbar-width: thin; }
+
+    /* Short laptop screens: drop helper lines so each step fits without scrolling */
+    @media (min-width: 1024px) and (max-height: 820px) {
+      .short-hide { display: none !important; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+    }
+  </style>
+  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+</head>
+
+<body class="flex min-h-screen flex-col lg:h-dvh lg:min-h-0 lg:overflow-hidden">
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปเนื้อหา</a>
+
+  <!-- Slim header: login is a focused task -->
+  <header class="sticky top-0 z-50 shrink-0 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
+    <div class="mx-auto flex h-[72px] max-w-page items-center gap-4 px-shell">
+      <a href="index.html" class="press t-quick flex items-center gap-3 rounded-2xl hover:opacity-90" aria-label="ข่าว มรส. หน้าแรก">
+        <span class="logo-crop h-11 w-11 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
+        <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
+      </a>
+      <div class="ml-auto flex items-center gap-2">
+        <a href="index.html" class="hover-fill press t-quick hidden h-11 items-center gap-2 rounded-full px-4 text-[14px] font-medium text-ink2 hover:text-ink sm:inline-flex">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+          กลับไปอ่านข่าว
+        </a>
+        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
+          <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
+          <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+          <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="mx-auto w-full max-w-page flex-1 px-2 py-4 sm:px-4 lg:min-h-0 lg:py-3">
+    <div class="grid overflow-hidden rounded-shell bg-shell shadow-float lg:h-full lg:grid-cols-[0.9fr_1.1fr]">
+
+      <!-- ===== Welcome panel ===== -->
+      <aside class="grain relative overflow-hidden border-b border-line lg:border-b-0 lg:border-r">
+        <div class="absolute inset-0" style="background:
+          radial-gradient(70% 60% at 80% 75%, rgb(var(--purple-soft)), transparent 70%),
+          radial-gradient(60% 50% at 0% 0%, rgb(var(--red-soft)), transparent 70%),
+          radial-gradient(50% 50% at 100% 0%, rgb(var(--sky-soft)), transparent 70%),
+          rgb(var(--shell));"></div>
+        <div class="relative flex h-full flex-col px-shell pb-0 pt-10 lg:pt-[clamp(24px,4.5vh,48px)]">
+          <p class="font-display text-[14px] font-medium text-purple">สำหรับบุคลากร นักศึกษา และบุคคลภายนอก</p>
+          <h1 class="mt-2 font-display tight text-[clamp(30px,3.6vw,46px)] font-bold">
+            <span class="block text-royal">ยินดีต้อนรับสู่</span>
+            <span class="block text-brand">ข่าว มรส.</span>
+          </h1>
+          <ul class="mt-[clamp(16px,2.5vh,24px)] grid gap-[clamp(8px,1.3vh,12px)] text-[15px]">
+            <li class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-red-soft text-brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg></span>ส่งข่าวของหน่วยงานได้ทุกเมื่อ</li>
+            <li class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-royal-soft text-royal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4h16v12H5.2L4 17.2z"/><path d="M8 9h8M8 12h5"/></svg></span>ติดตามผลการตรวจข่าวในกล่องข้อความ</li>
+            <li class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-purple-soft text-purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>อ่านข่าวภายในของมหาวิทยาลัย</li>
+            <li class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gold-soft text-gold"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.6 4.5 7.1 4.5c2 0 3.6 1.1 4.9 2.8 1.3-1.7 2.9-2.8 4.9-2.8 3.5 0 5.7 3.5 4.4 6.8-1.8 4.6-9.3 9.2-9.3 9.2Z"/></svg></span>บันทึกข่าวที่ชอบไว้อ่านทีหลัง</li>
+          </ul>
+          <div class="relative mx-auto mt-6 hidden w-full max-w-[340px] sm:block lg:mt-auto lg:max-w-[min(340px,36vh)]">
+            <div class="absolute inset-x-[15%] bottom-6 top-[20%] rounded-full bg-[rgb(var(--purple)/.18)] blur-3xl"></div>
+            <img id="hawky" src="/assets/img/hawky-960.webp" srcset="/assets/img/hawky-480.webp 480w, /assets/img/hawky-640.webp 640w, /assets/img/hawky-960.webp 960w" sizes="(min-width: 768px) 380px, (min-width: 640px) 300px, 245px" alt="Hawky มาสคอตงานประชาสัมพันธ์ มรส." class="bob relative w-full drop-shadow-[0_20px_28px_rgb(38_66_200/.22)]" width="1254" height="1254">
+          </div>
+        </div>
+      </aside>
+
+      <!-- ===== Steps ===== -->
+      <section class="flex flex-col px-shell py-10 lg:min-h-0 lg:overflow-y-auto lg:py-[clamp(24px,4.5vh,48px)]" aria-label="เข้าสู่ระบบและตั้งค่าโปรไฟล์">
+        <!-- Progress (hidden on login + done) -->
+        <div id="progress" class="mb-[clamp(16px,2.6vh,32px)]" hidden>
+          <div class="mb-3 flex items-center justify-between text-[13px]">
+            <p class="font-display font-medium text-ink2">ตั้งค่าโปรไฟล์ <span id="stepNum" class="text-ink">ขั้นที่ 1 จาก 2</span></p>
+            <p id="whoami" class="hidden items-center gap-2 text-ink2 sm:inline-flex"></p>
+          </div>
+          <div class="h-2 overflow-hidden rounded-full bg-surface2" role="progressbar" aria-label="ความคืบหน้า" aria-valuemin="1" aria-valuemax="2" aria-valuenow="1">
+            <div id="bar" class="bg-grad progress-bar h-full w-full rounded-full" style="transform: scaleX(.5)"></div>
+          </div>
+          <ol class="mt-3 grid grid-cols-2 gap-2 font-display text-[13px] font-medium text-ink2">
+            <li data-crumb="2">สังกัด</li><li data-crumb="3" class="text-right">ความเป็นส่วนตัว</li>
+          </ol>
+        </div>
+
+        <!-- Step 0: Sign in -->
+        <div data-step="0" class="mx-auto flex w-full max-w-[460px] flex-1 flex-col justify-center">
+          <h2 tabindex="-1" class="step-title font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">เข้าสู่ระบบ</h2>
+          <p class="mt-2 text-[15px] text-ink2">ระบบกำหนดบทบาทให้จากอีเมลของคุณ</p>
+          <ul class="mt-4 grid gap-2 text-[14px]">
+            <li class="flex items-center gap-3 rounded-2xl bg-royal-soft px-4 py-2.5"><span class="font-display font-semibold text-royal">บุคลากร</span><span class="ml-auto font-medium text-ink">@sru.ac.th</span></li>
+            <li class="flex items-center gap-3 rounded-2xl bg-red-soft px-4 py-2.5"><span class="font-display font-semibold text-brand">นักศึกษา</span><span class="ml-auto font-medium text-ink">@student.sru.ac.th</span></li>
+            <li class="flex items-center gap-3 rounded-2xl bg-gold-soft px-4 py-2.5"><span class="font-display font-semibold text-gold">บุคคลภายนอก</span><span class="ml-auto font-medium text-ink">บัญชี Google อื่น</span></li>
+          </ul>
+
+          <p id="signinError" class="mt-6 flex gap-3 rounded-2xl border border-[rgb(var(--red)/.35)] bg-red-soft p-4 text-[14px] font-medium text-brand" role="alert" hidden></p>
+
+          <!-- Google's own button (rendered by Google Identity Services) -->
+          <div id="gsiBox" class="mt-[clamp(20px,3vh,32px)] grid min-h-[44px] justify-items-center" hidden></div>
+          <p id="gsiNote" class="mt-3 text-center text-[13px] text-ink2" hidden>ใช้บัญชี @sru.ac.th หรือ @student.sru.ac.th เพื่อส่งข่าวและอ่านข่าวภายใน บัญชี Google อื่นเข้าได้ในฐานะบุคคลภายนอก</p>
+
+          <!-- Development sign-in: shown while GOOGLE_CLIENT_ID is not set and the server allows it -->
+          <div id="devBox" class="mt-[clamp(20px,3vh,32px)] rounded-2xl border border-dashed border-[rgb(var(--gold)/.6)] bg-gold-soft/60 p-4" hidden>
+            <p class="font-display text-[15px] font-semibold text-gold">ล็อกอินจำลอง (เครื่องพัฒนา)</p>
+            <p class="mt-0.5 text-[13px] text-ink2">ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID เลือกบัญชีตัวอย่างเพื่อทดสอบ</p>
+            <div class="mt-3 grid gap-2 sm:grid-cols-3">
+              <button type="button" data-dev="staff" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">บุคลากร</button>
+              <button type="button" data-dev="student" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">นักศึกษา</button>
+              <button type="button" data-dev="external" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">บุคคลภายนอก</button>
+            </div>
+          </div>
+
+          <div class="mt-[clamp(20px,3vh,32px)] rounded-2xl bg-surface2/70 p-5 text-[14px] text-ink2">
+            <p class="font-display font-semibold text-ink">อ่านข่าวทั่วไปไม่ต้องเข้าสู่ระบบ</p>
+            <p class="mt-1">การเข้าสู่ระบบจำเป็นเฉพาะเมื่อต้องการส่งข่าว อ่านข่าวภายใน หรือบันทึกข่าวที่ชอบ</p>
+          </div>
+        </div>
+
+        <!-- Step 2: Affiliation (role comes from the email domain, so there is no role step) -->
+        <form data-step="2" class="mx-auto w-full max-w-[560px]" hidden novalidate>
+          <h2 tabindex="-1" class="step-title font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">สังกัดของคุณ</h2>
+          <p id="unitHint" class="short-hide mt-2 text-[15px] text-ink2">ข้อมูลนี้จะแสดงเป็นหน่วยงานผู้ส่งข่าวโดยอัตโนมัติ</p>
+
+          <!-- Who is signed in + profile photo (uploads straight away; not part of the form's submit) -->
+          <div class="mt-[clamp(12px,2vh,20px)] flex items-center gap-4 rounded-2xl bg-surface2/70 p-3 pr-4">
+            <button id="photoBtn" type="button" class="photo-btn group relative shrink-0 rounded-full" aria-label="เปลี่ยนรูปโปรไฟล์">
+              <span id="photo" class="bg-grad grid h-16 w-16 place-items-center overflow-hidden rounded-full font-display text-[26px] font-semibold text-white" aria-hidden="true"></span>
+              <span class="photo-cam t-spring absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full border border-line bg-shell text-ink shadow-raised group-hover:scale-110" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+              </span>
+              <span id="photoBusy" class="photo-busy absolute inset-0 grid place-items-center rounded-full bg-[rgb(10_11_32/.5)]" aria-hidden="true" hidden><span class="photo-spin h-6 w-6 rounded-full border-2 border-white/40 border-t-white"></span></span>
+            </button>
+            <div class="min-w-0 flex-1">
+              <p id="idName" class="truncate font-display text-[16px] font-semibold"></p>
+              <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-ink2">
+                เข้าสู่ระบบในฐานะ <span id="roleBadge" class="rounded-full px-3 font-display font-semibold leading-7"></span>
+                <span class="text-[13px]">กำหนดจากอีเมลของคุณ</span>
+              </p>
+              <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+                <button id="photoPick" type="button" class="press t-quick rounded font-medium text-purple underline-offset-4 hover:underline">เพิ่มรูปโปรไฟล์</button>
+                <button id="photoRemove" type="button" class="press t-quick rounded font-medium text-ink2 underline-offset-4 hover:text-ink hover:underline" hidden>ลบรูป</button>
+              </p>
+              <p id="photoMsg" class="mt-1 text-[13px] text-ink2" role="status"></p>
+            </div>
+            <input id="photoFile" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" tabindex="-1" aria-hidden="true">
+          </div>
+
+          <div class="mt-[clamp(20px,3vh,32px)] grid gap-6 lg:gap-[clamp(12px,2vh,24px)]">
+            <!-- Name and phone: every role. PR uses them to contact the sender about their work -->
+            <div class="grid gap-6 sm:grid-cols-2 sm:gap-4">
+              <div class="min-w-0">
+                <label for="firstName" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">ชื่อ</label>
+                <input id="firstName" type="text" maxlength="80" autocomplete="given-name" class="h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line bg-surface2 px-4 text-[16px] text-ink placeholder:text-ink2/80 hover:border-[rgb(var(--purple)/.45)] fld" aria-describedby="firstNameError">
+                <p id="firstNameError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณากรอกชื่อ</p>
+              </div>
+              <div class="min-w-0">
+                <label for="lastName" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">นามสกุล</label>
+                <input id="lastName" type="text" maxlength="80" autocomplete="family-name" class="h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line bg-surface2 px-4 text-[16px] text-ink placeholder:text-ink2/80 hover:border-[rgb(var(--purple)/.45)] fld" aria-describedby="lastNameError">
+                <p id="lastNameError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณากรอกนามสกุล</p>
+              </div>
+            </div>
+            <div>
+              <label for="phone" id="phoneLabel" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">เบอร์โทรศัพท์</label>
+              <input id="phone" type="tel" inputmode="numeric" maxlength="13" autocomplete="tel" class="h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line bg-surface2 px-4 text-[16px] text-ink placeholder:text-ink2/80 hover:border-[rgb(var(--purple)/.45)] fld sm:max-w-[280px]" aria-describedby="phoneHint phoneError">
+              <p id="phoneHint" class="mt-2 text-[13px] text-ink2">ทีม PR ใช้ติดต่อเรื่องงานที่คุณส่ง</p>
+              <p id="phoneError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณากรอกเบอร์โทรศัพท์</p>
+            </div>
+
+            <div id="orgField" hidden>
+              <label for="org" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">หน่วยงาน / องค์กร</label>
+              <input id="org" type="text" maxlength="150" autocomplete="organization" placeholder="เช่น โรงเรียนสุราษฎร์พิทยา, บริษัท ตัวอย่าง จำกัด" class="h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line bg-surface2 px-4 text-[16px] text-ink placeholder:text-ink2/80 hover:border-[rgb(var(--purple)/.45)] fld" aria-describedby="orgError">
+              <p id="orgError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณากรอกหน่วยงานหรือองค์กร</p>
+            </div>
+
+            <div id="unitField">
+              <label for="unit" id="unitLabel" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">หน่วยงาน</label>
+              <select id="unit" class="sel h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line bg-surface2 pl-4 pr-12 text-[16px] text-ink hover:border-[rgb(var(--purple)/.45)] fld" aria-describedby="unitError"></select>
+              <p id="unitError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณาเลือกหน่วยงาน</p>
+            </div>
+
+            <div id="subUnitField" class="reveal" hidden>
+              <label for="subUnit" id="subUnitLabel" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">กอง / งาน</label>
+              <select id="subUnit" class="sel h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line bg-surface2 pl-4 pr-12 text-[16px] text-ink hover:border-[rgb(var(--purple)/.45)] fld" aria-describedby="subUnitHint subUnitError"></select>
+              <p id="subUnitHint" class="short-hide mt-2 text-[13px] text-ink2"></p>
+              <p id="subUnitError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณาเลือกกอง / งาน</p>
+            </div>
+
+            <div id="positionField" hidden>
+              <label for="position" id="positionLabel" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">ตำแหน่ง</label>
+              <input id="position" type="text" maxlength="120" autocomplete="organization-title" placeholder="เช่น อาจารย์, นักวิชาการคอมพิวเตอร์, หัวหน้างาน" class="h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line bg-surface2 px-4 text-[16px] text-ink placeholder:text-ink2/80 hover:border-[rgb(var(--purple)/.45)] fld" aria-describedby="positionError">
+              <p id="positionError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณากรอกตำแหน่ง</p>
+            </div>
+
+            <div id="studentFields" class="grid gap-6 lg:gap-[clamp(12px,2vh,24px)]" hidden>
+              <div class="grid gap-6 lg:grid-cols-2 lg:gap-4">
+              <div id="majorField" class="min-w-0 lg:col-span-2">
+                <label for="major" id="majorLabel" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">สาขาวิชา</label>
+                <select id="major" class="sel h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line bg-surface2 pl-4 pr-12 text-[16px] text-ink hover:border-[rgb(var(--purple)/.45)] fld disabled:opacity-60" aria-describedby="majorError" disabled>
+                  <option value="">เลือกคณะก่อน</option>
+                </select>
+                <p id="majorError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณาเลือกสาขาวิชา</p>
+              </div>
+              <div id="trackField" class="reveal min-w-0" hidden>
+                <label for="track" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">วิชาเอก</label>
+                <select id="track" class="sel h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line bg-surface2 pl-4 pr-12 text-[16px] text-ink hover:border-[rgb(var(--purple)/.45)] fld" aria-describedby="trackError"></select>
+                <p id="trackError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณาเลือกวิชาเอก</p>
+              </div>
+              </div>
+              <fieldset aria-describedby="yearHint yearError">
+                <legend class="mb-2 font-display text-[15px] font-semibold">ชั้นปี</legend>
+                <div class="flex flex-wrap gap-2">
+                  <label class="opt chip-opt"><input type="radio" name="year" value="1"><span class="opt-box inline-flex h-11 lg:h-[clamp(36px,5vh,44px)] items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">ปี 1</span></label>
+                  <label class="opt chip-opt"><input type="radio" name="year" value="2"><span class="opt-box inline-flex h-11 lg:h-[clamp(36px,5vh,44px)] items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">ปี 2</span></label>
+                  <label class="opt chip-opt"><input type="radio" name="year" value="3"><span class="opt-box inline-flex h-11 lg:h-[clamp(36px,5vh,44px)] items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">ปี 3</span></label>
+                  <label class="opt chip-opt"><input type="radio" name="year" value="4"><span class="opt-box inline-flex h-11 lg:h-[clamp(36px,5vh,44px)] items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">ปี 4</span></label>
+                  <label class="opt chip-opt"><input type="radio" name="year" value="5"><span class="opt-box inline-flex h-11 lg:h-[clamp(36px,5vh,44px)] items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">ปี 5 ขึ้นไป</span></label>
+                </div>
+                <p id="yearHint" class="short-hide mt-2 inline-flex items-center gap-1.5 text-[13px] text-ink2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+                  ระบบจะเลื่อนชั้นปีให้อัตโนมัติทุกปีการศึกษา
+                </p>
+                <p id="yearError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณาเลือกชั้นปี</p>
+              </fieldset>
+            </div>
+          </div>
+
+          <div class="mt-[clamp(24px,4vh,40px)] flex items-center justify-between gap-3">
+            <button type="button" data-signout class="hover-fill press t-quick inline-flex h-12 items-center gap-2 rounded-2xl px-4 font-display text-[16px] font-medium text-ink2 hover:text-ink">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+              ใช้บัญชีอื่น
+            </button>
+            <button type="submit" class="bg-grad press t-spring inline-flex h-12 items-center gap-2 rounded-2xl px-7 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">
+              ถัดไป
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+        </form>
+
+        <!-- Step 3: Privacy -->
+        <form data-step="3" class="mx-auto w-full max-w-[560px]" hidden novalidate>
+          <h2 tabindex="-1" class="step-title font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">นโยบายความเป็นส่วนตัว</h2>
+          <p class="mt-2 text-[15px] text-ink2">โปรดอ่านสรุปการใช้ข้อมูลส่วนบุคคลของคุณก่อนเริ่มใช้งาน</p>
+
+          <div class="policy-scroll mt-6 max-h-[340px] overflow-y-auto lg:max-h-[34vh] [@media(max-height:820px)]:lg:max-h-[28vh] rounded-card border border-line bg-surface2/60 p-6 text-[15px]" tabindex="0" aria-label="สรุปนโยบายความเป็นส่วนตัว">
+            <h3 class="font-display text-[16px] font-semibold">ข้อมูลที่เราเก็บ</h3>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-ink2">
+              <li>ชื่อ อีเมล และรูปโปรไฟล์จากบัญชี Google ของคุณ</li>
+              <li>ชื่อ นามสกุล และเบอร์โทรศัพท์ที่คุณกรอก ให้ทีม PR ติดต่อเรื่องงานที่ส่ง</li>
+              <li>บทบาท หน่วยงาน ตำแหน่ง และสำหรับนักศึกษา: สาขาวิชาและชั้นปี</li>
+              <li>ข่าว ภาพ และไฟล์ที่คุณส่งเข้าระบบ</li>
+            </ul>
+            <h3 class="mt-5 font-display text-[16px] font-semibold">เราใช้ข้อมูลเพื่อ</h3>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-ink2">
+              <li>กรอกข้อมูลผู้ส่งในฟอร์มส่งข่าวให้อัตโนมัติ</li>
+              <li>แจ้งผลการตรวจข่าวทางอีเมลและกล่องข้อความในระบบ</li>
+              <li>กำหนดสิทธิ์การอ่านข่าวภายในสำหรับบุคลากรหรือนักศึกษา</li>
+              <li>จัดทำรายงานสถิติภาพรวมให้ผู้บริหาร โดยไม่ระบุตัวบุคคล</li>
+            </ul>
+            <h3 class="mt-5 font-display text-[16px] font-semibold">การปกป้องข้อมูล</h3>
+            <p class="mt-2 text-ink2">ระบบลบข้อมูลพิกัด GPS ออกจากภาพทุกภาพก่อนเผยแพร่ ข้อมูลจัดเก็บบนเซิร์ฟเวอร์ของมหาวิทยาลัย และสำรองข้อมูลแบบเข้ารหัส</p>
+            <h3 class="mt-5 font-display text-[16px] font-semibold">สิทธิของคุณ</h3>
+            <p class="mt-2 text-ink2">คุณขอดู แก้ไข หรือขอลบข้อมูลส่วนบุคคลได้ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 โดยติดต่องานประชาสัมพันธ์ มรส.</p>
+            <a href="privacy.html" target="_blank" rel="noopener" class="press t-quick mt-4 inline-flex items-center gap-1 rounded font-medium text-purple underline-offset-4 hover:underline">อ่านนโยบายฉบับเต็ม (เปิดแท็บใหม่)
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+            </a>
+          </div>
+
+          <label class="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl p-1">
+            <input id="consent" type="checkbox" class="chk mt-1 h-5 w-5 shrink-0 cursor-pointer rounded accent-[rgb(122,60,226)]" aria-describedby="consentError">
+            <span class="text-[15px]">ฉันได้อ่านและยอมรับนโยบายความเป็นส่วนตัวของระบบข่าว มรส.</span>
+          </label>
+          <p id="consentError" class="mt-2 pl-9 text-[14px] font-medium text-brand" hidden>กรุณายอมรับนโยบายความเป็นส่วนตัวเพื่อเริ่มใช้งาน</p>
+
+          <div class="mt-[clamp(24px,4vh,40px)] flex items-center justify-between gap-3">
+            <button type="button" data-back class="hover-fill press t-quick inline-flex h-12 items-center gap-2 rounded-2xl px-4 font-display text-[16px] font-medium text-ink2 hover:text-ink">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+              ย้อนกลับ
+            </button>
+            <button type="submit" class="bg-grad press t-spring inline-flex h-12 items-center gap-2 rounded-2xl px-7 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">
+              ยอมรับและเริ่มใช้งาน
+            </button>
+          </div>
+        </form>
+
+        <!-- Step 4: Done -->
+        <div data-step="4" class="mx-auto flex w-full max-w-[560px] flex-1 flex-col justify-center" hidden>
+          <span class="bg-grad grid h-16 w-16 place-items-center rounded-full text-white shadow-glow" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>
+          </span>
+          <h2 tabindex="-1" class="step-title mt-6 font-display text-[clamp(26px,3vw,34px)] font-bold text-royal">พร้อมใช้งานแล้ว!</h2>
+          <p id="doneText" class="mt-2 text-[15px] text-ink2">ระบบจะใช้ข้อมูลนี้กรอกฟอร์มส่งข่าวให้ทุกครั้ง แก้ไขได้ทุกเมื่อ</p>
+
+          <dl id="summary" class="mt-6 grid gap-4 rounded-card border border-line bg-surface2/60 p-6 sm:grid-cols-2"></dl>
+
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a id="firstNews" href="submit.html" class="bg-grad press t-spring inline-flex h-12 items-center gap-2 rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              ส่งข่าวแรกของคุณ
+            </a>
+            <a id="nextLink" href="index.html" class="press t-spring inline-flex h-12 items-center rounded-2xl border border-line bg-shell px-6 font-display text-[16px] font-medium shadow-raised hover:-translate-y-0.5">กลับไปอ่านข่าว</a>
+          </div>
+          <div class="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
+            <a id="editProfile" href="login.html?profile=1" class="press t-quick rounded font-medium text-purple underline-offset-4 hover:underline">แก้ไขข้อมูลสังกัด</a>
+            <a href="privacy.html#rights" class="press t-quick rounded font-medium text-purple underline-offset-4 hover:underline">ดาวน์โหลดหรือขอลบข้อมูลของฉัน</a>
+            <button type="button" data-signout class="press t-quick rounded font-medium text-ink2 underline-offset-4 hover:text-ink hover:underline">ออกจากระบบ</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Crop the profile photo before it uploads: drag to move, slider / wheel / pinch to zoom -->
+  <dialog id="cropDlg" class="crop-dlg w-[min(440px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float backdrop:bg-[rgb(10_11_32/.55)]" aria-labelledby="cropTitle">
+    <div class="grid gap-5 p-6">
+      <div>
+        <h2 id="cropTitle" class="font-display text-[21px] font-semibold">ปรับรูปโปรไฟล์</h2>
+        <p class="mt-1 text-[14px] text-ink2">ลากรูปเพื่อเลือกส่วนที่จะแสดง ซูมด้วยแถบเลื่อนด้านล่าง</p>
+      </div>
+      <div id="cropStage" class="crop-stage mx-auto" tabindex="0" role="img" aria-label="ส่วนของรูปที่จะใช้ ใช้ปุ่มลูกศรเพื่อเลื่อน และปุ่ม + หรือ − เพื่อซูม">
+        <img id="cropImg" alt="" draggable="false">
+        <span class="crop-ring" aria-hidden="true"></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button type="button" id="zoomOut" class="crop-step hover-fill press t-quick grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink2 hover:text-ink" aria-label="ซูมออก">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+        </button>
+        <input id="cropZoom" type="range" min="1" max="4" step="0.01" value="1" class="crop-range min-w-0 flex-1" aria-label="ซูม">
+        <button type="button" id="zoomIn" class="crop-step hover-fill press t-quick grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink2 hover:text-ink" aria-label="ซูมเข้า">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" id="cropOther" class="press t-quick mr-auto rounded font-display text-[14px] font-medium text-purple underline-offset-4 hover:underline">เลือกรูปอื่น</button>
+        <button type="button" id="cropCancel" class="hover-fill press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium">ยกเลิก</button>
+        <button type="button" id="cropSave" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">ใช้รูปนี้</button>
+      </div>
+    </div>
+  </dialog>
+
+  <footer class="mx-auto w-full max-w-page shrink-0 px-shell pb-6 pt-4 lg:pb-3 lg:pt-1">
+    <div class="flex flex-col gap-2 border-t border-line pt-4 text-[13px] text-ink2 md:flex-row md:justify-between lg:pt-3">
+      <span>© 2569 งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
+      <a href="privacy.html" class="press t-quick rounded hover:text-ink hover:underline">นโยบายความเป็นส่วนตัว</a>
+    </div>
+  </footer>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="org-data.js"></script>
+  <script src="auth.js"></script>
+  <script src="site-config.js"></script>
+  <script>
+    // Role comes from the server (email domain, or the PR team list). PR / admin / coordinators fill the staff form.
+    const params = new URLSearchParams(location.search);
+    // Only pages of this site (login.html?next=submit.html?type=news)
+    const NEXT = (() => {
+      const n = params.get('next');
+      if (!n) return null;
+      try { const u = new URL(n, location.href); return u.origin === location.origin && !/login\.html$/.test(u.pathname) ? u.pathname.replace(/^\//, '') + u.search + u.hash : null; } catch (e) { return null; }
+    })();
+    const ROLE_LABEL = { staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
+    const ROLE_BADGE = { staff: 'bg-royal-soft text-royal', student: 'bg-red-soft text-brand', external: 'bg-gold-soft text-gold' };
+    const formRole = (r) => (r === 'student' || r === 'external' ? r : 'staff');
+    const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    const state = { step: 0, role: null, firstName: '', lastName: '', phone: '', unit: '', subUnit: '', major: '', track: '', year: '', position: '', org: '' };
+    const $ = (s, r = document) => r.querySelector(s);
+    const steps = [...document.querySelectorAll('[data-step]')];
+
+    function go(n, back = false) {
+      state.step = n;
+      steps.forEach((el) => {
+        const on = Number(el.dataset.step) === n;
+        el.hidden = !on;
+        el.classList.remove('step-enter', 'step-back');
+        if (on) { void el.offsetWidth; el.classList.add(back ? 'step-back' : 'step-enter'); }
+      });
+      // Setup steps are 2 (affiliation) and 3 (privacy) → shown as 1 and 2 of 2
+      const inSetup = n === 2 || n === 3;
+      $('#progress').hidden = !inSetup;
+      if (inSetup) {
+        $('#stepNum').textContent = `ขั้นที่ ${n - 1} จาก 2`;
+        $('#bar').style.transform = `scaleX(${(n - 1) / 2})`;
+        $('[role=progressbar]').setAttribute('aria-valuenow', n - 1);
+        document.querySelectorAll('[data-crumb]').forEach((li) => {
+          const k = Number(li.dataset.crumb);
+          li.classList.toggle('text-purple', k <= n);
+          li.classList.toggle('text-ink2', k > n);
+          li.toggleAttribute('aria-current', k === n);
+        });
+      }
+      // Move focus to the step heading so screen readers announce the new step
+      const h = $(`[data-step="${n}"] .step-title`);
+      if (h) h.focus({ preventScroll: true });
+      if (window.scrollY > 200) window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showError(id, show, field) {
+      $(id).hidden = !show;
+      if (field) field.setAttribute('aria-invalid', String(show));
+    }
+
+    // ---- Step 0: sign in ----
+    const signinError = (msg) => { $('#signinError').textContent = msg; $('#signinError').hidden = !msg; };
+    let gsiReady = false;
+    function showSignIn() {
+      signinError('');
+      const id = window.SITE?.googleClientId;
+      if (id) {
+        $('#gsiBox').hidden = false; $('#gsiNote').hidden = false;
+        if (gsiReady) return;
+        const sc = document.createElement('script');
+        sc.src = 'https://accounts.google.com/gsi/client';
+        sc.async = true;
+        sc.onload = () => {
+          google.accounts.id.initialize({ client_id: id, callback: onCredential, ux_mode: 'popup', context: 'signin' });
+          google.accounts.id.renderButton($('#gsiBox'), { theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: 'th', width: Math.min(400, $('#gsiBox').clientWidth || 400) });
+          gsiReady = true;
+        };
+        sc.onerror = () => signinError('โหลดปุ่ม Google ไม่ได้ ตรวจอินเทอร์เน็ตแล้วรีเฟรชหน้านี้');
+        document.head.appendChild(sc);
+      } else {
+        window.ME.then((m) => {
+          $('#devBox').hidden = !m.devLogin;
+          if (!m.devLogin) signinError('ระบบยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Google กรุณาติดต่องานประชาสัมพันธ์');
+        });
+      }
+    }
+    async function onCredential(resp) {
+      signinError('');
+      try {
+        const r = await api('/auth/google', { method: 'POST', body: { credential: resp.credential } });
+        signedIn(r.user);
+      } catch (err) { signinError(err.message); }
+    }
+    document.querySelectorAll('[data-dev]').forEach((btn) => btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const r = await api('/auth/dev', { method: 'POST', body: { as: btn.dataset.dev } });
+        signedIn(r.user);
+      } catch (err) { signinError(err.message); }
+      btn.disabled = false;
+    }));
+
+    // After sign-in: set up the profile once, then go on to where the user was heading
+    function signedIn(user) {
+      // Clear what the prototype kept in this browser
+      ['profile', 'submissions'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+      state.user = user;
+      state.role = formRole(user.role);
+      // First sign-up: the name starts from the Google account (first word / the rest), the user corrects it
+      const g = (user.name || '').trim().split(/\s+/);
+      Object.assign(state, {
+        firstName: user.firstName || (user.lastName ? '' : g[0] || ''), lastName: user.lastName || (user.firstName ? '' : g.slice(1).join(' ')), phone: user.phone || '',
+        unit: user.unit || '', subUnit: user.subUnit || '', position: user.position || '', major: user.major || '',
+        track: user.track || '', year: user.year ? String(user.year) : '', org: user.org || '',
+      });
+      $('#firstName').value = state.firstName; $('#lastName').value = state.lastName; $('#phone').value = state.phone;
+      $('#position').value = state.position; $('#org').value = state.org;
+      document.querySelectorAll('input[name=year]').forEach((r) => { r.checked = r.value === state.year; });
+      $('#consent').checked = !!user.consentAt;
+      showPhoto(user);
+      if (user.onboarded && !params.has('profile')) {
+        if (NEXT) { location.replace(NEXT); return; }
+        renderSummary(user, true);
+        go(4);
+        return;
+      }
+      setupUnitStep();
+      go(2);
+    }
+
+    document.querySelectorAll('[data-signout]').forEach((btn) => btn.addEventListener('click', async () => {
+      Object.assign(state, { user: null, role: null, firstName: '', lastName: '', phone: '', unit: '', subUnit: '', major: '', track: '', year: '', position: '', org: '' });
+      ['#firstName', '#lastName', '#phone', '#position', '#org'].forEach((s) => { $(s).value = ''; });
+      document.querySelectorAll('input[name=year]').forEach((r) => { r.checked = false; });
+      await api('/auth/logout', { method: 'POST' }).catch(() => {});
+      window.google?.accounts.id.disableAutoSelect();
+      showSignIn();
+      go(0, true);
+    }));
+
+    // ---- Profile photo: the uploaded one, else the Google one, else the first letter of the name ----
+    const initial = (u) => esc(([...(u.name || u.email).trim()][0] || '?').toUpperCase());
+    const face = (u) => (u.avatarUrl ? `<img src="${esc(u.avatarUrl)}" alt="" class="h-full w-full object-cover" referrerpolicy="no-referrer">` : initial(u));
+    function showPhoto(u) {
+      $('#photo').innerHTML = face(u);
+      $('#idName').textContent = u.name || u.email;
+      $('#idName').title = u.email;
+      $('#whoami').innerHTML = `<span class="bg-grad grid h-6 w-6 place-items-center overflow-hidden rounded-full font-display text-[12px] font-semibold text-white">${face(u)}</span>${esc(u.email)}`;
+      $('#photoPick').textContent = u.ownPhoto ? 'เปลี่ยนรูปโปรไฟล์' : 'เพิ่มรูปโปรไฟล์';
+      $('#photoBtn').setAttribute('aria-label', $('#photoPick').textContent);
+      $('#photoRemove').hidden = !u.ownPhoto;
+      $('#photoRemove').textContent = u.googlePhoto ? 'กลับไปใช้รูปจาก Google' : 'ลบรูป';
+    }
+    const photoMsg = (text, bad) => { $('#photoMsg').textContent = text; $('#photoMsg').className = `mt-1 text-[13px] ${bad ? 'font-medium text-brand' : 'text-ink2'}`; };
+    const photoBusy = (on) => { $('#photoBusy').hidden = !on; ['#photoBtn', '#photoPick', '#photoRemove'].forEach((s) => { $(s).disabled = on; }); };
+    function photoDone(user) {
+      state.user = user;
+      showPhoto(user);
+      // The header menu on other tabs picks this up on their next load; this page has no header menu
+      window.ME = Promise.resolve({ user, unread: 0 });
+    }
+    const pickPhoto = () => $('#photoFile').click();
+    $('#photoBtn').addEventListener('click', pickPhoto);
+    $('#photoPick').addEventListener('click', pickPhoto);
+    // ---- Crop dialog ----
+    // State in image pixels: the centre of the square (cx, cy) and the zoom z (1 = the image just covers the square)
+    const crop = { img: $('#cropImg'), stage: $('#cropStage'), dlg: $('#cropDlg'), url: null, w: 0, h: 0, cx: 0, cy: 0, z: 1, S: 0 };
+    const Z_MAX = 4;
+    const cropScale = () => (crop.S / Math.min(crop.w, crop.h)) * crop.z;
+    function cropClamp() {
+      const half = crop.S / 2 / cropScale();
+      crop.cx = Math.min(Math.max(crop.cx, half), crop.w - half);
+      crop.cy = Math.min(Math.max(crop.cy, half), crop.h - half);
+    }
+    function cropDraw() {
+      crop.S = crop.stage.clientWidth;
+      cropClamp();
+      const s = cropScale();
+      crop.img.style.transform = `translate(${crop.S / 2 - crop.cx * s}px, ${crop.S / 2 - crop.cy * s}px) scale(${s})`;
+      $('#cropZoom').value = crop.z;
+    }
+    // Zoom keeping the image point under (px, py) — stage pixels — where it is
+    function cropZoom(z, px = crop.S / 2, py = crop.S / 2) {
+      z = Math.min(Math.max(z, 1), Z_MAX);
+      const s0 = cropScale();
+      const ux = crop.cx + (px - crop.S / 2) / s0, uy = crop.cy + (py - crop.S / 2) / s0;
+      crop.z = z;
+      const s1 = cropScale();
+      crop.cx = ux - (px - crop.S / 2) / s1;
+      crop.cy = uy - (py - crop.S / 2) / s1;
+      cropDraw();
+    }
+    const cropPan = (dx, dy) => { const s = cropScale(); crop.cx -= dx / s; crop.cy -= dy / s; cropDraw(); };
+    function cropOpen(file) {
+      if (crop.url) URL.revokeObjectURL(crop.url);
+      crop.url = URL.createObjectURL(file);
+      const probe = new Image();
+      probe.onload = () => {
+        crop.img.src = crop.url;
+        Object.assign(crop, { w: probe.naturalWidth, h: probe.naturalHeight, cx: probe.naturalWidth / 2, cy: probe.naturalHeight / 2, z: 1 });
+        crop.img.style.width = `${crop.w}px`;
+        crop.img.style.height = `${crop.h}px`;
+        if (!crop.dlg.open) crop.dlg.showModal();
+        cropDraw();
+        crop.stage.focus();
+      };
+      probe.onerror = () => photoMsg('เปิดรูปนี้ไม่ได้ ลองบันทึกเป็น JPG หรือ PNG ใหม่', true);
+      probe.src = crop.url;
+    }
+    // Drag with one pointer, pinch with two
+    const pointers = new Map();
+    let pinch = null;
+    crop.stage.addEventListener('pointerdown', (e) => {
+      crop.stage.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: crop.z }; }
+    });
+    crop.stage.addEventListener('pointermove', (e) => {
+      const p = pointers.get(e.pointerId);
+      if (!p) return;
+      if (pointers.size === 1) cropPan(e.clientX - p.x, e.clientY - p.y);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2 && pinch) {
+        const [a, b] = [...pointers.values()];
+        const r = crop.stage.getBoundingClientRect();
+        cropZoom(pinch.z * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.d), (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+      }
+    });
+    const lift = (e) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null; };
+    crop.stage.addEventListener('pointerup', lift);
+    crop.stage.addEventListener('pointercancel', lift);
+    crop.stage.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const r = crop.stage.getBoundingClientRect();
+      cropZoom(crop.z * Math.exp(-e.deltaY / 400), e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    crop.stage.addEventListener('keydown', (e) => {
+      const step = e.shiftKey ? 40 : 10;
+      const move = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] }[e.key];
+      if (move) { e.preventDefault(); cropPan(...move); return; }
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); cropZoom(crop.z + 0.2); }
+      if (e.key === '-' || e.key === '_') { e.preventDefault(); cropZoom(crop.z - 0.2); }
+    });
+    $('#cropZoom').addEventListener('input', (e) => cropZoom(Number(e.target.value)));
+    $('#zoomIn').addEventListener('click', () => cropZoom(crop.z + 0.25));
+    $('#zoomOut').addEventListener('click', () => cropZoom(crop.z - 0.25));
+    $('#cropOther').addEventListener('click', pickPhoto);
+    $('#cropCancel').addEventListener('click', () => crop.dlg.close());
+    addEventListener('resize', () => { if (crop.dlg.open) cropDraw(); });
+    crop.dlg.addEventListener('close', () => {
+      crop.img.removeAttribute('src');
+      if (crop.url) { URL.revokeObjectURL(crop.url); crop.url = null; }
+      $('#photoBtn').focus();
+    });
+    // The square as a 512px JPEG; the server re-encodes it again (and drops any metadata)
+    function cropBlob() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      const side = crop.S / cropScale();
+      ctx.drawImage(crop.img, crop.cx - side / 2, crop.cy - side / 2, side, side, 0, 0, 512, 512);
+      return new Promise((resolve) => c.toBlob(resolve, 'image/jpeg', 0.92));
+    }
+    $('#cropSave').addEventListener('click', async () => {
+      const blob = await cropBlob();
+      crop.dlg.close();
+      if (blob) uploadPhoto(blob);
+      else photoMsg('ตัดรูปไม่สำเร็จ ลองเลือกรูปอีกครั้ง', true);
+    });
+
+    $('#photoFile').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { photoMsg('ใช้ไฟล์ JPG, PNG หรือ WebP', true); return; }
+      // Only the cropped 512px square uploads, so a large original is fine
+      if (f.size > 25 * 1024 * 1024) { photoMsg('รูปใหญ่เกิน 25 MB เลือกรูปที่เล็กลง', true); return; }
+      photoMsg('');
+      cropOpen(f);
+    });
+    async function uploadPhoto(blob) {
+      photoBusy(true);
+      photoMsg('กำลังอัปโหลดรูป…');
+      try {
+        const fd = new FormData();
+        fd.append('photo', blob, 'profile.jpg');
+        const res = await fetch('/api/me/photo', { method: 'PUT', body: fd, credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'อัปโหลดรูปไม่สำเร็จ กรุณาลองใหม่');
+        photoDone(data.user);
+        photoMsg('บันทึกรูปโปรไฟล์แล้ว');
+      } catch (err) {
+        photoMsg(err.message === 'Failed to fetch' ? 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง' : err.message, true);
+      } finally { photoBusy(false); }
+    }
+    $('#photoRemove').addEventListener('click', async () => {
+      photoBusy(true);
+      try {
+        const r = await api('/me/photo', { method: 'DELETE' });
+        photoDone(r.user);
+        photoMsg(r.user.googlePhoto ? 'ลบรูปแล้ว ใช้รูปจากบัญชี Google แทน' : 'ลบรูปโปรไฟล์แล้ว');
+        $('#photoPick').focus();
+      } catch (err) { photoMsg(err.message, true); } finally { photoBusy(false); }
+    });
+
+    // ---- Step 2: Affiliation ----
+    function setupUnitStep() {
+      const student = state.role === 'student';
+      const external = state.role === 'external';
+      const badge = $('#roleBadge');
+      badge.textContent = ROLE_LABEL[state.role];
+      badge.className = 'rounded-full px-3 font-display font-semibold leading-7 ' + ROLE_BADGE[state.role];
+      $('#studentFields').hidden = !student;
+      $('#unitField').hidden = external;
+      $('#orgField').hidden = !external;
+      $('#positionField').hidden = student;
+      // Staff: the 4-digit internal extension. Students and external users: a number to call
+      const ext = !student && !external;
+      $('#phoneLabel').textContent = ext ? 'เบอร์โทรศัพท์ภายใน (4 หลัก)' : 'เบอร์โทรศัพท์ที่ติดต่อได้';
+      $('#phone').placeholder = ext ? '' : 'เช่น 081 234 5678';
+      $('#phone').maxLength = ext ? 4 : 13;
+      $('#phone').autocomplete = ext ? 'off' : 'tel';
+      $('#phoneError').textContent = ext ? 'กรุณากรอกเบอร์โทรศัพท์ภายใน' : 'กรุณากรอกเบอร์โทรศัพท์';      $('#positionLabel').textContent = external ? 'ตำแหน่ง (ไม่บังคับ)' : 'ตำแหน่ง';
+      $('[data-step="2"] .step-title').textContent = external ? 'ข้อมูลของคุณ' : 'สังกัดของคุณ';
+      if (external) { $('#unitHint').textContent = 'บอกเราว่าคุณมาจากหน่วยงานหรือองค์กรใด'; state.unit = ''; state.subUnit = ''; return; }
+      $('#unitLabel').textContent = student ? 'คณะ' : 'หน่วยงาน';
+      $('#unitHint').textContent = student
+        ? 'เลือกคณะ สาขาวิชา และชั้นปีของคุณ'
+        : 'ข้อมูลนี้จะแสดงเป็นหน่วยงานผู้ส่งข่าวโดยอัตโนมัติ';
+      $('#unitError').textContent = student ? 'กรุณาเลือกคณะ' : 'กรุณาเลือกหน่วยงาน';
+      const opt = (v, cur) => `<option${v === cur ? ' selected' : ''}>${v}</option>`;
+      const groups = student
+        ? [{ label: 'คณะ / วิทยาลัย', units: Object.keys(ORG.faculties) }]
+        : ORG.staffGroups;
+      // Staff: the prompt shows while nothing is picked but is not in the list (hidden + disabled, selected only when empty)
+      $('#unit').innerHTML = (student ? '<option value="">เลือกคณะ</option>' : `<option value="" disabled hidden${state.unit ? '' : ' selected'}>เลือกหน่วยงาน</option>`) +
+        groups.map((g) => `<optgroup label="${g.label}">${g.units.map((u) => opt(u, state.unit)).join('')}</optgroup>`).join('');
+      if (!groups.some((g) => g.units.includes(state.unit))) state.unit = '';
+      fillSubUnits();
+      fillMajors();
+    }
+    // Staff: some units have sub-units (สำนักงานอธิการบดี → กอง/งาน, สำนักวิทยบริการฯ → หน่วยงานย่อย)
+    function fillSubUnits() {
+      const sub = state.role === 'staff' ? ORG.subUnits[state.unit] : null;
+      $('#subUnitField').hidden = !sub;
+      if (!sub) { state.subUnit = ''; return; }
+      if (!sub.units.includes(state.subUnit)) state.subUnit = '';
+      $('#subUnitLabel').textContent = sub.label + (sub.required ? '' : ' (ไม่บังคับ)');
+      $('#subUnitHint').textContent = sub.required ? `หน่วยงานใน${state.unit}` : `เลือกหากคุณสังกัดหน่วยงานย่อยของ${state.unit}`;
+      $('#subUnitError').textContent = `กรุณาเลือก${sub.label}`;
+      // Required (กอง / งาน): prompt only, not a choice. Optional: "ไม่ได้สังกัดหน่วยงานย่อย" is a real choice and stays in the list
+      $('#subUnit').innerHTML = (sub.required ? `<option value="" disabled hidden${state.subUnit ? '' : ' selected'}>เลือก${sub.label}</option>` : '<option value="">ไม่ได้สังกัดหน่วยงานย่อย</option>') +
+        sub.units.map((u) => `<option${u === state.subUnit ? ' selected' : ''}>${u}</option>`).join('');
+    }
+    // Students: faculty → major → track (only for majors that have tracks)
+    function fillMajors() {
+      const fac = ORG.faculties[state.unit];
+      const list = (fac?.majors || []).map(ORG.majorName);
+      const label = fac?.majorLabel || 'สาขาวิชา';
+      $('#majorLabel').textContent = label;
+      $('#majorError').textContent = `กรุณาเลือก${label}`;
+      const sel = $('#major');
+      sel.disabled = !list.length;
+      if (list.length === 1) state.major = list[0];
+      if (!list.includes(state.major)) state.major = '';
+      sel.innerHTML = `<option value="">${list.length ? 'เลือก' + label : 'เลือกคณะก่อน'}</option>` +
+        list.map((m) => `<option${m === state.major ? ' selected' : ''}>${m}</option>`).join('');
+      fillTracks();
+    }
+    function fillTracks() {
+      const tracks = ORG.tracksOf(state.unit, state.major);
+      $('#trackField').hidden = !tracks.length;
+      $('#majorField').classList.toggle('lg:col-span-2', !tracks.length);
+      if (!tracks.includes(state.track)) state.track = '';
+      $('#track').innerHTML = '<option value="">เลือกวิชาเอก</option>' +
+        tracks.map((t) => `<option${t === state.track ? ' selected' : ''}>${t}</option>`).join('');
+    }
+    $('#unit').addEventListener('change', (e) => { state.unit = e.target.value; showError('#unitError', false, e.target); showError('#subUnitError', false, $('#subUnit')); fillSubUnits(); fillMajors(); });
+    $('#subUnit').addEventListener('change', (e) => { state.subUnit = e.target.value; showError('#subUnitError', false, e.target); });
+    $('#major').addEventListener('change', (e) => { state.major = e.target.value; showError('#majorError', false, e.target); showError('#trackError', false, $('#track')); fillTracks(); });
+    $('#track').addEventListener('change', (e) => { state.track = e.target.value; showError('#trackError', false, e.target); });
+    $('#position').addEventListener('input', (e) => { state.position = e.target.value.trim(); if (state.position) showError('#positionError', false, e.target); });
+    $('#org').addEventListener('input', (e) => { state.org = e.target.value.trim(); if (state.org) showError('#orgError', false, e.target); });
+    $('[data-step="2"]').addEventListener('change', (e) => {
+      if (e.target.name === 'year') { state.year = e.target.value; showError('#yearError', false); }
+    });
+    $('#firstName').addEventListener('input', (e) => { state.firstName = e.target.value.trim(); if (state.firstName) showError('#firstNameError', false, e.target); });
+    $('#lastName').addEventListener('input', (e) => { state.lastName = e.target.value.trim(); if (state.lastName) showError('#lastNameError', false, e.target); });
+    $('#phone').addEventListener('input', (e) => { state.phone = e.target.value.replace(/[\s-]/g, ''); if (state.phone) showError('#phoneError', false, e.target); });
+    // Same rules as the server (auth.mjs); returns the message, or '' when the number is fine
+    function phoneProblem() {
+      const ext = state.role === 'staff';
+      if (!state.phone) return ext ? 'กรุณากรอกเบอร์โทรศัพท์ภายใน' : 'กรุณากรอกเบอร์โทรศัพท์';
+      if (ext) return !/^\d{4}$/.test(state.phone) ? 'เบอร์โทรศัพท์ภายในเป็นตัวเลข 4 หลัก' : state.phone[0] === '0' ? 'เบอร์โทรศัพท์ภายในขึ้นต้นด้วย 0 ไม่ได้' : '';
+      return /^0\d{8,9}$/.test(state.phone) ? '' : 'เบอร์โทรศัพท์ขึ้นต้นด้วย 0 และมี 9–10 หลัก เช่น 081 234 5678';
+    }
+    $('[data-step="2"]').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const student = state.role === 'student';
+      const bad = [];
+      showError('#firstNameError', !state.firstName, $('#firstName')); if (!state.firstName) bad.push($('#firstName'));
+      showError('#lastNameError', !state.lastName, $('#lastName')); if (!state.lastName) bad.push($('#lastName'));
+      const pp = phoneProblem();
+      if (pp) $('#phoneError').textContent = pp;
+      showError('#phoneError', !!pp, $('#phone')); if (pp) bad.push($('#phone'));
+      if (state.role === 'external') {
+        showError('#orgError', !state.org, $('#org')); if (!state.org) bad.push($('#org'));
+        if (bad.length) { bad[0].focus(); return; }
+        go(3); return;
+      }
+      showError('#unitError', !state.unit, $('#unit')); if (!state.unit) bad.push($('#unit'));
+      const subMissing = !student && !!ORG.subUnits[state.unit]?.required && !state.subUnit;
+      const posMissing = state.role === 'staff' && !state.position;
+      showError('#subUnitError', subMissing, $('#subUnit')); if (subMissing) bad.push($('#subUnit'));
+      showError('#positionError', posMissing, $('#position')); if (posMissing) bad.push($('#position'));
+      if (student) {
+        showError('#majorError', !state.major, $('#major')); if (!state.major) bad.push($('#major'));
+        const trackMissing = ORG.tracksOf(state.unit, state.major).length > 0 && !state.track;
+        showError('#trackError', trackMissing, $('#track')); if (trackMissing) bad.push($('#track'));
+        showError('#yearError', !state.year); if (!state.year) bad.push($('input[name=year]'));
+      }
+      if (bad.length) { bad.find((el) => !el.disabled)?.focus(); return; }
+      go(3);
+    });
+
+    // ---- Step 3: Privacy ----
+    $('#consent').addEventListener('change', (e) => showError('#consentError', false, e.target));
+    $('[data-step="3"]').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!$('#consent').checked) { showError('#consentError', true, $('#consent')); $('#consent').focus(); return; }
+      const btn = e.submitter || $('[data-step="3"] [type=submit]');
+      btn.disabled = true;
+      try {
+        const r = await api('/me/profile', { method: 'PUT', body: {
+          firstName: state.firstName, lastName: state.lastName, phone: state.phone,
+          unit: state.unit, subUnit: state.subUnit || null, position: state.position || null, major: state.major || null,
+          track: state.track || null, year: state.year ? Number(state.year) : null, org: state.org || null, consent: true,
+        } });
+        state.user = r.user;
+        showPhoto(r.user);
+        // First sign-up goes straight on when there is somewhere to go; editing the profile shows the summary
+        if (NEXT && !params.has('profile')) { location.replace(NEXT); return; }
+        renderSummary(r.user, false);
+        go(4);
+      } catch (err) {
+        const map = { firstName: '#firstNameError', lastName: '#lastNameError', phone: '#phoneError', unit: '#unitError', subUnit: '#subUnitError', position: '#positionError', major: '#majorError', track: '#trackError', year: '#yearError', org: '#orgError' };
+        const bad = Object.keys(err.details || {}).filter((k) => map[k]);
+        bad.forEach((k) => { $(map[k]).textContent = err.details[k]; $(map[k]).hidden = false; });
+        if (bad.length) go(2, true);
+        else { $('#consentError').textContent = err.message; $('#consentError').hidden = false; }
+      } finally { btn.disabled = false; }
+    });
+
+    document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => go(state.step - 1, true)));
+
+    function renderSummary(u, returning) {
+      const p = { ...u, role: formRole(u.role) };
+      $('[data-step="4"] .step-title').textContent = returning ? `เข้าสู่ระบบแล้ว` : 'พร้อมใช้งานแล้ว!';
+      $('#doneText').textContent = returning ? `คุณเข้าสู่ระบบด้วย ${u.email}` : 'ระบบจะใช้ข้อมูลนี้กรอกฟอร์มส่งข่าวให้ทุกครั้ง แก้ไขได้ทุกเมื่อ';
+      $('#nextLink').href = NEXT || 'index.html';
+      $('#nextLink').textContent = NEXT ? 'ไปต่อที่หน้าเดิม' : 'กลับไปอ่านข่าว';
+      $('#firstNews').lastChild.textContent = returning ? ' ส่งข่าว' : ' ส่งข่าวแรกของคุณ';
+      const rows = [
+        ['ชื่อ-นามสกุล', [p.firstName, p.lastName].filter(Boolean).join(' ') || p.name],
+        ['บัญชี', p.email],
+        [p.role === 'staff' ? 'เบอร์โทรศัพท์ภายใน' : 'เบอร์โทรศัพท์', p.role === 'staff' ? p.phone : (p.phone || '').replace(/^(\d{2,3})(\d{3})(\d{4})$/, '$1 $2 $3')],
+        ['บทบาท', ROLE_LABEL[p.role]],
+        p.role === 'external' ? ['หน่วยงาน / องค์กร', p.org] : [p.role === 'student' ? 'คณะ' : 'หน่วยงาน', p.unit],
+        ...(p.subUnit ? [[ORG.subUnits[p.unit]?.label || 'หน่วยงานย่อย', p.subUnit]] : []),
+        ...(p.position ? [['ตำแหน่ง', p.position]] : []),
+        ...(p.role === 'student' ? [
+          [ORG.faculties[p.unit]?.majorLabel || 'สาขาวิชา', p.major],
+          ...(p.track ? [['วิชาเอก', p.track]] : []),
+          ['ชั้นปี', p.year === 5 ? 'ปี 5 ขึ้นไป' : `ปี ${p.year}`],
+        ] : []),
+      ];
+      $('#summary').innerHTML = rows.map(([k, v]) => `<div><dt class="text-[13px] text-ink2">${k}</dt><dd class="font-display text-[16px] font-medium">${esc(v)}</dd></div>`).join('');
+      // Sending news is for university units; outside users go back to reading
+      $('#firstNews').hidden = p.role === 'external';
+    }
+
+    // ---- Theme ----
+    const themeSwitch = document.getElementById('themeToggle');
+    themeSwitch.setAttribute('aria-checked', document.documentElement.classList.contains('dark'));
+    themeSwitch.addEventListener('click', () => {
+      const dark = document.documentElement.classList.toggle('dark');
+      themeSwitch.setAttribute('aria-checked', dark);
+      try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+    });
+
+    // ---- Start: already signed in → profile setup or summary; otherwise the sign-in step ----
+    showSignIn();
+    window.ME.then((m) => { if (m.user) signedIn(m.user); });
+  </script>
+</body>
+</html>

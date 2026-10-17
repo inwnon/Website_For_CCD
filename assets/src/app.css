@@ -1,0 +1,19 @@
+/* Source of assets/app.css (npm run build:css). Fonts are served from assets/fonts, nothing is loaded from other sites. */
+@import './fonts.css';
+@tailwind base;
+/* Thai text needs room for stacked vowels and tone marks: 1.7 for all text (each page asks for it on body, which
+   Tailwind's reset used to override with 1.5). Headings set their own (.font-display 1.3 on each page). */
+@layer base {
+  html { line-height: 1.7; }
+  /* The scrollbar's room is always kept, so the page does not get narrower (and re-wrap) when it appears */
+  html { scrollbar-gutter: stable; }
+}
+@tailwind components;
+/* Sections below the first screen: the browser skips their layout and paint until they are near the screen
+   (a long page lays out much faster on phones). The size is a placeholder until the real one is known. */
+@layer components {
+  .cv-auto { content-visibility: auto; contain-intrinsic-size: auto 900px; }
+  /* Search results after the first row */
+  .cv-card { content-visibility: auto; contain-intrinsic-size: auto 380px; }
+}
+@tailwind utilities;

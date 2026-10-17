@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ข่าว | ข่าว มรส.</title>
+  <meta name="description" content="ข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี">
+  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+
+
+  <style>
+    :root {
+      --bg: 245 244 255;
+      --shell: 255 255 255;
+      --surface: 255 255 255;
+      --surface-2: 244 242 255;
+      --ink: 27 37 96;
+      --ink-2: 92 102 148;
+      --line: 224 226 250;
+      --royal: 38 66 200;
+      --red: 209 19 39;
+      --purple: 122 60 226;
+      --sky: 0 112 161;
+      --gold: 148 94 0;
+      --royal-soft: 232 237 255;
+      --red-soft: 255 232 236;
+      --purple-soft: 241 233 255;
+      --sky-soft: 224 244 253;
+      --gold-soft: 255 244 208;
+      --focus: 122 60 226;
+      --grad: linear-gradient(120deg, #DE142A 0%, #B3218F 55%, #7A3CE2 100%);
+      --shadow-raised:
+        0 1px 2px rgb(27 37 96 / .04),
+        0 6px 18px -6px rgb(38 66 200 / .08);
+      --shadow-float:
+        0 2px 6px rgb(27 37 96 / .05),
+        0 14px 30px -10px rgb(38 66 200 / .14),
+        0 32px 60px -24px rgb(122 60 226 / .18);
+      --shadow-glow:
+        0 4px 10px -2px rgb(222 20 42 / .25),
+        0 10px 24px -8px rgb(122 60 226 / .35);
+      --spring: cubic-bezier(.34, 1.56, .64, 1);
+      --ease-out: cubic-bezier(.22, 1, .36, 1);
+      color-scheme: light;
+    }
+    .dark {
+      --bg: 10 11 32;
+      --shell: 17 19 50;
+      --surface: 24 27 66;
+      --surface-2: 32 36 82;
+      --ink: 240 240 255;
+      --ink-2: 178 184 222;
+      --line: 50 56 110;
+      --royal: 146 166 255;
+      --red: 255 110 124;
+      --purple: 188 156 255;
+      --sky: 96 202 245;
+      --gold: 255 206 96;
+      --royal-soft: 34 44 108;
+      --red-soft: 78 24 52;
+      --purple-soft: 52 36 104;
+      --sky-soft: 14 56 88;
+      --gold-soft: 70 54 20;
+      --focus: 96 202 245;
+      --shadow-raised:
+        0 1px 2px rgb(0 0 0 / .3),
+        0 8px 20px -8px rgb(0 0 0 / .45);
+      --shadow-float:
+        0 2px 6px rgb(0 0 0 / .3),
+        0 18px 36px -12px rgb(0 0 0 / .5),
+        0 36px 64px -24px rgb(90 60 200 / .35);
+      color-scheme: dark;
+    }
+
+    html { scroll-behavior: smooth; scroll-padding-top: 150px; }
+    body {
+      font-family: "Noto Sans Thai", system-ui, sans-serif;
+      line-height: 1.7;
+      color: rgb(var(--ink));
+      background:
+        radial-gradient(50% 40% at 0% 0%, rgb(var(--purple-soft)), transparent 70%),
+        radial-gradient(40% 35% at 100% 10%, rgb(var(--sky-soft)), transparent 70%),
+        radial-gradient(60% 40% at 50% 100%, rgb(var(--red-soft) / .7), transparent 70%),
+        rgb(var(--bg));
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-display { line-height: 1.3; }
+    [hidden] { display: none !important; }
+    .tight { letter-spacing: -0.03em; }
+    .bg-grad { background: var(--grad); }
+
+    a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid rgb(var(--focus));
+      outline-offset: 3px;
+    }
+
+    .t-spring { transition-property: transform, opacity; transition-duration: .5s; transition-timing-function: var(--spring); }
+    .t-quick  { transition-property: transform, opacity; transition-duration: .2s; transition-timing-function: var(--ease-out); }
+    .press:active { transform: scale(.96); }
+
+    .lift { position: relative; isolation: isolate; }
+    .lift::after {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+      box-shadow: var(--shadow-float); opacity: 0; transition: opacity .35s var(--ease-out);
+    }
+    .lift:hover::after, .lift:focus-visible::after { opacity: 1; }
+
+    .hover-fill { position: relative; isolation: isolate; }
+    .hover-fill::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+      background: rgb(var(--surface-2)); opacity: 0; transform: scale(.9);
+      transition: opacity .2s var(--ease-out), transform .35s var(--spring);
+    }
+    .hover-fill:hover::before { opacity: 1; transform: none; }
+
+    .logo-crop { overflow: hidden; border-radius: 9999px; background: rgb(200 160 255); }
+    .logo-crop img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.42) translateY(3%); }
+
+    .no-scrollbar { scrollbar-width: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+
+    .js .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--ease-out), transform .7s var(--spring); }
+    .js .reveal.in { opacity: 1; transform: none; }
+
+    .save-btn { transition: transform .45s var(--spring); }
+    .save-btn:hover { transform: scale(1.1); }
+    .save-btn:active { transform: scale(.85); }
+    .save-btn:focus-visible { outline-offset: 2px; border-radius: 9999px; }
+    .save-btn[aria-pressed="true"] svg { fill: currentColor; }
+    @keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+    .save-btn.pop svg { animation: pop .5s var(--spring); }
+
+    .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* Article body: Thai needs generous line-height for stacked vowels/tones */
+    .news-body p { font-size: 17px; line-height: 1.75; margin-bottom: 1.15em; }
+    .news-body p:first-child::first-letter { color: rgb(var(--red)); font-weight: 700; }
+    .news-body blockquote {
+      margin: 1.6em 0; padding: 1.1em 1.4em; border-radius: 20px;
+      background: rgb(var(--purple-soft)); font-family: Kanit, sans-serif; font-size: 19px; line-height: 1.6; color: rgb(var(--purple));
+    }
+    .news-body blockquote cite { display: block; margin-top: .5em; font-family: "Noto Sans Thai", sans-serif; font-size: 14px; font-style: normal; color: rgb(var(--ink-2)); }
+
+    /* Lightbox */
+    dialog#zipDlg { padding: 0; border: 0; background: transparent; color: inherit; max-width: calc(100vw - 32px); }
+    dialog#zipDlg::backdrop { background: rgb(8 9 28 / .55); }
+    dialog#zipDlg[open] .zip-card { animation: zipIn .4s var(--spring); }
+    @keyframes zipIn { from { opacity: 0; transform: translateY(12px) scale(.97); } }
+    @media (prefers-reduced-motion: reduce) { dialog#zipDlg[open] .zip-card { animation: none; } }
+    dialog#lightbox { padding: 0; border: 0; background: transparent; max-width: 100vw; max-height: 100vh; width: 100vw; height: 100vh; color: #fff; }
+    dialog#lightbox::backdrop { background: rgb(8 9 28 / .92); }
+    dialog#lightbox[open] .lb-stage { animation: lbIn .45s var(--spring); }
+    @keyframes lbIn { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+    .lb-img { transition: opacity .25s var(--ease-out), transform .45s var(--spring); }
+    .lb-img.swap { opacity: 0; transform: scale(.97); }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+      .js .reveal { opacity: 1; transform: none; }
+    }
+  </style>
+  <link rel="stylesheet" href="/assets/app.css?v=f171df7425">
+</head>
+
+<body class="min-h-screen">
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปเนื้อหา</a>
+
+  <!-- ===== Header (same as index.html) ===== -->
+  <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
+    <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
+      <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90" aria-label="ข่าว มรส. หน้าแรก">
+        <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
+        <span class="leading-tight">
+          <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
+          <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
+        </span>
+      </a>
+
+      <form class="mx-auto hidden w-full max-w-[680px] md:block" role="search" action="search.html">
+        <label for="q" class="sr-only">ค้นหาข่าว</label>
+        <div class="relative">
+          <svg class="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-ink2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="q" name="q" type="search" placeholder="ค้นหาข่าวที่อยากอ่าน..." class="h-[50px] w-full rounded-full border border-line bg-surface2 pl-14 pr-5 text-[16px] text-ink placeholder:text-ink2 hover:border-[rgb(var(--purple)/.45)]">
+        </div>
+      </form>
+
+      <div class="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
+        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
+          <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
+          <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+          <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
+        </button>
+        <a href="submit.html" class="bg-grad press t-spring inline-flex h-11 w-11 items-center justify-center gap-1.5 rounded-full font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 min-[440px]:w-auto min-[440px]:px-4 sm:px-5">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span class="sr-only min-[440px]:not-sr-only">ส่งข่าว</span>
+        </a>
+        <a id="login" href="login.html" class="press t-spring grid h-11 w-11 place-items-center rounded-full bg-purple-soft text-purple hover:-translate-y-0.5" aria-label="เข้าสู่ระบบด้วยบัญชี Google ของมหาวิทยาลัย">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <form class="mx-auto mt-3 max-w-page px-shell md:hidden" role="search" action="search.html">
+      <label for="q2" class="sr-only">ค้นหาข่าว</label>
+      <div class="relative">
+        <svg class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q2" name="q" type="search" placeholder="ค้นหาข่าวที่อยากอ่าน..." class="h-11 w-full rounded-full border border-line bg-surface2 pl-11 pr-4 text-[16px] text-ink placeholder:text-ink2">
+      </div>
+    </form>
+
+    <nav class="no-scrollbar mx-auto flex max-w-page gap-1 overflow-x-auto px-shell py-2 md:justify-center" aria-label="เมนูหลัก">
+      <a href="index.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>หน้าแรก
+      </a>
+      <a href="index.html#latest" aria-current="page" class="press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-red-soft px-4 font-display text-[15px] font-medium text-brand hover:opacity-90">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>ข่าวล่าสุด
+      </a>
+      <a href="index.html#featured" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>ข่าวเด่น
+      </a>
+      <a href="search.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>คลังข่าว
+      </a>
+      <a href="digest.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>เล่มสรุปข่าว
+      </a>
+    </nav>
+  </header>
+
+  <main id="main" class="mx-auto max-w-page px-2 py-4 sm:px-4">
+    <div class="rounded-shell bg-shell px-shell pb-shelf pt-8 shadow-float">
+
+      <a href="index.html" class="press t-spring inline-flex h-11 items-center gap-2 rounded-full pr-3 text-[14px] font-medium text-ink2 hover:-translate-x-0.5 hover:text-ink">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        กลับหน้าแรก
+      </a>
+
+      <!-- Loading / not found / internal news -->
+      <section id="state" class="mx-auto mt-6 max-w-[560px] rounded-card border border-line bg-surface p-8 text-center shadow-raised sm:p-10" role="status">
+        <span id="stateCode" class="block bg-grad bg-clip-text font-display text-[88px] font-bold leading-none tracking-[-0.06em] text-transparent" aria-hidden="true" hidden></span>
+        <span id="stateIcon" class="mx-auto mt-2 grid h-16 w-16 place-items-center rounded-full bg-purple-soft text-purple shadow-raised"></span>
+        <h1 id="stateTitle" class="mt-5 font-display text-[24px] font-bold text-royal">กำลังโหลดข่าว...</h1>
+        <p id="stateText" class="mt-2 text-[15px] text-ink2"></p>
+        <a id="stateBtn" href="index.html" hidden class="bg-grad press t-spring mt-6 inline-flex h-12 items-center gap-2 rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5"></a>
+      </section>
+
+      <article id="article" lang="th" hidden>
+        <!-- ===== Top: lead photo + summary ===== -->
+        <div class="mt-4 grid gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
+          <figure id="leadFig" class="self-start rounded-card border border-line bg-surface p-3 shadow-raised">
+            <button type="button" data-open="0" class="press t-quick group relative block w-full overflow-hidden rounded-2xl" aria-label="เปิดดูภาพข่าวแบบเต็มจอ ภาพที่ 1">
+              <img id="leadImg" alt="" class="t-spring aspect-[3/2] w-full object-cover group-hover:scale-[1.03]" width="1200" height="800">
+              <span class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></span>
+              <span class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-60"></span>
+              <span class="t-spring absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-shell px-4 py-2 font-display text-[14px] font-semibold text-royal shadow-raised group-hover:scale-105">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>ขยายภาพ
+              </span>
+            </button>
+            <figcaption class="flex items-center justify-between gap-4 px-2 pb-1 pt-3 text-[13px] text-ink2">
+              <span class="inline-flex items-center gap-1.5"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg><span data-i18n="caption">ภาพข่าว · 48 ภาพ</span></span>
+              <span data-i18n="credit">ภาพ: งานประชาสัมพันธ์ มรส.</span>
+            </figcaption>
+          </figure>
+
+          <div class="flex flex-col">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex flex-wrap gap-2">
+                <span id="tagFeatured" class="rounded-full bg-red-soft px-3 font-display text-[13px] font-semibold leading-7 text-brand" data-i18n="tagFeatured"></span>
+                <span class="rounded-full bg-royal-soft px-3 font-display text-[13px] font-semibold leading-7 text-royal" data-i18n="tagUnit"></span>
+                <span id="tagInternal" class="rounded-full bg-purple-soft px-3 font-display text-[13px] font-semibold leading-7 text-purple" data-i18n="tagInternal"></span>
+                <span id="tagVideo" class="inline-flex items-center gap-1 rounded-full bg-purple-soft px-3 font-display text-[13px] font-semibold leading-7 text-purple"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span data-i18n="tagVideo"></span></span>
+              </div>
+              <button id="saveBtn" type="button" data-save="" aria-pressed="false" aria-label="บันทึกข่าวที่ชอบ"
+                class="save-btn grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line bg-shell text-brand shadow-raised">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.6 4.5 7.1 4.5c2 0 3.6 1.1 4.9 2.8 1.3-1.7 2.9-2.8 4.9-2.8 3.5 0 5.7 3.5 4.4 6.8-1.8 4.6-9.3 9.2-9.3 9.2Z"/></svg>
+              </button>
+            </div>
+
+            <h1 class="mt-4 font-display tight text-[clamp(28px,3.4vw,42px)] font-bold text-royal" data-i18n="title"></h1>
+            <p id="dek" class="mt-3 text-[17px] font-medium text-brand" data-i18n="dek"></p>
+
+            <dl class="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 rounded-card border border-line bg-surface2/60 p-5">
+              <div>
+                <dt class="inline-flex items-center gap-1.5 text-[13px] text-ink2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span data-i18n="lblDate">วันที่เผยแพร่</span></dt>
+                <dd class="mt-1 font-display text-[16px] font-medium"><time id="pubTime" data-i18n="date"></time></dd>
+              </div>
+              <div>
+                <dt class="inline-flex items-center gap-1.5 text-[13px] text-ink2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5l8-3 8 3v16M9 21v-5h6v5"/></svg><span data-i18n="lblUnit">หน่วยงาน</span></dt>
+                <dd class="mt-1 font-display text-[16px] font-medium"><a id="unitLink" href="search.html" class="rounded text-royal underline-offset-4 hover:underline" data-i18n="unit"></a></dd>
+              </div>
+              <div>
+                <dt id="lblLang" class="inline-flex items-center gap-1.5 text-[13px] text-ink2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span data-i18n="lblLang">ภาษา</span></dt>
+                <dd class="mt-1">
+                  <p id="thaiOnly" class="font-display text-[16px] font-medium" hidden>ภาษาไทย</p>
+                  <div id="langSwitch" class="inline-flex rounded-full border border-line bg-shell p-1" role="group" aria-labelledby="lblLang">
+                    <button type="button" data-lang="th" class="lang-btn press t-quick h-9 rounded-full px-4 font-display text-[14px] font-semibold">ไทย</button>
+                    <button type="button" data-lang="en" class="lang-btn press t-quick h-9 rounded-full px-4 font-display text-[14px] font-semibold">English</button>
+                  </div>
+                </dd>
+              </div>
+              <div>
+                <dt class="inline-flex items-center gap-1.5 text-[13px] text-ink2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span data-i18n="lblViews">อ่านแล้ว</span></dt>
+                <dd class="mt-1 font-display text-[16px] font-medium" data-i18n="views"></dd>
+              </div>
+            </dl>
+
+            <div class="mt-6 flex flex-wrap gap-3">
+              <a id="galleryBtn" href="#gallery" class="bg-grad press t-spring inline-flex h-12 items-center gap-2 rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg>
+                <span data-i18n="btnGallery"></span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+              <button id="shareBtn" type="button" class="press t-spring inline-flex h-12 items-center gap-2 rounded-2xl border border-line bg-shell px-5 font-display text-[16px] font-medium shadow-raised hover:-translate-y-0.5">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+                <span data-i18n="btnShare">แชร์</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Body ===== -->
+        <div class="mx-auto mt-shelf max-w-[760px]">
+          <div class="reveal news-body" data-i18n-html="body"></div>
+
+          <!-- Video -->
+          <section id="videoSec" class="reveal mt-10" aria-labelledby="video-title">
+            <h2 id="video-title" class="mb-4 font-display text-[22px] font-bold text-royal" data-i18n="videoTitle">วิดีโอประกอบข่าว</h2>
+            <a id="videoLink" href="#" target="_blank" rel="noopener" class="lift press t-spring group relative block overflow-hidden rounded-card hover:-translate-y-1">
+              <span id="videoArt" class="block aspect-video w-full" style="background: radial-gradient(60% 90% at 80% 20%, rgb(122 60 226 / .9), transparent 70%), radial-gradient(60% 90% at 10% 100%, rgb(222 20 42 / .85), transparent 70%), #1B2560"></span>
+              <span class="absolute inset-0 bg-[rgb(38_66_200/.18)] mix-blend-multiply"></span>
+              <span class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></span>
+              <span class="t-spring absolute left-1/2 top-1/2 grid h-20 w-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-shell/95 text-brand shadow-float group-hover:scale-110">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              </span>
+              <span class="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1 text-[13px] font-semibold text-white backdrop-blur" id="videoLabel"></span>
+            </a>
+          </section>
+
+          <!-- Gallery -->
+          <section id="gallery" class="reveal mt-10" aria-labelledby="gallery-title">
+            <div class="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+              <div>
+                <h2 id="gallery-title" class="font-display text-[22px] font-bold text-royal" data-i18n="galleryTitle">ภาพข่าว</h2>
+                <p id="galleryNote" class="text-[13px] text-ink2" data-i18n="galleryNote">แตะภาพเพื่อขยาย และดาวน์โหลดขนาดต้นฉบับ</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <a id="zipBtn" href="#" download class="press t-spring inline-flex h-11 items-center gap-2 rounded-2xl border border-line bg-shell px-4 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>
+                  <span data-i18n="btnZip"></span>
+                </a>
+                <a id="albumBtn" href="#" target="_blank" rel="noopener" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-4 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="15" height="13" rx="2"/><path d="M7 21h12a2 2 0 0 0 2-2V8"/><circle cx="8.5" cy="10" r="1.6"/><path d="m18 15-4-4-7 6"/></svg>
+                  <span data-i18n="btnAlbum"></span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+                </a>
+              </div>
+            </div>
+            <div id="thumbs" class="grid grid-cols-2 gap-3 sm:grid-cols-4"></div>
+          </section>
+
+          <!-- Footer meta -->
+          <div class="reveal mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-6 text-[13px] text-ink2">
+            <span data-i18n="submitted"></span>
+            <span data-i18n="reviewed">ตรวจทานโดย งานประชาสัมพันธ์ มรส.</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- ===== Related ===== -->
+      <section id="related" class="mt-shelf" aria-labelledby="related-title" hidden>
+        <div class="reveal mb-6">
+          <p class="font-display text-[14px] font-medium text-brand">ข่าวใกล้เคียงที่คุณอาจสนใจ</p>
+          <h2 id="related-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">อ่านข่าวไหนต่อดี?</h2>
+        </div>
+        <div id="relatedGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="mx-auto max-w-page px-shell pb-10 pt-8">
+    <div class="flex flex-col gap-4 border-t border-line pt-8 text-[14px] text-ink2 md:flex-row md:items-center">
+      <a href="index.html" class="press t-quick flex items-center gap-3 rounded-xl hover:opacity-80">
+        <span class="logo-crop h-9 w-9"><img src="/assets/img/logo-192.webp" alt=""></span>
+        <span class="font-display font-semibold text-purple">ข่าว มรส.</span>
+      </a>
+      <span>คลังข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
+      <span class="flex gap-6 md:ml-auto">
+        <a href="privacy.html" class="press t-quick rounded hover:text-ink hover:underline">นโยบายความเป็นส่วนตัว</a>
+        <span>โดยงานประชาสัมพันธ์ มรส.</span>
+      </span>
+    </div>
+  </footer>
+
+  <!-- ===== Lightbox ===== -->
+  <dialog id="lightbox" aria-label="ภาพข่าวแบบเต็มจอ">
+    <div class="lb-stage flex h-full flex-col">
+      <div class="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <p id="lbCount" class="font-display text-[15px] font-medium" aria-live="polite"></p>
+        <div class="flex items-center gap-2">
+          <a id="lbDownload" href="#" class="press t-spring inline-flex h-11 items-center gap-2 rounded-full bg-white px-4 font-display text-[14px] font-semibold text-[#1B2560] hover:-translate-y-0.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>
+            <span id="lbDownloadText">ดาวน์โหลดขนาดต้นฉบับ</span>
+          </a>
+          <button id="lbClose" type="button" autofocus class="press t-quick grid h-11 w-11 place-items-center rounded-full bg-white/10 hover:bg-white/20" aria-label="ปิด">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="relative flex min-h-0 flex-1 items-center justify-center px-2 sm:px-20">
+        <img id="lbImg" alt="" class="lb-img max-h-full max-w-full rounded-xl object-contain">
+        <button id="lbPrev" type="button" class="press t-spring absolute left-2 top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/15 backdrop-blur hover:bg-white/25 sm:left-6" aria-label="ภาพก่อนหน้า">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <button id="lbNext" type="button" class="press t-spring absolute right-2 top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/15 backdrop-blur hover:bg-white/25 sm:right-6" aria-label="ภาพถัดไป">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+      <p id="lbMeta" class="px-4 py-4 text-center text-[13px] text-white/75"></p>
+    </div>
+  </dialog>
+
+  <!-- ===== Confirm "download all photos" ===== -->
+  <dialog id="zipDlg" aria-labelledby="zipTitle" aria-describedby="zipText">
+    <div class="zip-card w-[min(440px,calc(100vw-32px))] rounded-card border border-line bg-shell p-6 text-ink shadow-float">
+      <span class="grid h-12 w-12 place-items-center rounded-2xl bg-grad text-white shadow-glow">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>
+      </span>
+      <h2 id="zipTitle" class="mt-4 [text-wrap:balance] font-display text-[21px] font-semibold text-royal"></h2>
+      <p id="zipText" class="mt-2 text-[15px] leading-[1.7] text-ink2"></p>
+      <div class="mt-6 flex flex-wrap justify-end gap-2">
+        <button id="zipCancel" type="button" autofocus class="press t-spring inline-flex h-11 items-center rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-medium hover:-translate-y-0.5"></button>
+        <a id="zipOk" href="#" download class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5"></a>
+      </div>
+    </div>
+  </dialog>
+
+  <p id="liveMsg" class="sr-only" role="status" aria-live="polite"></p>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="auth.js"></script>
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const TZ = 'Asia/Bangkok';
+    const liveMsg = document.getElementById('liveMsg');
+    const article = document.getElementById('article');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -6% 0px' });
+    const reveal = (root = document) => root.querySelectorAll('.reveal:not(.in)').forEach((el) => io.observe(el));
+    const PLATFORM = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
+    const ALBUM = { facebook: 'Facebook', drive: 'Google Drive', photos: 'Google Photos' };
+    let me = { user: null };
+    let story = null;
+    let photos = []; // [{ web, full }]
+
+    // Plain text from the PR desk → paragraphs (blank line or new line = new paragraph)
+    const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter(Boolean).map((p) => `<p>${esc(p)}</p>`).join('');
+
+    // ---- Page text (TH/EN). Story fields fall back to Thai when there is no English version. ----
+    function texts(s, l) {
+      const n = photos.length;
+      const at = new Date(s.publishedAt);
+      const date = l === 'th'
+        ? `${new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ }).format(at)} · ${new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(at)} น.`
+        : `${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ }).format(at)} · ${new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(at)}`;
+      return l === 'th' ? {
+        caption: `ภาพข่าว · ${n} ภาพ`, credit: `ภาพ: ${s.credit || 'งานประชาสัมพันธ์ มรส.'}`,
+        tagFeatured: 'ข่าวเด่น', tagUnit: s.unit, tagInternal: s.audience, tagVideo: 'มีวิดีโอ',
+        title: s.title, dek: s.lead || '', lblDate: 'วันที่เผยแพร่', date, lblUnit: 'หน่วยงาน', unit: s.unit,
+        lblLang: 'ภาษา', lblViews: 'อ่านแล้ว', views: `${s.views.toLocaleString('th-TH')} ครั้ง`,
+        btnGallery: `ดูภาพทั้งหมด ${n} ภาพ`, btnShare: 'แชร์',
+        videoTitle: 'วิดีโอประกอบข่าว', galleryTitle: 'ภาพข่าว', galleryNote: n > 1 ? 'แตะภาพเพื่อขยาย และดาวน์โหลดขนาดต้นฉบับ' : 'ภาพทั้งหมดของกิจกรรมนี้อยู่ที่ลิงก์ภายนอก',
+        btnZip: `ดาวน์โหลดภาพทั้งหมด (${n} ภาพ)`, btnAlbum: ALBUM[s.albumHost] ? `ดูรูปภาพเพิ่มเติมบน ${ALBUM[s.albumHost]}` : 'ดูรูปภาพเพิ่มเติม',
+        submitted: `ส่งข่าวโดย ${s.unit}`, reviewed: 'ตรวจทานโดย งานประชาสัมพันธ์ มรส.', body: paragraphs(s.body),
+      } : {
+        caption: `News photos · ${n} photo${n === 1 ? '' : 's'}`, credit: `Photos: ${s.credit || 'SRU Public Relations'}`,
+        tagFeatured: 'Featured', tagUnit: s.unit, tagInternal: 'Internal', tagVideo: 'Video',
+        title: s.titleEn || s.title, dek: s.titleEn ? '' : s.lead || '', lblDate: 'Published', date, lblUnit: 'Unit', unit: s.unit,
+        lblLang: 'Language', lblViews: 'Views', views: s.views.toLocaleString('en-US'),
+        btnGallery: `View all ${n} photos`, btnShare: 'Share',
+        videoTitle: 'Video', galleryTitle: 'Photos', galleryNote: n > 1 ? 'Tap a photo to enlarge and download the original' : 'All photos of this event are on the linked album',
+        btnZip: `Download all ${n} photos`, btnAlbum: ALBUM[s.albumHost] ? `More photos on ${ALBUM[s.albumHost]}` : 'More photos',
+        submitted: `Submitted by ${s.unit}`, reviewed: 'Reviewed by SRU Public Relations', body: paragraphs(s.bodyEn || s.body),
+      };
+    }
+    const hasEn = () => !!(story.titleEn || story.bodyEn);
+    function setLang(l) {
+      if (!hasEn()) l = 'th';
+      const t = texts(story, l);
+      article.lang = l;
+      article.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t[el.dataset.i18n] ?? ''; });
+      article.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = t[el.dataset.i18nHtml]; });
+      $('#dek').hidden = !t.dek;
+      document.querySelectorAll('.lang-btn').forEach((b) => {
+        const on = b.dataset.lang === l;
+        b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('bg-grad', on); b.classList.toggle('text-white', on); b.classList.toggle('text-ink2', !on);
+      });
+      if (hasEn()) try { localStorage.setItem('newsLang', l); } catch (e) {}
+    }
+    document.querySelectorAll('.lang-btn').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
+
+    // ---- States: loading, not found, internal news ----
+    const ICON = {
+      lock: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+      gone: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/><path d="M10 11v5M14 11v5"/></svg>',
+      search: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+      wait: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>',
+    };
+    // Same states and wording as status.html; code = the HTTP status the API answered with
+    function showState(icon, title, text, btn, code) {
+      $('#stateIcon').innerHTML = ICON[icon];
+      $('#stateCode').textContent = code || '';
+      $('#stateCode').hidden = !code;
+      $('#stateTitle').textContent = title;
+      $('#stateText').textContent = text;
+      $('#stateBtn').hidden = !btn;
+      if (btn) { $('#stateBtn').textContent = btn.label; $('#stateBtn').href = btn.href; }
+      $('#state').hidden = false;
+      article.hidden = true;
+      document.title = `${title} | ข่าว มรส.`;
+    }
+    $('#stateIcon').innerHTML = ICON.wait;
+
+    // ---- Render the story ----
+    function render(s, related) {
+      story = s;
+      photos = [s.cover, ...s.gallery].filter(Boolean);
+      document.title = `${s.title} | ข่าว มรส.`;
+      document.querySelector('meta[name=description]').content = s.lead || `ข่าวจาก${s.unit} มหาวิทยาลัยราชภัฏสุราษฎร์ธานี`;
+
+      // Lead photo (video stories may have none: the summary then takes the full width)
+      $('#leadFig').hidden = !photos.length;
+      $('#leadFig').parentElement.classList.toggle('lg:grid-cols-[1.05fr_1fr]', photos.length > 0);
+      if (photos.length && $('#leadImg').getAttribute('src') !== photos[0].web) {
+        if (photos[0].set) { $('#leadImg').srcset = photos[0].set; $('#leadImg').sizes = '(min-width: 1024px) 900px, 100vw'; }
+        $('#leadImg').src = photos[0].web;
+      }
+      $('#tagFeatured').hidden = !s.featured;
+      $('#tagInternal').hidden = !s.internal;
+      $('#tagVideo').hidden = !s.videoUrl;
+      $('#saveBtn').dataset.save = s.id;
+      $('#unitLink').href = `search.html?unit=${encodeURIComponent(s.unit)}`;
+      $('#saveBtn').setAttribute('aria-pressed', String(s.saved));
+      $('#pubTime').setAttribute('datetime', s.publishedAt);
+      $('#langSwitch').hidden = !hasEn();
+      $('#thaiOnly').hidden = hasEn();
+      $('#galleryBtn').hidden = photos.length < 2;
+
+      // Video: YouTube shows its thumbnail; other platforms a brand panel with the platform name
+      $('#videoSec').hidden = !s.videoUrl;
+      if (s.videoUrl) {
+        const name = PLATFORM[s.videoPlatform] || 'วิดีโอ';
+        $('#videoLink').href = s.videoUrl;
+        $('#videoLink').setAttribute('aria-label', `ดูวิดีโอบน ${name} (เปิดในแท็บใหม่)`);
+        $('#videoLabel').textContent = name;
+        if (s.videoThumb) $('#videoArt').outerHTML = `<img id="videoArt" src="${esc(s.videoThumb)}" alt="" class="aspect-video w-full object-cover" loading="lazy" width="1280" height="720">`;
+      }
+
+      // Gallery: first 8, the last tile opens the rest. Shown for 2+ photos or when there is an album link.
+      $('#gallery').hidden = photos.length < 2 && !s.albumUrl;
+      $('#thumbs').hidden = photos.length < 2;
+      $('#zipBtn').hidden = photos.length < 2;
+      $('#zipBtn').href = $('#zipOk').href = `/media/${encodeURIComponent(s.id)}/photos.zip`;
+      $('#albumBtn').hidden = !s.albumUrl;
+      if (s.albumUrl) {
+        $('#albumBtn').href = s.albumUrl;
+        $('#albumBtn').setAttribute('aria-label', `${ALBUM[s.albumHost] ? `ดูรูปภาพเพิ่มเติมบน ${ALBUM[s.albumHost]}` : 'ดูรูปภาพเพิ่มเติม'} (เปิดในแท็บใหม่)`);
+      }
+      const SHOW = Math.min(8, photos.length);
+      $('#thumbs').innerHTML = photos.slice(0, SHOW).map((p, i) => {
+        const more = i === SHOW - 1 ? photos.length - SHOW : 0;
+        return `<button type="button" data-open="${i}" class="press t-spring group relative overflow-hidden rounded-2xl hover:-translate-y-0.5" aria-label="${more ? `ดูภาพทั้งหมด อีก ${more} ภาพ` : `เปิดภาพที่ ${i + 1}`}">
+          <img src="${esc(p.web)}"${p.set ? ` srcset="${esc(p.set)}" sizes="(min-width: 640px) 25vw, 50vw"` : ''} alt="" decoding="async" class="t-spring aspect-[4/3] w-full object-cover group-hover:scale-105" loading="lazy" width="400" height="300">
+          <span class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></span>
+          <span class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-40"></span>
+          ${more ? `<span class="absolute inset-0 grid place-items-center bg-[rgb(27_37_96/.7)] font-display text-[22px] font-bold text-white">+${more}</span>` : ''}
+        </button>`;
+      }).join('');
+
+      let start = 'th';
+      try { start = localStorage.getItem('newsLang') || 'th'; } catch (e) {}
+      setLang(start);
+
+      $('#relatedGrid').innerHTML = related.map(card).join('');
+      $('#related').hidden = !related.length;
+
+      $('#state').hidden = true;
+      article.hidden = false;
+      reveal();
+      const m = location.hash.match(/^#photo-(\d+)$/);
+      if (m && photos.length) open(Math.min(photos.length, Math.max(1, Number(m[1]))) - 1);
+    }
+
+    // ---- Download all photos: confirm first (one ZIP of full-size photos can be large on mobile data) ----
+    const zipDlg = document.getElementById('zipDlg');
+    $('#zipBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      const en = article.lang === 'en', n = photos.length;
+      $('#zipTitle').textContent = en ? `Download all ${n} photos?` : `ดาวน์โหลดภาพทั้งหมด ${n} ภาพ?`;
+      $('#zipText').textContent = en
+        ? 'Full-size photos come as one ZIP file. If you share the photos, please credit the photographer or cite this story as the source.'
+        : 'ภาพขนาดเต็มจะรวมเป็นไฟล์ ZIP ไฟล์เดียว และหากนำภาพไปเผยแพร่ต่อ กรุณาให้เครดิตหรืออ้างแหล่งที่มาของภาพหรือข่าวด้วย';
+      $('#zipCancel').textContent = en ? 'Cancel' : 'ยกเลิก';
+      $('#zipOk').textContent = en ? 'Download' : 'ดาวน์โหลด';
+      zipDlg.showModal();
+    });
+    $('#zipOk').addEventListener('click', () => {
+      zipDlg.close();
+      liveMsg.textContent = 'กำลังดาวน์โหลดภาพทั้งหมด';
+    });
+    $('#zipCancel').addEventListener('click', () => zipDlg.close());
+    zipDlg.addEventListener('click', (e) => { if (e.target === zipDlg) zipDlg.close(); });
+
+    // ---- Lightbox ----
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lbImg');
+    let cur = 0;
+    function show(i) {
+      const total = photos.length;
+      cur = (i + total) % total;
+      const p = photos[cur];
+      lbImg.classList.add('swap');
+      setTimeout(() => {
+        lbImg.src = p.web;
+        lbImg.alt = `ภาพข่าวที่ ${cur + 1} จาก ${total}`;
+        lbImg.classList.remove('swap');
+      }, 120);
+      $('#lbCount').textContent = `ภาพที่ ${cur + 1} / ${total}`;
+      // Full size has GPS/EXIF removed by the server; older stories may only have the 1600px copy
+      $('#lbDownload').href = `${p.full || p.web}?download=1`;
+      $('#lbDownloadText').textContent = p.full ? 'ดาวน์โหลดขนาดต้นฉบับ' : 'ดาวน์โหลดภาพ';
+      $('#lbMeta').textContent = p.full ? 'ขนาดเต็ม · JPEG · ลบข้อมูลพิกัด GPS แล้ว' : 'ขนาด 1600 px · WebP';
+      history.replaceState(null, '', `${location.search}#photo-${cur + 1}`);
+    }
+    function open(i) { if (!photos.length) return; if (!lb.open) lb.showModal(); show(i); }
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-open]');
+      if (t) open(Number(t.dataset.open));
+    });
+    document.getElementById('lbPrev').addEventListener('click', () => show(cur - 1));
+    document.getElementById('lbNext').addEventListener('click', () => show(cur + 1));
+    document.getElementById('lbClose').addEventListener('click', () => lb.close());
+    lb.addEventListener('close', () => history.replaceState(null, '', location.pathname + location.search));
+    lb.addEventListener('click', (e) => { if (e.target === lb) lb.close(); });
+    lb.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') show(cur - 1);
+      if (e.key === 'ArrowRight') show(cur + 1);
+    });
+    let sx = null;
+    lb.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, { passive: true });
+    lb.addEventListener('touchend', (e) => {
+      if (sx === null) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      if (Math.abs(dx) > 50) show(cur + (dx < 0 ? 1 : -1));
+      sx = null;
+    });
+
+    // ---- Share ----
+    document.getElementById('shareBtn').addEventListener('click', async () => {
+      const data = { title: document.title, url: location.href.split('#')[0] };
+      try {
+        if (navigator.share) { await navigator.share(data); return; }
+        await navigator.clipboard.writeText(data.url);
+        liveMsg.textContent = 'คัดลอกลิงก์ข่าวแล้ว';
+      } catch (e) {}
+    });
+
+    // ---- Related (same card as index.html) ----
+    const ic = {
+      photo: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg>',
+      play: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
+      clock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      eye: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
+      building: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h.01M12 9h.01M16 9h.01M8 13h.01M16 13h.01"/></svg>',
+      heart: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.6 4.5 7.1 4.5c2 0 3.6 1.1 4.9 2.8 1.3-1.7 2.9-2.8 4.9-2.8 3.5 0 5.7 3.5 4.4 6.8-1.8 4.6-9.3 9.2-9.3 9.2Z"/></svg>',
+    };
+    const lang = (en) => `<span class="inline-flex gap-1" aria-label="${en ? 'มีฉบับภาษาไทยและอังกฤษ' : 'ภาษาไทย'}">
+        <span class="rounded-md bg-red-soft px-1.5 font-display text-[11px] font-semibold leading-5 text-brand">TH</span>
+        ${en ? '<span class="rounded-md bg-royal-soft px-1.5 font-display text-[11px] font-semibold leading-5 text-royal">EN</span>' : ''}</span>`;
+    const fmtDay = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ });
+    const coverOf = (n) => n.cover || n.videoThumb
+      ? `<img src="${esc(n.cover || n.videoThumb)}"${n.coverSet && n.cover ? ` srcset="${esc(n.coverSet)}" sizes="(min-width: 1024px) 340px, (min-width: 640px) 50vw, 100vw"` : ''} alt="" decoding="async" class="t-spring h-full w-full object-cover group-hover:scale-[1.05]" loading="lazy" width="640" height="360">`
+      : `<div class="t-spring grid h-full w-full place-items-center group-hover:scale-[1.05]" style="background: radial-gradient(60% 90% at 80% 20%, rgb(122 60 226 / .9), transparent 70%), radial-gradient(60% 90% at 10% 100%, rgb(222 20 42 / .85), transparent 70%), #1B2560">
+           <span class="grid h-14 w-14 place-items-center rounded-full bg-shell/95 text-brand shadow-float">${ic.play}</span></div>`;
+    const card = (n) => `
+      <article class="reveal">
+        <div class="lift t-spring group relative h-full rounded-card hover:-translate-y-1">
+        <a href="news.html?id=${n.id}" class="press t-quick flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface">
+          <div class="relative aspect-[16/9] overflow-hidden bg-surface2">
+            ${coverOf(n)}
+            <div class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></div>
+            <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-50"></div>
+            ${n.photos ? `<span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-lg bg-shell px-2 py-0.5 font-display text-[12px] font-semibold text-royal shadow-raised">${ic.photo}${n.photos} ภาพ</span>` : ''}
+          </div>
+          <div class="flex flex-1 flex-col p-[18px]">
+            <div class="mb-2 flex items-center justify-between gap-2 text-[12px] text-ink2">
+              <span class="inline-flex items-center gap-1">${ic.clock}<time datetime="${esc(n.publishedAt)}">${fmtDay.format(new Date(n.publishedAt))}</time></span>
+              ${n.internal
+                ? `<span class="rounded-full bg-purple-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-purple">${esc(n.audience)}</span>`
+                : n.video
+                ? `<span class="inline-flex items-center gap-1 rounded-full bg-red-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-brand">${ic.play}วิดีโอ</span>`
+                : `<span class="inline-flex items-center gap-1 rounded-full bg-royal-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-royal">${ic.photo}ภาพข่าว</span>`}
+            </div>
+            <h3 class="clamp-2 font-display text-[17px] font-semibold">${esc(n.title)}</h3>
+            <div class="mt-auto flex items-center gap-3 pt-3 text-[12px] text-ink2">
+              ${lang(n.en)}
+              <span class="inline-flex min-w-0 items-center gap-1 text-sky">${ic.building}<span class="truncate">${esc(n.unit)}</span></span>
+              <span class="ml-auto inline-flex shrink-0 items-center gap-1" aria-label="อ่าน ${n.views} ครั้ง">${ic.eye}${n.views.toLocaleString('th-TH')}</span>
+            </div>
+          </div>
+        </a>
+        <div class="pointer-events-none absolute inset-x-0 top-0 aspect-[16/9]">
+          <button type="button" data-save="${n.id}" aria-pressed="false" aria-label="บันทึกข่าวที่ชอบ: ${esc(n.title)}"
+            class="save-btn pointer-events-auto absolute bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-shell text-brand shadow-raised">${ic.heart}</button>
+        </div>
+        </div>
+      </article>`;
+
+    // ---- Saved (liked) news: stored in the signed-in account ----
+    let saved = new Set();
+    const applySaved = () => document.querySelectorAll('[data-save]').forEach((b) => b.setAttribute('aria-pressed', String(saved.has(b.dataset.save))));
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-save]');
+      if (!b) return;
+      if (!me.user) { location.href = 'login.html'; return; }
+      const id = b.dataset.save;
+      const on = !saved.has(id);
+      on ? saved.add(id) : saved.delete(id);
+      applySaved();
+      if (on) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+      try {
+        await api(`/news/${id}/save`, { method: on ? 'PUT' : 'DELETE' });
+        liveMsg.textContent = on ? 'บันทึกเป็นข่าวที่ชอบแล้ว' : 'นำออกจากข่าวที่ชอบแล้ว';
+      } catch (err) {
+        on ? saved.delete(id) : saved.add(id);
+        applySaved();
+        liveMsg.textContent = `บันทึกไม่สำเร็จ: ${err.message}`;
+      }
+    });
+
+    // ---- Theme ----
+    const themeSwitch = document.getElementById('themeToggle');
+    themeSwitch.setAttribute('aria-checked', document.documentElement.classList.contains('dark'));
+    themeSwitch.addEventListener('click', () => {
+      const dark = document.documentElement.classList.toggle('dark');
+      themeSwitch.setAttribute('aria-checked', dark);
+      try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+    });
+
+    // ---- Load: news.html?id=… ----
+    (async () => {
+      const id = new URLSearchParams(location.search).get('id');
+      if (!id) { location.replace('index.html#latest'); return; }
+      // The server put the story in the page (pages.mjs): show it now, before the sign-in check comes back
+      const pre = window.__NEWS?.story?.id === id ? window.__NEWS : null;
+      if (pre) render(pre.story, pre.related);
+      me = await window.ME;
+      try {
+        const [r, s] = await Promise.all([
+          pre || api(`/news/${encodeURIComponent(id)}`),
+          me.user ? api('/me/saved').catch(() => ({ ids: [] })) : { ids: [] },
+        ]);
+        saved = new Set(s.ids);
+        if (!pre) render(r.story, r.related);
+        applySaved();
+        // One read per reader per story per day; the server ignores bots
+        api(`/news/${encodeURIComponent(id)}/read`, { method: 'POST', body: { ref: document.referrer } }).catch(() => {});
+      } catch (err) {
+        if (err.status === 410) {
+          showState('gone', 'ข่าวนี้ถูกถอนแล้ว', err.details?.reason ? `งานประชาสัมพันธ์ถอนข่าวนี้ออก เหตุผล: ${err.details.reason}` : 'งานประชาสัมพันธ์ถอนข่าวนี้ออกจากเว็บไซต์แล้ว', { label: 'อ่านข่าวอื่นในหน้าแรก', href: 'index.html' }, '410');
+        } else if (err.details?.locked && !err.details.signedIn) {
+          showState('lock', 'เข้าสู่ระบบเพื่ออ่านข่าวนี้', `ข่าวนี้เป็นข่าวภายใน ${err.details.audience} ใช้บัญชีอีเมลของมหาวิทยาลัยเพื่ออ่าน`, { label: 'เข้าสู่ระบบ', href: 'login.html' }, '401');
+        } else if (err.details?.locked) {
+          showState('lock', `ข่าวนี้${err.details.audience}`, 'บัญชีของคุณไม่อยู่ในกลุ่มผู้อ่านข่าวนี้ ลองอ่านข่าวอื่นในหน้าแรก', { label: 'กลับหน้าแรก', href: 'index.html' }, '403');
+        } else if (err.status === 404) {
+          showState('search', 'ไม่พบข่าวนี้', 'ลิงก์อาจไม่ครบ หรือพิมพ์ผิด ลองค้นหาข่าวที่ต้องการ', { label: 'ค้นหาข่าว', href: 'search.html' }, '404');
+        } else {
+          showState('wait', 'โหลดข่าวไม่สำเร็จ', err.message, { label: 'ลองอีกครั้ง', href: location.href });
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

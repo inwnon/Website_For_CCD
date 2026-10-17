@@ -1,0 +1,34 @@
+// Usage history (ประวัติการใช้งาน): one row for every change made in the back office.
+// audit(db, user, action, target, summary, details) — db is a transaction client or the pool,
+// so the history row commits or rolls back together with the change it describes.
+import { pool } from './db.mjs';
+
+export async function audit(db, user, action, target, summary, details = {}) {
+  await (db || pool).query(
+    'insert into audit_log (actor_id, actor_email, action, target, summary, details) values ($1, $2, $3, $4, $5, $6)',
+    [user?.id ?? null, user?.email ?? null, action, target ?? null, summary, JSON.stringify(details)],
+  );
+}
+
+// Action names → Thai labels for the history filter on admin.html
+export const ACTIONS = {
+  'submission.status': 'เปลี่ยนสถานะงาน',
+  'submission.message': 'ตอบข้อความผู้ส่ง',
+  'submission.publish': 'เผยแพร่งาน',
+  'news.import': 'นำเข้าข่าวย้อนหลัง',
+  'news.update': 'แก้ไขข่าว',
+  'news.feature': 'ข่าวเด่น',
+  'news.withdraw': 'ถอนข่าว',
+  'news.restore': 'คืนข่าว',
+  'role.set': 'กำหนดบทบาท',
+  'role.remove': 'ยกเลิกบทบาท',
+  'settings.update': 'ตั้งค่าระบบ',
+  'digest.update': 'จัดเล่มสรุปข่าว',
+  'digest.publish': 'เผยแพร่เล่มสรุปข่าว',
+  'digest.unpublish': 'ถอนเล่มสรุปข่าว',
+  'digest.reset': 'ล้างการจัดเล่ม',
+  'digest.file': 'ไฟล์ปก / PDF ของเล่ม',
+  'mail.test': 'ส่งอีเมลทดสอบ',
+  'privacy.erase': 'ลบข้อมูลส่วนบุคคล',
+  'privacy.reject': 'ไม่ลบข้อมูลตามคำขอ',
+};
