@@ -302,7 +302,7 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=a2f3118b75">
+  <link rel="stylesheet" href="/assets/app.css?v=fc7b1414e4">
 </head>
 
 <body class="min-h-screen">
@@ -1032,6 +1032,7 @@
   <script src="name-prefixes.js"></script>
   <script src="auth.js"></script>
   <script src="site-config.js"></script>
+  <script src="text-tools.js"></script>
   <script>
     // Sending is for university accounts; other Google accounts get the explanation page
     window.ME.then((m) => { if (m.user?.role === 'external') location.replace('status.html?s=domain'); });
@@ -1107,6 +1108,14 @@
 
     // ---- Category chips ----
     const VIDEO_CATS = (SITE.videoCategories || ['วิดีโอเสียงตามสาย']).filter((c) => !CATEGORIES.includes(c));
+    // วิดีโอเสียงตามสาย is a video's one category: choosing it clears the others, and another one clears it (runs before syncCats)
+    $('#catList').addEventListener('change', (e) => {
+      if (e.target.name !== 'category' || !e.target.checked) return;
+      document.querySelectorAll('input[name=category]').forEach((b) => { if (b !== e.target && (VIDEO_CATS.includes(e.target.value) || VIDEO_CATS.includes(b.value))) b.checked = false; });
+    }, true);
+    // จัดรูปแบบเนื้อหา: bold, font size and line spacing for the story text (news) or the description (video, banner)
+    const tools = TextTools.attach([$('#body'), $('#desc')], { onChange: () => scheduleDraft() });
+    const toolsOut = () => ({ bodyLeading: tools.get().leading });
     $('#catList').innerHTML = [...CATEGORIES.map((c) => [c, '']), ...VIDEO_CATS.map((c) => [c, ' data-for="video"'])].map(([c, only]) => `<label class="opt chip-opt"${only}><input type="checkbox" name="category" value="${c}"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">${c}</span></label>`).join('');
 
     // ---- Platform chips (news link + video link) ----
@@ -1755,7 +1764,7 @@
       if (!type || editing || draftId) return;
       const d = Object.fromEntries(DRAFT_FIELDS.map((k) => [k, $('#' + k).value]));
       DRAFT_RADIOS.forEach((n) => { d[n] = radio(n); });
-      Object.assign(d, { type, categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), assigneePrefix: prefixOf('assignee'), guests: guests.filter((g) => g.name || g.pos) });
+      Object.assign(d, { type, categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), assigneePrefix: prefixOf('assignee'), guests: guests.filter((g) => g.name || g.pos), ...toolsOut() });
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) { return; }
       const now = new Date();
       const el = $('#draftState');
@@ -1777,6 +1786,7 @@
       setPrefix('chair', d.chairPrefix); setPrefix('reporter', d.reporterPrefix); setPrefix('assignee', d.assigneePrefix);
       guests = Array.isArray(d.guests) ? d.guests.map((g) => ({ prefix: g.prefix || '', name: g.name || '', pos: g.pos || '' })) : [];
       $('#enToggle').checked = !!d.en; $('#enFields').hidden = !d.en;
+      tools.set({ size: d.bodySize, leading: d.bodyLeading });
     }
     function restoreDraft() {
       let d = null;
@@ -1887,6 +1897,7 @@
         assigneePrefix: prefixOf('assignee'), assigneeName: val('assigneeName'), assigneePos: val('assigneePos'),
         guests: guests.filter((g) => g.name.trim() || g.pos.trim()).map((g) => ({ prefix: (g.prefix || '').trim(), name: g.name.trim(), pos: g.pos.trim() })),
         en: $('#enToggle').checked, titleEn: val('titleEn'), bodyEn: val('bodyEn'), audience: audVals(), note: val('note'), consent: $('#consent').checked,
+        ...toolsOut(),
         // The order of the pictures as arranged on the page (first = cover), and files already on the server that were removed
         order: { photo: up.photo.order, art: up.art.order, attach: up.attach.order, cover: up.cover.order },
         removeFiles: Object.values(up).flatMap((u) => u.removed),
@@ -2092,6 +2103,7 @@
       set('title', sub.title); set('lead', f.lead); set('desc', f.desc); set('body', f.body); set('eventDate', f.eventDate?.slice(0, 10)); set('place', f.place);
       set('credit', f.credit); set('newsVideo', f.newsVideo); set('videoLink', f.videoLink); set('titleEn', f.titleEn); set('bodyEn', f.bodyEn); set('albumUrl', f.albumUrl); set('designer', f.designer); set('producer', f.producer);
       set('note', '');
+      tools.set({ size: f.bodySize, leading: f.bodyLeading });
       if (![...$('#unit').options].some((o) => o.value === sub.unit)) $('#unit').insertAdjacentHTML('beforeend', `<option>${esc(sub.unit)}</option>`);
       $('#unit').value = sub.unit;
       const pick = (name, v) => { const r = v && document.querySelector(`input[name=${name}][value="${CSS.escape(v)}"]`); if (r) r.checked = true; };

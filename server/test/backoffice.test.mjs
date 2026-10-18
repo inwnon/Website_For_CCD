@@ -92,9 +92,9 @@ describe('import (นำเข้าข่าวย้อนหลัง)', () =
     assert.equal((await anon.call('GET', '/media/00000000-0000-0000-0000-000000000000/photos.zip')).status, 404);
   });
 
-  test('left out of the home page feed, but in the archive, search, unit page and the PR list', async () => {
-    const feed = (await anon.call('GET', '/api/news?feed=1&limit=48')).body.items;
-    assert.ok(!feed.some((n) => n.id === id));
+  test('in the home page feed at its original date, and in the archive, search, unit page and the PR list', async () => {
+    const feed = (await anon.call('GET', `/api/news?feed=1&date=${IMPORT.date}&limit=48`)).body.items;
+    assert.ok(feed.some((n) => n.id === id));
     const day = (await anon.call('GET', `/api/news?date=${IMPORT.date}&limit=48`)).body.items;
     assert.ok(day.some((n) => n.id === id));
     assert.ok((await anon.call('GET', '/api/news/archive')).body.days[IMPORT.date] >= 1);
@@ -163,7 +163,13 @@ describe('search', () => {
 
 describe('reads', () => {
   let id;
-  before(async () => { id = (await anon.call('GET', '/api/news?limit=1')).body.items[0].id; });
+  // A new story each run: an account counts once per story per day, and tests run many times a day
+  before(async () => {
+    const r = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: `ทดสอบยอดอ่าน ${Date.now()}`, sourceUrl: null, date: today, time: '00:01', confirmDuplicate: true },
+      { photo: [['r.jpg', await img('#468', 800, 600), 'image/jpeg']] }));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    id = r.body.news.id;
+  });
 
   test('once per reader per story per day; bots are not counted', async () => {
     const views = (await anon.call('GET', `/api/news/${id}`)).body.story.views;

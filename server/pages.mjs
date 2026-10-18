@@ -13,6 +13,7 @@ import { Router } from 'express';
 import { loadUser } from './auth.mjs';
 import { query } from './db.mjs';
 import { LIVE, searchPayload, storyPayload } from './news.mjs';
+import { plainText } from './rules.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 export const ORIGIN = (process.env.APP_ORIGIN || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '');
@@ -55,7 +56,10 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const LS = new RegExp(String.fromCharCode(0x2028), 'g'), PS = new RegExp(String.fromCharCode(0x2029), 'g');
 const BS = String.fromCharCode(92); // a backslash, so "<" and the separators become JSON escape sequences
 const scriptJson = (v) => JSON.stringify(v).replace(/</g, BS + 'u003c').replace(LS, BS + 'u2028').replace(PS, BS + 'u2029');
-const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter(Boolean).map((p) => `<p>${esc(p)}</p>`).join('');
+// The same as paragraphs() in news.html: a line is a paragraph, **…** is bold, [size=18]…[/size] a font size,
+// [lh=loose] at the start its line spacing
+const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter(Boolean)
+  .map((p) => { const lh = p.match(/^\[lh=(tight|normal|loose)\]\s*/); return `<p${lh && lh[1] !== 'normal' ? ` data-leading="${lh[1]}"` : ''}>${esc(lh ? p.slice(lh[0].length) : p).replace(/\[size=(1[6-9]|20)\]([\s\S]*?)\[\/size\]/g, '<span data-size="$1">$2</span>').replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '<strong>$1</strong>')}</p>`; }).join('');
 const clip = (t, n) => { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > n ? `${s.slice(0, n - 1)}…` : s; };
 const TH_DATE = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' });
 const TH_TIME = new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
@@ -103,7 +107,7 @@ router.get('/news.html', loadUser, async (req, res, next) => {
   const url = `${ORIGIN}/news.html?id=${s.id}`;
   const lead = s.cover || s.gallery[0] || null;
   const image = lead ? ORIGIN + (lead.full || lead.web) : s.videoThumb ? ORIGIN + s.videoThumb : ORIGIN + OG_DEFAULT;
-  const description = clip(s.lead || s.body || `ข่าวจาก${s.unit}`, 200);
+  const description = clip(s.lead || plainText(s.body) || `ข่าวจาก${s.unit}`, 200);
   const internal = s.internal;
   if (internal) res.set('X-Robots-Tag', 'noindex');
   const ld = {
@@ -129,7 +133,7 @@ router.get('/news.html', loadUser, async (req, res, next) => {
   html = swap(html, 'data-i18n="dek"></p>', `data-i18n="dek"${s.lead ? '' : ' hidden'}>${esc(s.lead || '')}</p>`);
   html = swap(html, '<time id="pubTime" data-i18n="date"></time>', `<time id="pubTime" data-i18n="date" datetime="${at.toISOString()}">${TH_DATE.format(at)} · ${TH_TIME.format(at)} น.</time>`);
   html = swap(html, 'data-i18n="unit"></a>', `data-i18n="unit">${esc(s.unit)}</a>`);
-  html = swap(html, 'data-i18n-html="body"></div>', `data-i18n-html="body">${paragraphs(s.body)}</div>`);
+  html = swap(html, 'data-i18n-html="body"></div>', `data-i18n-html="body"${s.bodySize ? ` data-size="${s.bodySize}"` : ''}${s.bodyLeading ? ` data-leading="${s.bodyLeading}"` : ''}>${paragraphs(s.body)}</div>`);
   if (lead) {
     html = swap(html, '<img id="leadImg" alt=""', `<img id="leadImg" alt="" src="${esc(lead.web)}"${lead.set ? ` srcset="${esc(lead.set)}" sizes="(min-width: 1024px) 900px, 100vw"` : ''} fetchpriority="high"`);
   } else {

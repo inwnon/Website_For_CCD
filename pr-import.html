@@ -32,7 +32,7 @@
     .err { color: rgb(var(--red)); font-size: 13px; font-weight: 500; margin-top: 4px; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=a2f3118b75">
+  <link rel="stylesheet" href="/assets/app.css?v=fc7b1414e4">
 </head>
 <body class="app">
   <a href="#importForm" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่ฟอร์ม</a>
@@ -49,10 +49,12 @@
         <div class="scroll-thin min-h-0 flex-1 overflow-y-auto">
           <div class="border-b border-line p-4 sm:p-6">
             <h1 id="pageTitle" class="font-display tight text-[26px] font-bold text-royal">นำเข้าข่าวย้อนหลัง</h1>
-            <p class="mt-1 max-w-[70ch] text-[14px] text-ink2">ข่าวที่นำเข้าจะเผยแพร่ทันทีตามวันที่เดิม ไม่ผ่านคิวตรวจและไม่แจ้งผู้ส่ง จะไม่ขึ้นเป็นข่าวล่าสุดบนหน้าแรก แต่อยู่ในคลังข่าว ผลค้นหา หน้าหน่วยงาน และรายงาน</p>
+            <p id="pageLead" class="mt-1 max-w-[70ch] text-[14px] text-ink2">ข่าวที่นำเข้าจะเผยแพร่ทันทีตามวันที่เดิม ไม่ผ่านคิวตรวจและไม่แจ้งผู้ส่ง และอยู่ในรายการข่าวตามวันที่เดิม ทั้งหน้าแรก คลังข่าว ผลค้นหา หน้าหน่วยงาน และรายงาน</p>
+            <!-- แก้ไขข่าว (?edit=id): what was saved -->
+            <div id="savedNote" class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-sky-soft px-4 py-3 text-[14px]" role="status" hidden></div>
 
             <!-- Facebook -->
-            <div class="mt-5 rounded-card border border-line bg-surface2/60 p-4 sm:p-5">
+            <div id="fbBox" class="mt-5 rounded-card border border-line bg-surface2/60 p-4 sm:p-5">
               <label for="fbUrl" class="font-display text-[16px] font-semibold">วางลิงก์โพสต์จากเพจ Facebook ของมหาวิทยาลัย</label>
               <p class="text-[13px] text-ink2">ระบบจะดึงข้อความ ภาพ และวันที่มาใส่ฟอร์มให้ ตรวจแล้วแก้ได้ก่อนนำเข้า ถ้าไม่มีลิงก์ กรอกเองด้านล่างได้เลย</p>
               <div class="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -84,7 +86,7 @@
                 <span id="unitErr" class="err" hidden></span>
               </label>
               <label class="grid content-start gap-1.5">
-                <span class="font-display text-[15px] font-semibold">วันที่เผยแพร่เดิม <span class="text-brand">*</span></span>
+                <span class="font-display text-[15px] font-semibold"><span id="dateLabel">วันที่เผยแพร่เดิม</span> <span class="text-brand">*</span></span>
                 <input id="date" type="date" class="field h-12 w-full min-w-0 rounded-2xl px-3 text-[15px]" aria-describedby="dateErr">
                 <span id="dateErr" class="err" hidden></span>
               </label>
@@ -100,17 +102,17 @@
               <span id="titleErr" class="err" hidden></span>
             </label>
             <label class="grid gap-1.5">
-              <span class="font-display text-[15px] font-semibold">คำโปรย / สรุปข่าว</span>
-              <input id="lead" maxlength="300" class="field h-12 rounded-2xl px-4 text-[15px]">
+              <span class="flex items-baseline justify-between gap-3"><span class="font-display text-[15px] font-semibold">คำโปรย / สรุปข่าว</span><span class="text-[12px] text-ink2"><span id="leadCount">0</span>/300</span></span>
+              <textarea id="lead" rows="3" maxlength="300" placeholder="สรุปข่าวใน 1–2 ประโยค จะแสดงใต้หัวข้อข่าว" class="field w-full resize-y rounded-2xl px-4 py-3 text-[16px] leading-[1.7]"></textarea>
             </label>
-            <label class="grid gap-1.5" id="bodyBox">
-              <span class="font-display text-[15px] font-semibold">เนื้อหาข่าว <span id="bodyStar" class="text-brand">*</span></span>
-              <textarea id="body" rows="8" class="field rounded-2xl px-4 py-3 text-[15px] leading-relaxed" aria-describedby="bodyErr"></textarea>
+            <div class="grid gap-1.5" id="bodyBox">
+              <label for="body" class="font-display text-[15px] font-semibold">เนื้อหาข่าว <span id="bodyStar" class="text-brand">*</span></label>
+              <textarea id="body" rows="10" class="field min-h-[240px] resize-y rounded-2xl px-4 py-3 text-[17px] leading-[1.75]" aria-describedby="bodyErr"></textarea>
               <span id="bodyErr" class="err" hidden></span>
-            </label>
+            </div>
 
             <fieldset id="catSet">
-              <legend class="mb-2 font-display text-[15px] font-semibold">ประเภทข่าว <span id="catStar" class="text-brand">*</span> <span class="font-sans text-[13px] font-normal text-ink2">เลือกได้สูงสุด 5 ประเภท</span></legend>
+              <legend class="mb-2 font-display text-[15px] font-semibold">ประเภทข่าว <span id="catStar" class="text-brand">*</span> <span id="catHint" class="font-sans text-[13px] font-normal text-ink2">เลือกได้สูงสุด 5 ประเภท</span></legend>
               <div id="cats" class="flex flex-wrap gap-2"></div>
               <span id="categoriesErr" class="err" hidden></span>
             </fieldset>
@@ -149,8 +151,8 @@
                 <span id="videoUrlErr" class="err" hidden></span>
               </label>
               <label class="grid content-start gap-1.5">
-                <span class="font-display text-[15px] font-semibold">เครดิตภาพ</span>
-                <input id="credit" maxlength="80" placeholder="งานประชาสัมพันธ์ มรส." class="field h-12 rounded-2xl px-4 text-[15px]">
+                <span id="creditLabel" class="font-display text-[15px] font-semibold">เครดิตภาพ</span>
+                <input id="credit" maxlength="80" placeholder="งานประชาสัมพันธ์ มรส." class="field h-12 rounded-2xl px-4 text-[15px]" aria-labelledby="creditLabel">
               </label>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
@@ -170,8 +172,11 @@
 
         <div class="flex flex-wrap items-center justify-end gap-2 border-t border-line p-3 sm:px-5">
           <button id="resetBtn" type="button" class="press t-quick mr-auto h-11 rounded-2xl px-4 font-display text-[15px] font-medium text-ink2 hover:-translate-y-0.5 hover:text-ink">ล้างฟอร์ม</button>
-          <button type="submit" data-next="0" class="press t-spring h-11 rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5 disabled:opacity-60">นำเข้า</button>
-          <button type="submit" data-next="1" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">นำเข้าแล้วเพิ่มข่าวถัดไป</button>
+          <p id="importHint" class="basis-full text-right text-[13px] text-ink2 sm:basis-auto">"นำเข้าแล้วเพิ่มข่าวถัดไป" เก็บหน่วยงาน วันที่ เวลา และประเภทเนื้อหาไว้ให้ข่าวถัดไป</p>
+          <button type="submit" data-next="0" data-mode="import" class="press t-spring h-11 rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5 disabled:opacity-60">นำเข้า</button>
+          <button type="submit" data-next="1" data-mode="import" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">นำเข้าแล้วเพิ่มข่าวถัดไป</button>
+          <a id="cancelEdit" href="pr-news.html" data-mode="edit" class="press t-quick mr-auto inline-flex h-11 items-center rounded-2xl px-4 font-display text-[15px] font-medium text-ink2 hover:-translate-y-0.5 hover:text-ink" hidden>กลับไปหน้าข่าวที่เผยแพร่</a>
+          <button type="submit" data-mode="edit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60" hidden>บันทึกการแก้ไข</button>
         </div>
       </form>
 
@@ -210,6 +215,7 @@
   <script src="org-data.js"></script>
   <script src="site-config.js"></script>
   <script src="desk.js"></script>
+  <script src="text-tools.js"></script>
   <script>
     const { esc, day, isoDay, toast } = DESK;
     const $ = (s) => document.querySelector(s);
@@ -217,8 +223,15 @@
     const UNITS = [...new Set([...ORG.staffGroups.flatMap((g) => g.units), ...Object.values(ORG.subUnits).flatMap((s) => s.units), ...Object.keys(ORG.faculties)])];
     const AUD = { public: ['public'], uni: ['student', 'staff'], staff: ['staff'], student: ['student'] };
     const MAX_CATS = 5;
-    // Photos in order: [{ kind: 'remote', url } | { kind: 'file', file, url }], each with on = include
+    // Photos in order: [{ kind: 'remote', url } | { kind: 'file', file, url } | { kind: 'kept', path, url }], each with on = include
     let photos = [];
+    // แก้ไขข่าว: pr-import.html?edit=<story id> opens a story (any: imported, live, scheduled, withdrawn) in this form
+    const EDIT = new URLSearchParams(location.search).get('edit');
+    let editing = null; // the story as loaded
+    // วิดีโอเสียงตามสาย: a category used alone (server/rules.mjs soloOk)
+    const SOLO = (SITE.videoCategories || []).filter((c) => !SITE.categories.includes(c));
+    // The credit line names who made it, by kind of content
+    const CREDIT = { news: ['เครดิตภาพ', 'งานประชาสัมพันธ์ มรส.'], video: ['ผู้ผลิต', 'ชื่อผู้ผลิต หรือทีม / บริษัทที่ผลิต'], banner: ['ผู้ออกแบบ', 'ชื่อผู้ออกแบบ หรือทีม / บริษัท'] };
 
     $('#units').innerHTML = UNITS.map((u) => `<option value="${esc(u)}"></option>`).join('');
     $('#cats').innerHTML = [...new Set([...SITE.categories, ...(SITE.videoCategories || [])])].map((c) => `<label class="opt chip-opt"><input type="checkbox" name="cat" value="${esc(c)}"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">${esc(c)}</span></label>`).join('');
@@ -243,10 +256,16 @@
       $('#catStar').hidden = k === 'banner';
       $('#photoStar').hidden = k === 'video';
       $('#videoStar').hidden = k !== 'video';
+      $('#creditLabel').textContent = (CREDIT[k] || CREDIT.news)[0];
+      $('#credit').placeholder = (CREDIT[k] || CREDIT.news)[1];
     }
     document.querySelectorAll('input[name=kind]').forEach((r) => r.addEventListener('change', syncKind));
     // At most 5 categories
-    $('#cats').addEventListener('change', () => {
+    $('#cats').addEventListener('change', (e) => {
+      // A solo category (วิดีโอเสียงตามสาย) clears the others, and another one clears it
+      if (e.target.checked) document.querySelectorAll('input[name=cat]').forEach((i) => {
+        if (i !== e.target && (SOLO.includes(e.target.value) || SOLO.includes(i.value))) i.checked = false;
+      });
       const full = cats().length >= MAX_CATS;
       document.querySelectorAll('input[name=cat]').forEach((i) => { i.disabled = full && !i.checked; });
     });
@@ -255,13 +274,14 @@
     function paintPhotos() {
       const on = photos.filter((p) => p.on);
       $('#photoCount').textContent = photos.length ? `เลือก ${on.length} จาก ${photos.length} ภาพ` : '';
+      const SOURCE = { remote: 'Facebook', file: 'จากเครื่อง', kept: 'ภาพเดิม' };
       $('#photoGrid').innerHTML = photos.map((p, i) => `
         <label class="img-pick">
           <input type="checkbox" data-i="${i}" ${p.on ? 'checked' : ''} aria-label="ใช้ภาพที่ ${i + 1}">
           <span class="box relative block aspect-square overflow-hidden rounded-2xl bg-surface2">
             <img src="${esc(p.url)}" alt="" class="h-full w-full object-cover" referrerpolicy="no-referrer">
             ${on[0] === p ? '<span class="absolute bottom-1.5 left-1.5 rounded-lg bg-shell px-2 font-display text-[11px] font-semibold leading-5 text-royal shadow-raised">ภาพปก</span>' : ''}
-            <span class="absolute right-1.5 top-1.5 rounded-lg bg-black/45 px-1.5 text-[11px] font-medium leading-5 text-white">${p.kind === 'remote' ? 'Facebook' : 'จากเครื่อง'}</span>
+            <span class="absolute right-1.5 top-1.5 rounded-lg bg-black/45 px-1.5 text-[11px] font-medium leading-5 text-white">${SOURCE[p.kind]}</span>
             <span class="tick absolute left-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-grad text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
           </span>
         </label>`).join('');
@@ -345,12 +365,15 @@
     // ---- Submit ----
     let nextAfter = false;
     $('#importForm').addEventListener('click', (e) => { const b = e.target.closest('[data-next]'); if (b) nextAfter = b.dataset.next === '1'; });
+    $('#lead').addEventListener('input', () => { $('#leadCount').textContent = $('#lead').value.length; });
+    let tools = null; // text-tools.js on the story text
     function data(confirmDuplicate) {
       return {
         kind: radio('kind'), title: $('#title').value, lead: $('#lead').value, body: $('#body').value,
         unit: $('#unit').value.trim(), date: $('#date').value, time: $('#time').value || '12:00',
         categories: cats(), audience: AUD[radio('aud')], videoUrl: $('#videoUrl').value.trim() || null,
         credit: $('#credit').value, sourceUrl: $('#sourceUrl').value.trim() || null, albumUrl: $('#albumUrl').value.trim() || null,
+        bodySize: null, bodyLeading: tools?.get().leading,
         remoteImages: photos.filter((p) => p.on && p.kind === 'remote').map((p) => p.url), confirmDuplicate,
       };
     }
@@ -361,7 +384,7 @@
       const errs = {};
       if (!UNITS.includes(d.unit)) errs.unit = 'เลือกหน่วยงานจากรายการ';
       if (!d.date) errs.date = 'เลือกวันที่เผยแพร่เดิม';
-      else if (d.date > isoDay()) errs.date = 'วันที่เผยแพร่เดิมต้องไม่เกินวันนี้';
+      else if (d.date > isoDay() && (!editing || editing.imported)) errs.date = 'วันที่เผยแพร่เดิมต้องไม่เกินวันนี้';
       if (!d.title.trim()) errs.title = 'กรอกหัวข้อข่าว';
       if (d.kind === 'news' && d.body.trim().length < 20) errs.body = 'ใส่เนื้อหาข่าว';
       if (d.kind !== 'banner' && !d.categories.length) errs.categories = 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท';
@@ -419,11 +442,91 @@
       $('#fbUrl').value = '';
       $('#fetchNotes').hidden = true;
       $('#time').value = '12:00';
+      $('#leadCount').textContent = '0';
       $('#dupList').innerHTML = 'เลือกหน่วยงานและวันที่ หรือวางลิงก์ต้นฉบับ ระบบจะเตือนถ้ามีข่าวที่อาจซ้ำ';
       document.querySelectorAll('input[name=cat]').forEach((i) => { i.disabled = false; });
       syncKind();
     }
-    $('#importForm').addEventListener('submit', (e) => { e.preventDefault(); if (check()) send(false); });
+    $('#importForm').addEventListener('submit', (e) => { e.preventDefault(); if (check()) (editing ? save() : send(false)); });
+
+    // ---- แก้ไขข่าว ----
+    const BKK_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' });
+    const BKK_TIME = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const audValue = (a) => (a.includes('public') ? 'public' : a.includes('student') && a.includes('staff') ? 'uni' : a.includes('staff') ? 'staff' : 'student');
+    async function openEdit(id) {
+      let s;
+      try { ({ story: s } = await api('/pr/news/' + encodeURIComponent(id))); } catch (err) {
+        $('#pageTitle').textContent = 'แก้ไขข่าว';
+        $('#savedNote').innerHTML = `<span class="text-brand">${esc(err.message)}</span> <a href="pr-news.html" class="font-medium text-purple underline underline-offset-4">กลับไปหน้าข่าวที่เผยแพร่</a>`;
+        $('#savedNote').hidden = false;
+        return;
+      }
+      editing = s;
+      document.title = 'แก้ไขข่าว | หลังบ้าน ข่าว มรส.';
+      $('#pageTitle').textContent = 'แก้ไขข่าว';
+      $('#pageLead').textContent = s.withdrawn
+        ? 'ข่าวนี้ถอนอยู่ ผู้อ่านยังไม่เห็นการแก้ไขจนกว่าจะคืนข่าว'
+        : 'การแก้ไขขึ้นเว็บไซต์ทันทีเมื่อบันทึก ลิงก์ข่าวและยอดอ่านเดิมยังอยู่ ประวัติการแก้ไขดูได้ที่หน้าข่าวที่เผยแพร่';
+      $('#fbBox').hidden = true;
+      $('#sidePanel').hidden = true;
+      $('#resetBtn').hidden = true;
+      $('#importHint').hidden = true;
+      document.querySelectorAll('#importForm [data-mode]').forEach((el) => { el.hidden = el.dataset.mode !== 'edit'; });
+      $('#dateLabel').textContent = s.imported ? 'วันที่เผยแพร่เดิม' : 'วันที่เผยแพร่';
+      if (!s.imported) $('#date').removeAttribute('max');
+      document.querySelector(`input[name=kind][value=${s.kind}]`).checked = true;
+      const at = new Date(s.publishedAt);
+      $('#unit').value = s.unit;
+      $('#date').value = BKK_DAY.format(at);
+      $('#time').value = BKK_TIME.format(at);
+      $('#title').value = s.title;
+      $('#lead').value = s.lead || '';
+      $('#leadCount').textContent = $('#lead').value.length;
+      $('#body').value = s.body || '';
+      tools?.set({ size: s.bodySize, leading: s.bodyLeading });
+      document.querySelectorAll('input[name=cat]').forEach((i) => { i.checked = s.categories.includes(i.value); });
+      document.querySelector(`input[name=aud][value=${audValue(s.audience)}]`).checked = true;
+      $('#videoUrl').value = s.videoUrl || '';
+      $('#credit').value = s.credit || '';
+      $('#sourceUrl').value = s.sourceUrl || '';
+      $('#albumUrl').value = s.albumUrl || '';
+      photos = s.photos.map((p) => ({ kind: 'kept', path: p.path, url: p.url, on: true }));
+      paintPhotos();
+      syncKind();
+      $('#cats').dispatchEvent(new Event('change'));
+      $('#title').focus();
+    }
+    async function save() {
+      const fd = new FormData();
+      let u = 0;
+      const order = [];
+      for (const p of photos.filter((x) => x.on)) {
+        if (p.kind === 'kept') order.push('p:' + p.path);
+        else if (p.kind === 'file') { order.push('u:' + u++); fd.append('photo', p.file, p.file.name); }
+      }
+      fd.append('data', JSON.stringify({ ...data(false), remoteImages: undefined, photos: order }));
+      const btn = document.querySelector('#importForm [type=submit][data-mode=edit]');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/pr/news/' + encodeURIComponent(editing.id), { method: 'PUT', body: fd, credentials: 'same-origin' });
+        const r = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          Object.entries(r.details || {}).forEach(([k, m]) => setErr(k, m));
+          throw new Error(r.error || 'บันทึกไม่สำเร็จ');
+        }
+        toast('บันทึกการแก้ไขแล้ว');
+        $('#savedNote').innerHTML = `<span class="font-medium">บันทึกการแก้ไขแล้ว</span>
+          <a href="${esc(r.news.url)}" target="_blank" rel="noopener" class="rounded font-medium text-purple underline underline-offset-4 hover:text-royal">ดูข่าว</a>
+          <a href="pr-news.html" class="rounded font-medium text-purple underline underline-offset-4 hover:text-royal">กลับไปหน้าข่าวที่เผยแพร่</a>`;
+        $('#savedNote').hidden = false;
+        // The pictures as saved: new ones are now the story's own
+        await openEdit(editing.id);
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
     $('#resetBtn').addEventListener('click', () => { nextAfter = false; reset(); });
     $('#dupCancel').addEventListener('click', () => $('#dupDlg').close());
     $('#dupOk').addEventListener('click', () => { $('#dupDlg').close(); send(true); });
@@ -432,7 +535,9 @@
       if (!user) return;
       $('#importForm').hidden = false;
       $('#sidePanel').hidden = false;
+      tools = TextTools.attach($('#body'));
       syncKind();
+      if (EDIT) openEdit(EDIT);
     });
   </script>
 </body>

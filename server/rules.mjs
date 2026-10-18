@@ -14,6 +14,19 @@ export const MAX_LEAD = 250;
 // categories(): every valid one, the video-only ones too (a story or an import may be a video)
 export const categories = () => [...new Set([...get('categories'), ...VIDEO_CATEGORIES])];
 export const videoOnly = (c) => VIDEO_CATEGORIES.includes(c) && !get('categories').includes(c);
+// A video-only category (วิดีโอเสียงตามสาย) is the story's one category, never one of several
+export const soloOk = (cats) => !cats.some(videoOnly) || cats.length === 1;
+export const SOLO_MSG = `ประเภท ${VIDEO_CATEGORIES.join(', ')} เลือกได้ประเภทเดียว ไม่รวมกับประเภทอื่น`;
+
+// body_size / body_leading (size and spacing for the whole story) are from before these went on chosen words and paragraphs
+// ([size=18]…[/size] and [lh=loose] in the text); they are still shown for stories that have them.
+export const BODY_SIZES = [16, 17, 18];
+export const BODY_LEADINGS = ['tight', 'normal', 'loose'];
+export const bodySize = (v) => (v === null || v === undefined || v === '' ? null : BODY_SIZES.includes(Number(v)) ? Number(v) : null);
+export const bodyLeading = (v) => (BODY_LEADINGS.includes(v) ? v : null);
+// In the text: **…** is bold, [size=18]…[/size] a font size, [lh=loose] a paragraph's line spacing (text-tools.js);
+// plain-text uses (search snippets, descriptions) drop the marks
+export const plainText = (t) => String(t || '').replace(/^\[lh=(tight|normal|loose)\]\s*/gm, '').replace(/\[size=(1[6-9]|20)\]([\s\S]*?)\[\/size\]/g, '$2').replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '$1');
 const platformOk = (p, url) => get('platforms').includes(p) && PLATFORMS[p]?.test(url);
 export const PLATFORMS = {
   youtube: /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/|live\/)|youtu\.be\/)([\w-]{6,})/i,
@@ -110,6 +123,8 @@ export function checkSubmission(user, d, fileCounts) {
     album_url: null,
     designer: type === 'banner' ? str(d.designer, 120, 'ผู้ออกแบบ') : null,
     producer: type === 'video' ? str(d.producer, 120, 'ผู้ผลิต') : null,
+    body_size: bodySize(d.bodySize),
+    body_leading: bodyLeading(d.bodyLeading),
   };
 
   need('title', row.title, 'กรอกหัวข้อ');
@@ -127,6 +142,7 @@ export function checkSubmission(user, d, fileCounts) {
     need('categories', cats.length <= MAX_CATS, `เลือกประเภทข่าวได้ไม่เกิน ${MAX_CATS} ประเภท`);
     need('categories', cats.every((c) => categories().includes(c)), 'ประเภทข่าวไม่ถูกต้อง');
     need('categories', type === 'video' || !cats.some(videoOnly), `ประเภท ${VIDEO_CATEGORIES.join(', ')} ใช้กับวิดีโอเท่านั้น`);
+    need('categories', soloOk(cats), SOLO_MSG);
     row.categories = cats;
   }
 
@@ -182,7 +198,8 @@ export function checkSubmission(user, d, fileCounts) {
 // Nothing is required; the full checks (checkSubmission) run when the draft is sent.
 const DRAFT_TEXT = { title: MAX_TITLE, lead: MAX_LEAD, desc: 5000, body: 20000, eventDate: 10, place: 120, unit: 200, contentMode: 10, credit: 80,
   newsVideo: 500, newsPlatform: 20, videoLink: 500, videoPlatform: 20, albumUrl: 500, chairPrefix: 60, chairName: 100, chairPos: 120,
-  reporterPrefix: 60, reporterName: 100, reporterPos: 120, assigneePrefix: 60, assigneeName: 100, assigneePos: 120, titleEn: 160, bodyEn: 20000, note: 300, designer: 120, producer: 120 };
+  reporterPrefix: 60, reporterName: 100, reporterPos: 120, assigneePrefix: 60, assigneeName: 100, assigneePos: 120, titleEn: 160, bodyEn: 20000, note: 300, designer: 120, producer: 120,
+  bodySize: 2, bodyLeading: 10 };
 export function draftData(d) {
   if (!d || typeof d !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลร่าง');
   if (!TYPES.includes(d.type)) throw new HttpError(400, 'กรุณาเลือกประเภทงาน');

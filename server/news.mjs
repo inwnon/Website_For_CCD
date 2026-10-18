@@ -1,6 +1,6 @@
 // Published stories — reading side (index.html, news.html, search.html)
 // - GET    /api/news?feed=1&featured=1&range=today|week|month&date=YYYY-MM-DD&limit=&offset=
-//          live stories, newest first. feed=1 is the home page: imported (นำเข้าย้อนหลัง) stories are left out.
+//          live stories, newest first (feed=1 is the home page; imported stories (นำเข้าย้อนหลัง) are in it too, at their original date).
 //          Stories the viewer may not read come back as { locked: true } placeholders.
 // - GET    /api/news/search?q=&kind=&cat=&cat=&unit=&from=&to=&sort=relevance|newest&limit=&offset=
 //          search and filters (search.html, unit pages). Only stories the viewer may read; never placeholders.
@@ -22,7 +22,7 @@ import { one, query, tx } from './db.mjs';
 import { abs, sendMedia } from './files.mjs';
 import { HttpError } from './http.mjs';
 import { unitFamily } from './org.mjs';
-import { PLATFORMS, TYPES, albumHost, audienceLabel } from './rules.mjs';
+import { PLATFORMS, TYPES, albumHost, audienceLabel, plainText } from './rules.mjs';
 import { limit } from './security.mjs';
 import { searchTerms } from './thai.mjs';
 import archiver from 'archiver';
@@ -73,12 +73,11 @@ export const router = Router();
 
 // ---- Home page lists and the archive day view ----
 router.get('/news', async (req, res) => {
-  const { featured, range, date, feed } = req.query;
+  const { featured, range, date } = req.query;
   const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 48);
   const offset = Math.max(Number(req.query.offset) || 0, 0);
   const where = [LIVE];
   const params = [];
-  if (feed === '1') where.push('not n.imported');
   if (featured === '1') where.push('n.featured');
   if (range === 'today') where.push(`${LOCAL_DAY} = ${TODAY}`);
   // Week = Sunday–Saturday, as the calendar on index.html
@@ -101,7 +100,7 @@ const many = (v) => (Array.isArray(v) ? v : v == null ? [] : [v]).map(String).fi
 const like = (t) => `%${t.replace(/[\\%_]/g, '\\$&')}%`;
 
 function snippet(n, terms) {
-  const text = [n.lead, n.body].filter(Boolean).join(' · ').replace(/\s+/g, ' ');
+  const text = [n.lead, plainText(n.body)].filter(Boolean).join(' · ').replace(/\s+/g, ' ');
   const lower = text.toLowerCase();
   const at = terms.map((t) => lower.indexOf(t.toLowerCase())).filter((i) => i >= 0).sort((a, b) => a - b)[0];
   if (at === undefined) return text.slice(0, 160) + (text.length > 160 ? '…' : '');
@@ -170,9 +169,14 @@ router.get('/news/archive', async (req, res) => {
 });
 
 // ---- One story ----
+const PERSON = "coalesce(nullif(trim(concat_ws(' ', u.first_name, u.last_name)), ''), u.name)";
 async function readable(req, id = req.params.id) {
   if (!UUID.test(id || '')) throw new HttpError(404, 'ไม่พบข่าวนี้');
-  const n = await one('select n.*, n.published_at <= now() live from news n where n.id = $1', [id]);
+  // ส่งข่าวโดย / ตรวจทานโดย: the names of the accounts that sent the work and put it on the site
+  const n = await one(`select n.*, n.published_at <= now() live,
+      (select ${PERSON} from submissions s join users u on u.id = s.sender_id where s.id = n.submission_id) submitted_by,
+      (select ${PERSON} from users u where u.id = n.reviewed_by) reviewed_by_name
+    from news n where n.id = $1`, [id]);
   if (!n || (!n.live && !isPr(req.user))) throw new HttpError(404, 'ไม่พบข่าวนี้');
   if (n.withdrawn_at) {
     throw new HttpError(410, 'ข่าวนี้ถูกถอนแล้ว', { withdrawn: true, reason: n.withdrawn_reason, at: n.withdrawn_at, title: n.title });
@@ -205,7 +209,8 @@ export async function storyPayload(req, id) {
       videoUrl: n.video_url, videoPlatform: platformOf(n.video_url), videoThumb: videoThumb(n),
       albumUrl: n.album_url, albumHost: n.album_url ? albumHost(n.album_url) : null,
       credit: n.credit, eventDate: n.event_date, place: n.place, featured: n.featured, views: n.views,
-      publishedAt: n.published_at, saved,
+      publishedAt: n.published_at, saved, imported: n.imported,
+      submittedBy: n.submitted_by || null, reviewedBy: n.reviewed_by_name || null, bodySize: n.body_size, bodyLeading: n.body_leading,
     },
     linked: linked.map((r) => cardOut(r, req.user)),
     related: related.map((r) => cardOut(r, req.user)),

@@ -199,7 +199,7 @@
       *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=a2f3118b75">
+  <link rel="stylesheet" href="/assets/app.css?v=fc7b1414e4">
 </head>
 
 <body class="flex min-h-screen flex-col lg:h-dvh lg:min-h-0 lg:overflow-hidden">
@@ -296,6 +296,8 @@
               <button type="button" data-dev="student" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">นักศึกษา</button>
               <button type="button" data-dev="external" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">บุคคลภายนอก</button>
             </div>
+            <!-- ทีม PR / ผู้ดูแลระบบ: added by the script only on localhost (never in the page itself) -->
+            <div id="devDesk"></div>
           </div>
 
           <div class="mt-[clamp(20px,3vh,32px)] rounded-2xl bg-surface2/70 p-5 text-[14px] text-ink2">
@@ -541,7 +543,7 @@
     // Role comes from the server (email domain, or the PR team list). PR / admin / coordinators fill the staff form.
     const params = new URLSearchParams(location.search);
     // Only pages of this site (login.html?next=submit.html?type=news)
-    const NEXT = (() => {
+    let NEXT = (() => {
       const n = params.get('next');
       if (!n) return null;
       try { const u = new URL(n, location.href); return u.origin === location.origin && !/login\.html$/.test(u.pathname) ? u.pathname.replace(/^\//, '') + u.search + u.hash : null; } catch (e) { return null; }
@@ -609,6 +611,7 @@
       } else {
         window.ME.then((m) => {
           $('#devBox').hidden = !m.devLogin;
+          if (m.devLogin && LOCALHOST) addDeskButtons();
           if (!m.devLogin) signinError('ระบบยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Google กรุณาติดต่องานประชาสัมพันธ์');
         });
       }
@@ -620,14 +623,28 @@
         signedIn(r.user);
       } catch (err) { signinError(err.message); }
     }
-    document.querySelectorAll('[data-dev]').forEach((btn) => btn.addEventListener('click', async () => {
+    // Test accounts for the back office: on this computer only (the server also refuses mock sign-in from any other host)
+    const LOCALHOST = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+    function addDeskButtons() {
+      $('#devDesk').innerHTML = `
+        <p class="mt-4 font-display text-[14px] font-semibold text-ink">หลังบ้าน <span class="font-sans text-[13px] font-normal text-ink2">(เฉพาะ localhost ไม่มีบนระบบจริง)</span></p>
+        <div class="mt-2 grid gap-2 sm:grid-cols-2">
+          <button type="button" data-dev="pr" data-go="pr.html" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">ทีม PR</button>
+          <button type="button" data-dev="admin" data-go="admin.html" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">ผู้ดูแลระบบ</button>
+        </div>`;
+    }
+    $('#devBox').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-dev]');
+      if (!btn || btn.disabled) return;
       btn.disabled = true;
       try {
         const r = await api('/auth/dev', { method: 'POST', body: { as: btn.dataset.dev } });
+        // ทีม PR / ผู้ดูแลระบบ go on to their page (after the profile steps the first time)
+        if (btn.dataset.go) NEXT = btn.dataset.go;
         signedIn(r.user);
       } catch (err) { signinError(err.message); }
       btn.disabled = false;
-    }));
+    });
 
     // After sign-in: set up the profile once, then go on to where the user was heading
     function signedIn(user) {

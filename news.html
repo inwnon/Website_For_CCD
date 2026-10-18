@@ -149,6 +149,21 @@
 
     /* Article body: Thai needs generous line-height for stacked vowels/tones */
     .news-body p { font-size: 17px; line-height: 1.75; margin-bottom: 1.15em; }
+    /* For the whole story, from before sizes and spacing went on chosen words: 16–18 px (19 and 20 read as 18) */
+    .news-body[data-size="16"] p { font-size: 16px; }
+    .news-body[data-size="18"] p { font-size: 18px; }
+    .news-body[data-size="19"] p, .news-body[data-size="20"] p { font-size: 18px; }
+    .news-body[data-leading="tight"] p { line-height: 1.6; margin-bottom: .5em; }
+    .news-body[data-leading="loose"] p { line-height: 2.3; margin-bottom: 1.7em; }
+    .news-body strong { font-weight: 700; color: rgb(var(--ink)); }
+    /* Words given a size in the text ([size=18]…[/size]) */
+    .news-body span[data-size="16"] { font-size: 16px; }
+    .news-body span[data-size="17"] { font-size: 17px; }
+    .news-body span[data-size="18"] { font-size: 18px; }
+    .news-body span[data-size="19"], .news-body span[data-size="20"] { font-size: 18px; }
+    /* A paragraph's own line spacing ([lh=…]), over the story's */
+    .news-body p[data-leading="tight"] { line-height: 1.6; margin-bottom: .5em; }
+    .news-body p[data-leading="loose"] { line-height: 2.3; margin-bottom: 1.7em; }
     .news-body p:first-child::first-letter { color: rgb(var(--red)); font-weight: 700; }
     /* Thai text justified the Thai way ("กระจายแบบไทย"): the extra space goes between characters, the last line stays left */
     article:lang(th) .news-body p { text-align: justify; text-justify: inter-character; text-align-last: start; }
@@ -177,7 +192,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=a2f3118b75">
+  <link rel="stylesheet" href="/assets/app.css?v=fc7b1414e4">
 </head>
 
 <body class="min-h-screen">
@@ -388,7 +403,7 @@
           <!-- Footer meta -->
           <div class="reveal mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-6 text-[13px] text-ink2">
             <span data-i18n="submitted"></span>
-            <span data-i18n="reviewed">ตรวจทานโดย งานประชาสัมพันธ์ มรส.</span>
+            <span data-i18n="reviewed">ตรวจทานโดย งานสื่อสารองค์กร</span>
           </div>
         </div>
       </article>
@@ -492,7 +507,12 @@
     let photos = []; // [{ web, full }]
 
     // Plain text from the PR desk → paragraphs (blank line or new line = new paragraph)
-    const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter(Boolean).map((p) => `<p>${esc(p)}</p>`).join('');
+    // **…** is bold, [size=18]…[/size] a font size, [lh=loose] at the start a paragraph's line spacing (text-tools.js);
+    // the same as paragraphs() in server/pages.mjs
+    const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter(Boolean)
+      .map((p) => { const lh = p.match(/^\[lh=(tight|normal|loose)\]\s*/); return `<p${lh && lh[1] !== 'normal' ? ` data-leading="${lh[1]}"` : ''}>${esc(lh ? p.slice(lh[0].length) : p).replace(/\[size=(1[6-9]|20)\]([\s\S]*?)\[\/size\]/g, '<span data-size="$1">$2</span>').replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '<strong>$1</strong>')}</p>`; }).join('');
+    // The credit line under the picture names who made it: the photographer, the producer of a video, the designer of a banner
+    const CREDIT = { news: ['ภาพ', 'Photos'], video: ['ผลิตโดย', 'Produced by'], banner: ['ออกแบบโดย', 'Designed by'] };
 
     // ---- Page text (TH/EN). Story fields fall back to Thai when there is no English version. ----
     function texts(s, l) {
@@ -502,23 +522,23 @@
         ? `${new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ }).format(at)} · ${new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(at)} น.`
         : `${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ }).format(at)} · ${new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(at)}`;
       return l === 'th' ? {
-        caption: `ภาพข่าว · ${n} ภาพ`, credit: `ภาพ: ${s.credit || 'งานประชาสัมพันธ์ มรส.'}`,
+        caption: `ภาพข่าว · ${n} ภาพ`, credit: `${(CREDIT[s.kind] || CREDIT.news)[0]}: ${s.credit || 'งานประชาสัมพันธ์ มรส.'}`,
         tagFeatured: 'ข่าวเด่น', tagUnit: s.unit, tagInternal: s.audience, tagVideo: 'มีวิดีโอ',
         title: s.title, dek: s.lead || '', lblDate: 'วันที่เผยแพร่', date, lblUnit: 'หน่วยงาน', unit: s.unit,
         lblLang: 'ภาษา', lblViews: 'อ่านแล้ว', views: `${s.views.toLocaleString('th-TH')} ครั้ง`,
         btnGallery: `ดูภาพทั้งหมด ${n} ภาพ`, btnShare: 'แชร์',
         videoTitle: 'วิดีโอประกอบข่าว', galleryTitle: 'ภาพข่าว', galleryNote: n > 1 ? 'แตะภาพเพื่อขยาย และดาวน์โหลดขนาดต้นฉบับ' : 'ภาพทั้งหมดของกิจกรรมนี้อยู่ที่ลิงก์ภายนอก',
         btnZip: `ดาวน์โหลดภาพทั้งหมด (${n} ภาพ)`, btnAlbum: ALBUM[s.albumHost] ? `ดูรูปภาพเพิ่มเติมบน ${ALBUM[s.albumHost]}` : 'ดูรูปภาพเพิ่มเติม',
-        submitted: `ส่งข่าวโดย ${s.unit}`, reviewed: 'ตรวจทานโดย งานประชาสัมพันธ์ มรส.', body: paragraphs(s.body),
+        submitted: `ส่งข่าวโดย ${s.submittedBy || s.unit}`, reviewed: `ตรวจทานโดย งานสื่อสารองค์กร${s.reviewedBy ? ` (${s.reviewedBy})` : ''}`, body: paragraphs(s.body),
       } : {
-        caption: `News photos · ${n} photo${n === 1 ? '' : 's'}`, credit: `Photos: ${s.credit || 'SRU Public Relations'}`,
+        caption: `News photos · ${n} photo${n === 1 ? '' : 's'}`, credit: `${(CREDIT[s.kind] || CREDIT.news)[1]}: ${s.credit || 'SRU Public Relations'}`,
         tagFeatured: 'Featured', tagUnit: s.unit, tagInternal: 'Internal', tagVideo: 'Video',
         title: s.titleEn || s.title, dek: s.titleEn ? '' : s.lead || '', lblDate: 'Published', date, lblUnit: 'Unit', unit: s.unit,
         lblLang: 'Language', lblViews: 'Views', views: s.views.toLocaleString('en-US'),
         btnGallery: `View all ${n} photos`, btnShare: 'Share',
         videoTitle: 'Video', galleryTitle: 'Photos', galleryNote: n > 1 ? 'Tap a photo to enlarge and download the original' : 'All photos of this event are on the linked album',
         btnZip: `Download all ${n} photos`, btnAlbum: ALBUM[s.albumHost] ? `More photos on ${ALBUM[s.albumHost]}` : 'More photos',
-        submitted: `Submitted by ${s.unit}`, reviewed: 'Reviewed by SRU Public Relations', body: paragraphs(s.bodyEn || s.body),
+        submitted: `Submitted by ${s.submittedBy || s.unit}`, reviewed: `Reviewed by Corporate Communications${s.reviewedBy ? ` (${s.reviewedBy})` : ''}`, body: paragraphs(s.bodyEn || s.body),
       };
     }
     const hasEn = () => !!(story.titleEn || story.bodyEn);
@@ -581,6 +601,9 @@
       $('#unitLink').href = `search.html?unit=${encodeURIComponent(s.unit)}`;
       $('#saveBtn').setAttribute('aria-pressed', String(s.saved));
       $('#pubTime').setAttribute('datetime', s.publishedAt);
+      const bodyEl = article.querySelector('.news-body');
+      if (s.bodySize) bodyEl.dataset.size = s.bodySize; else delete bodyEl.dataset.size;
+      if (s.bodyLeading) bodyEl.dataset.leading = s.bodyLeading; else delete bodyEl.dataset.leading;
       $('#langSwitch').hidden = !hasEn();
       $('#thaiOnly').hidden = hasEn();
       $('#galleryBtn').hidden = photos.length < 2;

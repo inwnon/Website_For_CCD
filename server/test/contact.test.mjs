@@ -1,8 +1,11 @@
 // ติดต่อเรา (GET /api/contact): the central PR team, and faculty staff whose position says PR with how many pieces they sent.
-// Work details only; a profile photo only for signed-in readers, never the Google one. Video submissions keep ผู้ผลิต.
+// Work details and the profile photo (served by this server, only for people on the list). Video submissions keep ผู้ผลิต.
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import sharp from 'sharp';
 import { query } from '../db.mjs';
+import { abs } from '../files.mjs';
 import { restore, snapshot } from './cleanup.mjs';
 import { anon, form, img, login } from './helpers.mjs';
 
@@ -13,15 +16,17 @@ const add = (email, f) => query(
   [T + email, `${f.first} ${f.last}`, f.role || 'staff', f.unit || null, f.position || null, f.first, f.last, f.phone || null,
     f.photo || null, 'https://lh3.googleusercontent.com/a/x', f.consent === false ? null : new Date()]).then((r) => r.rows[0].id);
 
-let snap, staff, pr, facPr;
+let snap, staff, pr, facPr, central, teacher;
 before(async () => {
   snap = await snapshot();
   [staff, pr] = await Promise.all([login('staff'), login('pr')]);
   await query('delete from users where email like $1', [T + '%']);
-  await add('central@sru.ac.th', { role: 'pr', first: 'ทีมกลาง', last: 'ทดสอบ', position: 'นักประชาสัมพันธ์', phone: '1101', photo: 'avatars/test.webp' });
+  await mkdir(abs('avatars'), { recursive: true });
+  await writeFile(abs('avatars/contact-test.webp'), await sharp({ create: { width: 64, height: 64, channels: 3, background: '#468' } }).webp().toBuffer());
+  central = await add('central@sru.ac.th', { role: 'pr', first: 'ทีมกลาง', last: 'ทดสอบ', position: 'นักประชาสัมพันธ์', phone: '1101', photo: 'avatars/contact-test.webp' });
   facPr = await add('fac@sru.ac.th', { unit: 'คณะครุศาสตร์', position: 'นักประชาสัมพันธ์คณะ', first: 'คณะครุ', last: 'ทดสอบ', phone: '2202' });
   await add('fac2@sru.ac.th', { unit: 'คณะนิติศาสตร์', position: 'เจ้าหน้าที่ PR', first: 'คณะนิติ', last: 'ทดสอบ', phone: '2203' });
-  await add('teacher@sru.ac.th', { unit: 'คณะครุศาสตร์', position: 'อาจารย์', first: 'อาจารย์', last: 'ทดสอบ', phone: '2204' });
+  teacher = await add('teacher@sru.ac.th', { unit: 'คณะครุศาสตร์', position: 'อาจารย์', first: 'อาจารย์', last: 'ทดสอบ', phone: '2204' });
   await add('office@sru.ac.th', { unit: 'กองกลาง', position: 'นักประชาสัมพันธ์', first: 'กองกลาง', last: 'ทดสอบ', phone: '2205' });
   await add('new@sru.ac.th', { unit: 'คณะครุศาสตร์', position: 'นักประชาสัมพันธ์', first: 'ยังไม่ยินยอม', last: 'ทดสอบ', consent: false });
   for (const n of [1, 2]) {
@@ -31,6 +36,7 @@ before(async () => {
 after(async () => {
   await query("delete from submissions where ref like 'CT-TEST-%'");
   await query('delete from users where email like $1', [T + '%']);
+  await rm(abs('avatars/contact-test.webp'), { force: true });
   await restore(snap);
 });
 
@@ -38,8 +44,9 @@ describe('contact page', () => {
   test('anyone may read it; central team, then faculty PR by position, with what they sent', async () => {
     const r = await anon.call('GET', '/api/contact');
     assert.equal(r.status, 200);
-    const central = r.body.team.find((p) => p.name === 'ทีมกลาง ทดสอบ');
-    assert.deepEqual(central, { name: 'ทีมกลาง ทดสอบ', position: 'นักประชาสัมพันธ์', ext: '1101', photo: null }, 'no photo signed out, no Google photo');
+    const c = r.body.team.find((p) => p.name === 'ทีมกลาง ทดสอบ');
+    assert.deepEqual({ ...c, photo: undefined }, { name: 'ทีมกลาง ทดสอบ', position: 'นักประชาสัมพันธ์', ext: '1101', photo: undefined });
+    assert.match(c.photo, new RegExp(`^/api/contact/photo/${central}\\.webp\\?v=[0-9a-f]{10}$`), 'the photo, through this server');
     const units = r.body.faculties.map((f) => f.unit);
     assert.ok(units.indexOf('คณะครุศาสตร์') < units.indexOf('คณะนิติศาสตร์'), 'faculties in org order');
     const people = r.body.faculties.flatMap((f) => f.people.map((p) => ({ ...p, unit: f.unit })));
@@ -50,11 +57,15 @@ describe('contact page', () => {
     assert.ok(people.some((p) => p.name === 'คณะนิติ ทดสอบ' && p.sent === 0), '"PR" in the position counts too');
     for (const n of ['อาจารย์ ทดสอบ', 'กองกลาง ทดสอบ', 'ยังไม่ยินยอม ทดสอบ']) assert.ok(!people.some((p) => p.name === n), `${n} not listed`);
     assert.ok(!JSON.stringify(r.body).includes('@'), 'no email addresses');
-    assert.ok(!JSON.stringify(r.body).includes('googleusercontent'), 'no Google photos');
+    assert.ok(!JSON.stringify(r.body).includes('googleusercontent'), 'no link to Google');
+    assert.ok(people.find((p) => p.name === 'คณะนิติ ทดสอบ').photo.startsWith('/api/contact/photo/'), 'a Google photo comes through this server too');
   });
-  test('signed-in readers see the uploaded profile photo', async () => {
-    const central = (await staff.call('GET', '/api/contact')).body.team.find((p) => p.name === 'ทีมกลาง ทดสอบ');
-    assert.equal(central.photo, '/api/avatars/test.webp');
+  test('photos open for anyone, only for people on the list', async () => {
+    const ok = await anon.call('GET', `/api/contact/photo/${central}.webp`);
+    assert.equal(ok.status, 200);
+    assert.equal(ok.headers.get('content-type'), 'image/webp');
+    assert.equal((await anon.call('GET', `/api/contact/photo/${teacher}.webp`)).status, 404, 'not on the list');
+    assert.equal((await anon.call('GET', '/api/contact/photo/nope.webp')).status, 404);
   });
 });
 
@@ -113,9 +124,9 @@ describe('video producer', () => {
   });
   test('ประเภทข่าว วิดีโอเสียงตามสาย: videos only; the pages get it', async () => {
     const v = { type: 'video', title: 'วิดีโอเสียงตามสาย', eventDate: '2026-10-01', unit: 'กองกลาง', videoPlatform: 'youtube', videoLink: 'https://youtu.be/dQw4w9WgXcQ', audience: ['public'], consent: true };
-    const ok = await staff.call('POST', '/api/submissions', form({ ...v, categories: ['วิดีโอเสียงตามสาย', 'ข่าวการศึกษา'] }));
+    const ok = await staff.call('POST', '/api/submissions', form({ ...v, categories: ['วิดีโอเสียงตามสาย'] }));
     assert.equal(ok.status, 201, JSON.stringify(ok.body));
-    assert.deepEqual((await pr.call('GET', `/api/submissions/${ok.body.submission.ref}`)).body.submission.fields.categories, ['วิดีโอเสียงตามสาย', 'ข่าวการศึกษา']);
+    assert.deepEqual((await pr.call('GET', `/api/submissions/${ok.body.submission.ref}`)).body.submission.fields.categories, ['วิดีโอเสียงตามสาย']);
     const news = await staff.call('POST', '/api/submissions', form({ type: 'news', title: 'ข่าว', eventDate: '2026-10-01', unit: 'กองกลาง', contentMode: 'own', body: 'ก'.repeat(160),
       categories: ['วิดีโอเสียงตามสาย'], audience: ['public'], consent: true }, { photo: [['a.jpg', await img('#468', 800, 600), 'image/jpeg']] }));
     assert.equal(news.status, 400);

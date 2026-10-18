@@ -20,7 +20,7 @@ import { arrange, audienceLabel, checkSubmission } from './rules.mjs';
 
 const COLUMNS = ['type', 'title', 'lead', 'description', 'body', 'event_date', 'place', 'unit', 'categories', 'content_mode',
   'people', 'credit', 'news_video_url', 'news_video_platform', 'video_mode', 'video_url', 'video_platform',
-  'title_en', 'body_en', 'audience', 'note', 'album_url', 'designer', 'producer'];
+  'title_en', 'body_en', 'audience', 'note', 'album_url', 'designer', 'producer', 'body_size', 'body_leading'];
 const firstStatus = (row) => (row.type === 'news' && row.content_mode === 'pr' ? 'writing' : 'review');
 const countKinds = (files) => files.reduce((c, f) => ({ ...c, [f.kind]: (c[f.kind] || 0) + 1 }), { photo: 0, attach: 0, art: 0 });
 // Positions for files already there (kept: [{ id, kind }]) and the new ones (stored, in upload order), per kind, from data.order
@@ -81,6 +81,7 @@ export function submissionOut(s, t, viewer) {
       lead: s.lead, desc: s.description, body: s.body, eventDate: s.event_date, place: s.place, categories: s.categories,
       contentMode: s.content_mode, people: s.people, credit: s.credit, newsVideo: s.news_video_url, newsPlatform: s.news_video_platform,
       videoMode: s.video_mode, videoLink: s.video_url, videoPlatform: s.video_platform, titleEn: s.title_en, bodyEn: s.body_en, note: s.note, albumUrl: s.album_url, designer: s.designer, producer: s.producer,
+      bodySize: s.body_size, bodyLeading: s.body_leading,
     },
   };
 }
@@ -196,7 +197,8 @@ router.put('/submissions/:ref', requireUser, uploads, acceptUpload, async (req, 
       updated = await tx(async (c) => {
         const sets = COLUMNS.filter((k) => k !== 'type').map((k, i) => `${k} = $${i + 3}`).join(', ');
         const values = COLUMNS.filter((k) => k !== 'type').map((k) => (k === 'people' ? JSON.stringify(row[k]) : row[k]));
-        const u = (await c.query(`update submissions set status = $2, pr_unread = true, sender_unread = false, ${sets} where id = $1 returning *`, [s.id, firstStatus(row), ...values])).rows[0];
+        // The sender's new version replaces what PR had edited (แก้ไขข่าว on pr.html) of the old one
+        const u = (await c.query(`update submissions set status = $2, pr_unread = true, sender_unread = false, pr_edit = null, ${sets} where id = $1 returning *`, [s.id, firstStatus(row), ...values])).rows[0];
         await c.query(`insert into submission_events (submission_id, status, actor_id) values ($1, 'resent', $3), ($1, $2, $3)`, [s.id, u.status, req.user.id]);
         await toPrTeam(c, 'pr.resent', u, req.user, row.note || undefined);
         if (gone.length) await c.query('delete from submission_files where id = any($1)', [gone.map((f) => f.id)]);

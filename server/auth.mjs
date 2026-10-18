@@ -155,7 +155,10 @@ router.post('/auth/google', limit('signin', { by: 'ip', max: 30, windowMs: 10 * 
 if (DEV_LOGIN) {
   const DEV = DEV_ACCOUNTS;
   const DEV_COORD_UNIT = 'คณะครุศาสตร์';
+  // Only on this computer: a request to any other host name (a server on the network or the internet) is refused
+  const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
   router.post('/auth/dev', async (req, res) => {
+    if (!LOCAL_HOSTS.has(req.hostname)) throw new HttpError(403, 'ล็อกอินจำลองใช้ได้เฉพาะบน localhost');
     const as = req.body?.as;
     if (!DEV[as]) throw new HttpError(400, `as ต้องเป็น ${Object.keys(DEV).join(', ')}`);
     if (as === 'pr' || as === 'admin' || as === 'coordinator') {

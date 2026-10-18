@@ -275,7 +275,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=a2f3118b75">
+  <link rel="stylesheet" href="/assets/app.css?v=fc7b1414e4">
 </head>
 
 <body class="app">
@@ -520,7 +520,7 @@
             <div id="pAud" class="mt-2 flex flex-wrap gap-1.5"></div>
             <p data-err="audience" class="mt-1 text-[14px] font-medium text-brand" hidden></p>
           </fieldset>
-          <div class="grid gap-3 sm:grid-cols-2">
+          <div class="grid gap-3 sm:grid-cols-2" data-pub-only>
             <fieldset class="min-w-0">
               <legend class="font-display text-[14px] font-medium">เวลาเผยแพร่</legend>
               <div class="mt-2 flex flex-wrap gap-1.5">
@@ -536,7 +536,7 @@
               <span class="switch"><input id="pFeatured" type="checkbox" aria-labelledby="featLabel"><span class="track"></span><span class="knob"></span></span>
             </div>
           </div>
-          <div>
+          <div data-pub-only>
             <label for="pMsg" class="block font-display text-[14px] font-medium">ข้อความถึงผู้ส่ง</label>
             <textarea id="pMsg" rows="2" maxlength="2000" class="field mt-1.5 w-full resize-none rounded-2xl px-4 py-2.5 text-[14px]"></textarea>
           </div>
@@ -585,6 +585,7 @@
   <!-- auth.js: the role names and the role switch of developer accounts (this page keeps its own api()) -->
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
+  <script src="text-tools.js"></script>
   <script>
     const $ = (s, r = document) => r.querySelector(s);
     const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -645,6 +646,7 @@
     const ic = {
       doc: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
       down: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+      pen: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></svg>',
       trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
       link: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
       out: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>',
@@ -867,6 +869,9 @@
       const a = [];
       // Work taken back with ยกเลิกการเผยแพร่ goes out again into the same story
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="publish"', s.newsId ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่', true));
+      // แก้ไขข่าว: PR edits the work itself (kept until it is published), or the story once it is on the site
+      if (['review', 'writing', 'revise'].includes(s.status)) a.push(btn('data-act="edit"', `${ic.pen}แก้ไขข่าว`));
+      if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
       if (s.status === 'review' && s.type === 'news') a.push(btn('data-act="writing"', 'รับไปเขียนข่าว'));
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="revise"', 'ขอให้แก้ไข'));
       if (s.status === 'revise') a.push(btn('data-act="review"', 'ตรวจต่อโดยไม่รอแก้ไข'));
@@ -885,6 +890,8 @@
     function infoHtml(s) {
       const f = s.fields;
       const facts = [];
+      const pe = detailData?.prEdit;
+      const edited = pe ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-sky-soft px-4 py-3 text-[14px]"><span class="min-w-0 flex-1"><span class="font-display font-semibold">ทีม PR แก้ไขข่าวนี้แล้ว</span> <span class="text-ink2">โดย ${esc(pe.by || 'ทีม PR')} ${when(pe.at)} ด้านล่างคือฉบับของผู้ส่ง เมื่อเผยแพร่จะใช้ฉบับที่แก้ไข</span></span>${btn('data-act="edit"', 'เปิดฉบับที่แก้ไข')}</div>` : '';
       if (s.type !== 'banner') facts.push(['วันที่จัดกิจกรรม', thDate(f.eventDate)]);
       if (f.place) facts.push(['สถานที่', f.place]);
       if (f.categories?.length) facts.push(['ประเภทข่าว', f.categories.join(', ')]);
@@ -896,12 +903,14 @@
       const ppl = [p.chair && ['ประธาน', p.chair], p.reporter && ['ผู้กล่าวรายงาน', p.reporter], p.assignee && ['ผู้ที่ได้รับมอบหมาย', p.assignee], ...(p.guests || []).map((g) => ['ภายนอก', g])].filter(Boolean);
       let body = '';
       if (s.type === 'news' && f.contentMode === 'pr') body = `<p class="rounded-2xl bg-gold-soft px-4 py-3 text-[14px] text-ink">ผู้ส่งให้ทีม PR เขียนข่าวจากเอกสารที่แนบมา ดูเอกสารได้ที่แท็บไฟล์แนบ</p>`;
-      else if (f.body) body = `<div class="whitespace-pre-line text-[15px] leading-[1.7]">${esc(f.body)}</div>`;
+      // Bold and sizes as the sender set them (text-tools.js)
+      else if (f.body) body = `<div class="tt-show grid gap-2 text-[15px] leading-[1.7]">${TextTools.html(f.body)}</div>`;
       const cover = s.files.find((x) => x.cover && x.thumb);
       return `<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
         <div class="grid min-w-0 content-start gap-4">
+          ${edited}
           ${f.lead ? `<p class="font-display text-[17px] font-medium leading-relaxed">${esc(f.lead)}</p>` : ''}
-          ${f.desc ? `<p class="whitespace-pre-line text-[15px] leading-[1.7]">${esc(f.desc)}</p>` : ''}
+          ${f.desc ? `<div class="tt-show grid gap-2 text-[15px] leading-[1.7]">${TextTools.html(f.desc)}</div>` : ''}
           ${body}
           ${f.newsVideo ? linkRow(f.newsVideo, 'วิดีโอประกอบข่าว') : ''}
           ${s.type === 'video' && f.videoMode === 'link' && f.videoLink ? linkRow(f.videoLink, 'ลิงก์วิดีโอ') : ''}
@@ -1007,6 +1016,7 @@
 
       $('#back').addEventListener('click', () => { closeDetail(); $(`[data-ref="${CSS.escape(s.ref)}"]`)?.focus(); });
       $('#acts').addEventListener('click', onAction);
+      $('#panel').addEventListener('click', (e) => { if (e.target.closest('[data-act=edit]')) openPublish('edit'); });
       d.querySelector('[role=tablist]').addEventListener('click', (e) => {
         const b = e.target.closest('[data-tab]');
         if (b && b.dataset.tab !== tab) { tab = b.dataset.tab; renderDetail(true); $(`#tab-${tab}`).focus(); }
@@ -1067,6 +1077,7 @@
       const s = detailData.submission;
       const act = b.dataset.act;
       if (act === 'publish') return openPublish();
+      if (act === 'edit') return openPublish('edit');
       if (act === 'delete') { $('#delError').hidden = true; $('#delDlg').showModal(); return; }
       if (act === 'unpublish') { $('#unpubError').hidden = true; $('#unpubDlg').showModal(); return; }
       if (DECIDE[act]) {
@@ -1138,19 +1149,30 @@
         t.classList.toggle('tile-on', id === cover || g.checked);
       });
     }
-    function openPublish() {
+    let pubMode = 'publish'; // or 'edit': แก้ไขข่าว, saved without publishing
+    let pubTools = null;
+    function openPublish(mode = 'publish') {
+      pubMode = mode;
       const s = detailData.submission;
       const n = detailData.news;
+      const pe = detailData.prEdit;
       const again = !!(n && s.status !== 'published');
-      // Published before: start from what was on the site, not from what the sender sent
-      const f = again ? { ...s.fields, lead: n.lead, body: n.body, desc: n.body, titleEn: n.title_en, bodyEn: n.body_en, albumUrl: n.album_url, categories: n.categories,
-        videoMode: n.video_url ? 'link' : s.fields.videoMode, videoLink: n.video_url || s.fields.videoLink } : s.fields;
-      $('#pubTitle').textContent = again ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่ขึ้นเว็บไซต์';
-      $('#pubSub').textContent = again ? 'ข้อความเริ่มจากฉบับที่เคยเผยแพร่ ข่าวจะกลับมาที่ลิงก์เดิม ยอดอ่านเดิมยังอยู่' : 'ตรวจหัวข้อ เนื้อหา และภาพ ผู้ส่งจะได้รับข้อความแจ้งเมื่อเผยแพร่';
-      $('#pubOk').textContent = again ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่';
+      // Where the text starts: what PR edited (แก้ไขข่าว), else what was on the site (published before), else what the sender sent
+      const f = pe ? { ...s.fields, lead: pe.lead, body: pe.body, desc: pe.body, titleEn: pe.titleEn, bodyEn: pe.bodyEn, albumUrl: pe.albumUrl, categories: pe.categories,
+          videoMode: pe.videoUrl ? 'link' : s.fields.videoMode, videoLink: pe.videoUrl || s.fields.videoLink, bodySize: pe.bodySize, bodyLeading: pe.bodyLeading }
+        : again ? { ...s.fields, lead: n.lead, body: n.body, desc: n.body, titleEn: n.title_en, bodyEn: n.body_en, albumUrl: n.album_url, categories: n.categories,
+          videoMode: n.video_url ? 'link' : s.fields.videoMode, videoLink: n.video_url || s.fields.videoLink, bodySize: n.body_size, bodyLeading: n.body_leading } : s.fields;
+      const editing = mode === 'edit';
+      $('#pubTitle').textContent = editing ? 'แก้ไขข่าว' : again ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่ขึ้นเว็บไซต์';
+      $('#pubSub').textContent = editing ? 'บันทึกฉบับที่ทีม PR แก้ไว้ ยังไม่เผยแพร่ และผู้ส่งไม่เห็นการแก้ไขนี้ เมื่อกด “เผยแพร่” จะใช้ฉบับนี้'
+        : again ? 'ข้อความเริ่มจากฉบับที่เคยเผยแพร่ ข่าวจะกลับมาที่ลิงก์เดิม ยอดอ่านเดิมยังอยู่' : 'ตรวจหัวข้อ เนื้อหา และภาพ ผู้ส่งจะได้รับข้อความแจ้งเมื่อเผยแพร่';
+      $('#pubOk').textContent = editing ? 'บันทึกการแก้ไข' : again ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่';
       $$('#pubForm [data-for]').forEach((el) => { el.hidden = !el.dataset.for.split(' ').includes(s.type); });
+      $$('#pubForm [data-pub-only]').forEach((el) => { el.hidden = editing; });
+      if (!pubTools) pubTools = TextTools.attach($('#pBody'));
+      pubTools.set({ size: f.bodySize, leading: f.bodyLeading });
       $('#pBodyLabel').textContent = s.type === 'news' ? 'เนื้อหาข่าว' : 'คำอธิบาย';
-      $('#pTitle').value = again ? n.title : s.title;
+      $('#pTitle').value = pe?.title || (again ? n.title : s.title);
       $('#pLead').value = f.lead || '';
       $('#pBody').value = (s.type === 'news' ? f.body : f.desc) || '';
       $('#pVideo').value = f.videoMode === 'link' ? f.videoLink || '' : '';
@@ -1165,12 +1187,12 @@
         <div data-tile="${x.id}" class="t-quick relative aspect-[4/3] overflow-hidden rounded-xl bg-surface2">
           <img src="${esc(x.thumb)}" alt="${esc(x.name)}" loading="lazy" class="h-full w-full object-cover">
           <span class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" aria-hidden="true"></span>
-          <label class="pick absolute left-1.5 top-1.5"><input type="radio" name="cover" value="${x.id}"${i === 0 ? ' checked' : ''} aria-label="ใช้ ${esc(x.name)} เป็นภาพปก"><span class="pick-box inline-flex h-7 items-center rounded-full bg-shell/90 px-2.5 font-display text-[12px] font-semibold text-ink">ปก</span></label>
-          <label class="pick absolute bottom-1.5 right-1.5"><input type="checkbox" name="gallery" value="${x.id}"${i > 0 && i <= 30 ? ' checked' : ''} aria-label="ใส่ ${esc(x.name)} ในแกลเลอรี"><span class="pick-box grid h-7 w-7 place-items-center rounded-full bg-shell/90 text-ink">${ic.check}</span></label>
+          <label class="pick absolute left-1.5 top-1.5"><input type="radio" name="cover" value="${x.id}"${(pe?.cover ? pe.cover === x.id : i === 0) ? ' checked' : ''} aria-label="ใช้ ${esc(x.name)} เป็นภาพปก"><span class="pick-box inline-flex h-7 items-center rounded-full bg-shell/90 px-2.5 font-display text-[12px] font-semibold text-ink">ปก</span></label>
+          <label class="pick absolute bottom-1.5 right-1.5"><input type="checkbox" name="gallery" value="${x.id}"${(pe ? pe.gallery.includes(x.id) : i > 0 && i <= 30) ? ' checked' : ''} aria-label="ใส่ ${esc(x.name)} ในแกลเลอรี"><span class="pick-box grid h-7 w-7 place-items-center rounded-full bg-shell/90 text-ink">${ic.check}</span></label>
         </div>`).join('');
       paintTiles();
       $('#pCats').innerHTML = [...CATEGORIES, ...(s.type === 'video' ? VIDEO_CATEGORIES.filter((v) => !CATEGORIES.includes(v)) : [])].map((c) => chip('pcat', c, c, f.categories?.includes(c))).join('');
-      $('#pAud').innerHTML = AUDIENCE.map(([v, l]) => chip('paud', v, l, (again ? n.audience : s.audienceValues).includes(v))).join('');
+      $('#pAud').innerHTML = AUDIENCE.map(([v, l]) => chip('paud', v, l, (pe?.audience?.length ? pe.audience : again ? n.audience : s.audienceValues).includes(v))).join('');
       syncAud();
       $('input[name=when][value=now]').checked = true;
       $('#pAt').hidden = true;
@@ -1195,6 +1217,11 @@
       if (e.target.name === 'when') { $('#pAt').hidden = e.target.value !== 'later'; if (!$('#pAt').hidden) $('#pAt').focus(); }
       if (e.target.name === 'cover' || e.target.name === 'gallery') paintTiles();
       if (e.target.name === 'paud') syncAud();
+      // วิดีโอเสียงตามสาย is a story's one category: choosing it clears the others, and another one clears it
+      if (e.target.name === 'pcat' && e.target.checked) {
+        const solo = (c) => VIDEO_CATEGORIES.includes(c) && !CATEGORIES.includes(c);
+        $$('input[name=pcat]').forEach((b) => { if (b !== e.target && (solo(e.target.value) || solo(b.value))) b.checked = false; });
+      }
     });
     $('#pubForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1208,10 +1235,13 @@
         cover: $('input[name=cover]:checked')?.value, gallery: $$('input[name=gallery]:checked').map((x) => x.value),
         categories: $$('input[name=pcat]:checked').map((x) => x.value), audience: $$('input[name=paud]:checked').map((x) => x.value),
         featured: $('#pFeatured').checked, publishAt: later ? new Date($('#pAt').value).toISOString() : undefined, message: $('#pMsg').value,
+        bodySize: null, bodyLeading: pubTools.get().leading,
       };
       const ok = $('#pubOk');
       ok.disabled = true;
-      const r = await applyChange(api(`/pr/submissions/${encodeURIComponent(s.ref)}/publish`, { method: 'POST', body }), later ? 'ตั้งเวลาเผยแพร่แล้ว' : 'เผยแพร่แล้ว');
+      const r = await applyChange(pubMode === 'edit'
+        ? api(`/pr/submissions/${encodeURIComponent(s.ref)}/edit`, { method: 'PUT', body })
+        : api(`/pr/submissions/${encodeURIComponent(s.ref)}/publish`, { method: 'POST', body }), pubMode === 'edit' ? 'บันทึกการแก้ไขแล้ว ยังไม่เผยแพร่' : later ? 'ตั้งเวลาเผยแพร่แล้ว' : 'เผยแพร่แล้ว');
       ok.disabled = false;
       if (r === true) { $('#pubDlg').close(); return; }
       $('#pubError').textContent = r.message;

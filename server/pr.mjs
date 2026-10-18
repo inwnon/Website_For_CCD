@@ -8,6 +8,8 @@
 //   (also without telling the sender). It still counts in reports, and its files go with the retention rule.
 // - POST   /api/pr/submissions/:ref/messages           { text }
 // - POST   /api/pr/submissions/:ref/read
+// - PUT    /api/pr/submissions/:ref/edit               แก้ไขข่าว: PR's own version of work not yet published (pr_edit);
+//          the sender does not see it, publishing starts from it
 // - POST   /api/pr/submissions/:ref/publish            story fields → news row, status published
 // - GET    /api/pr/config                              message templates and categories (settings)
 // - GET    /api/pr/team · POST /api/pr/team { email, role } · DELETE /api/pr/team/:email   (changes: admin only)
@@ -18,7 +20,7 @@ import { domainRole, publicUser, requirePr } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, publishImage, removeMedia } from './files.mjs';
 import { HttpError, str } from './http.mjs';
-import { AUDIENCES, MAX_CATS, albumUrl, audienceLabel, categories } from './rules.mjs';
+import { AUDIENCES, MAX_CATS, SOLO_MSG, albumUrl, audienceLabel, bodyLeading, bodySize, categories, soloOk } from './rules.mjs';
 import { audit } from './audit.mjs';
 import { prMessaged, statusChanged } from './notify.mjs';
 import { limit } from './security.mjs';
@@ -81,9 +83,9 @@ async function detail(s) {
     loadThread([s.id]),
     one('select * from users where id = $1', [s.sender_id]),
     s.news_id ? one(`select id, title, title_en, lead, body, body_en, categories, audience, video_url, album_url, featured, published_at,
-      cover_path, withdrawn_at from news where id = $1`, [s.news_id]) : null,
+      cover_path, withdrawn_at, body_size, body_leading from news where id = $1`, [s.news_id]) : null,
   ]);
-  return { submission: submissionOut(s, t, 'pr'), sender: publicUser(sender), news };
+  return { submission: submissionOut(s, t, 'pr'), sender: publicUser(sender), news, prEdit: s.pr_edit || null };
 }
 
 router.get('/pr/submissions/:ref', async (req, res) => {
@@ -128,6 +130,38 @@ router.post('/pr/submissions/:ref/unpublish', async (req, res) => {
   res.json(await detail(await one('select * from submissions where id = $1', [s.id])));
 });
 
+// แก้ไขข่าว: the PR team's own version of the work, kept until it is published (publishing starts from it).
+// Nothing is required here; the checks run when it is published. A new version from the sender replaces it.
+router.put('/pr/submissions/:ref/edit', async (req, res) => {
+  const s = await findSubmission(req.params.ref, req.user);
+  if (s.status === 'published') throw new HttpError(409, 'งานนี้เผยแพร่แล้ว แก้ไขที่ตัวข่าวแทน');
+  if (s.status === 'rejected') throw new HttpError(409, 'งานนี้ถูกลบแล้ว กู้คืนไปที่รอตรวจก่อน');
+  const b = req.body || {};
+  const ids = new Set((await query("select id from submission_files where submission_id = $1 and kind in ('photo', 'art', 'cover')", [s.id])).rows.map((r) => r.id));
+  const cats = Array.isArray(b.categories) ? [...new Set(b.categories)] : [];
+  const errors = {};
+  if (cats.length > MAX_CATS || !cats.every((c) => categories().includes(c))) errors.categories = 'ประเภทข่าวไม่ถูกต้อง';
+  else if (!soloOk(cats)) errors.categories = SOLO_MSG;
+  let album = null;
+  try { album = albumUrl(b.albumUrl); } catch (err) { errors.albumUrl = err.details?.albumUrl || err.message; }
+  if (Object.keys(errors).length) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', errors);
+  const edit = {
+    title: str(b.title, 200, 'หัวข้อข่าว'), lead: str(b.lead, 300, 'สรุปข่าว'), body: str(b.body, 50000, 'เนื้อหาข่าว') || '',
+    bodySize: bodySize(b.bodySize), bodyLeading: bodyLeading(b.bodyLeading),
+    titleEn: str(b.titleEn, 200, 'หัวข้อภาษาอังกฤษ'), bodyEn: str(b.bodyEn, 50000, 'เนื้อหาภาษาอังกฤษ'),
+    videoUrl: str(b.videoUrl, 500, 'ลิงก์วิดีโอ'), albumUrl: album, categories: cats,
+    audience: Array.isArray(b.audience) ? [...new Set(b.audience)].filter((a) => AUDIENCES.includes(a)) : [],
+    cover: ids.has(b.cover) ? b.cover : null,
+    gallery: (Array.isArray(b.gallery) ? b.gallery : []).filter((id) => ids.has(id)).slice(0, 30),
+    by: req.user.name || req.user.email, at: new Date().toISOString(),
+  };
+  await tx(async (c) => {
+    await c.query('update submissions set pr_edit = $2 where id = $1', [s.id, edit]);
+    await audit(c, req.user, 'submission.edit', s.ref, `แก้ไขข่าว ${s.ref} (ยังไม่เผยแพร่)`);
+  });
+  res.json(await detail(await one('select * from submissions where id = $1', [s.id])));
+});
+
 router.post('/pr/submissions/:ref/messages', limit('prMessage', { max: 120, windowMs: 10 * 60 * 1000 }), async (req, res) => {
   const s = await findSubmission(req.params.ref, req.user);
   await tx(async (c) => {
@@ -164,10 +198,13 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
     album_url: b.albumUrl === undefined ? s.album_url : albumUrl(b.albumUrl),
     featured: b.featured === true,
     published_at: b.publishAt ? new Date(b.publishAt) : new Date(),
+    body_size: b.bodySize === undefined ? s.body_size : bodySize(b.bodySize),
+    body_leading: b.bodyLeading === undefined ? s.body_leading : bodyLeading(b.bodyLeading),
   };
   if (s.type === 'news' && story.body.length < 50) errors.body = 'ใส่เนื้อหาข่าวก่อนเผยแพร่';
   if (s.type === 'video' && !story.video_url) errors.videoUrl = 'ใส่ลิงก์วิดีโอที่เผยแพร่แล้ว (เช่น YouTube ของมหาวิทยาลัย)';
   if (!story.categories.every((c) => categories().includes(c)) || story.categories.length > MAX_CATS) errors.categories = 'ประเภทข่าวไม่ถูกต้อง';
+  else if (!soloOk(story.categories)) errors.categories = SOLO_MSG;
   if (!story.audience.length || !story.audience.every((a) => AUDIENCES.includes(a))) errors.audience = 'เลือกว่าใครเห็นข่าวนี้ได้';
   if (Number.isNaN(story.published_at.getTime())) errors.publishAt = 'วันเวลาเผยแพร่ไม่ถูกต้อง';
   if (story.audience.includes('public')) story.audience = [...AUDIENCES];
@@ -192,19 +229,22 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
       if (prev) {
         await c.query(
           `update news set title = $2, title_en = $3, lead = $4, body = $5, body_en = $6, categories = $7, audience = $8, cover_path = $9, gallery = $10,
-             video_url = $11, featured = $12, published_at = $13, album_url = $14, withdrawn_at = null, withdrawn_reason = null, withdrawn_by = null
+             video_url = $11, featured = $12, published_at = $13, album_url = $14, withdrawn_at = null, withdrawn_reason = null, withdrawn_by = null,
+             body_size = $15, body_leading = $16, reviewed_by = $17
            where id = $1`,
           [newsId, story.title, story.title_en, story.lead, story.body, story.body_en, story.categories, story.audience, cover, gallery,
-            story.video_url, story.featured, story.published_at, story.album_url],
+            story.video_url, story.featured, story.published_at, story.album_url, story.body_size, story.body_leading, req.user.id],
         );
       } else await c.query(
         `insert into news (id, kind, submission_id, title, title_en, lead, body, body_en, unit, categories, audience, cover_path, gallery,
-           video_url, credit, event_date, place, featured, published_at, created_by, album_url)
-         values ($1, $20, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $21)`,
+           video_url, credit, event_date, place, featured, published_at, created_by, album_url, body_size, body_leading, reviewed_by)
+         values ($1, $20, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $21, $22, $23, $19)`,
+        // The credit line under the picture: photographer (news), producer (video), designer (banner)
         [newsId, s.id, story.title, story.title_en, story.lead, story.body, story.body_en, s.unit, story.categories, story.audience,
-          cover, gallery, story.video_url, s.credit, s.event_date, s.place, story.featured, story.published_at, req.user.id, s.type, story.album_url],
+          cover, gallery, story.video_url, s.credit || s.producer || s.designer, s.event_date, s.place, story.featured, story.published_at, req.user.id, s.type, story.album_url,
+          story.body_size, story.body_leading],
       );
-      await c.query(`update submissions set status = 'published', news_id = $2, sender_unread = true, pr_unread = false where id = $1`, [s.id, newsId]);
+      await c.query(`update submissions set status = 'published', news_id = $2, sender_unread = true, pr_unread = false, pr_edit = null where id = $1`, [s.id, newsId]);
       await c.query(`insert into submission_events (submission_id, status, actor_id) values ($1, 'published', $2)`, [s.id, req.user.id]);
       const note = str(b.message, 2000, 'ข้อความ') || get('messages').published;
       await addMessage(c, s, req.user, 'pr', note);
