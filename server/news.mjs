@@ -172,9 +172,11 @@ router.get('/news/archive', async (req, res) => {
 const PERSON = "coalesce(nullif(trim(concat_ws(' ', u.first_name, u.last_name)), ''), u.name)";
 async function readable(req, id = req.params.id) {
   if (!UUID.test(id || '')) throw new HttpError(404, 'ไม่พบข่าวนี้');
-  // ส่งข่าวโดย / ตรวจทานโดย: the names of the accounts that sent the work and put it on the site
+  // ส่งข่าวโดย / ตรวจทานโดย: the names of the accounts that sent the work and put it on the site.
+  // A story with no work sent (นำเข้าย้อนหลัง, or entered by PR) is "sent" by the account that entered it.
   const n = await one(`select n.*, n.published_at <= now() live,
-      (select ${PERSON} from submissions s join users u on u.id = s.sender_id where s.id = n.submission_id) submitted_by,
+      coalesce((select ${PERSON} from submissions s join users u on u.id = s.sender_id where s.id = n.submission_id),
+        (select ${PERSON} from users u where u.id = n.created_by)) submitted_by,
       (select ${PERSON} from users u where u.id = n.reviewed_by) reviewed_by_name
     from news n where n.id = $1`, [id]);
   if (!n || (!n.live && !isPr(req.user))) throw new HttpError(404, 'ไม่พบข่าวนี้');

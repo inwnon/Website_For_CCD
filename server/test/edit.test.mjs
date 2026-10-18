@@ -119,6 +119,11 @@ describe('pictures in the order dragged', () => {
       categories: ['ข่าวการศึกษา'], audience: ['public'], date: '2026-10-01', photoOrder: ['u:1', 'u:0'], confirmDuplicate: true },
       { photo: [['red.jpg', await img('#d00', 800, 600), 'image/jpeg'], ['blue.jpg', await img('#00d', 800, 600), 'image/jpeg']] }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
+    // ส่งข่าวโดย on an imported story: the account that imported it, not the unit
+    const imp = (await anon.call('GET', `/api/news/${r.body.news.id}`)).body.story;
+    const importer = (await query(`select coalesce(nullif(trim(concat_ws(' ', first_name, last_name)), ''), name) n from users u join news n on n.created_by = u.id where n.id = $1`, [r.body.news.id])).rows[0].n;
+    assert.ok(importer);
+    assert.equal(imp.submittedBy, importer);
     const n = (await query('select cover_path, gallery from news where id = $1', [r.body.news.id])).rows[0];
     const colour = async (p) => { const { channels } = await sharp(abs(`media/${p}`)).stats(); return channels[2].mean > channels[0].mean ? 'blue' : 'red'; };
     assert.equal(await colour(n.cover_path), 'blue', 'the second file, dragged first, is the cover');
