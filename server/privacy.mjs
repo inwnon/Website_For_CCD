@@ -3,14 +3,14 @@
 // - GET    /api/me/delete-request          my open request (or null) · POST { reason } asks · DELETE cancels
 // - GET    /api/admin/requests             requests (admin.html → คำขอข้อมูลส่วนบุคคล)
 // - POST   /api/admin/requests/:id/erase   erase the account · POST /api/admin/requests/:id/reject { note }
-// - purge(): files of work that was never published, after settings retention.days; old emails after 180 days
+// - purge(): files of work that was never published, and drafts not touched, after settings retention.days; old emails after 180 days
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import { Router } from 'express';
 import { audit } from './audit.mjs';
 import { isAdmin, publicUser, requireAdmin, requireUser } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
-import { abs, removeSubmissionDir } from './files.mjs';
+import { abs, removeDraftDir, removeSubmissionDir } from './files.mjs';
 import { HttpError, str } from './http.mjs';
 import { enqueue, link } from './notify.mjs';
 import { limit } from './security.mjs';
@@ -34,6 +34,10 @@ router.get('/me/data', requireUser, limit('export', { max: 10, windowMs: HOUR })
       const o = submissionOut(s, t, 'sender');
       return { ...o, files: o.files.map(({ name, size, mime, kind }) => ({ name, size, mime, kind })), filesRemovedAt: s.files_purged_at };
     }),
+    drafts: (await query(`select d.id, d.type, d.title, d.data, d.created_at, d.updated_at,
+        coalesce((select json_agg(json_build_object('kind', f.kind, 'name', f.name, 'size', f.size, 'mime', f.mime) order by f.kind, f.position)
+          from draft_files f where f.draft_id = d.id), '[]') files
+      from submission_drafts d where d.sender_id = $1 order by d.updated_at desc`, [u.id])).rows,
     savedNews: (await query('select n.id, n.title, s.created_at saved_at from saved_news s join news n on n.id = s.news_id where s.user_id = $1 order by s.created_at desc', [u.id])).rows,
     storiesRead: (await query(`select n.title, r.day from news_reads r join news n on n.id = r.news_id where r.reader = $1 order by r.day desc`, [`u:${u.id}`])).rows,
     emails: (await query('select created_at, kind, subject, status from email_outbox where to_email = $1 order by id desc', [u.email])).rows,
@@ -105,6 +109,7 @@ export async function erase(c, userId) {
   if (!u || u.erased_at) return null;
   const unpublished = (await c.query(`select id from submissions where sender_id = $1 and status <> 'published'`, [userId])).rows.map((r) => r.id);
   if (unpublished.length) await c.query('delete from submissions where id = any($1)', [unpublished]);
+  const drafts = (await c.query('delete from submission_drafts where sender_id = $1 returning id', [userId])).rows.map((r) => r.id);
   await c.query(`update messages set display_name = 'ผู้ส่ง (ลบข้อมูลแล้ว)' where author_id = $1 and side = 'sender'`, [userId]);
   await c.query('delete from sessions where user_id = $1', [userId]);
   await c.query('delete from saved_news where user_id = $1', [userId]);
@@ -117,7 +122,7 @@ export async function erase(c, userId) {
   await c.query(`update users set email = $2, name = '', avatar_url = null, photo_path = null, first_name = null, last_name = null, phone = null, google_sub = null, unit = null, sub_unit = null, position = null,
       major = null, track = null, year = null, org = null, consent_at = null, notify = '{}', role = 'external', erased_at = now() where id = $1`,
     [userId, `erased-${randomUUID()}@deleted.invalid`]);
-  return { email: u.email, unpublished, photo: u.photo_path };
+  return { email: u.email, unpublished, drafts, photo: u.photo_path };
 }
 
 router.post('/admin/requests/:id/erase', requireAdmin, async (req, res) => {
@@ -138,6 +143,7 @@ router.post('/admin/requests/:id/erase', requireAdmin, async (req, res) => {
     return out;
   });
   await Promise.all((done?.unpublished || []).map((id) => removeSubmissionDir(id)));
+  await Promise.all((done?.drafts || []).map((id) => removeDraftDir(id)));
   if (done?.photo) await rm(abs(done.photo), { force: true });
   res.json({ ok: true });
 });
@@ -168,6 +174,9 @@ export async function purge() {
     });
     await removeSubmissionDir(id);
   }
+  // Drafts nobody has opened for the same time go with their files
+  const drafts = (await query('delete from submission_drafts where updated_at < now() - make_interval(days => $1) returning id', [days])).rows;
+  await Promise.all(drafts.map((d) => removeDraftDir(d.id)));
   await query(`delete from email_outbox where created_at < now() - interval '180 days'`);
   return rows.length;
 }

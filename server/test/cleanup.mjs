@@ -1,11 +1,11 @@
 // Removes what a test run created, so `npm test` leaves the dev database and uploads/ as it found them.
 // snapshot() before the tests, restore() after: everything the dev-login accounts created since the snapshot is deleted
-// (submissions, stories, their files, saved stories, read counts, history, emails) and the ref counters, digests and
+// (submissions, drafts, stories, their files, saved stories, read counts, history, emails) and the ref counters, digests and
 // notification settings, profile photos, names and phones go back to their old values.
 import { readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pool, query } from '../db.mjs';
-import { abs, removeSubmissionDir } from '../files.mjs';
+import { abs, removeDraftDir, removeSubmissionDir } from '../files.mjs';
 
 // Same addresses as DEV in auth.mjs
 const DEV_EMAILS = ['user@sru.ac.th', 'user@student.sru.ac.th', 'user@gmail.com', 'pr@sru.ac.th', 'admin@sru.ac.th', 'coord@sru.ac.th'];
@@ -25,6 +25,7 @@ export async function restore(snap) {
   const devIds = (await query('select id from users where email = any($1)', [DEV_EMAILS])).rows.map((r) => r.id);
   const subs = (await query('select id from submissions where sender_id = any($1) and sent_at >= $2', [devIds, snap.at])).rows.map((r) => r.id);
   const news = (await query('select id from news where created_at >= $2 and (created_by = any($1) or submission_id = any($3))', [devIds, snap.at, subs])).rows.map((r) => r.id);
+  const drafts = (await tableExists('submission_drafts')) ? (await query('select id from submission_drafts where sender_id = any($1) and created_at >= $2', [devIds, snap.at])).rows.map((r) => r.id) : [];
   const client = await pool.connect();
   try {
     await client.query('begin');
@@ -42,6 +43,7 @@ export async function restore(snap) {
     await client.query(`update users set role = case when email like '%@student.sru.ac.th' then 'student'::user_role when email like '%@sru.ac.th' then 'staff'::user_role else 'external'::user_role end
       where email = any($1) and email not in (select email from pr_team)`, [roles]);
     await client.query('delete from submissions where id = any($1)', [subs]);
+    if (drafts.length) await client.query('delete from submission_drafts where id = any($1)', [drafts]);
     await client.query('delete from ref_counters');
     for (const c of snap.counters) await client.query('insert into ref_counters (prefix, year, last) values ($1, $2, $3)', [c.prefix, c.year, c.last]);
     if (snap.settings) {
@@ -74,6 +76,7 @@ export async function restore(snap) {
   }
   await Promise.all([
     ...subs.map((id) => removeSubmissionDir(id)),
+    ...drafts.map((id) => removeDraftDir(id)),
     ...news.map((id) => rm(abs(join('media', id)), { recursive: true, force: true })),
   ]);
   // Digest files no row points to any more

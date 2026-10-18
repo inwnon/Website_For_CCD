@@ -177,7 +177,7 @@
       ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr.html', 'desk', 'งานที่ส่งเข้ามา')}${item('pr-news.html', 'news', 'จัดการข่าว')}${item('digest-studio.html', 'book', 'เล่มสรุปข่าว')}${item('report.html', 'chart', 'รายงาน')}${u.role === 'admin' ? item('admin.html', 'gear', 'ตั้งค่าระบบ') : ''}</div>`
       : u.role === 'coordinator' ? `<div class="acct-grp">${item('report.html', 'chart', 'รายงานของหน่วยงาน')}</div>` : '';
     return `<div class="acct-id"><span class="acct-av">${avatar(u)}</span><div style="min-width:0"><p class="acct-name">${esc(u.name || u.email)}</p>${u.name ? `<p class="acct-mail">${esc(u.email)}</p>` : ''}<span class="acct-role">${esc(ROLE_TH[u.role] || '')}${aff ? ` ${esc(aff)}` : ''}</span></div></div>
-      <div class="acct-grp">${item('inbox.html', 'inbox', 'กล่องข้อความ', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${u.role !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
+      <div class="acct-grp">${item('inbox.html', 'inbox', 'ข่าวของฉัน', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${u.role !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
       ${prTools}
       <div class="acct-grp"><p class="acct-label">บัญชีและการตั้งค่า</p>${item('login.html?profile=1', 'edit', 'แก้ไขโปรไฟล์และสังกัด')}${item('inbox.html#notify', 'bell', 'การแจ้งเตือนทางอีเมล')}${item('privacy.html#rights', 'shield', 'ข้อมูลส่วนบุคคลของฉัน')}${themeRow}</div>
       <div class="acct-grp"><button type="button" class="acct-item danger" data-signout>${svg(IC.out)}<span>ออกจากระบบ</span></button></div>`;

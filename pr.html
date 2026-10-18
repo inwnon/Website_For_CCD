@@ -275,7 +275,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=c98edbb527">
+  <link rel="stylesheet" href="/assets/app.css?v=6ced3bc19b">
 </head>
 
 <body class="app">
@@ -870,7 +870,7 @@
         <aside class="grid min-w-0 content-start gap-3">
           ${cover ? `<button type="button" data-tab-go="files" class="photo-tile press t-quick relative block aspect-[4/3] overflow-hidden rounded-2xl bg-surface2" aria-label="ดูภาพทั้งหมดในแท็บไฟล์แนบ"><img src="${esc(cover.thumb)}" alt="" class="h-full w-full object-cover"><span class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" aria-hidden="true"></span><span class="absolute inset-x-3 bottom-2 text-left font-display text-[13px] font-medium text-white">ภาพปกจากผู้ส่ง · ดูทั้งหมด ${s.files.filter((x) => x.thumb).length} ภาพ</span></button>` : ''}
           <dl class="grid gap-2 rounded-2xl bg-surface2 p-4 text-[14px]">${facts.map(([k, v]) => `<div><dt class="text-[12px] text-ink2">${k}</dt><dd class="font-medium">${esc(v)}</dd></div>`).join('')}</dl>
-          ${ppl.length ? `<div class="rounded-2xl border border-line p-4"><h4 class="font-display text-[13px] font-semibold text-ink2">บุคคลสำคัญ</h4><ul class="mt-1.5 grid gap-1 text-[14px]">${ppl.map(([k, x]) => `<li><span class="text-ink2">${k}:</span> <span class="font-medium">${esc(x.name || '–')}</span>${x.pos ? ` <span class="text-ink2">${esc(x.pos)}</span>` : ''}</li>`).join('')}</ul></div>` : ''}
+          ${ppl.length ? `<div class="rounded-2xl border border-line p-4"><h4 class="font-display text-[13px] font-semibold text-ink2">บุคคลสำคัญ</h4><ul class="mt-1.5 grid gap-1 text-[14px]">${ppl.map(([k, x]) => `<li><span class="text-ink2">${k}:</span> <span class="font-medium">${esc(x.name ? (x.prefix || '') + x.name : '–')}</span>${x.pos ? ` <span class="text-ink2">${esc(x.pos)}</span>` : ''}</li>`).join('')}</ul></div>` : ''}
         </aside>
       </div>`;
     }
@@ -904,7 +904,7 @@
               <p class="mt-0.5 whitespace-pre-line text-[15px]">${esc(m.text)}</p>
               <p class="mt-1 text-[12px] text-ink2">${when(m.at)}</p>
             </div>
-          </li>`).join('') : '<li class="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-[14px] text-ink2">ยังไม่มีข้อความ ข้อความที่ตอบจะแสดงในกล่องข้อความของผู้ส่ง</li>'}
+          </li>`).join('') : '<li class="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-[14px] text-ink2">ยังไม่มีข้อความ ข้อความที่ตอบจะแสดงในหน้าข่าวของฉันของผู้ส่ง</li>'}
       </ol>`;
     }
     function historyHtml(s) {
@@ -1014,8 +1014,8 @@
 
     // ---- Actions ----
     const DECIDE = {
-      revise: { title: 'ขอให้ผู้ส่งแก้ไข', lead: 'บอกให้ชัดว่าต้องแก้หรือเพิ่มอะไร ผู้ส่งจะเห็นข้อความนี้ในกล่องข้อความ', ok: 'ส่งให้ผู้ส่งแก้ไข', need: 'บอกผู้ส่งว่าต้องแก้ไขอะไร', done: 'ส่งให้ผู้ส่งแก้ไขแล้ว' },
-      rejected: { title: 'ไม่เผยแพร่งานนี้', lead: 'บอกเหตุผลให้ผู้ส่งทราบ ผู้ส่งจะเห็นข้อความนี้ในกล่องข้อความ', ok: 'ยืนยันไม่เผยแพร่', need: 'บอกเหตุผลที่ไม่เผยแพร่', done: 'บันทึกว่าไม่เผยแพร่แล้ว' },
+      revise: { title: 'ขอให้ผู้ส่งแก้ไข', lead: 'บอกให้ชัดว่าต้องแก้หรือเพิ่มอะไร ผู้ส่งจะเห็นข้อความนี้ในหน้าข่าวของฉัน', ok: 'ส่งให้ผู้ส่งแก้ไข', need: 'บอกผู้ส่งว่าต้องแก้ไขอะไร', done: 'ส่งให้ผู้ส่งแก้ไขแล้ว' },
+      rejected: { title: 'ไม่เผยแพร่งานนี้', lead: 'บอกเหตุผลให้ผู้ส่งทราบ ผู้ส่งจะเห็นข้อความนี้ในหน้าข่าวของฉัน', ok: 'ยืนยันไม่เผยแพร่', need: 'บอกเหตุผลที่ไม่เผยแพร่', done: 'บันทึกว่าไม่เผยแพร่แล้ว' },
     };
     let decideMode = null;
     // Starting text for messages to the sender (set on admin.html); PR edits it before sending

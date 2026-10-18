@@ -28,7 +28,7 @@
     .swatch { background: radial-gradient(90% 60% at 100% 0%, var(--glow), transparent 65%), radial-gradient(80% 50% at 0% 100%, rgb(122 60 226 / .6), transparent 70%), var(--bg-c); }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=c98edbb527">
+  <link rel="stylesheet" href="/assets/app.css?v=6ced3bc19b">
 </head>
 <body class="app">
   <a href="#panel" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่การตั้งค่า</a>
@@ -266,7 +266,7 @@
           <div class="rounded-card border border-line bg-surface2/60 p-4"><p class="text-[13px] text-ink2">ผู้ส่งจะเห็นข้อความนี้</p>
             <p id="daysPreview" class="mt-1 text-[15px]"></p></div>
         </div>` + saveBar('reviewSave');
-      const sync = () => { $('#daysPreview').textContent = `งานประชาสัมพันธ์จะตรวจและแจ้งผลกลับภายใน ${$('#days').value || '…'} วันทำการ ทางอีเมลและกล่องข้อความ`; };
+      const sync = () => { $('#daysPreview').textContent = `งานประชาสัมพันธ์จะตรวจและแจ้งผลกลับภายใน ${$('#days').value || '…'} วันทำการ ทางอีเมลและหน้าข่าวของฉัน`; };
       $('#days').addEventListener('input', sync); sync();
       $('#reviewSave').addEventListener('click', (e) => save('review', { days: Number($('#days').value) }, e.currentTarget));
     }
@@ -307,7 +307,7 @@
     // ================= Message templates =================
     function messages() {
       const m = S.settings.messages;
-      $('#panel').innerHTML = head('ข้อความแจ้งเตือน', 'ข้อความตั้งต้นที่ส่งถึงผู้ส่งในกล่องข้อความและในอีเมลแจ้งเตือน ทีม PR แก้ไขได้ทุกครั้งก่อนส่ง') + `
+      $('#panel').innerHTML = head('ข้อความแจ้งเตือน', 'ข้อความตั้งต้นที่ส่งถึงผู้ส่งในหน้าข่าวของฉันและในอีเมลแจ้งเตือน ทีม PR แก้ไขได้ทุกครั้งก่อนส่ง') + `
         <div class="grid max-w-[760px] gap-4 p-5 sm:px-6">${Object.entries(MSG).map(([k, l]) => `
           <label class="grid gap-1.5"><span class="font-display text-[15px] font-semibold">${l}</span>
             <textarea data-msg="${k}" rows="3" maxlength="500" class="field rounded-2xl px-4 py-3 text-[15px]">${esc(m[k])}</textarea></label>`).join('')}</div>` + saveBar('msgSave');
@@ -324,7 +324,7 @@
       const r = await api('/admin/mail').catch((err) => { toast(err.message, true); return null; });
       if (!r) return;
       const c = r.counts || {};
-      $('#panel').innerHTML = head('อีเมลแจ้งเตือน', 'อีเมลที่ระบบส่งถึงผู้ส่งงานและทีม PR: สถานะงาน ข้อความ งานใหม่ สรุปงานทุกเช้า 08:00 น. และเตือนเล่มสรุปข่าวที่รออนุมัติ ผู้ใช้แต่ละคนปิดบางประเภทได้ที่กล่องข้อความ') + `
+      $('#panel').innerHTML = head('อีเมลแจ้งเตือน', 'อีเมลที่ระบบส่งถึงผู้ส่งงานและทีม PR: สถานะงาน ข้อความ งานใหม่ สรุปงานทุกเช้า 08:00 น. และเตือนเล่มสรุปข่าวที่รออนุมัติ ผู้ใช้แต่ละคนปิดบางประเภทได้ที่หน้าข่าวของฉัน') + `
         <div class="grid gap-4 p-5 sm:px-6">
           <div class="flex flex-wrap items-center gap-3 rounded-card border p-4 ${r.smtp ? 'border-[rgb(var(--sky)/.3)] bg-sky-soft' : 'border-[rgb(var(--gold)/.35)] bg-gold-soft'}">
             <div class="min-w-0 flex-1">

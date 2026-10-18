@@ -8,6 +8,8 @@ export const AUDIENCES = ['public', 'student', 'staff'];
 export const MAX_CATS = 5;
 export const MAX_GUESTS = 5;
 export const MIN_BODY = 150;
+export const MAX_TITLE = 180;
+export const MAX_LEAD = 250;
 // ประเภทข่าว, photo limits and video platforms come from the settings (admin.html); submit.html reads the same values
 export const categories = () => get('categories');
 const platformOk = (p, url) => get('platforms').includes(p) && PLATFORMS[p]?.test(url);
@@ -57,12 +59,14 @@ export function audienceLabel(a) {
 }
 
 const isDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+// { prefix, name, pos }: prefix is a title such as ผศ.ดร. (a list in name-prefixes.js, or typed under "อื่น ๆ")
 const person = (p, label) => {
   if (p == null) return null;
   if (typeof p !== 'object') throw new HttpError(400, `${label} ไม่ถูกต้อง`);
+  const prefix = str(p.prefix, 60, `คำนำหน้านาม${label}`);
   const name = str(p.name, 100, `ชื่อ${label}`);
   const pos = str(p.pos, 120, `ตำแหน่ง${label}`);
-  return name || pos ? { name, pos } : null;
+  return name || pos ? { ...(prefix ? { prefix } : {}), name, pos } : null;
 };
 
 /**
@@ -80,8 +84,8 @@ export function checkSubmission(user, d, fileCounts) {
 
   const row = {
     type,
-    title: str(d.title, 120, 'หัวข้อ'),
-    lead: isNews ? str(d.lead, 200, 'สรุปข่าว') : null,
+    title: str(d.title, MAX_TITLE, 'หัวข้อ'),
+    lead: isNews ? str(d.lead, MAX_LEAD, 'คำโปรย') : null,
     description: str(d.desc, 5000, 'คำอธิบาย'),
     body: isNews && d.contentMode === 'own' ? str(d.body, 20000, 'เนื้อหาข่าว') : null,
     event_date: hasDate ? d.eventDate || null : null,
@@ -134,8 +138,8 @@ export function checkSubmission(user, d, fileCounts) {
     const guests = Array.isArray(d.guests) ? d.guests : [];
     need('guests', guests.length <= MAX_GUESTS, `บุคคลสำคัญจากภายนอกได้ไม่เกิน ${MAX_GUESTS} คน`);
     row.people = {
-      chair: person({ name: d.chairName, pos: d.chairPos }, 'ประธาน'),
-      reporter: person({ name: d.reporterName, pos: d.reporterPos }, 'ผู้กล่าวรายงาน'),
+      chair: person({ prefix: d.chairPrefix, name: d.chairName, pos: d.chairPos }, 'ประธาน'),
+      reporter: person({ prefix: d.reporterPrefix, name: d.reporterName, pos: d.reporterPos }, 'ผู้กล่าวรายงาน'),
       guests: guests.slice(0, MAX_GUESTS).map((g, i) => person(g, `บุคคลภายนอกคนที่ ${i + 1}`)).filter(Boolean),
     };
   }
@@ -164,4 +168,36 @@ export function checkSubmission(user, d, fileCounts) {
 
   if (Object.keys(errors).length) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', errors);
   return row;
+}
+
+// ---- Drafts (drafts.mjs) ----
+// What a draft keeps: the form fields as submit.html sends them, cut to the same lengths as a submission.
+// Nothing is required; the full checks (checkSubmission) run when the draft is sent.
+const DRAFT_TEXT = { title: MAX_TITLE, lead: MAX_LEAD, desc: 5000, body: 20000, eventDate: 10, place: 120, unit: 200, contentMode: 10, credit: 80,
+  newsVideo: 500, newsPlatform: 20, videoLink: 500, videoPlatform: 20, albumUrl: 500, chairPrefix: 60, chairName: 100, chairPos: 120,
+  reporterPrefix: 60, reporterName: 100, reporterPos: 120, titleEn: 160, bodyEn: 20000, note: 300 };
+export function draftData(d) {
+  if (!d || typeof d !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลร่าง');
+  if (!TYPES.includes(d.type)) throw new HttpError(400, 'กรุณาเลือกประเภทงาน');
+  const out = { type: d.type };
+  for (const [k, max] of Object.entries(DRAFT_TEXT)) { const v = typeof d[k] === 'string' ? d[k].slice(0, max) : ''; if (v) out[k] = v; }
+  const list = (v, n, len) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, n).map((x) => x.slice(0, len)) : []);
+  out.categories = list(d.categories, MAX_CATS, 100);
+  out.audience = list(d.audience, 3, 10).filter((a) => AUDIENCES.includes(a));
+  out.guests = (Array.isArray(d.guests) ? d.guests : []).slice(0, MAX_GUESTS).filter((g) => g && typeof g === 'object')
+    .map((g) => ({ prefix: String(g.prefix || '').slice(0, 60), name: String(g.name || '').slice(0, 100), pos: String(g.pos || '').slice(0, 160) }));
+  out.en = d.en === true;
+  return out;
+}
+
+// Order of photos / art files chosen on the page (dragged; the first is the cover).
+// order: ['f:<file id>' | 'u:<n>'] for one kind, where u:n is the n-th new upload of that kind.
+// Returns a position for every kept file (by id) and every upload (by index); anything not listed keeps its turn after the listed ones.
+export function arrange(order, keptIds, uploadCount) {
+  const tokens = Array.isArray(order) ? order.filter((t) => typeof t === 'string') : [];
+  const all = [...keptIds.map((id) => `f:${id}`), ...Array.from({ length: uploadCount }, (_, i) => `u:${i}`)];
+  const seen = new Set();
+  const listed = tokens.filter((t) => all.includes(t) && !seen.has(t) && seen.add(t));
+  const ordered = [...listed, ...all.filter((t) => !seen.has(t))];
+  return Object.fromEntries(ordered.map((t, i) => [t, i]));
 }

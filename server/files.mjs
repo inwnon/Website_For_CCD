@@ -2,6 +2,7 @@
 //   tmp/                                  multer writes here first
 //   submissions/{submission id}/{file id}.{ext}       original as sent, minus GPS location (exif.mjs, no re-encoding)
 //   submissions/{submission id}/{file id}.web.webp    1600px copy of photos for previews
+//   drafts/{draft id}/...                  the same for a draft (drafts.mjs); moved to submissions/ when it is sent
 //   media/{news id}/...                    published story images (/media/..., audience checked in news.mjs)
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
@@ -75,10 +76,10 @@ export const mimeOf = (name) => MIME[extname(name).toLowerCase()] || 'applicatio
 export const webPath = (path) => path.replace(/\.[^.]+$/, '.web.webp');
 export const abs = (rel) => join(UPLOAD_DIR, rel);
 
-// Moves temp uploads into the submission's folder. Photos that fail to decode are rejected.
+// Moves temp uploads into the submission's (or draft's: folder 'drafts') folder. Photos that fail to decode are rejected.
 // Returns rows for submission_files; on failure removes whatever it already moved.
-export async function storeUploads(submissionId, uploads, startPositions = {}) {
-  const dir = join('submissions', submissionId);
+export async function storeUploads(submissionId, uploads, startPositions = {}, folder = 'submissions') {
+  const dir = join(folder, submissionId);
   await mkdir(abs(dir), { recursive: true });
   const pos = { ...startPositions };
   const rows = [];
@@ -110,6 +111,17 @@ export async function storeUploads(submissionId, uploads, startPositions = {}) {
 
 export const removeStored = (path) => Promise.all([rm(abs(path), { force: true }), rm(abs(webPath(path)), { force: true })]);
 export const removeSubmissionDir = (submissionId) => rm(abs(join('submissions', submissionId)), { recursive: true, force: true });
+export const removeDraftDir = (draftId) => rm(abs(join('drafts', draftId)), { recursive: true, force: true });
+
+// Moves a stored file (and its web copy) into another submission's folder; returns the new path
+export async function moveStored(path, submissionId) {
+  const dir = join('submissions', submissionId);
+  await mkdir(abs(dir), { recursive: true });
+  const to = join(dir, path.split('/').pop()).replaceAll('\\', '/');
+  await rename(abs(path), abs(to));
+  await rename(abs(webPath(path)), abs(webPath(to))).catch(() => {}); // documents have no web copy
+  return to;
+}
 
 // Copies a submission photo into the media folder of a published story (served by news.mjs, which checks the audience):
 //   {file id}.webp      1600px copy for the page

@@ -240,8 +240,17 @@
     .sec-item .sec-dot { transition: transform .45s var(--spring); }
     .sec-item:hover .sec-dot { transform: scale(1.08); }
     @media (min-width: 1024px) { #layout.has-rail { grid-template-columns: 272px minmax(0, 1fr); } }
-    /* Short screens: the preview card needs ~860px of height; below that the menu stays whole without it */
-    @media (max-height: 860px) { #pvCard { display: none; } }
+    /* The card preview always shows; on short screens the section list gives up room and scrolls inside its box */
+    #secNav { scrollbar-width: thin; overscroll-behavior: contain; }
+    #secNav.more-below { -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent); }
+    @media (max-height: 760px) { #pvCard .pv-img { aspect-ratio: 2 / 1; } #pvCard { padding: 12px; } }
+
+    /* เนื้อหาข่าว: the heart of the story, so its block and the text box stand out */
+    .sec-feature { position: relative; overflow: hidden; border-color: rgb(var(--red) / .32); background: radial-gradient(90% 55% at 0% 0%, rgb(var(--red-soft)), transparent 70%), radial-gradient(70% 45% at 100% 0%, rgb(var(--purple-soft) / .7), transparent 70%), rgb(var(--surface)); box-shadow: var(--shadow-float); }
+    .sec-feature::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--grad); }
+    .body-field { border: 2px solid rgb(var(--red) / .3); background: rgb(var(--shell)); box-shadow: inset 0 1px 0 rgb(var(--line) / .6); }
+    .body-field:hover { border-color: rgb(var(--purple) / .55); }
+    .body-field:focus { border-color: rgb(var(--purple)); box-shadow: 0 0 0 4px rgb(var(--purple) / .14); }
     /* Beside the menu the type cards are narrower: smaller icon and padding keep the names on one line */
     @media (min-width: 1024px) {
       #layout.has-rail .type-opt .opt-box { padding: 16px; gap: 12px; }
@@ -250,12 +259,50 @@
     }
     .fold-btn svg { transition: transform .45s var(--spring); }
     .fold-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+    /* Key people: the role stands out a little; prefix · name · position (one row on wide screens) */
+    .role-tag { display: inline-flex; align-items: center; border-radius: 10px; padding: 2px 10px; background: rgb(var(--purple-soft)); color: rgb(var(--purple)); font-family: Kanit, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.6; }
+    .person-row { display: grid; gap: 12px; }
+    .person-row .guest-remove { order: 9; justify-self: end; }
+    @media (min-width: 640px) {
+      .person-row { grid-template-columns: 150px minmax(0, 1fr); }
+      .person-row.guest-row { grid-template-columns: 150px minmax(0, 1fr) auto; }
+      .person-row .person-pos { grid-column: 1 / -1; }
+      .person-row .guest-remove { order: 0; }
+    }
+    @media (min-width: 1280px) {
+      .person-row { grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr); }
+      .person-row.guest-row { grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) auto; }
+      .person-row .person-pos { grid-column: auto; }
+      .person-row .guest-remove { order: 9; }
+    }
+
+    /* Consent: the last thing to do before sending, so it stands out until it is ticked */
+    .consent { border: 2px solid rgb(var(--purple) / .45); background: rgb(var(--purple-soft) / .55); transition: transform .45s var(--spring); }
+    .consent:hover { border-color: rgb(var(--purple)); }
+    .consent:active { transform: scale(.99); }
+    .consent:has(input:focus-visible) { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+    .consent:has(input:checked) { border-color: rgb(var(--purple)); background: rgb(var(--purple-soft)); box-shadow: var(--shadow-raised); }
+    .consent:has(input[aria-invalid="true"]:not(:checked)) { border-color: rgb(var(--red)); background: rgb(var(--red-soft)); }
+    .consent input { width: 24px; height: 24px; accent-color: rgb(var(--purple)); }
+
+    /* Photos: drag to reorder (the first is the cover); a lifted copy follows the pointer */
+    .thumb { cursor: grab; -webkit-touch-callout: none; user-select: none; }
+    .thumb img { -webkit-user-drag: none; }
+    .thumb:focus-visible { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+    .thumb.is-dragging { opacity: .35; }
+    .drag-ghost { position: fixed; z-index: 80; pointer-events: none; margin: 0; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-float); cursor: grabbing; }
+    body.photo-dragging, body.photo-dragging * { cursor: grabbing !important; user-select: none; }
+    .no-pop .thumb { animation: none; }
+
+    /* Small notice (บันทึกร่างแล้ว) */
+    .note-toast { animation: stepIn .45s var(--spring); }
     /* Jumping to a section or field never hides it under the header or the submit bar */
     html { scroll-padding-top: 150px; scroll-padding-bottom: 120px; }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=c98edbb527">
+  <link rel="stylesheet" href="/assets/app.css?v=6ced3bc19b">
 </head>
 
 <body class="min-h-screen">
@@ -313,27 +360,27 @@
       <div id="layout" class="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:gap-8">
         <!-- ===== Section menu ===== -->
         <aside id="rail" class="hidden lg:sticky lg:top-[136px] lg:flex lg:h-[calc(100dvh-196px)] lg:flex-col lg:gap-4" aria-label="ส่วนต่าง ๆ ของฟอร์ม" hidden>
-          <div class="shrink-0 rounded-card border border-line bg-surface p-4 shadow-float">
-            <div class="flex items-center gap-3 px-1">
-              <svg class="-rotate-90 shrink-0" width="52" height="52" viewBox="0 0 64 64" aria-hidden="true">
+          <div class="flex min-h-0 shrink flex-col rounded-card border border-line bg-surface p-3 shadow-float">
+            <div class="flex items-center gap-2.5 px-1">
+              <svg class="-rotate-90 shrink-0" width="38" height="38" viewBox="0 0 64 64" aria-hidden="true">
                 <defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#DE142A"/><stop offset=".55" stop-color="#B3218F"/><stop offset="1" stop-color="#7A3CE2"/></linearGradient></defs>
                 <circle cx="32" cy="32" r="27" fill="none" stroke="rgb(var(--line))" stroke-width="7"/>
                 <circle id="ring" class="ring-fg" cx="32" cy="32" r="27" fill="none" stroke="url(#rg)" stroke-width="7" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="169.6"/>
               </svg>
-              <div>
-                <p class="font-display text-[16px] font-semibold">กรอกแล้ว <span id="doneCount">0</span> จาก <span id="totalCount">0</span> ข้อ</p>
-                <p id="readyText" class="text-[13px] text-ink2">กรอกให้ครบเพื่อส่ง</p>
+              <div class="leading-[1.35]">
+                <p class="font-display text-[15px] font-semibold">กรอกแล้ว <span id="doneCount">0</span> จาก <span id="totalCount">0</span> ข้อ</p>
+                <p id="readyText" class="text-[12px] text-ink2">กรอกให้ครบเพื่อส่ง</p>
               </div>
             </div>
-            <ol id="secNav" class="mt-3 grid gap-0.5"></ol>
+            <ol id="secNav" class="mt-2 grid min-h-0 overflow-y-auto"></ol>
           </div>
-          <div id="pvCard" class="flex min-h-0 shrink flex-col rounded-card border border-line bg-surface p-4 shadow-raised">
+          <div id="pvCard" class="flex shrink-0 flex-col rounded-card border border-line bg-surface p-3.5 shadow-raised">
             <p class="mb-2.5 flex shrink-0 items-center justify-between font-display text-[14px] font-semibold text-ink2">
               ตัวอย่างการ์ด
               <span id="pvAudience" class="rounded-full bg-sky-soft px-2.5 text-[12px] leading-6 text-sky">ทั่วไป</span>
             </p>
-            <article class="flex min-h-0 shrink flex-col overflow-hidden rounded-card border border-line bg-shell" aria-label="ตัวอย่างการ์ด">
-              <div class="relative h-[140px] min-h-[56px] shrink overflow-hidden bg-surface2">
+            <article class="flex flex-col overflow-hidden rounded-card border border-line bg-shell" aria-label="ตัวอย่างการ์ด">
+              <div class="pv-img relative aspect-[16/9] overflow-hidden bg-surface2">
                 <img id="pvImg" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22640%22%20height%3D%22360%22%3E%3Crect%20width%3D%22640%22%20height%3D%22360%22%20fill%3D%22%232A3B9C%22%2F%3E%3Ctext%20x%3D%22320%22%20y%3D%22196%22%20font-family%3D%22Kanit%2Csans-serif%22%20font-size%3D%2244%22%20font-weight%3D%22600%22%20fill%3D%22%23C8A6FF%22%20text-anchor%3D%22middle%22%3ECover%3C%2Ftext%3E%3C%2Fsvg%3E" alt="" class="h-full w-full object-cover" width="640" height="360">
                 <div class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></div>
                 <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-50"></div>
@@ -370,7 +417,7 @@
           <div class="grid items-center gap-6 md:grid-cols-[1fr_auto]">
             <div>
               <h1 id="page-title" class="font-display tight text-[clamp(28px,3.4vw,44px)] font-bold text-royal">วันนี้อยากส่งอะไรถึง PR?</h1>
-              <p class="mt-3 max-w-[560px] text-[15px] text-ink2">เลือกประเภทงาน แล้วกรอกรายละเอียดด้านล่าง งานประชาสัมพันธ์จะตรวจและแจ้งผลกลับภายใน <span data-review-days>2</span> วันทำการ ทางกล่องข้อความ</p>
+              <p class="mt-3 max-w-[560px] text-[15px] text-ink2">เลือกประเภทงาน แล้วกรอกรายละเอียดด้านล่าง งานประชาสัมพันธ์จะตรวจและแจ้งผลกลับภายใน <span data-review-days>2</span> วันทำการ ทางหน้าข่าวของฉัน</p>
             </div>
             <div class="relative hidden w-[150px] md:block lg:w-[170px]">
               <div class="absolute inset-x-[15%] bottom-4 top-[20%] rounded-full bg-[rgb(var(--purple)/.2)] blur-3xl"></div>
@@ -450,7 +497,7 @@
         <div class="absolute inset-0" style="background: radial-gradient(55% 90% at 0% 0%, rgb(var(--red-soft)), transparent 70%), radial-gradient(45% 80% at 100% 100%, rgb(var(--purple-soft)), transparent 70%), rgb(var(--surface));"></div>
         <div class="relative">
           <a href="inbox.html" id="editBack" class="hover-fill press t-quick -ml-2 inline-flex h-10 items-center gap-2 rounded-full px-3 font-display text-[14px] font-medium text-ink2 hover:text-ink">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>กลับไปที่กล่องข้อความ
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>กลับไปที่ข่าวของฉัน
           </a>
           <h1 id="editTitle" class="mt-2 font-display tight text-[clamp(26px,3vw,38px)] font-bold text-royal">แก้ไขงานตามที่ PR ขอ</h1>
           <p id="editRef" class="mt-1 text-[15px] text-ink2"></p>
@@ -463,7 +510,7 @@
       <section id="editGone" class="mt-2 flex flex-col items-center gap-4 rounded-card border border-line bg-surface p-8 text-center shadow-raised" aria-labelledby="editGoneTitle" hidden>
         <h2 id="editGoneTitle" class="font-display text-[22px] font-semibold"></h2>
         <p id="editGoneText" class="max-w-[520px] text-[15px] text-ink2"></p>
-        <a href="inbox.html" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">ไปที่กล่องข้อความ</a>
+        <a href="inbox.html" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">ไปที่ข่าวของฉัน</a>
       </section>
 
       <!-- Outside users cannot send work -->
@@ -501,18 +548,18 @@
               <div>
                 <div class="mb-2 flex items-baseline justify-between gap-3">
                   <label for="title" class="font-display text-[15px] font-semibold"><span data-text="titleLabel">หัวข้อข่าว</span> <span class="text-brand">*</span></label>
-                  <span class="text-[12px] text-ink2"><span data-count="title">0</span>/120</span>
+                  <span class="text-[12px] text-ink2"><span data-count="title">0</span>/180</span>
                 </div>
-                <input id="title" name="title" type="text" maxlength="120" required autocomplete="off" class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="titleError">
+                <input id="title" name="title" type="text" maxlength="180" required autocomplete="off" class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="titleError">
                 <p id="titleError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
               </div>
 
               <div data-for="news">
                 <div class="mb-2 flex items-baseline justify-between gap-3">
                   <label for="lead" class="font-display text-[15px] font-semibold">คำโปรย <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
-                  <span class="text-[12px] text-ink2"><span data-count="lead">0</span>/200</span>
+                  <span class="text-[12px] text-ink2"><span data-count="lead">0</span>/250</span>
                 </div>
-                <textarea id="lead" name="lead" rows="2" maxlength="200" placeholder="สรุปข่าวใน 1–2 ประโยค จะแสดงใต้หัวข้อข่าว" class="field w-full resize-none rounded-2xl px-4 py-3 text-[16px]"></textarea>
+                <textarea id="lead" name="lead" rows="2" maxlength="250" placeholder="สรุปข่าวใน 1–2 ประโยค จะแสดงใต้หัวข้อข่าว" class="field w-full resize-none rounded-2xl px-4 py-3 text-[16px]"></textarea>
               </div>
 
               <div data-for="video banner">
@@ -553,53 +600,8 @@
             </div>
           </section>
 
-          <!-- Key people (news) -->
-          <section data-for="news" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sPeople" data-sec="people">
-            <header class="flex items-center gap-3">
-              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-royal-soft font-display text-[16px] font-semibold text-royal"></span>
-              <div>
-                <h2 id="sPeople" class="font-display text-[20px] font-semibold">บุคคลสำคัญที่เกี่ยวข้อง <span class="font-sans text-[14px] font-normal text-ink2">(ไม่บังคับ)</span></h2>
-                <p class="text-[13px] text-ink2">ชื่อและตำแหน่ง ช่วยให้ PR เขียนข่าวและสะกดชื่อได้ถูกต้อง</p>
-              </div>
-              <button id="peopleToggle" type="button" aria-expanded="false" aria-controls="peopleBody" class="fold-btn press t-spring ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium shadow-raised hover:-translate-y-0.5">
-                <span>เพิ่มรายชื่อ</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-            </header>
-
-            <div id="peopleBody" class="step-enter mt-6 grid gap-5" hidden>
-              <fieldset class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
-                <legend class="sr-only">ประธานในพิธี</legend>
-                <p class="font-display text-[15px] font-semibold md:pt-3.5" aria-hidden="true">ประธานในพิธี</p>
-                <div class="grid gap-3 sm:grid-cols-2">
-                  <input id="chairName" type="text" maxlength="100" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อประธานในพิธี" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
-                  <input id="chairPos" type="text" maxlength="120" placeholder="ตำแหน่ง เช่น อธิการบดี" aria-label="ตำแหน่งประธานในพิธี" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
-                </div>
-              </fieldset>
-              <fieldset class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
-                <legend class="sr-only">ผู้กล่าวรายงาน</legend>
-                <p class="font-display text-[15px] font-semibold md:pt-3.5" aria-hidden="true">ผู้กล่าวรายงาน</p>
-                <div class="grid gap-3 sm:grid-cols-2">
-                  <input id="reporterName" type="text" maxlength="100" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อผู้กล่าวรายงาน" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
-                  <input id="reporterPos" type="text" maxlength="120" placeholder="ตำแหน่ง เช่น คณบดีคณะครุศาสตร์" aria-label="ตำแหน่งผู้กล่าวรายงาน" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
-                </div>
-              </fieldset>
-              <div class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
-                <p class="font-display text-[15px] font-semibold md:pt-2.5">บุคคลสำคัญจากภายนอก</p>
-                <div>
-                  <ul id="guestList" class="grid gap-3" aria-label="บุคคลสำคัญจากภายนอก"></ul>
-                  <button id="addGuest" type="button" class="press t-spring mt-0 inline-flex h-11 items-center gap-2 rounded-full border border-dashed border-line px-4 font-display text-[14px] font-medium text-purple hover:-translate-y-0.5">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                    <span id="addGuestLabel">เพิ่มบุคคลสำคัญจากภายนอก</span>
-                  </button>
-                  <p id="guestMax" class="mt-3 text-[13px] text-ink2" hidden>ครบ 5 คนแล้ว หากมีมากกว่านี้ ระบุเพิ่มใน “ข้อความถึง PR”</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
           <!-- Content: own text or PR writes from documents (news) -->
-          <section data-for="news" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sContent" data-sec="content">
+          <section data-for="news" class="sec-feature rounded-card border p-5 sm:p-7" aria-labelledby="sContent" data-sec="content">
             <header class="mb-5 flex items-center gap-3">
               <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-red-soft font-display text-[16px] font-semibold text-brand"></span>
               <div>
@@ -636,7 +638,7 @@
                 <label for="body" class="font-display text-[15px] font-semibold">เนื้อหาข่าว <span class="text-brand">*</span></label>
                 <span class="text-[12px] text-ink2"><span data-count="body">0</span> ตัวอักษร · อย่างน้อย 150</span>
               </div>
-              <textarea id="body" name="body" rows="10" placeholder="ใคร ทำอะไร ที่ไหน เมื่อไร อย่างไร และเพื่ออะไร&#10;เว้นบรรทัดเพื่อขึ้นย่อหน้าใหม่" class="field w-full resize-y rounded-2xl px-4 py-3 text-[16px] leading-[1.7]" aria-describedby="bodyHint bodyError"></textarea>
+              <textarea id="body" name="body" rows="10" placeholder="ใคร ทำอะไร ที่ไหน เมื่อไร อย่างไร และเพื่ออะไร&#10;เว้นบรรทัดเพื่อขึ้นย่อหน้าใหม่" class="field body-field min-h-[260px] w-full resize-y rounded-2xl px-4 py-3 text-[16px] leading-[1.75]" aria-describedby="bodyHint bodyError"></textarea>
               <p id="bodyHint" class="mt-2 inline-flex items-start gap-1.5 text-[13px] text-ink2">
                 <svg class="mt-1 shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg>
                 ใส่คำพูดของผู้บริหารในเครื่องหมาย “ ” ระบบจะจัดเป็นกล่องคำพูดให้
@@ -664,6 +666,54 @@
             </div>
           </section>
 
+          <!-- Key people (news) -->
+          <section data-for="news" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sPeople" data-sec="people">
+            <header class="flex items-center gap-3">
+              <span data-num class="grid h-10 w-10 place-items-center rounded-xl bg-royal-soft font-display text-[16px] font-semibold text-royal"></span>
+              <div>
+                <h2 id="sPeople" class="font-display text-[20px] font-semibold">บุคคลสำคัญที่เกี่ยวข้อง <span class="font-sans text-[14px] font-normal text-ink2">(ไม่บังคับ)</span></h2>
+                <p class="text-[13px] text-ink2">ชื่อและตำแหน่ง ช่วยให้ PR เขียนข่าวและสะกดชื่อได้ถูกต้อง</p>
+              </div>
+              <button id="peopleToggle" type="button" aria-expanded="false" aria-controls="peopleBody" class="fold-btn press t-spring ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium shadow-raised hover:-translate-y-0.5">
+                <span>เพิ่มรายชื่อ</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </header>
+
+            <div id="peopleBody" class="step-enter mt-6 grid gap-5" hidden>
+              <!-- Prefix (name-prefixes.js), name, position: one row on wide screens -->
+              <fieldset class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
+                <legend class="sr-only">ประธานในพิธี</legend>
+                <p class="md:pt-2.5" aria-hidden="true"><span class="role-tag">ประธานในพิธี</span></p>
+                <div class="person-row">
+                  <div data-prefix-slot="chair" data-label="ประธานในพิธี"></div>
+                  <input id="chairName" type="text" maxlength="100" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อประธานในพิธี" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
+                  <input id="chairPos" type="text" maxlength="120" placeholder="ตำแหน่ง เช่น อธิการบดี" aria-label="ตำแหน่งประธานในพิธี" class="person-pos field h-12 w-full rounded-2xl px-4 text-[16px]">
+                </div>
+              </fieldset>
+              <fieldset class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
+                <legend class="sr-only">ผู้กล่าวรายงาน</legend>
+                <p class="md:pt-2.5" aria-hidden="true"><span class="role-tag">ผู้กล่าวรายงาน</span></p>
+                <div class="person-row">
+                  <div data-prefix-slot="reporter" data-label="ผู้กล่าวรายงาน"></div>
+                  <input id="reporterName" type="text" maxlength="100" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อผู้กล่าวรายงาน" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
+                  <input id="reporterPos" type="text" maxlength="120" placeholder="ตำแหน่ง เช่น คณบดีคณะครุศาสตร์" aria-label="ตำแหน่งผู้กล่าวรายงาน" class="person-pos field h-12 w-full rounded-2xl px-4 text-[16px]">
+                </div>
+              </fieldset>
+              <div class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
+                <p class="font-display text-[15px] font-semibold md:pt-2.5">บุคคลสำคัญจากภายนอก</p>
+                <div>
+                  <ul id="guestList" class="grid gap-3" aria-label="บุคคลสำคัญจากภายนอก"></ul>
+                  <button id="addGuest" type="button" class="press t-spring mt-0 inline-flex h-11 items-center gap-2 rounded-full border border-dashed border-line px-4 font-display text-[14px] font-medium text-purple hover:-translate-y-0.5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    <span id="addGuestLabel">เพิ่มบุคคลสำคัญจากภายนอก</span>
+                  </button>
+                  <p id="guestMax" class="mt-3 text-[13px] text-ink2" hidden>ครบ 5 คนแล้ว หากมีมากกว่านี้ ระบุเพิ่มใน “ข้อความถึง PR”</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- Photos (news) -->
           <section data-for="news" class="rounded-card border border-line bg-surface p-5 shadow-raised sm:p-7" aria-labelledby="sPhotos" data-sec="photos">
             <header class="mb-6 flex items-center gap-3">
@@ -680,21 +730,28 @@
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
               </span>
               <span class="font-display text-[17px] font-semibold">ลากภาพมาวางที่นี่ หรือ <span class="text-purple underline underline-offset-4">เลือกจากเครื่อง</span></span>
-              <span id="photoHint" class="text-[13px] text-ink2">JPG, PNG, WEBP, HEIC · ระบบลบข้อมูลพิกัด GPS ออกจากทุกภาพก่อนเผยแพร่</span>
+              <span id="photoHint" class="text-[13px] text-ink2">JPG, PNG, WEBP, HEIC · ระบบลบข้อมูลพิกัด GPS ออกจากทุกภาพก่อนเผยแพร่ · ผู้อ่านข่าวไม่เห็นชื่อไฟล์ภาพ</span>
             </label>
             <p id="photoError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบภาพข่าวอย่างน้อย <span data-photo-min>1</span> ภาพ</p>
 
             <div id="photoBar" class="mt-5 flex items-center justify-between gap-3 text-[13px] text-ink2" hidden>
-              <p><span id="photoCount" class="font-display font-semibold text-ink">0</span> ภาพ · แตะ <svg class="inline align-[-2px] text-gold" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg> เพื่อเลือกภาพปก</p>
+              <p><span id="photoCount" class="font-display font-semibold text-ink">0</span> ภาพ · ลากเพื่อเรียงลำดับ ภาพแรกเป็นภาพปก</p>
               <button id="photoClear" type="button" class="hover-fill press t-quick rounded-full px-3 py-1 font-medium text-ink2 hover:text-brand">ลบทั้งหมด</button>
             </div>
-            <ul id="photoList" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" aria-label="ภาพที่แนบ"></ul>
+            <ul id="photoList" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" aria-label="ภาพที่แนบ เรียงตามลำดับในข่าว"></ul>
+            <p id="photoOrderHint" class="sr-only">ลากภาพ หรือกดลูกศรซ้ายขวาที่ภาพเพื่อย้ายลำดับ ภาพแรกเป็นภาพปก</p>
 
             <div class="mt-6">
               <label for="credit" class="mb-2 block font-display text-[15px] font-semibold">เครดิตภาพ <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
               <input id="credit" name="credit" type="text" maxlength="80" placeholder="เช่น ฝ่ายประชาสัมพันธ์คณะวิทยาศาสตร์ฯ" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
             </div>
 
+            <div class="mt-6">
+              <label for="albumUrl" class="mb-2 block font-display text-[15px] font-semibold">ลิงก์ภาพเพิ่มเติม <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+              <input id="albumUrl" name="albumUrl" type="url" inputmode="url" placeholder="https://www.facebook.com/media/set/... หรือ https://drive.google.com/..." class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="albumHint albumError">
+              <p id="albumHint" class="mt-2 text-[13px] text-ink2">อัลบั้ม Facebook หรือโฟลเดอร์ Google Drive ที่มีภาพทั้งหมดของกิจกรรม ผู้อ่านจะเห็นปุ่ม "ดูรูปภาพเพิ่มเติม" ในหน้าข่าว</p>
+              <p id="albumError" class="mt-2 text-[14px] font-medium text-brand" hidden>ใส่ลิงก์ที่ขึ้นต้นด้วย https://</p>
+            </div>
             <fieldset class="mt-6">
               <legend class="mb-2 font-display text-[15px] font-semibold">ลิงก์วิดีโอประกอบข่าว <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></legend>
               <div class="flex flex-wrap gap-2" data-platforms="newsPlatform"></div>
@@ -703,12 +760,6 @@
               <p id="newsVideoError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
             </fieldset>
 
-            <div class="mt-6">
-              <label for="albumUrl" class="mb-2 block font-display text-[15px] font-semibold">ลิงก์ภาพเพิ่มเติม <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
-              <input id="albumUrl" name="albumUrl" type="url" inputmode="url" placeholder="https://www.facebook.com/media/set/... หรือ https://drive.google.com/..." class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="albumHint albumError">
-              <p id="albumHint" class="mt-2 text-[13px] text-ink2">อัลบั้ม Facebook หรือโฟลเดอร์ Google Drive ที่มีภาพทั้งหมดของกิจกรรม ผู้อ่านจะเห็นปุ่ม "ดูรูปภาพเพิ่มเติม" ในหน้าข่าว</p>
-              <p id="albumError" class="mt-2 text-[14px] font-medium text-brand" hidden>ใส่ลิงก์ที่ขึ้นต้นด้วย https://</p>
-            </div>
           </section>
 
           <!-- Video (video) -->
@@ -755,10 +806,11 @@
             <p id="artError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบไฟล์งานอย่างน้อย 1 ไฟล์</p>
 
             <div id="artBar" class="mt-5 flex items-center justify-between gap-3 text-[13px] text-ink2" hidden>
-              <p><span id="artCount" class="font-display font-semibold text-ink">0</span> ไฟล์ · แตะ <svg class="inline align-[-2px] text-gold" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg> เพื่อเลือกไฟล์หลัก</p>
+              <p><span id="artCount" class="font-display font-semibold text-ink">0</span> ไฟล์ · ลากเพื่อเรียงลำดับ ไฟล์แรกเป็นไฟล์หลัก</p>
               <button id="artClear" type="button" class="hover-fill press t-quick rounded-full px-3 py-1 font-medium text-ink2 hover:text-brand">ลบทั้งหมด</button>
             </div>
-            <ul id="artList" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" aria-label="ไฟล์งานที่แนบ"></ul>
+            <ul id="artList" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" aria-label="ไฟล์งานที่แนบ เรียงตามลำดับ"></ul>
+            <p id="artOrderHint" class="sr-only">ลากไฟล์ หรือกดลูกศรซ้ายขวาที่ไฟล์เพื่อย้ายลำดับ ไฟล์แรกเป็นไฟล์หลัก</p>
           </section>
 
           <!-- English version (news) -->
@@ -817,14 +869,29 @@
               </div>
             </header>
 
-            <label for="note" class="mb-2 block font-display text-[15px] font-semibold">ข้อความถึง PR <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
-            <textarea id="note" name="note" rows="2" maxlength="300" placeholder="เช่น ขอเผยแพร่ก่อนวันศุกร์ หรือรายละเอียดที่ PR ควรรู้" class="field w-full resize-y rounded-2xl px-4 py-3 text-[16px]"></textarea>
+            <!-- Note: folded; the sender opens it when there is something to say -->
+            <div class="rounded-2xl border border-line bg-surface2/50 p-4">
+              <div class="flex items-center gap-3">
+                <p id="noteTitle" class="font-display text-[15px] font-semibold">ข้อความถึง PR <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></p>
+                <button id="noteToggle" type="button" aria-expanded="false" aria-controls="noteBox" class="fold-btn press t-spring ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium shadow-raised hover:-translate-y-0.5">
+                  <span>เขียนข้อความ</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+              </div>
+              <div id="noteBox" class="step-enter mt-3" hidden>
+                <div class="mb-2 flex justify-end text-[12px] text-ink2"><span><span data-count="note">0</span>/300</span></div>
+                <textarea id="note" name="note" rows="3" maxlength="300" aria-labelledby="noteTitle" placeholder="เช่น ขอเผยแพร่ก่อนวันศุกร์ หรือรายละเอียดที่ PR ควรรู้" class="field w-full resize-y rounded-2xl px-4 py-3 text-[16px]"></textarea>
+              </div>
+            </div>
 
-            <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl p-1">
-              <input id="consent" type="checkbox" class="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded accent-[rgb(122,60,226)]" aria-describedby="consentError">
-              <span class="text-[15px]" data-text="consentText"></span>
+            <label id="consentBox" class="consent mt-5 flex cursor-pointer items-start gap-3.5 rounded-2xl p-4 sm:p-5">
+              <input id="consent" type="checkbox" class="mt-0.5 shrink-0 cursor-pointer rounded" aria-describedby="consentError">
+              <span class="min-w-0">
+                <span class="block font-display text-[16px] font-semibold leading-[1.6]"><span data-text="consentText"></span> <span class="text-brand">*</span></span>
+                <span class="mt-1 block text-[13px] text-ink2">ติ๊กเพื่อยืนยันก่อนส่ง</span>
+              </span>
             </label>
-            <p id="consentError" class="mt-2 pl-9 text-[14px] font-medium text-brand" hidden>ยืนยันข้อมูลก่อนส่ง</p>
+            <p id="consentError" class="mt-2 text-[14px] font-medium text-brand" hidden>ติ๊กยืนยันข้อมูลก่อนส่ง</p>
           </section>
 
           <p id="sendError" class="rounded-2xl border border-[rgb(var(--red)/.35)] bg-red-soft px-4 py-3 text-[15px] font-medium text-brand" role="alert" hidden></p>
@@ -876,7 +943,7 @@
               </li>
               <li class="flex gap-3 sm:flex-col sm:items-center sm:text-center">
                 <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-line text-ink2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
-                <span><span class="block font-display text-[15px] font-semibold text-ink2">เผยแพร่</span><span class="text-[13px] text-ink2">แจ้งในกล่องข้อความ</span></span>
+                <span><span class="block font-display text-[15px] font-semibold text-ink2">เผยแพร่</span><span class="text-[13px] text-ink2">แจ้งในข่าวของฉัน</span></span>
               </li>
             </ol>
 
@@ -887,7 +954,7 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                 ส่งงานอีกชิ้น
               </a>
-              <a id="trackLink" href="inbox.html" class="press t-spring inline-flex h-12 items-center gap-2 rounded-2xl border border-line bg-shell px-6 font-display text-[16px] font-medium shadow-raised hover:-translate-y-0.5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4h16v12H5.2L4 17.2z"/><path d="M8 9h8M8 12h5"/></svg> ติดตามสถานะในกล่องข้อความ</a>
+              <a id="trackLink" href="inbox.html" class="press t-spring inline-flex h-12 items-center gap-2 rounded-2xl border border-line bg-shell px-6 font-display text-[16px] font-medium shadow-raised hover:-translate-y-0.5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4h16v12H5.2L4 17.2z"/><path d="M8 9h8M8 12h5"/></svg> ติดตามสถานะในข่าวของฉัน</a>
             </div>
           </div>
         </div>
@@ -915,6 +982,7 @@
 
   <script>window.SERVER_AUTH = true;</script>
   <script src="org-data.js"></script>
+  <script src="name-prefixes.js"></script>
   <script src="auth.js"></script>
   <script src="site-config.js"></script>
   <script>
@@ -1031,27 +1099,66 @@
       $('#submitLabel').textContent = type ? submitText() : $('#submitLabel').textContent;
     }
     const submitText = () => (guest ? 'เข้าสู่ระบบเพื่อส่ง' : editing ? 'ส่งงานที่แก้ไขแล้ว' : TYPES[type].submit);
-    document.querySelectorAll('[data-dev]').forEach((b) => b.addEventListener('click', () => { saveDraft(false); leaving = true; window.devLogin(b.dataset.dev); }));
+    document.querySelectorAll('[data-dev]').forEach((b) => b.addEventListener('click', () => { saveDraft(); leaving = true; window.devLogin(b.dataset.dev); }));
 
-    // ---- Guests from outside the university (repeatable name + position) ----
+    // ---- คำนำหน้านาม: the list in name-prefixes.js, or "อื่น ๆ" typed by the sender ----
+    const PREFIXES = window.NAME_PREFIXES || [];
+    const OTHER = '__other';
+    function prefixField(key, value, label) {
+      const known = !value || PREFIXES.includes(value);
+      return `<div class="grid gap-2">
+        <select data-prefix-sel="${key}" aria-label="คำนำหน้านาม${label}" class="field sel h-12 w-full rounded-2xl pl-4 pr-10 text-[16px]">
+          <option value="">คำนำหน้า</option>${PREFIXES.map((p) => `<option${p === value ? ' selected' : ''}>${esc(p)}</option>`).join('')}<option value="${OTHER}"${known ? '' : ' selected'}>อื่น ๆ</option>
+        </select>
+        <input data-prefix-other="${key}" type="text" maxlength="60" value="${known ? '' : esc(value)}" placeholder="พิมพ์คำนำหน้า" aria-label="คำนำหน้านาม${label} (พิมพ์เอง)" class="field h-12 w-full rounded-2xl px-4 text-[16px]"${known ? ' hidden' : ''}>
+      </div>`;
+    }
+    const prefixOf = (key) => {
+      const sel = document.querySelector(`[data-prefix-sel="${key}"]`);
+      if (!sel) return '';
+      return sel.value === OTHER ? document.querySelector(`[data-prefix-other="${key}"]`).value.trim() : sel.value;
+    };
+    // chair / reporter: the select is drawn into its slot; set again when a draft or a sent work fills the form
+    const setPrefix = (key, value) => {
+      const slot = document.querySelector(`[data-prefix-slot="${key}"]`);
+      slot.innerHTML = prefixField(key, value || '', slot.dataset.label);
+    };
+    setPrefix('chair'); setPrefix('reporter');
+    form.addEventListener('change', (e) => {
+      const key = e.target.dataset.prefixSel;
+      if (key == null) return;
+      const other = document.querySelector(`[data-prefix-other="${key}"]`);
+      other.hidden = e.target.value !== OTHER;
+      if (!other.hidden) other.focus();
+      const g = key.match(/^guest-(\d+)$/);
+      if (g) guests[g[1]].prefix = prefixOf(key);
+    });
+
+    // ---- Guests from outside the university (repeatable prefix + name + position) ----
     const MAX_GUESTS = 5;
     let guests = [];
     function renderGuests(focusLast) {
       $('#guestList').innerHTML = guests.map((g, i) => `
-        <li class="file-row grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <li class="file-row person-row guest-row">
+          ${prefixField(`guest-${i}`, g.prefix || '', `บุคคลสำคัญคนที่ ${i + 1}`)}
           <input data-guest="${i}" data-k="name" type="text" maxlength="100" value="${esc(g.name)}" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อบุคคลสำคัญคนที่ ${i + 1}" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
-          <input data-guest="${i}" data-k="pos" type="text" maxlength="160" value="${esc(g.pos)}" placeholder="ตำแหน่ง / หน่วยงาน" aria-label="ตำแหน่งบุคคลสำคัญคนที่ ${i + 1}" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
-          <button type="button" data-guest-remove="${i}" aria-label="ลบบุคคลสำคัญคนที่ ${i + 1}" class="icon-btn grid h-12 w-12 place-items-center justify-self-end rounded-full bg-surface2 text-brand">${ICON.x}</button>
+          <button type="button" data-guest-remove="${i}" aria-label="ลบบุคคลสำคัญคนที่ ${i + 1}" class="guest-remove icon-btn grid h-12 w-12 place-items-center rounded-full bg-surface2 text-brand">${ICON.x}</button>
+          <input data-guest="${i}" data-k="pos" type="text" maxlength="160" value="${esc(g.pos)}" placeholder="ตำแหน่ง / หน่วยงาน" aria-label="ตำแหน่งบุคคลสำคัญคนที่ ${i + 1}" class="person-pos field h-12 w-full rounded-2xl px-4 text-[16px]">
         </li>`).join('');
       $('#addGuest').classList.toggle('mt-3', guests.length > 0);
       const left = MAX_GUESTS - guests.length;
       $('#addGuest').hidden = left <= 0;
       $('#guestMax').hidden = left > 0;
       $('#addGuestLabel').textContent = guests.length ? `เพิ่มอีกคน (เหลือ ${left})` : `เพิ่มบุคคลสำคัญจากภายนอก (สูงสุด ${MAX_GUESTS} คน)`;
-      if (focusLast) $(`[data-guest="${guests.length - 1}"][data-k="name"]`)?.focus();
+      if (focusLast) $(`[data-prefix-sel="guest-${guests.length - 1}"]`)?.focus();
     }
-    $('#addGuest').addEventListener('click', () => { if (guests.length < MAX_GUESTS) { guests.push({ name: '', pos: '' }); renderGuests(true); } });
-    $('#guestList').addEventListener('input', (e) => { const i = e.target.dataset.guest; if (i != null) guests[i][e.target.dataset.k] = e.target.value; });
+    $('#addGuest').addEventListener('click', () => { if (guests.length < MAX_GUESTS) { guests.push({ prefix: '', name: '', pos: '' }); renderGuests(true); } });
+    $('#guestList').addEventListener('input', (e) => {
+      const i = e.target.dataset.guest;
+      if (i != null) guests[i][e.target.dataset.k] = e.target.value;
+      const other = e.target.dataset.prefixOther?.match(/^guest-(d+)$/);
+      if (other) guests[other[1]].prefix = prefixOf(e.target.dataset.prefixOther);
+    });
     $('#guestList').addEventListener('click', (e) => {
       const b = e.target.closest('[data-guest-remove]');
       if (!b) return;
@@ -1070,65 +1177,87 @@
     };
     const extOf = (name) => (name.split('.').pop() || '').toUpperCase();
 
-    function uploader({ key, input, drop, list, bar, count, clear, max, maxMB, accepts, grid, noun, onChange }) {
-      const st = { items: [], cover: null, seq: 0, removed: [] };
+    // Files: { id, file (new) | existing (file id on the server: sent work or a draft), name, size, url, badge }.
+    // Photos and art files are in page order: drag (mouse, or touch and hold) or arrow keys reorder them; the first is the cover.
+    function uploader({ key, input, drop, list, bar, count, clear, max, maxMB, accepts, grid, noun, hint, onChange }) {
+      const st = { items: [], seq: 0, removed: [] };
       const isImg = (f) => f.type.startsWith('image/');
+      const coverWord = key === 'photo' ? 'ภาพปก' : 'ไฟล์หลัก';
       function add(files) {
         const skipped = [];
         for (const file of files) {
           if (!accepts(file)) { skipped.push(`${file.name} ไม่ใช่ไฟล์ที่รองรับ`); continue; }
           if (file.size > maxMB * MB) { skipped.push(`${file.name} ใหญ่เกิน ${maxMB >= 1024 ? maxMB / 1024 + ' GB' : maxMB + ' MB'}`); continue; }
-          if (max === 1) { st.items.forEach((x) => x.url && URL.revokeObjectURL(x.url)); st.items = []; }
           if (st.items.length >= max) { skipped.push(`แนบได้สูงสุด ${max} ${noun}`); break; }
           st.items.push({ id: ++st.seq, file, name: file.name, size: file.size, url: isImg(file) ? URL.createObjectURL(file) : null });
         }
-        if (!st.items.some((x) => x.id === st.cover)) st.cover = st.items[0]?.id ?? null;
         render(); onChange();
         announce(skipped.length ? 'ข้ามบางไฟล์: ' + skipped.join(', ') : `แนบแล้ว ${st.items.length} ${noun}`);
       }
-      // Files already on the server (editing): { fileId, name, size, url }
-      function addSent(files) {
-        files.forEach((f) => st.items.push({ id: ++st.seq, sent: f.id, name: f.name, size: f.size, url: f.thumb || null, doc: !f.thumb }));
-        st.cover = st.items[0]?.id ?? null;
+      // Files already on the server: { id, name, size, thumb }; badge e.g. "ส่งไว้แล้ว"
+      function addExisting(files, badge = '') {
+        files.forEach((f) => st.items.push({ id: ++st.seq, existing: f.id, name: f.name, size: f.size, url: f.thumb || null, badge }));
         render();
       }
       function remove(id) {
         const it = st.items.find((x) => x.id === id);
-        if (it?.url && !it.sent) URL.revokeObjectURL(it.url);
-        if (it?.sent) st.removed.push(it.sent);
+        if (it?.url && it.file) URL.revokeObjectURL(it.url);
+        if (it?.existing) st.removed.push(it.existing);
         st.items = st.items.filter((x) => x.id !== id);
-        if (st.cover === id) st.cover = st.items[0]?.id ?? null;
         render(); onChange();
+      }
+      // Moves an item to a new place; FLIP so the others slide (transform only)
+      function move(id, to, { quiet } = {}) {
+        const from = st.items.findIndex((x) => x.id === id);
+        to = Math.max(0, Math.min(st.items.length - 1, to));
+        if (from < 0 || from === to) return false;
+        const before = new Map([...list.children].map((li) => [li.dataset.id, li.getBoundingClientRect()]));
+        const [it] = st.items.splice(from, 1);
+        st.items.splice(to, 0, it);
+        list.classList.add('no-pop');
+        render();
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          for (const li of list.children) {
+            const was = before.get(li.dataset.id), now = li.getBoundingClientRect();
+            if (!was) continue;
+            li.style.transform = `translate(${was.left - now.left}px, ${was.top - now.top}px)`;
+            li.style.transition = 'none';
+            requestAnimationFrame(() => { li.style.transition = 'transform .4s var(--spring)'; li.style.transform = ''; });
+          }
+        }
+        if (!quiet) { onChange(); announce(`ย้ายไปลำดับที่ ${to + 1}${to === 0 ? ` เป็น${coverWord}` : ''}`); }
+        return true;
       }
       function render() {
         if (bar) bar.hidden = !st.items.length;
         if (count) count.textContent = st.items.length;
         list.innerHTML = st.items.map((p, i) => grid ? thumb(p, i) : row(p, i)).join('');
+        if (drag?.on) list.querySelector(`[data-id="${drag.id}"]`)?.classList.add('is-dragging');
       }
       function thumb(p, i) {
-        const cover = p.id === st.cover;
+        const cover = i === 0;
         const media = p.url
-          ? `<img src="${p.url}" alt="${noun}ที่ ${i + 1}: ${esc(p.name)}" class="h-full w-full object-cover">`
+          ? `<img src="${p.url}" alt="" draggable="false" class="h-full w-full object-cover">`
           : `<span class="grid h-full w-full place-items-center bg-gold-soft text-gold"><span class="grid place-items-center gap-1">${ICON.doc}<span class="font-display text-[13px] font-semibold">${extOf(p.name)}</span></span></span>`;
-        return `<li class="thumb group relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface2 ${cover ? 'ring-2 ring-[rgb(var(--purple))] ring-offset-2 ring-offset-[rgb(var(--surface))]' : ''}">
+        return `<li data-id="${p.id}" tabindex="0" aria-label="${noun}ที่ ${i + 1} จาก ${st.items.length}${cover ? ` (${coverWord})` : ''}: ${esc(p.name)}" aria-describedby="${hint}" class="thumb group relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface2 ${cover ? 'ring-2 ring-[rgb(var(--purple))] ring-offset-2 ring-offset-[rgb(var(--surface))]' : ''}">
           ${media}
           <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
           <div class="pointer-events-none absolute inset-0 bg-[rgb(38_66_200/.10)] mix-blend-multiply"></div>
-          ${cover ? `<span class="absolute left-2 top-2 rounded-lg bg-shell px-2 font-display text-[12px] font-semibold leading-6 text-purple shadow-raised">${key === 'photo' ? 'ภาพปก' : 'ไฟล์หลัก'}</span>` : ''}
-          ${p.sent ? '<span class="absolute right-2 top-2 rounded-lg bg-shell/90 px-2 text-[11px] font-semibold leading-6 text-ink2 shadow-raised">ส่งไว้แล้ว</span>' : ''}
+          <span class="pointer-events-none absolute left-2 top-2 rounded-lg bg-shell px-2 font-display text-[12px] font-semibold leading-6 shadow-raised ${cover ? 'text-purple' : 'text-ink2'}">${cover ? coverWord : i + 1}</span>
+          ${p.badge ? `<span class="pointer-events-none absolute right-2 top-2 rounded-lg bg-shell/90 px-2 text-[11px] font-semibold leading-6 text-ink2 shadow-raised">${p.badge}</span>` : ''}
           <span class="pointer-events-none absolute bottom-2 left-2 right-20 truncate text-[12px] text-white">${esc(p.name)}</span>
           <div class="thumb-actions absolute bottom-2 right-2 flex gap-1.5">
-            <button type="button" data-cover="${p.id}" aria-pressed="${cover}" aria-label="ตั้ง${noun}ที่ ${i + 1} เป็น${key === 'photo' ? 'ภาพปก' : 'ไฟล์หลัก'}" class="icon-btn grid h-9 w-9 place-items-center rounded-full bg-shell text-gold shadow-raised">${ICON.star}</button>
+            ${cover ? '' : `<button type="button" data-first="${p.id}" aria-label="ย้าย${noun}ที่ ${i + 1} ไปเป็น${coverWord}" title="ย้ายไปเป็น${coverWord}" class="icon-btn grid h-9 w-9 place-items-center rounded-full bg-shell text-gold shadow-raised">${ICON.star}</button>`}
             <button type="button" data-remove="${p.id}" aria-label="ลบ${noun}ที่ ${i + 1}" class="icon-btn grid h-9 w-9 place-items-center rounded-full bg-shell text-brand shadow-raised">${ICON.x}</button>
           </div>
         </li>`;
       }
       function row(p) {
-        return `<li class="file-row flex items-center gap-3 rounded-2xl border border-line bg-surface2/60 p-3">
-          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl ${key === 'video' ? 'bg-purple-soft text-purple' : 'bg-gold-soft text-gold'}">${key === 'video' ? ICON.film : ICON.doc}</span>
+        return `<li data-id="${p.id}" class="file-row flex items-center gap-3 rounded-2xl border border-line bg-surface2/60 p-3">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gold-soft text-gold">${ICON.doc}</span>
           <span class="min-w-0 flex-1">
             <span class="block truncate text-[15px] font-medium">${esc(p.name)}</span>
-            <span class="block text-[12px] text-ink2">${extOf(p.name)} · ${fmtSize(p.size)}${p.sent ? ' · ส่งไว้แล้ว' : ''}</span>
+            <span class="block text-[12px] text-ink2">${extOf(p.name)} · ${fmtSize(p.size)}${p.badge ? ` · ${p.badge}` : ''}</span>
           </span>
           <button type="button" data-remove="${p.id}" aria-label="ลบ ${esc(p.name)}" class="icon-btn grid h-9 w-9 shrink-0 place-items-center rounded-full bg-shell text-brand shadow-raised">${ICON.x}</button>
         </li>`;
@@ -1137,28 +1266,102 @@
       ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('is-over'); }));
       ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('is-over'); }));
       drop.addEventListener('drop', (e) => add(e.dataTransfer.files));
+      const focusItem = (id) => list.querySelector(`[data-id="${id}"]`)?.focus();
       list.addEventListener('click', (e) => {
-        const c = e.target.closest('[data-cover]');
+        const f = e.target.closest('[data-first]');
         const r = e.target.closest('[data-remove]');
-        if (c) { st.cover = Number(c.dataset.cover); render(); onChange(); announce('ตั้งเป็นไฟล์หลักแล้ว'); list.querySelector(`[data-cover="${st.cover}"]`)?.focus(); }
+        if (f) { const id = Number(f.dataset.first); move(id, 0); focusItem(id); }
         if (r) { remove(Number(r.dataset.remove)); announce('ลบไฟล์แล้ว'); }
       });
+      // Keyboard: arrows move the focused picture, Home makes it the cover
+      list.addEventListener('keydown', (e) => {
+        if (!grid || !e.target.matches('li[data-id]')) return;
+        const id = Number(e.target.dataset.id), i = st.items.findIndex((x) => x.id === id);
+        const to = { ArrowLeft: i - 1, ArrowUp: i - 1, ArrowRight: i + 1, ArrowDown: i + 1, Home: 0, End: st.items.length - 1 }[e.key];
+        if (to == null) return;
+        e.preventDefault();
+        if (move(id, to)) focusItem(id);
+      });
+
+      // ---- Drag: the mouse starts after a few pixels; touch after holding still (so a swipe still scrolls) ----
+      let drag = null;
+      const end = (dropped) => {
+        if (!drag) return;
+        clearTimeout(drag.timer);
+        const d = drag; drag = null;
+        if (!d.on) return;
+        d.ghost.remove();
+        document.body.classList.remove('photo-dragging');
+        list.querySelector(`[data-id="${d.id}"]`)?.classList.remove('is-dragging');
+        const at = st.items.findIndex((x) => x.id === d.id);
+        if (dropped && at !== d.start) { onChange(); announce(`ย้ายไปลำดับที่ ${at + 1}${at === 0 ? ` เป็น${coverWord}` : ''}`); }
+      };
+      const start = () => {
+        const li = list.querySelector(`[data-id="${drag.id}"]`);
+        if (!li) return;
+        const r = li.getBoundingClientRect();
+        const ghost = li.cloneNode(true);
+        ghost.removeAttribute('tabindex'); ghost.removeAttribute('data-id'); ghost.setAttribute('aria-hidden', 'true');
+        ghost.className = `${li.className} drag-ghost`;
+        Object.assign(ghost.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, transform: 'scale(1.04)', animation: 'none' });
+        document.body.appendChild(ghost);
+        Object.assign(drag, { on: true, ghost, dx: drag.x - r.left, dy: drag.y - r.top, start: st.items.findIndex((x) => x.id === drag.id) });
+        li.classList.add('is-dragging');
+        document.body.classList.add('photo-dragging');
+        navigator.vibrate?.(10);
+      };
+      list.addEventListener('pointerdown', (e) => {
+        if (!grid || e.button > 0 || e.target.closest('button')) return;
+        const li = e.target.closest('li[data-id]');
+        if (!li || st.items.length < 2) return;
+        drag = { id: Number(li.dataset.id), x: e.clientX, y: e.clientY, mouse: e.pointerType === 'mouse', on: false };
+        // The list keeps the pointer: the picture under the finger is drawn again while it moves, and would lose it
+        try { list.setPointerCapture(e.pointerId); } catch (err) {}
+        if (!drag.mouse) drag.timer = setTimeout(() => drag && start(), 260);
+      });
+      list.addEventListener('touchend', () => end(true));
+      window.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        if (!drag.on) {
+          const far = Math.hypot(e.clientX - drag.x, e.clientY - drag.y);
+          if (drag.mouse && far > 6) start();
+          else if (!drag.mouse && far > 10) end(false); // a swipe: let the page scroll
+          if (!drag?.on) return;
+        }
+        drag.ghost.style.left = `${e.clientX - drag.dx}px`;
+        drag.ghost.style.top = `${e.clientY - drag.dy}px`;
+        // Which slot is under the pointer, by layout position (offsets): pictures still sliding into place must not count
+        const lr = list.getBoundingClientRect();
+        const px = e.clientX - lr.left + list.offsetLeft, py = e.clientY - lr.top + list.offsetTop;
+        const over = [...list.children].find((li) => px >= li.offsetLeft && px < li.offsetLeft + li.offsetWidth && py >= li.offsetTop && py < li.offsetTop + li.offsetHeight);
+        if (over && Number(over.dataset.id) !== drag.id) move(drag.id, st.items.findIndex((x) => x.id === Number(over.dataset.id)), { quiet: true });
+      });
+      window.addEventListener('pointerup', () => end(true));
+      // A cancel after the picture has moved keeps it where it is (it already moved while dragging)
+      window.addEventListener('pointercancel', () => end(true));
+      window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drag?.on) end(true); });
+      // While dragging by touch the page must not scroll, and a long press must not open the picture menu
+      list.addEventListener('touchmove', (e) => { if (drag?.on) e.preventDefault(); }, { passive: false });
+      list.addEventListener('contextmenu', (e) => { if (drag || e.target.closest('.thumb')) e.preventDefault(); });
+
       clear?.addEventListener('click', () => { [...st.items].forEach((p) => remove(p.id)); announce('ลบไฟล์ทั้งหมดแล้ว'); });
       return {
-        get items() { return st.items; }, get coverItem() { return st.items.find((x) => x.id === st.cover); }, get removed() { return st.removed; }, addSent,
-        // New files to upload, the chosen cover / main file first
-        get uploads() { const list = st.items.filter((x) => x.file); const c = list.find((x) => x.id === st.cover); return (c ? [c, ...list.filter((x) => x !== c)] : list).map((x) => x.file); },
+        get items() { return st.items; }, get coverItem() { return st.items[0]; }, get removed() { return st.removed; }, addExisting,
+        // New files to upload, in page order
+        get uploads() { return st.items.filter((x) => x.file).map((x) => x.file); },
+        // Page order for the server: f:<file id> for files already there, u:<n> for the n-th new upload
+        get order() { let n = 0; return st.items.map((x) => (x.file ? `u:${n++}` : `f:${x.existing}`)); },
       };
     }
 
     const isDoc = (f) => /\.(pdf|docx?|pptx?|xlsx?)$/i.test(f.name);
     const up = {
       photo: uploader({ key: 'photo', input: $('#photoInput'), drop: $('#photoDrop'), list: $('#photoList'), bar: $('#photoBar'), count: $('#photoCount'), clear: $('#photoClear'),
-        max: PHOTOS.max, maxMB: 15, grid: true, noun: 'ภาพ', accepts: (f) => f.type.startsWith('image/'), onChange: () => onFiles('photo') }),
+        max: PHOTOS.max, maxMB: 15, grid: true, noun: 'ภาพ', hint: 'photoOrderHint', accepts: (f) => f.type.startsWith('image/'), onChange: () => onFiles('photo') }),
       attach: uploader({ key: 'attach', input: $('#attachInput'), drop: $('#attachDrop'), list: $('#attachList'),
         max: 10, maxMB: 20, grid: false, noun: 'ไฟล์', accepts: isDoc, onChange: () => onFiles('attach') }),
       art: uploader({ key: 'art', input: $('#artInput'), drop: $('#artDrop'), list: $('#artList'), bar: $('#artBar'), count: $('#artCount'), clear: $('#artClear'),
-        max: 10, maxMB: 100, grid: true, noun: 'ไฟล์', accepts: (f) => f.type.startsWith('image/') || /\.pdf$/i.test(f.name), onChange: () => onFiles('art') }),
+        max: 10, maxMB: 100, grid: true, noun: 'ไฟล์', hint: 'artOrderHint', accepts: (f) => f.type.startsWith('image/') || /\.pdf$/i.test(f.name), onChange: () => onFiles('art') }),
     };
 
     // ---- Categories: lock the unchosen ones at the limit ----
@@ -1282,13 +1485,26 @@
         const optional = !checks.length;
         const done = !optional && left === 0;
         const cur = k === currentSec;
-        const sub = optional ? 'ไม่บังคับ' : done ? 'ครบแล้ว' : `ยังขาด ${left} ข้อ`;
-        return `<li><a href="#${sec.getAttribute('aria-labelledby')}" data-jump="${k}" aria-current="${cur}" class="sec-item t-quick flex items-center gap-3 rounded-2xl px-2.5 py-1">
-          <span class="sec-dot grid h-7 w-7 shrink-0 place-items-center rounded-full font-display text-[13px] font-semibold ${done ? 'bg-grad text-white' : optional ? 'border border-dashed border-line text-ink2' : 'bg-surface2 text-ink2'}">${done ? tick : i + 1}</span>
-          <span class="min-w-0"><span class="block truncate font-display text-[15px] ${cur ? 'font-semibold text-purple' : 'font-medium'}">${SECTIONS[k].label()}</span><span class="block text-[12px] ${!optional && !done ? 'text-brand' : 'text-ink2'}">${sub}</span></span>
+        // One line each, so the card preview below has room: number, name, and what is left on the right
+        return `<li><a href="#${sec.getAttribute('aria-labelledby')}" data-jump="${k}" aria-current="${cur}" class="sec-item t-quick flex h-9 items-center gap-2.5 rounded-xl px-2">
+          <span class="sec-dot grid h-6 w-6 shrink-0 place-items-center rounded-full font-display text-[12px] font-semibold ${done ? 'bg-grad text-white' : optional ? 'border border-dashed border-line text-ink2' : 'bg-surface2 text-ink2'}">${done ? tick : i + 1}</span>
+          <span class="min-w-0 flex-1 truncate font-display text-[14px] ${cur ? 'font-semibold text-purple' : 'font-medium'}">${SECTIONS[k].label()}</span>
+          <span class="shrink-0 text-[12px] ${!optional && !done ? 'font-medium text-brand' : 'text-ink2'}"><span class="sr-only">: </span>${optional ? 'ไม่บังคับ' : done ? 'ครบ' : `ขาด ${left}`}</span>
         </a></li>`;
       }).join('');
+      // On short screens the list scrolls inside its box: keep the current section in view (the page itself does not move)
+      const nav = $('#secNav'), cur = nav.querySelector('[aria-current="true"]');
+      if (cur && nav.scrollHeight > nav.clientHeight) {
+        const top = cur.offsetTop - nav.offsetTop, bottom = top + cur.offsetHeight;
+        if (top < nav.scrollTop) nav.scrollTop = top;
+        else if (bottom > nav.scrollTop + nav.clientHeight) nav.scrollTop = bottom - nav.clientHeight;
+      }
+      navFade();
     }
+    // A fading bottom edge says there is more of the list below
+    const navFade = () => { const n = $('#secNav'); n.classList.toggle('more-below', n.scrollTop + n.clientHeight < n.scrollHeight - 2); };
+    $('#secNav').addEventListener('scroll', navFade, { passive: true });
+    addEventListener('resize', () => navFade());
     $('#secNav').addEventListener('click', (e) => {
       const a = e.target.closest('[data-jump]');
       if (!a) return;
@@ -1329,7 +1545,19 @@
     $('#peopleToggle').addEventListener('click', () => {
       const open = $('#peopleBody').hidden;
       setPeople(open);
-      if (open) $('#chairName').focus();
+      if (open) $('[data-prefix-sel="chair"]').focus();
+    });
+
+    // ---- Note to PR: folded; opened by the sender (or when there is already a note) ----
+    function setNote(open) {
+      $('#noteBox').hidden = !open;
+      $('#noteToggle').setAttribute('aria-expanded', String(open));
+      $('#noteToggle span').textContent = open ? 'ซ่อน' : 'เขียนข้อความ';
+    }
+    $('#noteToggle').addEventListener('click', () => {
+      const open = $('#noteBox').hidden;
+      setNote(open);
+      if (open) $('#note').focus();
     });
 
     // ---- Live update: counters, checklist, preview ----
@@ -1456,41 +1684,129 @@
       if (name === 'audience' && audVals().length) setError('#audError', false, $('#audSet'));
     }
 
-    // ---- Draft (text fields only; files cannot be stored in localStorage) ----
+    // ---- Kept in this browser while typing (text only), so a closed tab or a sign-in loses nothing ----
     const DRAFT_KEY = 'newsDraft';
     const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl'];
     const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'newsPlatform'];
     let draftTimer = null;
-    function saveDraft(manual) {
-      if (!type || editing) return;
+    // A draft opened from ข่าวของฉัน (submit.html?draft=ID) lives on the server; "บันทึกร่าง" saves it there
+    let draftId = new URLSearchParams(location.search).get('draft');
+    function saveDraft() {
+      if (!type || editing || draftId) return;
       const d = Object.fromEntries(DRAFT_FIELDS.map((k) => [k, $('#' + k).value]));
       DRAFT_RADIOS.forEach((n) => { d[n] = radio(n); });
-      Object.assign(d, { type, categories: cats(), en: $('#enToggle').checked, audience: audVals(), guests: guests.filter((g) => g.name || g.pos) });
+      Object.assign(d, { type, categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), guests: guests.filter((g) => g.name || g.pos) });
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) { return; }
       const now = new Date();
       const el = $('#draftState');
-      el.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>บันทึกฉบับร่าง ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} น.`;
+      el.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>จำไว้ในเครื่องนี้ ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} น.`;
       el.classList.remove('saved-flash'); void el.offsetWidth; el.classList.add('saved-flash');
-      if (manual) announce('บันทึกฉบับร่างแล้ว');
     }
-    function scheduleDraft() { clearTimeout(draftTimer); draftTimer = setTimeout(() => saveDraft(false), 800); }
-    $('#saveDraft').addEventListener('click', () => saveDraft(true));
+    function scheduleDraft() { clearTimeout(draftTimer); draftTimer = setTimeout(saveDraft, 800); }
 
-    function restoreDraft() {
-      let d = null;
-      try { d = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) {}
-      if (!d) return null;
+    // Fills the form from saved fields (this browser, or a draft from the server): the same keys as payload()
+    function applyData(d) {
       DRAFT_FIELDS.forEach((k) => { if (d[k] != null && d[k] !== '') $('#' + k).value = d[k]; });
       DRAFT_RADIOS.forEach((n) => {
         if (!d[n]) return;
         const r = document.querySelector(`input[name=${n}][value="${CSS.escape(d[n])}"]`);
         if (r) r.checked = true;
       });
-      (Array.isArray(d.categories) ? d.categories : []).forEach((v) => { const b = document.querySelector(`input[name=category][value="${CSS.escape(v)}"]`); if (b) b.checked = true; });
-      (Array.isArray(d.audience) ? d.audience : []).forEach((v) => { const b = $(`input[name=audience][value="${v}"]`); if (b) b.checked = true; });
-      guests = Array.isArray(d.guests) ? d.guests.map((g) => ({ name: g.name || '', pos: g.pos || '' })) : [];
+      document.querySelectorAll('input[name=category]').forEach((b) => { b.checked = (d.categories || []).includes(b.value); });
+      document.querySelectorAll('input[name=audience]').forEach((b) => { b.checked = (d.audience || []).includes(b.value); });
+      setPrefix('chair', d.chairPrefix); setPrefix('reporter', d.reporterPrefix);
+      guests = Array.isArray(d.guests) ? d.guests.map((g) => ({ prefix: g.prefix || '', name: g.name || '', pos: g.pos || '' })) : [];
       $('#enToggle').checked = !!d.en; $('#enFields').hidden = !d.en;
+    }
+    function restoreDraft() {
+      let d = null;
+      try { d = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) {}
+      if (!d) return null;
+      applyData(d);
       return d;
+    }
+
+    // ---- Small notice at the top of the screen ----
+    function toast(msg, bad) {
+      let box = $('#toasts');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'toasts';
+        box.className = 'pointer-events-none fixed inset-x-0 top-[136px] z-[90] flex flex-col items-center gap-2 px-4';
+        box.setAttribute('role', 'status');
+        document.body.appendChild(box);
+      }
+      const t = document.createElement('div');
+      t.className = `note-toast flex max-w-[520px] items-center gap-2.5 rounded-2xl px-5 py-3 font-display text-[15px] font-medium shadow-float ${bad ? 'bg-brand text-white dark:text-bg' : 'bg-ink text-shell'}`;
+      t.innerHTML = `${bad ? '' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>'}<span></span>`;
+      t.lastChild.textContent = msg;
+      box.appendChild(t);
+      setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 320); }, bad ? 6000 : 2600);
+    }
+
+    // ---- "บันทึกร่าง": the text and the files go to the server, then to ข่าวของฉัน ----
+    const KINDS_FOR = { news: ['photo', 'attach'], video: [], banner: ['art'] };
+    // New files of the kinds this type takes, in page order
+    function appendFiles(fd) {
+      KINDS_FOR[type].forEach((kind) => up[kind].uploads.forEach((f) => fd.append(kind, f, f.name)));
+    }
+    // Files on the server of kinds this type does not take (the type was changed) are dropped with the removed ones
+    const dropped = () => Object.entries(up).filter(([kind]) => !KINDS_FOR[type].includes(kind)).flatMap(([, u]) => u.items.filter((x) => x.existing).map((x) => x.existing));
+    const draftBtnLabel = (t) => { $('#saveDraft span').textContent = t; };
+    async function saveServerDraft() {
+      if (!type || editing) return;
+      // Signed out: keep the text in this browser and sign in first
+      if (guest) { saveDraft(); leaving = true; location.href = window.loginUrl(); return; }
+      const data = payload();
+      delete data.draftId; delete data.consent;
+      data.removeFiles = [...new Set([...data.removeFiles, ...dropped()])];
+      const fd = new FormData();
+      fd.append('data', JSON.stringify(data));
+      appendFiles(fd);
+      $('#saveDraft').disabled = true;
+      draftBtnLabel('กำลังบันทึก…');
+      try {
+        const r = await upload(draftId ? 'PUT' : 'POST', draftId ? `/api/drafts/${encodeURIComponent(draftId)}` : '/api/drafts', fd, (p) => draftBtnLabel(p < 1 ? `บันทึก ${Math.round(p * 100)}%` : 'กำลังบันทึก…'));
+        draftId = r.draft.id;
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+        leaving = true;
+        draftBtnLabel('บันทึกแล้ว');
+        toast('บันทึกร่างแล้ว กำลังไปที่ข่าวของฉัน');
+        setTimeout(() => { location.href = 'inbox.html#drafts'; }, 1500);
+      } catch (err) {
+        $('#saveDraft').disabled = false;
+        draftBtnLabel('บันทึกร่าง');
+        if (err.status === 401) { saveDraft(); setupSender(null); }
+        toast(err.message, true);
+      }
+    }
+    $('#saveDraft').addEventListener('click', saveServerDraft);
+
+    // Opens a draft from the server: fields, then its files in their saved order
+    async function loadServerDraft(id) {
+      let d;
+      try { d = (await api(`/drafts/${encodeURIComponent(id)}`)).draft; } catch (err) {
+        draftId = null;
+        $('#chooser').hidden = true; $('#pickHint').hidden = true;
+        $('#editGone').hidden = false;
+        $('#editGoneTitle').textContent = 'ไม่พบร่างนี้';
+        $('#editGoneText').textContent = err.message;
+        return;
+      }
+      applyData(d.data);
+      ['photo', 'attach', 'art'].forEach((k) => up[k].addExisting(d.files.filter((x) => x.kind === k)));
+      renderGuests();
+      setPeople(['chairName', 'chairPos', 'reporterName', 'reporterPos'].some((k) => val(k)) || guests.length > 0);
+      setNote(!!val('note'));
+      setType(d.type, { silent: true });
+      syncAudience(); syncCats(); syncContentMode(false);
+      syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint');
+      syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint');
+      try { history.replaceState(null, '', `?draft=${encodeURIComponent(d.id)}`); } catch (e) {}
+      const at = new Date(d.updatedAt);
+      $('#draftState').textContent = `ร่างที่บันทึกไว้ ${at.getDate()} ${TH_MONTHS[at.getMonth()]} ${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')} น.`;
+      update();
+      announce('เปิดร่างที่บันทึกไว้แล้ว');
     }
 
     // ---- Submit ----
@@ -1506,10 +1822,14 @@
         type, title: val('title'), lead: val('lead'), desc: val('desc'), body: val('body'), eventDate: val('eventDate'), place: val('place'), unit: val('unit'),
         categories: cats(), contentMode: radio('contentMode'), credit: val('credit'), newsVideo: val('newsVideo'), newsPlatform: radio('newsPlatform'),
         videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), albumUrl: val('albumUrl'),
-        chairName: val('chairName'), chairPos: val('chairPos'), reporterName: val('reporterName'), reporterPos: val('reporterPos'),
-        guests: guests.filter((g) => g.name.trim() || g.pos.trim()),
+        chairPrefix: prefixOf('chair'), chairName: val('chairName'), chairPos: val('chairPos'),
+        reporterPrefix: prefixOf('reporter'), reporterName: val('reporterName'), reporterPos: val('reporterPos'),
+        guests: guests.filter((g) => g.name.trim() || g.pos.trim()).map((g) => ({ prefix: (g.prefix || '').trim(), name: g.name.trim(), pos: g.pos.trim() })),
         en: $('#enToggle').checked, titleEn: val('titleEn'), bodyEn: val('bodyEn'), audience: audVals(), note: val('note'), consent: $('#consent').checked,
-        ...(editing ? { removeFiles: Object.values(up).flatMap((u) => u.removed) } : {}),
+        // The order of the pictures as arranged on the page (first = cover), and files already on the server that were removed
+        order: { photo: up.photo.order, art: up.art.order, attach: up.attach.order },
+        removeFiles: Object.values(up).flatMap((u) => u.removed),
+        ...(draftId && !editing ? { draftId } : {}),
       };
     }
     // XHR for the upload progress; same errors as api() in auth.js
@@ -1539,7 +1859,7 @@
       e.preventDefault();
       $('#sendError').hidden = true;
       // Signed out: keep the draft and sign in first (attached files cannot be kept)
-      if (guest) { saveDraft(false); leaving = true; location.href = window.loginUrl(); return; }
+      if (guest) { saveDraft(); leaving = true; location.href = window.loginUrl(); return; }
       const first = validate();
       if (first) {
         first.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1548,8 +1868,10 @@
         return;
       }
       const fd = new FormData();
-      fd.append('data', JSON.stringify(payload()));
-      Object.entries(up).forEach(([kind, u]) => { if (type === 'news' ? kind !== 'art' : type === 'banner' ? kind === 'art' : false) u.uploads.forEach((f) => fd.append(kind, f, f.name)); });
+      const data = payload();
+      data.removeFiles = [...new Set([...data.removeFiles, ...dropped()])];
+      fd.append('data', JSON.stringify(data));
+      appendFiles(fd);
       busy(true, 'กำลังอัปโหลด...');
       try {
         const r = await upload(editing ? 'PUT' : 'POST', editing ? `/api/submissions/${encodeURIComponent(editing.ref)}` : '/api/submissions', fd, (p) => {
@@ -1559,7 +1881,7 @@
         showDone(r.submission);
       } catch (err) {
         busy(false);
-        if (err.status === 401) { saveDraft(false); setupSender(null); }
+        if (err.status === 401) { saveDraft(); setupSender(null); }
         let firstBad = null;
         for (const [k, msg] of Object.entries(err.details || {})) {
           const m = SERVER_ERR[k];
@@ -1610,8 +1932,9 @@
       }[type];
       $('#doneSummary').innerHTML = rows.map(([k, v]) => `<div><dt class="text-[13px] text-ink2">${k}</dt><dd class="font-display text-[16px] font-medium">${esc(v)}</dd></div>`).join('');
       $('#trackLink').href = `inbox.html?ref=${encodeURIComponent(sub.ref)}`;
-      $('#trackLink').lastChild.textContent = ' ติดตามสถานะในกล่องข้อความ';
+      $('#trackLink').lastChild.textContent = ' ติดตามสถานะในข่าวของฉัน';
       if (!editing) try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+      draftId = null; // sent: the draft is gone
       Object.values(up).forEach((u) => u.items.forEach((x) => { if (x.url && !x.sent) URL.revokeObjectURL(x.url); }));
       leaving = true;
       form.hidden = true;
@@ -1648,7 +1971,7 @@
 
     // ---- Init: ?type= wins, then the draft's type ----
     // Editing loads the work from the server instead of the draft
-    const draft = editRef ? null : restoreDraft();
+    const draft = editRef || draftId ? null : restoreDraft();
     if (draft) { $('#draftState').textContent = 'กู้คืนฉบับร่างล่าสุดแล้ว'; announce('กู้คืนฉบับร่างล่าสุดแล้ว'); }
     if (!val('eventDate')) {
       const d = new Date();
@@ -1656,6 +1979,7 @@
     }
     renderGuests();
     setPeople(['chairName', 'chairPos', 'reporterName', 'reporterPos'].some((k) => val(k)) || guests.length > 0);
+    setNote(!!val('note'));
     syncAudience();
     syncCats();
     syncContentMode(false);
@@ -1670,9 +1994,10 @@
       if (!u) return setupSender(null);
       if (u.role === 'external') return; // sent to status.html?s=domain above
       // The sender's unit and position come from the profile: set it up first
-      if (!u.onboarded) { saveDraft(false); leaving = true; location.replace(window.loginUrl()); return; }
+      if (!u.onboarded) { saveDraft(); leaving = true; location.replace(window.loginUrl()); return; }
       setupSender(u);
       if (editRef) await startEdit(editRef);
+      else if (draftId) await loadServerDraft(draftId);
       else if (type) setType(type, { silent: true });
     });
 
@@ -1690,7 +2015,7 @@
       if (sub.status !== 'revise') {
         $('#editGone').hidden = false;
         $('#editGoneTitle').textContent = 'งานนี้แก้ไขไม่ได้ตอนนี้';
-        $('#editGoneText').textContent = 'แก้ไขงานได้เมื่องานประชาสัมพันธ์ขอให้แก้ไขเท่านั้น ส่งข้อความถึง PR ได้ที่กล่องข้อความ';
+        $('#editGoneText').textContent = 'แก้ไขงานได้เมื่องานประชาสัมพันธ์ขอให้แก้ไขเท่านั้น ส่งข้อความถึง PR ได้ที่หน้าข่าวของฉัน';
         return;
       }
       editing = sub;
@@ -1714,12 +2039,13 @@
       document.querySelectorAll('input[name=audience]').forEach((b) => { b.checked = (sub.audienceValues || []).includes(b.value); });
       const people = f.people || {};
       set('chairName', people.chair?.name); set('chairPos', people.chair?.pos); set('reporterName', people.reporter?.name); set('reporterPos', people.reporter?.pos);
-      guests = (people.guests || []).map((g) => ({ name: g.name || '', pos: g.pos || '' }));
+      setPrefix('chair', people.chair?.prefix); setPrefix('reporter', people.reporter?.prefix);
+      guests = (people.guests || []).map((g) => ({ prefix: g.prefix || '', name: g.name || '', pos: g.pos || '' }));
       renderGuests();
       setPeople(!!(people.chair || people.reporter || guests.length));
       $('#enToggle').checked = !!(f.titleEn || f.bodyEn); $('#enFields').hidden = !$('#enToggle').checked;
       $('#consent').checked = false;
-      ['photo', 'attach', 'art'].forEach((k) => up[k].addSent(sub.files.filter((x) => x.kind === k)));
+      ['photo', 'attach', 'art'].forEach((k) => up[k].addExisting(sub.files.filter((x) => x.kind === k), 'ส่งไว้แล้ว'));
       $('#saveDraft').hidden = true;
       setType(sub.type, { silent: true });
       document.querySelectorAll('input[name=type]').forEach((r) => { r.disabled = true; });

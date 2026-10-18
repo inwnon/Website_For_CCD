@@ -88,7 +88,7 @@ export async function prMessaged(db, s, text) {
   if (!u || !wants(u.notify, 'message')) return;
   await enqueue(db, {
     kind: 'submission.message', ref: s.ref, to: u.email, subject: `ข้อความใหม่จากทีม PR: ${s.ref}`, title: 'ทีม PR ส่งข้อความถึงคุณ',
-    lines: [`${s.ref} · ${s.title}`], quote: text, button: { label: 'ตอบกลับในกล่องข้อความ', href: link(`inbox.html?ref=${encodeURIComponent(s.ref)}`) },
+    lines: [`${s.ref} · ${s.title}`], quote: text, button: { label: 'ตอบกลับในหน้าข่าวของฉัน', href: link(`inbox.html?ref=${encodeURIComponent(s.ref)}`) },
   });
 }
 const PR_MAIL = {
