@@ -28,6 +28,11 @@
     .img-pick:has(input:not(:checked)) .box { opacity: .4; }
     .img-pick:has(input:checked) .box { box-shadow: 0 0 0 3px rgb(var(--purple)); }
     .img-pick:has(input:focus-visible) .box { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
+    .pick-item { cursor: grab; touch-action: pan-y; }
+    .rm-btn { transition: transform .35s var(--spring); }
+    .rm-btn:hover { transform: scale(1.08); }
+    .rm-btn:active { transform: scale(.92); }
+    .rm-btn:focus-visible { outline: 3px solid rgb(var(--focus)); outline-offset: 2px; }
     .img-pick .tick { opacity: 0; transform: scale(.5); transition: opacity .2s var(--ease-out), transform .45s var(--spring); }
     .img-pick:has(input:checked) .tick { opacity: 1; transform: none; }
     .err { color: rgb(var(--red)); font-size: 13px; font-weight: 500; margin-top: 4px; }
@@ -282,17 +287,39 @@
       $('#photoCount').textContent = photos.length ? `เลือก ${on.length} จาก ${photos.length} ภาพ` : '';
       const SOURCE = { remote: 'Facebook', file: 'จากเครื่อง', kept: 'ภาพเดิม' };
       $('#photoGrid').innerHTML = photos.map((p, i) => `
-        <label class="img-pick" data-id="${p.id}">
+        <div class="pick-item relative" data-id="${p.id}">
+        <label class="img-pick block">
           <input type="checkbox" data-i="${i}" ${p.on ? 'checked' : ''} aria-label="ใช้ภาพที่ ${i + 1} จาก ${photos.length}${on[0] === p ? ' (ภาพปก)' : ''}" aria-describedby="photoHint">
           <span class="box relative block aspect-square overflow-hidden rounded-2xl bg-surface2">
             <img src="${esc(p.url)}" alt="" draggable="false" class="h-full w-full object-cover" referrerpolicy="no-referrer">
-            ${on[0] === p ? '<span class="absolute bottom-1.5 left-1.5 rounded-lg bg-shell px-2 font-display text-[11px] font-semibold leading-5 text-royal shadow-raised">ภาพปก</span>' : ''}
+            ${on[0] === p ? '<span class="absolute bottom-2 left-1.5 rounded-lg bg-shell px-2 font-display text-[11px] font-semibold leading-5 text-royal shadow-raised">ภาพปก</span>' : ''}
             <span class="absolute right-1.5 top-1.5 rounded-lg bg-black/45 px-1.5 text-[11px] font-medium leading-5 text-white">${SOURCE[p.kind]}</span>
             <span class="tick absolute left-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-grad text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
           </span>
-        </label>`).join('');
+        </label>
+        <button type="button" data-remove="${p.id}" aria-label="ลบภาพที่ ${i + 1}" title="ลบภาพนี้" class="rm-btn absolute bottom-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-full bg-shell text-brand shadow-raised"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
+        </div>`).join('');
     }
-    $('#photoGrid').addEventListener('change', (e) => { const i = e.target.dataset.i; if (i != null) { photos[i].on = e.target.checked; paintPhotos(); } });
+    $('#photoGrid').addEventListener('change', (e) => {
+      const i = e.target.dataset.i;
+      if (i == null) return;
+      photos[i].on = e.target.checked;
+      paintPhotos();
+      $(`#photoGrid input[data-i="${i}"]`)?.focus(); // drawn again: the focus stays on that picture
+    });
+    // Bin: the picture leaves the list (a story's own picture is removed when the edit is saved)
+    $('#photoGrid').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-remove]');
+      if (!b) return;
+      const i = photos.findIndex((p) => p.id === b.dataset.remove);
+      if (i < 0) return;
+      const [p] = photos.splice(i, 1);
+      if (p.kind === 'file') URL.revokeObjectURL(p.url);
+      paintPhotos();
+      toast(p.kind === 'kept' ? 'เอาภาพออกแล้ว ภาพจะถูกลบเมื่อกดบันทึกการแก้ไข' : 'เอาภาพออกแล้ว');
+      const rest = $('#photoGrid').querySelectorAll('[data-remove]');
+      (rest[Math.min(i, rest.length - 1)] || $('#photoInput')).focus();
+    });
     function addFiles(list) {
       for (const f of list) {
         if (!/^image\//.test(f.type) && !/\.heic$/i.test(f.name)) { toast(`${f.name} ไม่ใช่ไฟล์ภาพ`, true); continue; }
@@ -545,7 +572,7 @@
       tools = TextTools.attach($('#body'));
       // Drag (or arrow keys) to put the pictures in order; the first one ticked is the cover
       Sortable($('#photoGrid'), {
-        item: '.img-pick', first: 'ภาพปก',
+        item: '.pick-item', first: 'ภาพปก',
         ids: () => photos.map((p) => p.id),
         move(id, to) { const from = photos.findIndex((p) => p.id === id); photos.splice(to, 0, photos.splice(from, 1)[0]); paintPhotos(); },
       });

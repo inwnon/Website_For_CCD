@@ -88,6 +88,8 @@
       Object.assign(ghost.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, transform: 'scale(1.04)', transition: 'none' });
       document.body.appendChild(ghost);
       Object.assign(drag, { on: true, ghost, dx: drag.x - r.left, dy: drag.y - r.top, start: ids().indexOf(drag.id) });
+      // Held only now, when it is a drag: a press that is a click must still reach the picture (to tick or untick it)
+      try { list.setPointerCapture(drag.pointer); } catch (err) {}
       el.classList.add('is-dragging');
       document.body.classList.add('photo-dragging');
       navigator.vibrate?.(10);
@@ -97,8 +99,7 @@
       if (e.button > 0 || e.target.closest('button, .pick')) return;
       const el = e.target.closest(item);
       if (!el || ids().length < 2) return;
-      drag = { id: el.dataset.id, x: e.clientX, y: e.clientY, mouse: e.pointerType === 'mouse', on: false };
-      try { list.setPointerCapture(e.pointerId); } catch (err) {}
+      drag = { id: el.dataset.id, x: e.clientX, y: e.clientY, mouse: e.pointerType === 'mouse', on: false, pointer: e.pointerId };
       if (!drag.mouse) drag.timer = setTimeout(() => drag && start(), 260);
     });
     window.addEventListener('pointermove', (e) => {
