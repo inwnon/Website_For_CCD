@@ -18,7 +18,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
   "font-src 'self'",
   // Story images, YouTube thumbnails, Facebook photos in the import preview, PDF pages drawn to data: URLs
-  "img-src 'self' data: blob: https://img.youtube.com https://*.fbcdn.net https://lh3.googleusercontent.com",
+  "img-src 'self' data: blob: https://*.fbcdn.net https://lh3.googleusercontent.com",
   "connect-src 'self' https://accounts.google.com/gsi/",
   "frame-src https://accounts.google.com/gsi/",
   "worker-src 'self'",

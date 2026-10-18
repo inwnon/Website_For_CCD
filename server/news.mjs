@@ -55,7 +55,7 @@ const image = (path) => {
   return { web: mediaUrl(path), set: srcset(path), full: existsSync(abs(`media/${full}`)) ? mediaUrl(full) : null };
 };
 const platformOf = (url) => (url ? Object.keys(PLATFORMS).find((p) => PLATFORMS[p].test(url)) || null : null);
-const youtubeId = (url) => url?.match(PLATFORMS.youtube)?.[5] || null;
+const youtubeId = (url) => url?.match(PLATFORMS.youtube)?.[4] || null; // group 4: the video id
 // Served by this site (media/video), see youtubeThumb below
 const videoThumb = (n) => (youtubeId(n.video_url) ? `/media/video/${youtubeId(n.video_url)}.webp` : null);
 

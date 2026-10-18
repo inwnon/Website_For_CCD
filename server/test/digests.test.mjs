@@ -56,6 +56,20 @@ describe('digests: reading', () => {
     assert.equal(pub.status, 200);
     assert.ok(pub.body.stories.length > 0 && pub.body.groups.length > 0);
   });
+  test('story pictures come from this site, video ones too (no YouTube in the reader\'s browser)', async () => {
+    const { pool: storyPool } = await import('../digests.mjs');
+    const news = (await query(`select id from news where video_url like '%youtu%' and cover_path is null limit 1`)).rows[0];
+    for (const d of [published, open]) {
+      const stories = (await pr.call('GET', `/api/pr/digests/${d.id}`)).body.stories;
+      for (const s of stories) if (s.img) assert.match(s.img, /^\/media\//, s.title);
+    }
+    if (news) {
+      const at = (await query('select (published_at at time zone \'Asia/Bangkok\')::date d from news where id = $1', [news.id])).rows[0].d;
+      const s = (await storyPool({ range_start: at, range_end: at })).find((x) => x.id === news.id);
+      if (s) assert.match(s.img, /^\/media\/video\/[\w-]+\.webp$/);
+    }
+    assert.doesNotMatch((await anon.call('GET', '/index.html')).headers.get('content-security-policy'), /img\.youtube\.com/);
+  });
   test('the studio is for the PR team only', async () => {
     assert.equal((await staff.call('GET', '/api/pr/digests')).status, 403);
     assert.equal((await anon.call('GET', '/api/pr/digests')).status, 401);

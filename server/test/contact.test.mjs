@@ -94,6 +94,19 @@ describe('video producer', () => {
     assert.equal(d.status, 201, JSON.stringify(d.body));
     assert.equal((await staff.call('GET', `/api/drafts/${d.body.draft.id}`)).body.draft.files.filter((x) => x.kind === 'cover').length, 1);
   });
+  test('a YouTube video without a cover: its picture from this site on the story and in the digest', async () => {
+    const v = { type: 'video', title: 'วิดีโอ YouTube ไม่มีปก', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+      videoPlatform: 'youtube', videoLink: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', audience: ['public'], consent: true };
+    const s = await staff.call('POST', '/api/submissions', form(v));
+    const pub = await pr.call('POST', `/api/pr/submissions/${s.body.submission.ref}/publish`, { title: v.title, videoUrl: v.videoLink, categories: v.categories, audience: ['public'] });
+    assert.equal(pub.status, 201, JSON.stringify(pub.body));
+    const id = pub.body.news.id;
+    const story = (await anon.call('GET', `/api/news/${id}`)).body;
+    assert.equal((story.story || story).videoThumb, '/media/video/dQw4w9WgXcQ.webp');
+    const { pool } = await import('../digests.mjs');
+    const at = (await query("select (published_at at time zone 'Asia/Bangkok')::date d from news where id = $1", [id])).rows[0].d;
+    assert.equal((await pool({ range_start: at, range_end: at })).find((x) => x.id === id).img, '/media/video/dQw4w9WgXcQ.webp');
+  });
   test('card preview picture of a YouTube link: signed-in only', async () => {
     assert.equal((await anon.call('GET', '/api/video-thumb/dQw4w9WgXcQ.webp')).status, 401);
     assert.equal((await staff.call('GET', '/api/video-thumb/not*an*id')).status, 404);

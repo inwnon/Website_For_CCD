@@ -43,14 +43,15 @@ const catOrder = () => [...get('categories'), OTHER_CAT, BANNER_CAT];
 const TH = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' });
 
 // ---- Stories of an issue's date range ----
-const youtubeId = (url) => url?.match(PLATFORMS.youtube)?.[5] || null;
+const youtubeId = (url) => url?.match(PLATFORMS.youtube)?.[4] || null; // group 4: the video id
 export async function pool(d) {
   const rows = (await query(
     `select n.id, n.title, n.unit, n.lead, n.kind, n.categories, n.audience, n.cover_path, n.video_url, n.published_at
      from news n where ${LIVE} and ${LOCAL_DAY} between $1 and $2 order by n.published_at`, [d.range_start, d.range_end])).rows;
   return rows.map((n) => ({
     id: n.id, title: n.title, unit: n.unit, lead: n.lead, cat: catOf(n), audience: n.audience, internal: !n.audience.includes('public'),
-    img: n.cover_path ? `/media/${n.cover_path}` : youtubeId(n.video_url) ? `https://img.youtube.com/vi/${youtubeId(n.video_url)}/hqdefault.jpg` : null,
+    // A video story without a cover: its YouTube picture through this server (news.mjs /media/video), not from YouTube
+    img: n.cover_path ? `/media/${n.cover_path}` : youtubeId(n.video_url) ? `/media/video/${youtubeId(n.video_url)}.webp` : null,
     publishedAt: n.published_at,
   }));
 }
