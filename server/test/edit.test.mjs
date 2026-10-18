@@ -112,6 +112,20 @@ describe('แก้ไขข่าว on the site (pr-import.html?edit=id)', () 
   });
 });
 
+describe('pictures in the order dragged', () => {
+  test('import follows photoOrder: the first one is the cover', async () => {
+    const sharp = (await import('sharp')).default;
+    const r = await pr.call('POST', '/api/pr/import', form({ kind: 'news', title: 'ทดสอบลำดับภาพนำเข้า', body: 'เนื้อหาข่าวทดสอบลำดับภาพที่ลากจัดไว้', unit: 'กองกลาง',
+      categories: ['ข่าวการศึกษา'], audience: ['public'], date: '2026-10-01', photoOrder: ['u:1', 'u:0'], confirmDuplicate: true },
+      { photo: [['red.jpg', await img('#d00', 800, 600), 'image/jpeg'], ['blue.jpg', await img('#00d', 800, 600), 'image/jpeg']] }));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const n = (await query('select cover_path, gallery from news where id = $1', [r.body.news.id])).rows[0];
+    const colour = async (p) => { const { channels } = await sharp(abs(`media/${p}`)).stats(); return channels[2].mean > channels[0].mean ? 'blue' : 'red'; };
+    assert.equal(await colour(n.cover_path), 'blue', 'the second file, dragged first, is the cover');
+    assert.equal(await colour(n.gallery[0]), 'red');
+  });
+});
+
 describe('ลบข่าว (withdrawn stories)', () => {
   test('only a withdrawn story; gone for good, its work moves to ลบแล้ว', async () => {
     assert.equal((await pr.call('DELETE', `/api/pr/news/${newsId}`)).status, 409, 'withdraw first');

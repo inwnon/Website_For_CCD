@@ -16,6 +16,14 @@
   /* Search results after the first row */
   .cv-card { content-visibility: auto; contain-intrinsic-size: auto 380px; }
 
+  /* Dragging pictures into order (sortable.js; submit.html has its own copy): a lifted copy follows the pointer */
+  .drag-ghost { position: fixed; z-index: 80; pointer-events: none; margin: 0; box-shadow: var(--shadow-float); cursor: grabbing; }
+  .is-dragging { opacity: .35; }
+  body.photo-dragging, body.photo-dragging * { cursor: grabbing !important; user-select: none; }
+  .pub-tile { cursor: grab; -webkit-touch-callout: none; user-select: none; touch-action: pan-y; }
+  .pub-tile img { -webkit-user-drag: none; }
+  .pub-tile:focus-visible { outline: 3px solid rgb(var(--focus)); outline-offset: 2px; }
+
   /* จัดรูปแบบเนื้อหา (text-tools.js): the toolbar sits on the text box like its lid */
   .tt-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; padding: 6px 8px;
     border: 1px solid rgb(var(--line)); border-radius: 16px; background: rgb(var(--surface)); }

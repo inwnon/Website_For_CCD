@@ -26,7 +26,7 @@
     .row-item.is-gone img { filter: grayscale(1); opacity: .6; }
     .star[aria-pressed="true"] svg { fill: currentColor; }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=fc7b1414e4">
+  <link rel="stylesheet" href="/assets/app.css?v=1998dd43fd">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการข่าว</a>
@@ -199,6 +199,8 @@
     const state = { show: 'all', q: '', offset: 0, items: [], seq: 0 };
     // After an action the list is drawn again: focus goes back to the same button (or the story's first one, or the list)
     let refocus = null;
+    // This list as a link (tab, search, page), so แก้ไขข่าว can come back to it
+    const here = () => `pr-news.html?${new URLSearchParams({ show: state.show, ...(state.q ? { q: state.q } : {}), ...(state.offset ? { offset: state.offset } : {}) })}`;
 
     const badge = (cls, text) => `<span class="inline-flex shrink-0 items-center rounded-full ${cls} px-2.5 font-display text-[12px] font-semibold leading-6">${text}</span>`;
     function row(n) {
@@ -230,7 +232,7 @@
         </div>
         <div class="col-span-2 flex flex-wrap justify-end gap-2 sm:col-span-1">
           <button type="button" data-act="history" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">ประวัติ</button>
-          <a href="pr-import.html?edit=${n.id}" data-act="edit" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5 inline-flex items-center">แก้ไขข่าว</a>
+          <a href="pr-import.html?edit=${n.id}&amp;back=${encodeURIComponent(here())}" data-act="edit" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5 inline-flex items-center">แก้ไขข่าว</a>
           ${n.withdrawn
             ? `<button type="button" data-act="restore" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">คืนข่าว</button>
                <button type="button" data-act="delete" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5 text-brand">ลบข่าว</button>`
@@ -535,8 +537,14 @@
 
     DESK.start({ page: 'news', allow: ['pr', 'admin'] }).then((user) => {
       if (!user) return;
-      const show = new URLSearchParams(location.search).get('show');
-      if (TABS.some(([k]) => k === show)) state.show = show;
+      const P = new URLSearchParams(location.search);
+      if (TABS.some(([k]) => k === P.get('show'))) state.show = P.get('show');
+      if (P.get('q')) { state.q = P.get('q').slice(0, 100); $('#q').value = state.q; }
+      if (Number(P.get('offset')) > 0) state.offset = Math.floor(Number(P.get('offset')) / PAGE) * PAGE;
+      // Back from แก้ไขข่าว (pr-import.html): say so, and put the focus on that story
+      let saved = null;
+      try { saved = JSON.parse(sessionStorage.getItem('deskSaved')); sessionStorage.removeItem('deskSaved'); } catch (e) {}
+      if (saved?.id) { refocus = { id: saved.id, act: 'edit' }; toast(saved.msg || 'บันทึกการแก้ไขแล้ว'); }
       $('#app').hidden = false;
       load();
     });

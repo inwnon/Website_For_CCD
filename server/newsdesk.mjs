@@ -11,7 +11,8 @@
 //        Its work (if any) moves to ลบแล้ว on pr.html unless it is back in the queue (ยกเลิกการเผยแพร่)
 // - POST /api/pr/import/fetch       { url }         reads a public Facebook post: text, photos, date (best effort)
 // - GET  /api/pr/import/check?url=&unit=&date=&title=   stories that may be the same one
-// - POST /api/pr/import             multipart: data (JSON) + photo files; data.remoteImages = photo URLs from /fetch
+// - POST /api/pr/import             multipart: data (JSON) + photo files; data.remoteImages = photo URLs from /fetch;
+//        data.photoOrder = ['r:<n>' | 'u:<n>'] the pictures in the order arranged (default: Facebook ones first)
 //        Imported stories go live at once with their original date, skip the queue and the inbox,
 //        and take their place by date in every list, the home page too.
 import { createWriteStream } from 'node:fs';
@@ -437,12 +438,14 @@ router.post('/pr/import', limit('import', { max: 120, windowMs: 10 * 60 * 1000 }
     if (dupes.length && d.confirmDuplicate !== true) {
       throw new HttpError(409, 'อาจซ้ำกับข่าวที่มีอยู่แล้ว ตรวจรายการแล้วยืนยันอีกครั้ง', { duplicates: dupes });
     }
-    // Photos in order: fetched from Facebook first (as on the post), then uploads
+    // Photos in the order arranged on the page (photoOrder), else Facebook ones first (as on the post), then uploads
     for (const url of remote) temps.push(await download(url));
     newsId = (await one('select gen_random_uuid() id')).id;
+    const all = [...temps.map((t, i) => ({ key: `r:${i}`, path: t, name: `ภาพจาก Facebook ภาพที่ ${i + 1}` })), ...photos.map((f, i) => ({ key: `u:${i}`, path: f.path, name: f.originalname }))];
+    const want = Array.isArray(d.photoOrder) ? d.photoOrder.filter((k) => typeof k === 'string') : [];
+    const ordered = [...want.map((k) => all.find((x) => x.key === k)).filter(Boolean), ...all.filter((x) => !want.includes(x.key))];
     const paths = [];
-    for (const [i, t] of temps.entries()) paths.push(await publishFile(newsId, t, `ภาพจาก Facebook ภาพที่ ${i + 1}`));
-    for (const f of photos) paths.push(await publishFile(newsId, f.path, f.originalname));
+    for (const x of [...new Set(ordered)]) paths.push(await publishFile(newsId, x.path, x.name));
     const created = await tx(async (c) => {
       const n = (await c.query(
         `insert into news (id, kind, imported, source_url, title, title_en, lead, body, body_en, unit, categories, audience,

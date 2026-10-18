@@ -275,7 +275,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=fc7b1414e4">
+  <link rel="stylesheet" href="/assets/app.css?v=1998dd43fd">
 </head>
 
 <body class="app">
@@ -506,7 +506,7 @@
         <div class="flex min-w-0 flex-col gap-4">
           <fieldset id="pImages" class="min-w-0">
             <legend class="font-display text-[14px] font-medium">ภาพในข่าว</legend>
-            <p class="text-[13px] text-ink2">กด "ปก" เพื่อเลือกภาพปก และกด ✓ เพื่อใส่ภาพในแกลเลอรี</p>
+            <p id="pPhotosHint" class="text-[13px] text-ink2">กด "ปก" เพื่อเลือกภาพปก กด ✓ เพื่อใส่ภาพในแกลเลอรี และลากภาพ (หรือกดลูกศร) เพื่อจัดลำดับในแกลเลอรี</p>
             <div id="pPhotos" class="scroll-thin mt-2 grid max-h-[232px] grid-cols-3 gap-2 overflow-y-auto pr-1"></div>
             <p data-err="cover" class="mt-1 text-[14px] font-medium text-brand" hidden></p>
           </fieldset>
@@ -586,6 +586,7 @@
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
   <script src="text-tools.js"></script>
+  <script src="sortable.js"></script>
   <script>
     const $ = (s, r = document) => r.querySelector(s);
     const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -660,6 +661,8 @@
     let state = { status: 'review', type: '', q: '', unread: false };
     let items = [], total = 0, counts = {}, detailData = null, tab = 'info';
     let current = new URLSearchParams(location.search).get('ref');
+    // Back from แก้ไขข่าว (pr-import.html): say it was saved
+    try { const saved = JSON.parse(sessionStorage.getItem('deskSaved')); sessionStorage.removeItem('deskSaved'); if (saved?.msg) toast(saved.msg); } catch (e) {}
     const isMobile = () => matchMedia('(max-width: 1023px)').matches;
 
     // ---- Sign-in ----
@@ -871,7 +874,7 @@
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="publish"', s.newsId ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่', true));
       // แก้ไขข่าว: PR edits the work itself (kept until it is published), or the story once it is on the site
       if (['review', 'writing', 'revise'].includes(s.status)) a.push(btn('data-act="edit"', `${ic.pen}แก้ไขข่าว`));
-      if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
+      if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}&amp;back=${encodeURIComponent(`pr.html?ref=${s.ref}`)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
       if (s.status === 'review' && s.type === 'news') a.push(btn('data-act="writing"', 'รับไปเขียนข่าว'));
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="revise"', 'ขอให้แก้ไข'));
       if (s.status === 'revise') a.push(btn('data-act="review"', 'ตรวจต่อโดยไม่รอแก้ไข'));
@@ -1139,6 +1142,24 @@
     function chip(name, value, label, checked, type = 'checkbox') {
       return `<label class="opt chip-opt"><input type="${type}" name="${name}" value="${esc(value)}"${checked ? ' checked' : ''}><span class="opt-box inline-flex h-9 items-center rounded-full border border-line bg-surface px-3 font-display text-[13px] font-medium">${esc(label)}</span></label>`;
     }
+    // Picture tiles of the publish dialog, in pubImgs order. Each carries both choices: "ปก" (cover) and ✓ (gallery)
+    let pubImgs = [];
+    const tileState = () => ({ cover: $('input[name=cover]:checked')?.value, gallery: new Set($$('input[name=gallery]:checked').map((x) => x.value)) });
+    function drawTiles(st) {
+      $('#pPhotos').innerHTML = pubImgs.map((x, i) => `
+        <div data-tile="${x.id}" data-id="${x.id}" tabindex="0" aria-label="ภาพที่ ${i + 1} จาก ${pubImgs.length}: ${esc(x.name)}" aria-describedby="pPhotosHint" class="pub-tile t-quick relative aspect-[4/3] overflow-hidden rounded-xl bg-surface2">
+          <img src="${esc(x.thumb)}" alt="" draggable="false" loading="lazy" class="h-full w-full object-cover">
+          <span class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" aria-hidden="true"></span>
+          <label class="pick absolute left-1.5 top-1.5"><input type="radio" name="cover" value="${x.id}"${st.cover === x.id ? ' checked' : ''} aria-label="ใช้ ${esc(x.name)} เป็นภาพปก"><span class="pick-box inline-flex h-7 items-center rounded-full bg-shell/90 px-2.5 font-display text-[12px] font-semibold text-ink">ปก</span></label>
+          <label class="pick absolute bottom-1.5 right-1.5"><input type="checkbox" name="gallery" value="${x.id}"${st.gallery.has(x.id) ? ' checked' : ''} aria-label="ใส่ ${esc(x.name)} ในแกลเลอรี"><span class="pick-box grid h-7 w-7 place-items-center rounded-full bg-shell/90 text-ink">${ic.check}</span></label>
+        </div>`).join('');
+      paintTiles();
+    }
+    Sortable($('#pPhotos'), {
+      item: '[data-tile]',
+      ids: () => pubImgs.map((x) => x.id),
+      move(id, to) { const st = tileState(); const from = pubImgs.findIndex((x) => x.id === id); pubImgs.splice(to, 0, pubImgs.splice(from, 1)[0]); drawTiles(st); },
+    });
     function paintTiles() {
       const cover = $('input[name=cover]:checked')?.value;
       $$('#pPhotos [data-tile]').forEach((t) => {
@@ -1182,15 +1203,10 @@
       $('#pEnBox').open = !!(f.titleEn || f.bodyEn);
       const imgs = s.files.filter((x) => x.thumb);
       $('#pImages').hidden = !imgs.length;
-      // Each tile carries both choices on the picture itself: "ปก" (cover) and ✓ (gallery)
-      $('#pPhotos').innerHTML = imgs.map((x, i) => `
-        <div data-tile="${x.id}" class="t-quick relative aspect-[4/3] overflow-hidden rounded-xl bg-surface2">
-          <img src="${esc(x.thumb)}" alt="${esc(x.name)}" loading="lazy" class="h-full w-full object-cover">
-          <span class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" aria-hidden="true"></span>
-          <label class="pick absolute left-1.5 top-1.5"><input type="radio" name="cover" value="${x.id}"${(pe?.cover ? pe.cover === x.id : i === 0) ? ' checked' : ''} aria-label="ใช้ ${esc(x.name)} เป็นภาพปก"><span class="pick-box inline-flex h-7 items-center rounded-full bg-shell/90 px-2.5 font-display text-[12px] font-semibold text-ink">ปก</span></label>
-          <label class="pick absolute bottom-1.5 right-1.5"><input type="checkbox" name="gallery" value="${x.id}"${(pe ? pe.gallery.includes(x.id) : i > 0 && i <= 30) ? ' checked' : ''} aria-label="ใส่ ${esc(x.name)} ในแกลเลอรี"><span class="pick-box grid h-7 w-7 place-items-center rounded-full bg-shell/90 text-ink">${ic.check}</span></label>
-        </div>`).join('');
-      paintTiles();
+      // The gallery in the order PR arranged it (แก้ไขข่าว), else as sent; the cover first
+      const rank = pe ? [pe.cover, ...pe.gallery] : [];
+      pubImgs = [...imgs].sort((a, b) => (rank.includes(a.id) ? rank.indexOf(a.id) : 999) - (rank.includes(b.id) ? rank.indexOf(b.id) : 999));
+      drawTiles({ cover: pe?.cover || imgs[0]?.id, gallery: new Set(pe ? pe.gallery : imgs.slice(1, 31).map((x) => x.id)) });
       $('#pCats').innerHTML = [...CATEGORIES, ...(s.type === 'video' ? VIDEO_CATEGORIES.filter((v) => !CATEGORIES.includes(v)) : [])].map((c) => chip('pcat', c, c, f.categories?.includes(c))).join('');
       $('#pAud').innerHTML = AUDIENCE.map(([v, l]) => chip('paud', v, l, (pe?.audience?.length ? pe.audience : again ? n.audience : s.audienceValues).includes(v))).join('');
       syncAud();
