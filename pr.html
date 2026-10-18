@@ -904,7 +904,7 @@
       const imgs = s.files.filter((f) => f.thumb);
       const others = s.files.filter((f) => !f.thumb);
       if (!s.files.length) return '<p class="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-[14px] text-ink2">งานนี้ไม่มีไฟล์แนบ</p>';
-      const label = { photo: 'ภาพ', attach: 'เอกสาร', video: 'วิดีโอ', art: 'ไฟล์งาน' };
+      const label = { photo: 'ภาพ', attach: 'เอกสาร', video: 'วิดีโอ', art: 'ไฟล์งาน', cover: 'ภาพหน้าปก' };
       return `
         ${imgs.length ? `<ul class="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-6">${imgs.map((f) => `
           <li><a href="${esc(f.url)}" target="_blank" rel="noopener" class="photo-tile press t-quick relative block aspect-[4/3] overflow-hidden rounded-xl bg-surface2" aria-label="เปิดไฟล์ต้นฉบับ ${esc(f.name)} (${fmtSize(f.size)})">

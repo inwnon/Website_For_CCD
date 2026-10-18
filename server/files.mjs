@@ -94,7 +94,7 @@ export async function storeUploads(submissionId, uploads, startPositions = {}, f
       // Photos keep their quality and camera data, but not where they were taken. First, before sharp reads the file:
       // libvips keeps files it has read open for a while, and on Windows an open file cannot be written.
       if (/\.(jpe?g|png|webp|heic)$/i.test(f.originalname)) await stripGps(f.path);
-      if (f.kind === 'photo' || (f.kind === 'art' && /^image\/(jpeg|png|webp)$/.test(mimeOf(f.originalname)))) {
+      if (f.kind === 'photo' || f.kind === 'cover' || (f.kind === 'art' && /^image\/(jpeg|png|webp)$/.test(mimeOf(f.originalname)))) {
         try {
           await sharp(f.path).rotate().resize(WEB_SIZE, WEB_SIZE, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toFile(abs(webPath(path)));
         } catch {

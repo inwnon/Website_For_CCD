@@ -72,6 +72,32 @@ describe('video producer', () => {
     const d = await staff.call('POST', '/api/drafts', form({ type: 'video', title: 'ร่างวิดีโอ', producer: 'สมศักดิ์' }));
     assert.equal((await staff.call('GET', `/api/drafts/${d.body.draft.id}`)).body.draft.data.producer, 'สมศักดิ์');
   });
+  test('ภาพหน้าปก: one picture, videos only; it becomes the story cover', async () => {
+    const v = { type: 'video', title: 'วิดีโอมีปก', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+      videoPlatform: 'facebook', videoLink: 'https://www.facebook.com/sru/videos/123', audience: ['public'], consent: true };
+    const pic = async (c) => ['cover.jpg', await img(c, 1280, 720), 'image/jpeg'];
+    const s = await staff.call('POST', '/api/submissions', form(v, { cover: [await pic('#a3c')] }));
+    assert.equal(s.status, 201, JSON.stringify(s.body));
+    const sub = (await pr.call('GET', `/api/submissions/${s.body.submission.ref}`)).body.submission;
+    const f = sub.files.find((x) => x.kind === 'cover');
+    assert.ok(f?.thumb && f.cover, 'cover file with a web copy');
+    assert.equal((await staff.call('POST', '/api/submissions', form(v, { cover: [await pic('#111'), await pic('#222')] }))).status, 400, 'one picture only');
+    const news = await staff.call('POST', '/api/submissions', form({ type: 'news', title: 'ข่าว', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+      contentMode: 'own', body: 'ก'.repeat(160), audience: ['public'], consent: true }, { photo: [await pic('#333')], cover: [await pic('#444')] }));
+    assert.equal(news.status, 400, 'not for news');
+    const pub = await pr.call('POST', `/api/pr/submissions/${s.body.submission.ref}/publish`, { title: 'วิดีโอมีปก', videoUrl: v.videoLink, categories: ['ข่าวการศึกษา'], audience: ['public'] });
+    assert.equal(pub.status, 201, JSON.stringify(pub.body));
+    const story = (await anon.call('GET', `/api/news/${pub.body.news.id}`)).body;
+    assert.ok((story.story || story).cover || (story.story || story).photos?.length, 'published story has the cover');
+    // Drafts keep it
+    const d = await staff.call('POST', '/api/drafts', form({ type: 'video', title: 'ร่างมีปก' }, { cover: [await pic('#555')] }));
+    assert.equal(d.status, 201, JSON.stringify(d.body));
+    assert.equal((await staff.call('GET', `/api/drafts/${d.body.draft.id}`)).body.draft.files.filter((x) => x.kind === 'cover').length, 1);
+  });
+  test('card preview picture of a YouTube link: signed-in only', async () => {
+    assert.equal((await anon.call('GET', '/api/video-thumb/dQw4w9WgXcQ.webp')).status, 401);
+    assert.equal((await staff.call('GET', '/api/video-thumb/not*an*id')).status, 404);
+  });
   test('ประเภทข่าว วิดีโอเสียงตามสาย: videos only; the pages get it', async () => {
     const v = { type: 'video', title: 'วิดีโอเสียงตามสาย', eventDate: '2026-10-01', unit: 'กองกลาง', videoPlatform: 'youtube', videoLink: 'https://youtu.be/dQw4w9WgXcQ', audience: ['public'], consent: true };
     const ok = await staff.call('POST', '/api/submissions', form({ ...v, categories: ['วิดีโอเสียงตามสาย', 'ข่าวการศึกษา'] }));

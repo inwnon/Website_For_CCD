@@ -12,6 +12,7 @@
 // - GET    /media/:newsId/:file              story images; internal stories only for readers who may see them
 // - GET    /media/:newsId/photos.zip         all photos of a story in one ZIP (full size when there is one)
 // - GET    /media/video/:youtubeId.webp      a story video's YouTube thumbnail, fetched and kept by this server
+// - GET    /api/video-thumb/:youtubeId.webp  the same picture for the card preview on submit.html (signed in)
 import { createHash, randomBytes } from 'node:crypto';
 import { createReadStream, existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -313,6 +314,17 @@ media.get('/video/:file', async (req, res) => {
     sendMedia(res, await youtubeThumb(id), 'public, max-age=604800');
   } catch {
     res.status(404).end();
+  }
+});
+
+// The sender's card preview (submit.html) before there is a story: signed-in users only, and not too often
+router.get('/video-thumb/:file', requireUser, limit('videoThumb', { max: 60, windowMs: 10 * 60 * 1000 }), async (req, res) => {
+  const id = req.params.file.match(/^([\w-]{6,20})\.webp$/)?.[1];
+  if (!id) throw new HttpError(404, 'ไม่พบภาพ');
+  try {
+    sendMedia(res, await youtubeThumb(id), 'private, max-age=86400');
+  } catch {
+    throw new HttpError(404, 'ไม่พบภาพหน้าปกของวิดีโอนี้');
   }
 });
 

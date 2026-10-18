@@ -28,7 +28,7 @@ describe('drafts', () => {
       { photo: [await jpg('a.jpg', '#c00'), await jpg('b.jpg', '#0c0')] }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
     const id = r.body.draft.id;
-    assert.deepEqual(r.body.draft.counts, { photo: 2, attach: 0, art: 0 });
+    assert.deepEqual(r.body.draft.counts, { photo: 2, attach: 0, art: 0, cover: 0 });
     const list = await staff.call('GET', '/api/drafts');
     assert.ok(list.body.drafts.some((d) => d.id === id && d.title === 'ร่างแรก' && d.thumb));
     const one = (await staff.call('GET', `/api/drafts/${id}`)).body.draft;

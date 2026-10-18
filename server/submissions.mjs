@@ -26,7 +26,7 @@ const countKinds = (files) => files.reduce((c, f) => ({ ...c, [f.kind]: (c[f.kin
 // Positions for files already there (kept: [{ id, kind }]) and the new ones (stored, in upload order), per kind, from data.order
 function positions(order, kept, stored) {
   const out = new Map();
-  for (const kind of ['photo', 'attach', 'art']) {
+  for (const kind of ['photo', 'attach', 'art', 'cover']) {
     const k = kept.filter((f) => f.kind === kind), n = stored.filter((f) => f.kind === kind);
     const pos = arrange(order?.[kind], k.map((f) => f.id), n.length);
     k.forEach((f) => out.set(f.id, pos[`f:${f.id}`]));
@@ -57,7 +57,7 @@ export async function loadThread(ids) {
 // Files come ordered by kind, position; the first photo / art file is the cover
 export const fileOut = (f, i, list) => ({
   id: f.id, kind: f.kind, name: f.name, size: Number(f.size), mime: f.mime,
-  cover: (f.kind === 'photo' || f.kind === 'art') && list.findIndex((x) => x.kind === f.kind) === i,
+  cover: (f.kind === 'photo' || f.kind === 'art' || f.kind === 'cover') && list.findIndex((x) => x.kind === f.kind) === i,
   url: `/api/files/${f.id}`, ...(/^image\/(jpeg|png|webp)$/.test(f.mime) ? { thumb: `/api/files/${f.id}?v=web` } : {}),
 });
 

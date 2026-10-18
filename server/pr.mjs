@@ -51,7 +51,7 @@ router.get('/pr/submissions', async (req, res) => {
   const rows = (await query(
     `select s.*, u.name sender_name, u.email sender_email, u.role sender_role, u.position sender_position,
        (select count(*)::int from submission_files f where f.submission_id = s.id) file_count,
-       (select f.id from submission_files f where f.submission_id = s.id and f.kind in ('photo', 'art') and f.mime ~ '^image/(jpeg|png|webp)$'
+       (select f.id from submission_files f where f.submission_id = s.id and f.kind in ('photo', 'art', 'cover') and f.mime ~ '^image/(jpeg|png|webp)$'
           order by f.kind = 'photo' desc, f.position limit 1) cover_id,
        (select json_build_object('side', m.side, 'text', left(m.body, 160), 'at', m.created_at) from messages m
           where m.submission_id = s.id order by m.created_at desc, m.id desc limit 1) last_message,
@@ -154,7 +154,7 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
   if (Number.isNaN(story.published_at.getTime())) errors.publishAt = 'วันเวลาเผยแพร่ไม่ถูกต้อง';
   if (story.audience.includes('public')) story.audience = [...AUDIENCES];
 
-  const files = (await query(`select * from submission_files where submission_id = $1 and kind in ('photo', 'art') order by kind, position`, [s.id])).rows;
+  const files = (await query(`select * from submission_files where submission_id = $1 and kind in ('photo', 'art', 'cover') order by kind, position`, [s.id])).rows;
   const pick = (id) => files.find((f) => f.id === id);
   const coverFile = b.cover ? pick(b.cover) : files[0];
   const galleryFiles = (Array.isArray(b.gallery) ? b.gallery : []).map(pick).filter(Boolean).filter((f) => f !== coverFile).slice(0, 30);

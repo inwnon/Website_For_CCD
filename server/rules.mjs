@@ -45,11 +45,12 @@ const MB = 1024 * 1024;
 const DOC_EXT = /\.(pdf|docx?|pptx?|xlsx?)$/i;
 const IMAGE_EXT = /\.(jpe?g|png|webp|heic)$/i;
 // Upload slots per kind: count, size per file, accepted files (submit.html uploaders).
-// Videos are links only (PLATFORMS), never uploaded files.
+// Videos are links only (PLATFORMS), never uploaded files; a video may come with one cover picture (ภาพหน้าปก).
 export const UPLOADS = {
   photo: { types: ['news'], max: 100, maxBytes: 15 * MB, accepts: (f) => IMAGE_EXT.test(f.originalname) },
   attach: { types: ['news'], max: 10, maxBytes: 20 * MB, accepts: (f) => DOC_EXT.test(f.originalname) },
   art: { types: ['banner'], max: 10, maxBytes: 100 * MB, accepts: (f) => /\.(jpe?g|png|webp|pdf)$/i.test(f.originalname) },
+  cover: { types: ['video'], max: 1, maxBytes: 15 * MB, accepts: (f) => IMAGE_EXT.test(f.originalname) },
 };
 
 // Label shown in the inbox (audLabel in submit.html)

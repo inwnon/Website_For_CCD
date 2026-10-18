@@ -16,7 +16,7 @@ import { limit } from './security.mjs';
 import { sendFile } from './submissions.mjs';
 
 export const MAX_DRAFTS = 20;
-const KINDS = ['photo', 'attach', 'art'];
+const KINDS = ['photo', 'attach', 'art', 'cover'];
 
 const fileOut = (draftId) => (f) => ({
   id: f.id, kind: f.kind, name: f.name, size: Number(f.size), mime: f.mime,
@@ -24,7 +24,7 @@ const fileOut = (draftId) => (f) => ({
 });
 export const draftOut = (d, files) => {
   const own = files.filter((f) => f.draft_id === d.id);
-  const cover = own.find((f) => f.kind === (d.type === 'banner' ? 'art' : 'photo') && /^image\/(jpeg|png|webp)$/.test(f.mime));
+  const cover = own.find((f) => f.kind === ({ banner: 'art', video: 'cover' }[d.type] || 'photo') && /^image\/(jpeg|png|webp)$/.test(f.mime));
   return {
     id: d.id, type: d.type, title: d.title, createdAt: d.created_at, updatedAt: d.updated_at,
     counts: Object.fromEntries(KINDS.map((k) => [k, own.filter((f) => f.kind === k).length])),
