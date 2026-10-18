@@ -130,7 +130,7 @@ router.get('/reports/export.xlsx', async (req, res) => {
     { k: 'รอเอกสาร / รอผู้ส่งแก้ไข', v: a.revise },
     { k: `เกินเวลาตรวจ ${a.reviewDays} วันทำการ`, v: a.late },
     { k: 'เผยแพร่จากงานที่ส่งในช่วงนี้', v: a.published },
-    { k: 'ไม่เผยแพร่', v: a.rejected },
+    { k: 'ทีม PR ลบงาน', v: a.rejected },
     { k: 'เวลาเฉลี่ยตั้งแต่ส่งถึงเผยแพร่', v: hours(a.avgHours) },
     { k: 'มัธยฐานเวลาถึงเผยแพร่', v: hours(a.medianHours) },
     { k: 'อายุคิวสูงสุด', v: a.oldest ? `${hours(a.oldest.ageHours)} (${a.oldest.ref} ${a.oldest.title})` : 'ไม่มีงานค้าง' },

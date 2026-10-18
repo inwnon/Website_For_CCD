@@ -2,6 +2,8 @@
 // - GET    /api/pr/submissions?status=&type=&q=&unread=1&limit=&offset=   list + counts per status
 // - GET    /api/pr/submissions/:ref                    full item, sender profile, published story
 // - POST   /api/pr/submissions/:ref/status             { status: review|writing|revise|rejected, message }
+//   rejected = "ลบข่าว": hidden, not deleted. The sender no longer sees it and is not told; PR can move it back to review
+//   (also without telling the sender). It still counts in reports, and its files go with the retention rule.
 // - POST   /api/pr/submissions/:ref/messages           { text }
 // - POST   /api/pr/submissions/:ref/read
 // - POST   /api/pr/submissions/:ref/publish            story fields → news row, status published
@@ -18,11 +20,11 @@ import { AUDIENCES, MAX_CATS, albumUrl, audienceLabel, categories } from './rule
 import { audit } from './audit.mjs';
 import { prMessaged, statusChanged } from './notify.mjs';
 import { limit } from './security.mjs';
-import { get } from './settings.mjs';
+import { get, VIDEO_CATEGORIES } from './settings.mjs';
 import { addMessage, findSubmission, loadThread, submissionOut } from './submissions.mjs';
 
 const STATUSES = ['review', 'writing', 'revise', 'published', 'rejected'];
-const STATUS_TH = { review: 'รอ PR ตรวจ', writing: 'PR กำลังเขียนข่าว', revise: 'ขอให้แก้ไข', published: 'เผยแพร่แล้ว', rejected: 'ไม่เผยแพร่' };
+const STATUS_TH = { review: 'รอ PR ตรวจ', writing: 'PR กำลังเขียนข่าว', revise: 'ขอให้แก้ไข', published: 'เผยแพร่แล้ว', rejected: 'ลบแล้ว' };
 const PR_MOVES = ['review', 'writing', 'revise', 'rejected']; // "published" goes through /publish
 
 export const router = Router();
@@ -43,6 +45,7 @@ router.get('/pr/submissions', async (req, res) => {
     from submissions s join users u on u.id = s.sender_id ${base} group by s.status`, params)).rows;
 
   if (status && STATUSES.includes(status)) add('s.status = ?', status);
+  else where.push("s.status <> 'rejected'"); // "ทั้งหมด": not what PR deleted (that has its own menu item)
   if (unread === '1') where.push('s.pr_unread');
   const filtered = where.length ? `where ${where.join(' and ')}` : '';
   const rows = (await query(
@@ -91,15 +94,18 @@ router.post('/pr/submissions/:ref/status', async (req, res) => {
   if (!PR_MOVES.includes(status)) throw new HttpError(400, 'สถานะไม่ถูกต้อง');
   if (s.status === 'published') throw new HttpError(409, 'งานนี้เผยแพร่แล้ว แก้ไขที่ตัวข่าวแทน');
   if (status === s.status) throw new HttpError(409, 'งานอยู่ในสถานะนี้แล้ว');
-  if ((status === 'revise' || status === 'rejected') && !str(message, 2000, 'ข้อความ')) {
-    throw new HttpError(400, status === 'revise' ? 'บอกผู้ส่งว่าต้องแก้ไขอะไร' : 'บอกเหตุผลที่ไม่เผยแพร่');
-  }
+  if (status === 'revise' && !str(message, 2000, 'ข้อความ')) throw new HttpError(400, 'บอกผู้ส่งว่าต้องแก้ไขอะไร');
+  // Deleting (and bringing back) is between PR only: no message, no email, nothing new in the sender's inbox
+  const quiet = status === 'rejected' || s.status === 'rejected';
   await tx(async (c) => {
-    await c.query('update submissions set status = $2, sender_unread = true, pr_unread = false where id = $1', [s.id, status]);
+    await c.query(`update submissions set status = $2, ${quiet ? '' : 'sender_unread = true, '}pr_unread = false where id = $1`, [s.id, status]);
     await c.query('insert into submission_events (submission_id, status, actor_id) values ($1, $2, $3)', [s.id, status, req.user.id]);
-    if (str(message, 2000, 'ข้อความ')) await addMessage(c, s, req.user, 'pr', message);
-    await statusChanged(c, s, status, str(message, 2000, 'ข้อความ'));
-    await audit(c, req.user, 'submission.status', s.ref, `เปลี่ยนสถานะ ${s.ref} เป็น${STATUS_TH[status]}`, { from: s.status, to: status });
+    if (!quiet) {
+      if (str(message, 2000, 'ข้อความ')) await addMessage(c, s, req.user, 'pr', message);
+      await statusChanged(c, s, status, str(message, 2000, 'ข้อความ'));
+    }
+    const summary = status === 'rejected' ? `ลบงาน ${s.ref}` : s.status === 'rejected' ? `กู้คืนงาน ${s.ref} ไปที่รอตรวจ` : `เปลี่ยนสถานะ ${s.ref} เป็น${STATUS_TH[status]}`;
+    await audit(c, req.user, 'submission.status', s.ref, summary, { from: s.status, to: status });
   });
   res.json(await detail(await one('select * from submissions where id = $1', [s.id])));
 });
@@ -124,7 +130,7 @@ router.post('/pr/submissions/:ref/read', async (req, res) => {
 router.post('/pr/submissions/:ref/publish', async (req, res) => {
   const s = await findSubmission(req.params.ref, req.user);
   if (s.status === 'published') throw new HttpError(409, 'งานนี้เผยแพร่แล้ว');
-  if (s.status === 'rejected') throw new HttpError(409, 'งานนี้ถูกปฏิเสธแล้ว เปลี่ยนสถานะกลับเป็นรอตรวจก่อน');
+  if (s.status === 'rejected') throw new HttpError(409, 'งานนี้ถูกลบแล้ว กู้คืนไปที่รอตรวจก่อน');
   const b = req.body || {};
   const errors = {};
   const story = {
@@ -184,7 +190,7 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
   res.status(201).json(await detail(await one('select * from submissions where id = $1', [s.id])));
 });
 
-router.get('/pr/config', (req, res) => res.json({ messages: get('messages'), categories: categories() }));
+router.get('/pr/config', (req, res) => res.json({ messages: get('messages'), categories: get('categories'), videoCategories: VIDEO_CATEGORIES }));
 
 // ---- PR team ----
 router.get('/pr/team', async (req, res) => {

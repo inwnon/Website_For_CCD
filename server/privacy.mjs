@@ -161,7 +161,7 @@ router.post('/admin/requests/:id/reject', requireAdmin, async (req, res) => {
 
 // ---- Retention (hourly) ----
 // Work that was never published: files go once the work has had no activity for retention.days
-// (ไม่เผยแพร่, or ขอให้แก้ไข with no reply). The work itself and its messages stay so the sender can see what happened.
+// (ทีม PR ลบงาน, or ขอให้แก้ไข with no reply). The work itself and its messages stay so the sender can see what happened.
 export async function purge() {
   const days = get('retention').days;
   const rows = (await query(`select s.id from submissions s

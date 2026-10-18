@@ -30,7 +30,7 @@
   window.PROFILE = profile;
 
   // ---- Submissions ----
-  // status: review (รอ PR ตรวจ) · writing (PR กำลังเขียนข่าว) · revise (ขอให้แก้ไข) · published · rejected
+  // status: review (รอ PR ตรวจ) · writing (PR กำลังเขียนข่าว) · revise (ขอให้แก้ไข) · published
   const KEY = 'submissions';
   const daysAgo = (d, h = 10, m = 0) => { const t = new Date(); t.setDate(t.getDate() - d); t.setHours(h, m, 0, 0); return t.toISOString(); };
   function seed(p) {
@@ -59,12 +59,6 @@
         status: 'published', unread: false, sentAt: daysAgo(4, 11, 0), url: 'news.html',
         history: [{ status: 'sent', at: daysAgo(4, 11, 0) }, { status: 'review', at: daysAgo(4, 11, 0) }, { status: 'published', at: daysAgo(3, 10, 30) }],
         thread: [{ from: 'pr', name: 'งานประชาสัมพันธ์', at: daysAgo(3, 10, 30), text: 'เผยแพร่ข่าวบนเว็บไซต์และเพจมหาวิทยาลัยแล้ว ขอบคุณที่ส่งข่าวมาครับ' }],
-      },
-      {
-        ref: 'BN-2569-3105', type: 'banner', title: 'ประชาสัมพันธ์งานวันวิทยาศาสตร์', unit, audience: 'บุคคลทั่วไป',
-        status: 'rejected', unread: false, sentAt: daysAgo(9, 15, 20),
-        history: [{ status: 'sent', at: daysAgo(9, 15, 20) }, { status: 'review', at: daysAgo(9, 15, 20) }, { status: 'rejected', at: daysAgo(8, 13, 0) }],
-        thread: [{ from: 'pr', name: 'งานประชาสัมพันธ์', at: daysAgo(8, 13, 0), text: 'แบนเนอร์นี้ซ้ำกับชิ้นที่คณะเผยแพร่แล้วเมื่อสัปดาห์ก่อน จึงไม่ได้นำขึ้นซ้ำ หากมีข้อมูลใหม่ ส่งเป็นงานชิ้นใหม่ได้เลย' }],
       },
     ];
   }

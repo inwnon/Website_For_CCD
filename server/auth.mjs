@@ -187,7 +187,7 @@ router.post('/auth/logout', async (req, res) => {
 // devLogin tells pages they may offer the development sign-in buttons
 // unread: items in the user's inbox with something new (header badge)
 router.get('/me', async (req, res) => {
-  const unread = req.user ? (await one('select count(*)::int n from submissions where sender_id = $1 and sender_unread', [req.user.id])).n : 0;
+  const unread = req.user ? (await one("select count(*)::int n from submissions where sender_id = $1 and sender_unread and status <> 'rejected'", [req.user.id])).n : 0;
   res.json({ user: publicUser(req.user), unread, ...(DEV_LOGIN ? { devLogin: true } : {}) });
 });
 

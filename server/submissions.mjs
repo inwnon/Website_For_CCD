@@ -70,7 +70,8 @@ export function submissionOut(s, t, viewer) {
     audience: audienceLabel(s.audience), audienceValues: s.audience, prWrites: s.content_mode === 'pr',
     unread: pr ? s.pr_unread : s.sender_unread, sentAt: s.sent_at, updatedAt: s.updated_at,
     ...(s.news_id ? { newsId: s.news_id, url: `news.html?id=${s.news_id}` } : {}),
-    history: (t.events.get(s.id) || []).map((e) => ({ status: e.status, at: e.at })),
+    // The sender's timeline leaves out PR deleting the work and bringing it back
+    history: (t.events.get(s.id) || []).filter((e) => pr || e.status !== 'rejected').map((e) => ({ status: e.status, at: e.at })),
     thread: (t.messages.get(s.id) || []).map((m) => ({
       from: pr ? m.side : m.side === 'sender' ? 'me' : 'pr', name: m.display_name, at: m.created_at, text: m.body,
     })),
@@ -84,10 +85,10 @@ export function submissionOut(s, t, viewer) {
   };
 }
 
-// A submission the user may see: their own, or any for PR
+// A submission the user may see: their own, or any for PR. Work PR deleted (status rejected) is gone for the sender.
 export async function findSubmission(ref, user) {
   const s = await one('select * from submissions where ref = $1', [ref]);
-  if (!s || (s.sender_id !== user.id && !isPr(user))) throw new HttpError(404, 'ไม่พบงานนี้');
+  if (!s || (!isPr(user) && (s.sender_id !== user.id || s.status === 'rejected'))) throw new HttpError(404, 'ไม่พบงานนี้');
   return s;
 }
 
@@ -167,7 +168,7 @@ router.post('/submissions', requireUser, uploads, acceptUpload, async (req, res)
 });
 
 router.get('/submissions', requireUser, async (req, res) => {
-  const rows = (await query('select * from submissions where sender_id = $1 order by sent_at desc', [req.user.id])).rows;
+  const rows = (await query("select * from submissions where sender_id = $1 and status <> 'rejected' order by sent_at desc", [req.user.id])).rows;
   const t = await loadThread(rows.map((r) => r.id));
   res.json({ submissions: rows.map((s) => submissionOut(s, t, 'sender')), unread: rows.filter((r) => r.sender_unread).length });
 });
@@ -236,7 +237,7 @@ router.post('/submissions/:ref/read', requireUser, async (req, res) => {
 
 router.get('/files/:id', requireUser, async (req, res) => {
   if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new HttpError(404, 'ไม่พบไฟล์');
-  const f = await one('select f.*, s.sender_id from submission_files f join submissions s on s.id = f.submission_id where f.id = $1', [req.params.id]);
-  if (!f || (f.sender_id !== req.user.id && !isPr(req.user))) throw new HttpError(404, 'ไม่พบไฟล์');
+  const f = await one('select f.*, s.sender_id, s.status from submission_files f join submissions s on s.id = f.submission_id where f.id = $1', [req.params.id]);
+  if (!f || (!isPr(req.user) && (f.sender_id !== req.user.id || f.status === 'rejected'))) throw new HttpError(404, 'ไม่พบไฟล์');
   await sendFile(req, res, f);
 });

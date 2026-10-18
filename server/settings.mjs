@@ -39,7 +39,6 @@ export const DEFAULTS = {
   messages: {
     published: 'เผยแพร่บนเว็บไซต์แล้ว ขอบคุณที่ส่งข่าวมา',
     revise: 'ขอให้แก้ไขก่อนเผยแพร่: ',
-    rejected: 'ขออภัย งานนี้ไม่ได้นำขึ้นเผยแพร่ เนื่องจาก ',
     writing: 'ได้รับเอกสารแล้ว ทีม PR กำลังเขียนข่าว และจะส่งร่างให้ตรวจทานก่อนเผยแพร่',
   },
 };
@@ -148,9 +147,12 @@ export function remember(key, value) {
   if (key === 'org') applyOrg(value || FILE_ORG);
 }
 
+// ประเภทข่าวที่ใช้กับวิดีโอเท่านั้น: fixed, shown after the categories above (not edited on admin.html)
+export const VIDEO_CATEGORIES = ['วิดีโอเสียงตามสาย'];
+
 // window.SITE for the pages
 export const publicSite = () => ({
-  categories: get('categories'), photos: get('photos'), platforms: get('platforms'), reviewDays: get('review').days,
+  categories: get('categories'), videoCategories: VIDEO_CATEGORIES, photos: get('photos'), platforms: get('platforms'), reviewDays: get('review').days,
   digest: { mastheads: get('digest').mastheads },
   // Google Identity Services on login.html; null until GOOGLE_CLIENT_ID is set
   googleClientId: process.env.GOOGLE_CLIENT_ID || null,

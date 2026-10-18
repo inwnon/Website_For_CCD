@@ -302,7 +302,7 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=37612f3165">
+  <link rel="stylesheet" href="/assets/app.css?v=bea04c8535">
 </head>
 
 <body class="min-h-screen">
@@ -695,13 +695,13 @@
                 <h2 id="sPeople" class="font-display text-[20px] font-semibold">บุคคลสำคัญที่เกี่ยวข้อง <span class="font-sans text-[14px] font-normal text-ink2">(ไม่บังคับ)</span></h2>
                 <p class="text-[13px] text-ink2">ชื่อและตำแหน่ง ช่วยให้ PR เขียนข่าวและสะกดชื่อได้ถูกต้อง</p>
               </div>
-              <button id="peopleToggle" type="button" aria-expanded="false" aria-controls="peopleBody" class="fold-btn press t-spring ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium shadow-raised hover:-translate-y-0.5">
+              <button id="peopleToggle" type="button" aria-expanded="true" aria-controls="peopleBody" class="fold-btn press t-spring ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium shadow-raised hover:-translate-y-0.5">
                 <span>เพิ่มรายชื่อ</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
               </button>
             </header>
 
-            <div id="peopleBody" class="step-enter mt-6 grid gap-5" hidden>
+            <div id="peopleBody" class="step-enter mt-6 grid gap-5">
               <!-- Prefix (name-prefixes.js), name, position: one row on wide screens -->
               <fieldset class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
                 <legend class="sr-only">ประธานในพิธี</legend>
@@ -719,6 +719,15 @@
                   <div data-prefix-slot="reporter" data-label="ผู้กล่าวรายงาน"></div>
                   <input id="reporterName" type="text" maxlength="100" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อผู้กล่าวรายงาน" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
                   <input id="reporterPos" type="text" maxlength="120" placeholder="ตำแหน่ง เช่น คณบดีคณะครุศาสตร์" aria-label="ตำแหน่งผู้กล่าวรายงาน" class="person-pos field h-12 w-full rounded-2xl px-4 text-[16px]">
+                </div>
+              </fieldset>
+              <fieldset class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
+                <legend class="sr-only">ผู้ที่ได้รับมอบหมาย</legend>
+                <p class="md:pt-2.5" aria-hidden="true"><span class="role-tag">ผู้ที่ได้รับมอบหมาย</span></p>
+                <div class="person-row">
+                  <div data-prefix-slot="assignee" data-label="ผู้ที่ได้รับมอบหมาย"></div>
+                  <input id="assigneeName" type="text" maxlength="100" placeholder="ชื่อ-นามสกุล" aria-label="ชื่อผู้ที่ได้รับมอบหมาย" class="field h-12 w-full rounded-2xl px-4 text-[16px]">
+                  <input id="assigneePos" type="text" maxlength="120" placeholder="ตำแหน่ง เช่น รองอธิการบดีฝ่ายวิชาการ" aria-label="ตำแหน่งผู้ที่ได้รับมอบหมาย" class="person-pos field h-12 w-full rounded-2xl px-4 text-[16px]">
                 </div>
               </fieldset>
               <div class="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)] md:items-start">
@@ -1081,7 +1090,8 @@
     let type = '';
 
     // ---- Category chips ----
-    $('#catList').innerHTML = CATEGORIES.map((c) => `<label class="opt chip-opt"><input type="checkbox" name="category" value="${c}"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">${c}</span></label>`).join('');
+    const VIDEO_CATS = (SITE.videoCategories || ['วิดีโอเสียงตามสาย']).filter((c) => !CATEGORIES.includes(c));
+    $('#catList').innerHTML = [...CATEGORIES.map((c) => [c, '']), ...VIDEO_CATS.map((c) => [c, ' data-for="video"'])].map(([c, only]) => `<label class="opt chip-opt"${only}><input type="checkbox" name="category" value="${c}"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">${c}</span></label>`).join('');
 
     // ---- Platform chips (news link + video link) ----
     document.querySelectorAll('[data-platforms]').forEach((box) => {
@@ -1140,12 +1150,12 @@
       if (!sel) return '';
       return sel.value === OTHER ? document.querySelector(`[data-prefix-other="${key}"]`).value.trim() : sel.value;
     };
-    // chair / reporter: the select is drawn into its slot; set again when a draft or a sent work fills the form
+    // chair / reporter / assignee: the select is drawn into its slot; set again when a draft or a sent work fills the form
     const setPrefix = (key, value) => {
       const slot = document.querySelector(`[data-prefix-slot="${key}"]`);
       slot.innerHTML = prefixField(key, value || '', slot.dataset.label);
     };
-    setPrefix('chair'); setPrefix('reporter');
+    setPrefix('chair'); setPrefix('reporter'); setPrefix('assignee');
     form.addEventListener('change', (e) => {
       const key = e.target.dataset.prefixSel;
       if (key == null) return;
@@ -1451,6 +1461,9 @@
       form.hidden = false;
       if (wasHidden && !opts.silent) { form.classList.remove('step-enter'); void form.offsetWidth; form.classList.add('step-enter'); }
       document.querySelectorAll('[data-for]').forEach((el) => { el.hidden = !el.dataset.for.split(' ').includes(t); });
+      // A video-only ประเภทข่าว does not stay ticked on news
+      document.querySelectorAll('#catList label[hidden] input:checked').forEach((b) => { b.checked = false; });
+      syncCats();
       let n = 0;
       form.querySelectorAll('section').forEach((s) => { const num = $('[data-num]', s); if (num && !s.hidden) num.textContent = ++n; });
       document.querySelectorAll('[data-text]').forEach((el) => { el.textContent = T[el.dataset.text] || ''; });
@@ -1558,7 +1571,7 @@
       announce('ไปที่ช่องที่ยังไม่ได้กรอก');
     });
 
-    // ---- Key people: folded until needed ----
+    // ---- Key people: open to begin with; the sender folds it with "ซ่อน" ----
     function setPeople(open) {
       $('#peopleBody').hidden = !open;
       $('#peopleToggle').setAttribute('aria-expanded', String(open));
@@ -1708,7 +1721,7 @@
 
     // ---- Kept in this browser while typing (text only), so a closed tab or a sign-in loses nothing ----
     const DRAFT_KEY = 'newsDraft';
-    const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'designer', 'producer', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl'];
+    const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'designer', 'producer', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'assigneeName', 'assigneePos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl'];
     const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'newsPlatform'];
     let draftTimer = null;
     // A draft opened from ข่าวของฉัน (submit.html?draft=ID) lives on the server; "บันทึกร่าง" saves it there
@@ -1717,7 +1730,7 @@
       if (!type || editing || draftId) return;
       const d = Object.fromEntries(DRAFT_FIELDS.map((k) => [k, $('#' + k).value]));
       DRAFT_RADIOS.forEach((n) => { d[n] = radio(n); });
-      Object.assign(d, { type, categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), guests: guests.filter((g) => g.name || g.pos) });
+      Object.assign(d, { type, categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), assigneePrefix: prefixOf('assignee'), guests: guests.filter((g) => g.name || g.pos) });
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) { return; }
       const now = new Date();
       const el = $('#draftState');
@@ -1736,7 +1749,7 @@
       });
       document.querySelectorAll('input[name=category]').forEach((b) => { b.checked = (d.categories || []).includes(b.value); });
       document.querySelectorAll('input[name=audience]').forEach((b) => { b.checked = (d.audience || []).includes(b.value); });
-      setPrefix('chair', d.chairPrefix); setPrefix('reporter', d.reporterPrefix);
+      setPrefix('chair', d.chairPrefix); setPrefix('reporter', d.reporterPrefix); setPrefix('assignee', d.assigneePrefix);
       guests = Array.isArray(d.guests) ? d.guests.map((g) => ({ prefix: g.prefix || '', name: g.name || '', pos: g.pos || '' })) : [];
       $('#enToggle').checked = !!d.en; $('#enFields').hidden = !d.en;
     }
@@ -1818,7 +1831,7 @@
       applyData(d.data);
       ['photo', 'attach', 'art'].forEach((k) => up[k].addExisting(d.files.filter((x) => x.kind === k)));
       renderGuests();
-      setPeople(['chairName', 'chairPos', 'reporterName', 'reporterPos'].some((k) => val(k)) || guests.length > 0);
+      setPeople(true);
       setNote(!!val('note'));
       setType(d.type, { silent: true });
       syncAudience(); syncCats(); syncContentMode(false);
@@ -1846,6 +1859,7 @@
         videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), albumUrl: val('albumUrl'), designer: val('designer'), producer: val('producer'),
         chairPrefix: prefixOf('chair'), chairName: val('chairName'), chairPos: val('chairPos'),
         reporterPrefix: prefixOf('reporter'), reporterName: val('reporterName'), reporterPos: val('reporterPos'),
+        assigneePrefix: prefixOf('assignee'), assigneeName: val('assigneeName'), assigneePos: val('assigneePos'),
         guests: guests.filter((g) => g.name.trim() || g.pos.trim()).map((g) => ({ prefix: (g.prefix || '').trim(), name: g.name.trim(), pos: g.pos.trim() })),
         en: $('#enToggle').checked, titleEn: val('titleEn'), bodyEn: val('bodyEn'), audience: audVals(), note: val('note'), consent: $('#consent').checked,
         // The order of the pictures as arranged on the page (first = cover), and files already on the server that were removed
@@ -1932,7 +1946,7 @@
       const now = new Date(sub.updatedAt || sub.sentAt);
       $('#sentAt').textContent = `${now.getDate()} ${TH_MONTHS[now.getMonth()]} · ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} น.`;
       const aud = sub.audience;
-      const people = [val('chairName') && 'ประธาน', val('reporterName') && 'ผู้กล่าวรายงาน', guests.some((g) => g.name) && `ภายนอก ${guests.filter((g) => g.name).length} คน`].filter(Boolean);
+      const people = [val('chairName') && 'ประธาน', val('reporterName') && 'ผู้กล่าวรายงาน', val('assigneeName') && 'ผู้ที่ได้รับมอบหมาย', guests.some((g) => g.name) && `ภายนอก ${guests.filter((g) => g.name).length} คน`].filter(Boolean);
       const videoText = () => `ลิงก์ ${PLATFORMS[radio('videoPlatform')].label}`;
       const n = (kind) => sub.files.filter((f) => f.kind === kind).length;
       const rows = {
@@ -2000,7 +2014,7 @@
       $('#eventDate').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
     renderGuests();
-    setPeople(['chairName', 'chairPos', 'reporterName', 'reporterPos'].some((k) => val(k)) || guests.length > 0);
+    setPeople(true);
     setNote(!!val('note'));
     syncAudience();
     syncCats();
@@ -2060,11 +2074,11 @@
       document.querySelectorAll('input[name=category]').forEach((b) => { b.checked = (f.categories || []).includes(b.value); });
       document.querySelectorAll('input[name=audience]').forEach((b) => { b.checked = (sub.audienceValues || []).includes(b.value); });
       const people = f.people || {};
-      set('chairName', people.chair?.name); set('chairPos', people.chair?.pos); set('reporterName', people.reporter?.name); set('reporterPos', people.reporter?.pos);
-      setPrefix('chair', people.chair?.prefix); setPrefix('reporter', people.reporter?.prefix);
+      set('chairName', people.chair?.name); set('chairPos', people.chair?.pos); set('reporterName', people.reporter?.name); set('reporterPos', people.reporter?.pos); set('assigneeName', people.assignee?.name); set('assigneePos', people.assignee?.pos);
+      setPrefix('chair', people.chair?.prefix); setPrefix('reporter', people.reporter?.prefix); setPrefix('assignee', people.assignee?.prefix);
       guests = (people.guests || []).map((g) => ({ prefix: g.prefix || '', name: g.name || '', pos: g.pos || '' }));
       renderGuests();
-      setPeople(!!(people.chair || people.reporter || guests.length));
+      setPeople(true);
       $('#enToggle').checked = !!(f.titleEn || f.bodyEn); $('#enFields').hidden = !$('#enToggle').checked;
       $('#consent').checked = false;
       ['photo', 'attach', 'art'].forEach((k) => up[k].addExisting(sub.files.filter((x) => x.kind === k), 'ส่งไว้แล้ว'));

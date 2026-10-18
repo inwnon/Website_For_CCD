@@ -181,7 +181,7 @@ describe('email notifications', () => {
     const prefs = (await staff.call('GET', '/api/me/notify')).body;
     assert.deepEqual(prefs.prefs.map((p) => p.key), ['status', 'message']);
     await staff.call('PUT', '/api/me/notify', { status: false });
-    await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'rejected', message: 'ซ้ำกับข่าวเดิม' });
+    await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'revise', message: 'ขอภาพเพิ่ม' });
     assert.equal((await mails('submission.status')).length, 1);
     assert.equal((await staff.call('GET', '/api/me/notify')).body.prefs.find((p) => p.key === 'status').on, false);
   });

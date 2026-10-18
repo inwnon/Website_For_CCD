@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { query } from '../db.mjs';
 import { restore, snapshot } from './cleanup.mjs';
-import { anon, form, login } from './helpers.mjs';
+import { anon, form, img, login } from './helpers.mjs';
 
 const T = 'contact-test-';
 const add = (email, f) => query(
@@ -71,5 +71,17 @@ describe('video producer', () => {
     if (b.status === 201) assert.equal((await pr.call('GET', `/api/submissions/${b.body.submission.ref}`)).body.submission.fields.producer, null);
     const d = await staff.call('POST', '/api/drafts', form({ type: 'video', title: 'ร่างวิดีโอ', producer: 'สมศักดิ์' }));
     assert.equal((await staff.call('GET', `/api/drafts/${d.body.draft.id}`)).body.draft.data.producer, 'สมศักดิ์');
+  });
+  test('ประเภทข่าว วิดีโอเสียงตามสาย: videos only; the pages get it', async () => {
+    const v = { type: 'video', title: 'วิดีโอเสียงตามสาย', eventDate: '2026-10-01', unit: 'กองกลาง', videoPlatform: 'youtube', videoLink: 'https://youtu.be/dQw4w9WgXcQ', audience: ['public'], consent: true };
+    const ok = await staff.call('POST', '/api/submissions', form({ ...v, categories: ['วิดีโอเสียงตามสาย', 'ข่าวการศึกษา'] }));
+    assert.equal(ok.status, 201, JSON.stringify(ok.body));
+    assert.deepEqual((await pr.call('GET', `/api/submissions/${ok.body.submission.ref}`)).body.submission.fields.categories, ['วิดีโอเสียงตามสาย', 'ข่าวการศึกษา']);
+    const news = await staff.call('POST', '/api/submissions', form({ type: 'news', title: 'ข่าว', eventDate: '2026-10-01', unit: 'กองกลาง', contentMode: 'own', body: 'ก'.repeat(160),
+      categories: ['วิดีโอเสียงตามสาย'], audience: ['public'], consent: true }, { photo: [['a.jpg', await img('#468', 800, 600), 'image/jpeg']] }));
+    assert.equal(news.status, 400);
+    assert.match(news.body.details.categories, /ใช้กับวิดีโอเท่านั้น/);
+    assert.match(await (await fetch('http://localhost:3000/site-config.js')).text(), /"videoCategories":\["วิดีโอเสียงตามสาย"\]/);
+    assert.deepEqual((await pr.call('GET', '/api/pr/config')).body.videoCategories, ['วิดีโอเสียงตามสาย']);
   });
 });

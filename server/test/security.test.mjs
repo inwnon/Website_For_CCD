@@ -209,7 +209,7 @@ describe('PDPA: retention', () => {
     const r = await staff.call('POST', '/api/submissions', form({ ...NEWS, title: 'งานที่ไม่ได้เผยแพร่' }, { photo: [['a.jpg', await img('#468'), 'image/jpeg']] }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
     const { ref } = r.body.submission;
-    await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'rejected', message: 'ซ้ำกับข่าวเดิม' });
+    await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'rejected' }); // ลบข่าว: hidden, kept
     const id = (await query('select id from submissions where ref = $1', [ref])).rows[0].id;
     assert.ok(existsSync(abs(`submissions/${id}`)));
     assert.equal(await purge() >= 0, true);
@@ -218,10 +218,9 @@ describe('PDPA: retention', () => {
     await query(`update submission_events set at = now() - interval '200 days' where submission_id = $1`, [id]);
     assert.ok(await purge() >= 1);
     assert.ok(!existsSync(abs(`submissions/${id}`)));
-    const s = (await staff.call('GET', `/api/submissions/${ref}`)).body.submission;
+    const s = (await pr.call('GET', `/api/submissions/${ref}`)).body.submission;
     assert.equal(s.files.length, 0);
     assert.ok(s.filesRemovedAt);
-    assert.equal(s.thread.at(-1).text, 'ซ้ำกับข่าวเดิม');
   });
   test('the period is a setting (30–3650 days) and is shown to readers', async () => {
     assert.equal((await admin.call('PUT', '/api/admin/settings/retention', { value: { days: 10 } })).status, 400);

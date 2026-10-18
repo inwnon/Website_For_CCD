@@ -275,7 +275,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=37612f3165">
+  <link rel="stylesheet" href="/assets/app.css?v=bea04c8535">
 </head>
 
 <body class="app">
@@ -418,6 +418,19 @@
       <div class="mt-6 flex flex-wrap justify-end gap-3">
         <button type="button" data-close class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl px-5 font-display text-[15px] font-medium">ยกเลิก</button>
         <button id="decideOk" type="submit" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Delete ("ลบข่าว"): hidden, not deleted; no message to the sender -->
+  <dialog id="delDlg" class="desk-dlg w-[min(480px,calc(100vw-32px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="delTitle" aria-describedby="delLead">
+    <form id="delForm" class="p-6 sm:p-7" novalidate>
+      <h2 id="delTitle" class="font-display text-[22px] font-semibold">ลบงานนี้</h2>
+      <p id="delLead" class="mt-1 text-[14px] text-ink2">งานจะหายจากรายการรอตรวจ และผู้ส่งจะไม่เห็นงานนี้ในหน้าข่าวของฉันอีก ระบบไม่แจ้งผู้ส่ง ทีม PR กู้คืนได้จากเมนู “ลบแล้ว”</p>
+      <p id="delError" class="mt-3 text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="mt-6 flex flex-wrap justify-end gap-3">
+        <button type="button" data-close class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl px-5 font-display text-[15px] font-medium">ยกเลิก</button>
+        <button id="delOk" type="submit" class="press t-spring inline-flex h-11 items-center gap-2 rounded-2xl bg-brand px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">ลบข่าว</button>
       </div>
     </form>
   </dialog>
@@ -603,19 +616,23 @@
       writing: { label: 'PR กำลังเขียน', cls: 'bg-gold-soft text-gold', dot: 'bg-gold', title: 'ทีม PR กำลังเขียนข่าวนี้', log: 'PR รับไปเขียนข่าว' },
       revise: { label: 'รอผู้ส่งแก้ไข', cls: 'bg-red-soft text-brand', dot: 'bg-brand', title: 'รอผู้ส่งแก้ไข ส่งกลับมาแล้วจะย้ายไปที่รอตรวจเอง', log: 'ขอให้ผู้ส่งแก้ไข' },
       published: { label: 'เผยแพร่แล้ว', cls: 'bg-sky-soft text-sky', dot: 'bg-sky', title: 'เผยแพร่แล้ว ผู้ส่งได้รับข้อความแจ้ง', log: 'เผยแพร่' },
-      rejected: { label: 'ไม่เผยแพร่', cls: 'bg-surface2 text-ink2', dot: 'bg-ink2', title: 'ไม่เผยแพร่ ผู้ส่งได้รับเหตุผลแล้ว', log: 'ไม่เผยแพร่' },
+      rejected: { label: 'ลบแล้ว', cls: 'bg-surface2 text-ink2', dot: 'bg-ink2', title: 'ทีม PR ลบงานนี้แล้ว ผู้ส่งไม่เห็นงานนี้ในหน้าข่าวของฉัน', log: 'ทีม PR ลบงาน' },
       sent: { log: 'ผู้ส่งส่งงาน' },
       resent: { log: 'ผู้ส่งส่งงานที่แก้ไขแล้ว' },
     };
-    // Menu order follows the work: review → writing → published, then the side states
-    const MENU = ['review', 'writing', 'published', 'revise', 'rejected', ''];
+    // Menu order follows the work: review → writing → published, then the side state and "all"; deleted work last, apart
+    const MENU = ['review', 'writing', 'published', 'revise', '', 'rejected'];
     const ROLE_LABEL = { staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ' };
-    const CATEGORIES = ['ข่าวผู้บริหาร', 'ข่าวกิจกรรมนักศึกษา', 'รางวัล/ความสำเร็จ', 'ข่าวการศึกษา', 'ข่าวความร่วมมือ/MOU', 'ข่าวประชุม/สัมมนา', 'ข่าววิจัย/นวัตกรรม', 'ข่าวบริการวิชาการ', 'ข่าวกิจกรรมเพื่อชุมชน/ท้องถิ่น', 'ข่าววิศวกรสังคม'];
+    // ประเภทข่าว: replaced by the settings from /api/pr/config; video-only ones are offered for videos
+    let VIDEO_CATEGORIES = ['วิดีโอเสียงตามสาย'];
+    let CATEGORIES = ['ข่าวผู้บริหาร', 'ข่าวกิจกรรมนักศึกษา', 'รางวัล/ความสำเร็จ', 'ข่าวการศึกษา', 'ข่าวความร่วมมือ/MOU', 'ข่าวประชุม/สัมมนา', 'ข่าววิจัย/นวัตกรรม', 'ข่าวบริการวิชาการ', 'ข่าวกิจกรรมเพื่อชุมชน/ท้องถิ่น', 'ข่าววิศวกรสังคม'];
     const AUDIENCE = [['public', 'บุคคลทั่วไป'], ['student', 'นักศึกษา'], ['staff', 'บุคลากร']];
     const PAGE = 50;
     const ic = {
       doc: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
       down: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+      trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
+      link: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
       out: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>',
       play: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5.5 3.5-5.5 3.5z"/></svg>',
       all: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v4H4zM4 11h16v4H4zM4 17h16v2H4z"/></svg>',
@@ -648,7 +665,7 @@
       $('#statusNav').hidden = false;
       $('#toolNav').hidden = false;
       $('#adminLink').hidden = me.role !== 'admin';
-      api('/pr/config').then((c) => { TEMPLATES = c.messages; }).catch(() => {});
+      api('/pr/config').then((c) => { TEMPLATES = c.messages; CATEGORIES = c.categories || CATEGORIES; VIDEO_CATEGORIES = c.videoCategories || VIDEO_CATEGORIES; }).catch(() => {});
       $('#who').hidden = false;
       $('#listPane').hidden = false;
       $('#whoAvatar').textContent = (me.name || me.email)[0];
@@ -678,7 +695,7 @@
 
     // ---- Side menu ----
     function renderMenu() {
-      const sum = Object.values(counts).reduce((a, c) => ({ total: a.total + c.total, unread: a.unread + c.unread }), { total: 0, unread: 0 });
+      const sum = Object.entries(counts).filter(([k]) => k !== 'rejected').map(([, c]) => c).reduce((a, c) => ({ total: a.total + c.total, unread: a.unread + c.unread }), { total: 0, unread: 0 });
       $('#statusNav').innerHTML = MENU.map((k, i) => {
         const c = k ? counts[k] || { total: 0, unread: 0 } : sum;
         const label = k ? STATUS[k].label : 'ทั้งหมด';
@@ -838,14 +855,14 @@
       if (s.status === 'review' && s.type === 'news') a.push(btn('data-act="writing"', 'รับไปเขียนข่าว'));
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="revise"', 'ขอให้แก้ไข'));
       if (s.status === 'revise') a.push(btn('data-act="review"', 'ตรวจต่อโดยไม่รอแก้ไข'));
-      if (s.status !== 'published' && s.status !== 'rejected') a.push(btn('data-act="rejected"', 'ไม่เผยแพร่'));
-      if (s.status === 'rejected') a.push(btn('data-act="review"', 'เปิดตรวจอีกครั้ง'));
+      if (s.status !== 'published' && s.status !== 'rejected') a.push(btn('data-act="delete"', `${ic.trash}ลบข่าว`));
+      if (s.status === 'rejected') a.push(btn('data-act="review"', 'กู้คืนไปที่รอตรวจ'));
       if (s.status === 'published' && s.url) a.push(`<a href="${esc(s.url)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ดูข่าวที่เผยแพร่ ${ic.out}</a>`);
       return a.join('');
     }
 
-    function linkRow(url, label) {
-      return `<a href="${esc(url)}" target="_blank" rel="noopener" class="hover-fill press t-quick flex items-center gap-3 rounded-2xl border border-line px-4 py-3 text-[14px]"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-purple-soft text-purple">${ic.play}</span><span class="min-w-0 flex-1"><span class="block font-display font-medium">${esc(label)}</span><span class="block truncate text-ink2">${esc(url)}</span></span>${ic.out}</a>`;
+    function linkRow(url, label, icon = ic.play) {
+      return `<a href="${esc(url)}" target="_blank" rel="noopener" class="hover-fill press t-quick flex items-center gap-3 rounded-2xl border border-line px-4 py-3 text-[14px]"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-purple-soft text-purple">${icon}</span><span class="min-w-0 flex-1"><span class="block font-display font-medium">${esc(label)}</span><span class="block truncate text-ink2">${esc(url)}</span></span>${ic.out}</a>`;
     }
 
     // Tab: details — the text on the left, facts on the right, so a story fits without scrolling far
@@ -860,7 +877,7 @@
       facts.push(['ใครเห็นได้', s.audience]);
       if (f.credit) facts.push(['เครดิตภาพ', f.credit]);
       const p = f.people || {};
-      const ppl = [p.chair && ['ประธาน', p.chair], p.reporter && ['ผู้กล่าวรายงาน', p.reporter], ...(p.guests || []).map((g) => ['ภายนอก', g])].filter(Boolean);
+      const ppl = [p.chair && ['ประธาน', p.chair], p.reporter && ['ผู้กล่าวรายงาน', p.reporter], p.assignee && ['ผู้ที่ได้รับมอบหมาย', p.assignee], ...(p.guests || []).map((g) => ['ภายนอก', g])].filter(Boolean);
       let body = '';
       if (s.type === 'news' && f.contentMode === 'pr') body = `<p class="rounded-2xl bg-gold-soft px-4 py-3 text-[14px] text-ink">ผู้ส่งให้ทีม PR เขียนข่าวจากเอกสารที่แนบมา ดูเอกสารได้ที่แท็บไฟล์แนบ</p>`;
       else if (f.body) body = `<div class="whitespace-pre-line text-[15px] leading-[1.7]">${esc(f.body)}</div>`;
@@ -872,6 +889,7 @@
           ${body}
           ${f.newsVideo ? linkRow(f.newsVideo, 'วิดีโอประกอบข่าว') : ''}
           ${s.type === 'video' && f.videoMode === 'link' && f.videoLink ? linkRow(f.videoLink, 'ลิงก์วิดีโอ') : ''}
+          ${f.albumUrl ? linkRow(f.albumUrl, 'ลิงก์ภาพเพิ่มเติมจากผู้ส่ง', ic.link) : ''}
           ${f.titleEn || f.bodyEn ? `<details class="group rounded-2xl border border-line"><summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 font-display text-[15px] font-semibold">ฉบับภาษาอังกฤษจากผู้ส่ง<svg class="t-spring group-open:rotate-180" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="px-4 pb-4"><p class="font-display text-[16px] font-semibold" lang="en">${esc(f.titleEn || '')}</p><p class="mt-2 whitespace-pre-line text-[15px] leading-[1.7]" lang="en">${esc(f.bodyEn || '')}</p></div></details>` : ''}
           ${!f.lead && !f.desc && !body ? '<p class="text-[14px] text-ink2">ผู้ส่งไม่ได้ใส่คำอธิบาย</p>' : ''}
         </div>
@@ -1023,7 +1041,6 @@
     // ---- Actions ----
     const DECIDE = {
       revise: { title: 'ขอให้ผู้ส่งแก้ไข', lead: 'บอกให้ชัดว่าต้องแก้หรือเพิ่มอะไร ผู้ส่งจะเห็นข้อความนี้ในหน้าข่าวของฉัน', ok: 'ส่งให้ผู้ส่งแก้ไข', need: 'บอกผู้ส่งว่าต้องแก้ไขอะไร', done: 'ส่งให้ผู้ส่งแก้ไขแล้ว' },
-      rejected: { title: 'ไม่เผยแพร่งานนี้', lead: 'บอกเหตุผลให้ผู้ส่งทราบ ผู้ส่งจะเห็นข้อความนี้ในหน้าข่าวของฉัน', ok: 'ยืนยันไม่เผยแพร่', need: 'บอกเหตุผลที่ไม่เผยแพร่', done: 'บันทึกว่าไม่เผยแพร่แล้ว' },
     };
     let decideMode = null;
     // Starting text for messages to the sender (set on admin.html); PR edits it before sending
@@ -1034,6 +1051,7 @@
       const s = detailData.submission;
       const act = b.dataset.act;
       if (act === 'publish') return openPublish();
+      if (act === 'delete') { $('#delError').hidden = true; $('#delDlg').showModal(); return; }
       if (DECIDE[act]) {
         decideMode = act;
         const D = DECIDE[act];
@@ -1048,7 +1066,7 @@
         return;
       }
       b.disabled = true;
-      const msg = act === 'writing' ? 'รับงานไปเขียนข่าวแล้ว' : 'ย้ายงานกลับไปที่รอตรวจแล้ว';
+      const msg = act === 'writing' ? 'รับงานไปเขียนข่าวแล้ว' : s.status === 'rejected' ? 'กู้คืนงานไปที่รอตรวจแล้ว' : 'ย้ายงานกลับไปที่รอตรวจแล้ว';
       const r = await applyChange(api(`/pr/submissions/${encodeURIComponent(s.ref)}/status`, { method: 'POST', body: { status: act, ...(act === 'writing' && TEMPLATES.writing ? { message: TEMPLATES.writing } : {}) } }), msg);
       if (r !== true) { toast(r.message, true); b.disabled = false; }
     }
@@ -1063,6 +1081,18 @@
       $('#decideOk').disabled = false;
       if (r === true) $('#decideDlg').close();
       else { err.textContent = r.message; err.hidden = false; }
+    });
+
+    // ---- Delete: hidden from the queue and from the sender; PR can bring it back from "ลบแล้ว" ----
+    $('#delForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const ok = $('#delOk');
+      if (ok.disabled) return;
+      ok.disabled = true;
+      const r = await applyChange(api(`/pr/submissions/${encodeURIComponent(detailData.submission.ref)}/status`, { method: 'POST', body: { status: 'rejected' } }), 'ลบงานแล้ว กู้คืนได้จากเมนู “ลบแล้ว”');
+      ok.disabled = false;
+      if (r === true) $('#delDlg').close();
+      else { $('#delError').textContent = r.message; $('#delError').hidden = false; }
     });
 
     // ---- Publish ----
@@ -1103,7 +1133,7 @@
           <label class="pick absolute bottom-1.5 right-1.5"><input type="checkbox" name="gallery" value="${x.id}"${i > 0 && i <= 30 ? ' checked' : ''} aria-label="ใส่ ${esc(x.name)} ในแกลเลอรี"><span class="pick-box grid h-7 w-7 place-items-center rounded-full bg-shell/90 text-ink">${ic.check}</span></label>
         </div>`).join('');
       paintTiles();
-      $('#pCats').innerHTML = CATEGORIES.map((c) => chip('pcat', c, c, f.categories?.includes(c))).join('');
+      $('#pCats').innerHTML = [...CATEGORIES, ...(s.type === 'video' ? VIDEO_CATEGORIES.filter((v) => !CATEGORIES.includes(v)) : [])].map((c) => chip('pcat', c, c, f.categories?.includes(c))).join('');
       $('#pAud').innerHTML = AUDIENCE.map(([v, l]) => chip('paud', v, l, s.audienceValues.includes(v))).join('');
       syncAud();
       $('input[name=when][value=now]').checked = true;

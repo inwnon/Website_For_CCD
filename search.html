@@ -57,7 +57,7 @@
     @media (prefers-reduced-motion: reduce) { .fdrop[open] .fpanel { animation: none; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=37612f3165">
+  <link rel="stylesheet" href="/assets/app.css?v=bea04c8535">
 </head>
 
 <body class="min-h-screen">
@@ -299,7 +299,7 @@
     }
 
     // ---- Filters → controls ----
-    $('#catSet').innerHTML = (window.SITE?.categories || []).map((c) => `<label class="opt chip-opt"><input type="checkbox" name="cat" value="${esc(c)}"><span class="opt-box inline-flex h-9 items-center rounded-full border border-line bg-surface px-3 font-display text-[13px] font-medium">${esc(c)}</span></label>`).join('');
+    $('#catSet').innerHTML = [...new Set([...(window.SITE?.categories || []), ...(window.SITE?.videoCategories || [])])].map((c) => `<label class="opt chip-opt"><input type="checkbox" name="cat" value="${esc(c)}"><span class="opt-box inline-flex h-9 items-center rounded-full border border-line bg-surface px-3 font-display text-[13px] font-medium">${esc(c)}</span></label>`).join('');
     $('#units').innerHTML = UNITS.map((u) => `<option value="${esc(u)}"></option>`).join('');
     function paintControls() {
       document.querySelectorAll('input[name=kind]').forEach((i) => { i.checked = i.value === state.kind; });

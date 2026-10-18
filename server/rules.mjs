@@ -1,7 +1,7 @@
 // Submission rules — the server-side copy of the checks in submit.html (CHECKS, PLATFORMS, uploaders)
 import { HttpError, str } from './http.mjs';
 import { FACULTIES, STAFF_SEND_UNITS } from './org.mjs';
-import { get } from './settings.mjs';
+import { get, VIDEO_CATEGORIES } from './settings.mjs';
 
 export const TYPES = ['news', 'video', 'banner'];
 export const AUDIENCES = ['public', 'student', 'staff'];
@@ -10,8 +10,10 @@ export const MAX_GUESTS = 5;
 export const MIN_BODY = 150;
 export const MAX_TITLE = 180;
 export const MAX_LEAD = 250;
-// ประเภทข่าว, photo limits and video platforms come from the settings (admin.html); submit.html reads the same values
-export const categories = () => get('categories');
+// ประเภทข่าว, photo limits and video platforms come from the settings (admin.html); submit.html reads the same values.
+// categories(): every valid one, the video-only ones too (a story or an import may be a video)
+export const categories = () => [...new Set([...get('categories'), ...VIDEO_CATEGORIES])];
+export const videoOnly = (c) => VIDEO_CATEGORIES.includes(c) && !get('categories').includes(c);
 const platformOk = (p, url) => get('platforms').includes(p) && PLATFORMS[p]?.test(url);
 export const PLATFORMS = {
   youtube: /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/|live\/)|youtu\.be\/)([\w-]{6,})/i,
@@ -123,6 +125,7 @@ export function checkSubmission(user, d, fileCounts) {
     need('categories', cats.length > 0, 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท');
     need('categories', cats.length <= MAX_CATS, `เลือกประเภทข่าวได้ไม่เกิน ${MAX_CATS} ประเภท`);
     need('categories', cats.every((c) => categories().includes(c)), 'ประเภทข่าวไม่ถูกต้อง');
+    need('categories', type === 'video' || !cats.some(videoOnly), `ประเภท ${VIDEO_CATEGORIES.join(', ')} ใช้กับวิดีโอเท่านั้น`);
     row.categories = cats;
   }
 
@@ -142,6 +145,7 @@ export function checkSubmission(user, d, fileCounts) {
     row.people = {
       chair: person({ prefix: d.chairPrefix, name: d.chairName, pos: d.chairPos }, 'ประธาน'),
       reporter: person({ prefix: d.reporterPrefix, name: d.reporterName, pos: d.reporterPos }, 'ผู้กล่าวรายงาน'),
+      assignee: person({ prefix: d.assigneePrefix, name: d.assigneeName, pos: d.assigneePos }, 'ผู้ที่ได้รับมอบหมาย'),
       guests: guests.slice(0, MAX_GUESTS).map((g, i) => person(g, `บุคคลภายนอกคนที่ ${i + 1}`)).filter(Boolean),
     };
   }
@@ -177,7 +181,7 @@ export function checkSubmission(user, d, fileCounts) {
 // Nothing is required; the full checks (checkSubmission) run when the draft is sent.
 const DRAFT_TEXT = { title: MAX_TITLE, lead: MAX_LEAD, desc: 5000, body: 20000, eventDate: 10, place: 120, unit: 200, contentMode: 10, credit: 80,
   newsVideo: 500, newsPlatform: 20, videoLink: 500, videoPlatform: 20, albumUrl: 500, chairPrefix: 60, chairName: 100, chairPos: 120,
-  reporterPrefix: 60, reporterName: 100, reporterPos: 120, titleEn: 160, bodyEn: 20000, note: 300, designer: 120, producer: 120 };
+  reporterPrefix: 60, reporterName: 100, reporterPos: 120, assigneePrefix: 60, assigneeName: 100, assigneePos: 120, titleEn: 160, bodyEn: 20000, note: 300, designer: 120, producer: 120 };
 export function draftData(d) {
   if (!d || typeof d !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลร่าง');
   if (!TYPES.includes(d.type)) throw new HttpError(400, 'กรุณาเลือกประเภทงาน');

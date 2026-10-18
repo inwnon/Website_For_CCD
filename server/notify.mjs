@@ -25,7 +25,7 @@ const transport = SMTP ? nodemailer.createTransport({
 
 // Settings a user can turn off (missing = on). PR keys only matter for the PR team.
 export const PREFS = {
-  status: 'เมื่องานที่ส่งเปลี่ยนสถานะ (ขอแก้ไข เผยแพร่ ไม่เผยแพร่)',
+  status: 'เมื่องานที่ส่งเปลี่ยนสถานะ (ขอแก้ไข เผยแพร่)',
   message: 'เมื่อทีม PR ส่งข้อความถึงคุณ',
   prNew: 'ทีม PR: เมื่อมีงานใหม่ งานที่แก้ไขแล้ว หรือข้อความจากผู้ส่ง',
   prDaily: 'ทีม PR: สรุปงานค้างตรวจและเล่มที่รออนุมัติทุกเช้า 08:00 น.',
@@ -68,7 +68,6 @@ async function prTeam(db, key) {
 // ---- Events (called from submissions.mjs and pr.mjs inside their transactions) ----
 const STATUS_MAIL = {
   revise: { subject: (s) => `ขอให้แก้ไขงาน ${s.ref}`, title: 'งานประชาสัมพันธ์ขอให้แก้ไขงานของคุณ', button: 'เปิดงานเพื่อแก้ไข', path: (s) => `submit.html?edit=${encodeURIComponent(s.ref)}` },
-  rejected: { subject: (s) => `งาน ${s.ref} ไม่ได้เผยแพร่`, title: 'งานของคุณไม่ได้เผยแพร่', button: 'ดูรายละเอียด' },
   writing: { subject: (s) => `ทีม PR กำลังเขียนข่าว ${s.ref}`, title: 'ทีม PR กำลังเขียนข่าวจากเอกสารของคุณ', button: 'ดูสถานะงาน' },
   review: { subject: (s) => `งาน ${s.ref} กลับมารอตรวจ`, title: 'งานของคุณกลับมาอยู่ในคิวรอตรวจ', button: 'ดูสถานะงาน' },
   published: { subject: (s) => `เผยแพร่แล้ว: ${s.title}`, title: 'งานของคุณเผยแพร่บนเว็บไซต์แล้ว', button: 'อ่านข่าวที่เผยแพร่' },
