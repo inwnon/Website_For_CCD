@@ -25,7 +25,8 @@
   .pub-tile:focus-visible { outline: 3px solid rgb(var(--focus)); outline-offset: 2px; }
 
   /* จัดรูปแบบเนื้อหา (text-tools.js): the toolbar sits on the text box like its lid */
-  .tt-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; padding: 6px 8px;
+  /* position: relative keeps its hidden radios and the screen-reader note inside it (else they stretch the page past a scrolling form) */
+  .tt-bar { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; padding: 6px 8px;
     border: 1px solid rgb(var(--line)); border-radius: 16px; background: rgb(var(--surface)); }
   .tt-sep { width: 1px; height: 22px; background: rgb(var(--line)); }
   @media (max-width: 520px) { .tt-sep { display: none; } }
@@ -42,7 +43,7 @@
   .tt-select:hover { border-color: rgb(var(--purple) / .55); }
   .tt-select:active { transform: scale(.97); }
   .tt-seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 12px; border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); }
-  .tt-seg label { cursor: pointer; }
+  .tt-seg label { position: relative; cursor: pointer; }
   .tt-seg input { position: absolute; opacity: 0; pointer-events: none; }
   .tt-seg span { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 9px; font-size: 13px; color: rgb(var(--ink-2)); }
   .tt-seg label:hover span { color: rgb(var(--ink)); transform: translateY(-1px); }
