@@ -88,7 +88,7 @@ export function checkSubmission(user, d, fileCounts) {
   const row = {
     type,
     title: str(d.title, MAX_TITLE, 'หัวข้อ'),
-    lead: isNews ? str(d.lead, MAX_LEAD, 'คำโปรย') : null,
+    lead: isNews || type === 'banner' ? str(d.lead, MAX_LEAD, 'คำโปรย') : null,
     description: str(d.desc, 5000, 'คำอธิบาย'),
     body: isNews && d.contentMode === 'own' ? str(d.body, 20000, 'เนื้อหาข่าว') : null,
     event_date: hasDate ? d.eventDate || null : null,

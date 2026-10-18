@@ -150,6 +150,8 @@
     /* Article body: Thai needs generous line-height for stacked vowels/tones */
     .news-body p { font-size: 17px; line-height: 1.75; margin-bottom: 1.15em; }
     .news-body p:first-child::first-letter { color: rgb(var(--red)); font-weight: 700; }
+    /* Thai text justified the Thai way ("กระจายแบบไทย"): the extra space goes between characters, the last line stays left */
+    article:lang(th) .news-body p { text-align: justify; text-justify: inter-character; text-align-last: start; }
     .news-body blockquote {
       margin: 1.6em 0; padding: 1.1em 1.4em; border-radius: 20px;
       background: rgb(var(--purple-soft)); font-family: Kanit, sans-serif; font-size: 19px; line-height: 1.6; color: rgb(var(--purple));
@@ -175,7 +177,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=bea04c8535">
+  <link rel="stylesheet" href="/assets/app.css?v=a2f3118b75">
 </head>
 
 <body class="min-h-screen">
@@ -341,6 +343,12 @@
         <div class="mx-auto mt-shelf max-w-[760px]">
           <div class="reveal news-body" data-i18n-html="body"></div>
 
+          <!-- Banner / infographic: every picture in full, after the text -->
+          <section id="artSec" class="reveal mt-10" aria-labelledby="art-title" hidden>
+            <h2 id="art-title" class="mb-4 font-display text-[22px] font-bold text-royal">ภาพแบนเนอร์ / อินโฟกราฟิก</h2>
+            <div id="artList" class="grid gap-6"></div>
+          </section>
+
           <!-- Video -->
           <section id="videoSec" class="reveal mt-10" aria-labelledby="video-title">
             <h2 id="video-title" class="mb-4 font-display text-[22px] font-bold text-royal" data-i18n="videoTitle">วิดีโอประกอบข่าว</h2>
@@ -384,6 +392,15 @@
           </div>
         </div>
       </article>
+
+      <!-- ===== ข่าวที่เกี่ยวข้อง: chosen by the PR team (pr-news.html) ===== -->
+      <section id="linked" class="mt-shelf" aria-labelledby="linked-title" hidden>
+        <div class="reveal mb-6">
+          <h2 id="linked-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวที่เกี่ยวข้อง</h2>
+          <p class="mt-1 text-[15px] text-ink2">เรื่องเดียวกันหรือข่าวต่อเนื่อง คัดโดยงานประชาสัมพันธ์</p>
+        </div>
+        <div id="linkedGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+      </section>
 
       <!-- ===== Related ===== -->
       <section id="related" class="mt-shelf" aria-labelledby="related-title" hidden>
@@ -544,7 +561,7 @@
     $('#stateIcon').innerHTML = ICON.wait;
 
     // ---- Render the story ----
-    function render(s, related) {
+    function render(s, related, linked = []) {
       story = s;
       photos = [s.cover, ...s.gallery].filter(Boolean);
       document.title = `${s.title} | ข่าว มรส.`;
@@ -579,8 +596,17 @@
       }
 
       // Gallery: first 8, the last tile opens the rest. Shown for 2+ photos or when there is an album link.
-      $('#gallery').hidden = photos.length < 2 && !s.albumUrl;
-      $('#thumbs').hidden = photos.length < 2;
+      const banner = s.kind === 'banner';
+      $('#artSec').hidden = !banner || !photos.length;
+      $('#artList').innerHTML = banner ? photos.map((p, i) => `
+        <figure>
+          <button type="button" data-open="${i}" class="press t-quick block w-full overflow-hidden rounded-card border border-line bg-surface2 shadow-raised" aria-label="เปิดภาพที่ ${i + 1} จาก ${photos.length} แบบขยาย">
+            <img src="${esc(p.web)}"${p.set ? ` srcset="${esc(p.set)}" sizes="(min-width: 800px) 760px, 100vw"` : ''} alt="${i === 0 ? esc(s.title) : `${esc(s.title)} ภาพที่ ${i + 1}`}" decoding="async" loading="${i === 0 ? 'eager' : 'lazy'}" class="block h-auto w-full">
+          </button>
+        </figure>`).join('') : '';
+      if (banner) $('#galleryBtn').href = '#artSec';
+      $('#gallery').hidden = banner ? !s.albumUrl : photos.length < 2 && !s.albumUrl;
+      $('#thumbs').hidden = banner || photos.length < 2;
       $('#zipBtn').hidden = photos.length < 2;
       $('#zipBtn').href = $('#zipOk').href = `/media/${encodeURIComponent(s.id)}/photos.zip`;
       $('#albumBtn').hidden = !s.albumUrl;
@@ -603,6 +629,8 @@
       try { start = localStorage.getItem('newsLang') || 'th'; } catch (e) {}
       setLang(start);
 
+      $('#linkedGrid').innerHTML = (linked || []).map(card).join('');
+      $('#linked').hidden = !linked?.length;
       $('#relatedGrid').innerHTML = related.map(card).join('');
       $('#related').hidden = !related.length;
 
@@ -775,7 +803,7 @@
       if (!id) { location.replace('index.html#latest'); return; }
       // The server put the story in the page (pages.mjs): show it now, before the sign-in check comes back
       const pre = window.__NEWS?.story?.id === id ? window.__NEWS : null;
-      if (pre) render(pre.story, pre.related);
+      if (pre) render(pre.story, pre.related, pre.linked);
       me = await window.ME;
       try {
         const [r, s] = await Promise.all([
@@ -783,7 +811,7 @@
           me.user ? api('/me/saved').catch(() => ({ ids: [] })) : { ids: [] },
         ]);
         saved = new Set(s.ids);
-        if (!pre) render(r.story, r.related);
+        if (!pre) render(r.story, r.related, r.linked);
         applySaved();
         // One read per reader per story per day; the server ignores bots
         api(`/news/${encodeURIComponent(id)}/read`, { method: 'POST', body: { ref: document.referrer } }).catch(() => {});

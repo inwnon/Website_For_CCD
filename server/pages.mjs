@@ -99,7 +99,7 @@ router.get('/news.html', loadUser, async (req, res, next) => {
     return res.type('html').send(head(html, { title: err.status === 410 ? 'ข่าวนี้ถูกถอนแล้ว' : err.status === 404 ? 'ไม่พบข่าวนี้' : 'ข่าวภายใน',
       description: 'ข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี', url: `${ORIGIN}/news.html?id=${encodeURIComponent(id)}`, image: ORIGIN + OG_DEFAULT, robots: 'noindex' }));
   }
-  const { story: s, related, raw } = data;
+  const { story: s, linked, related, raw } = data;
   const url = `${ORIGIN}/news.html?id=${s.id}`;
   const lead = s.cover || s.gallery[0] || null;
   const image = lead ? ORIGIN + (lead.full || lead.web) : s.videoThumb ? ORIGIN + s.videoThumb : ORIGIN + OG_DEFAULT;
@@ -136,7 +136,7 @@ router.get('/news.html', loadUser, async (req, res, next) => {
     html = swap(html, '<figure id="leadFig" class="', '<figure id="leadFig" hidden class="');
   }
   // The data the page script would fetch from /api/news/:id
-  html = swap(html, '<script>window.SERVER_AUTH = true;</script>', `<script>window.SERVER_AUTH = true; window.__NEWS = ${scriptJson({ story: s, related })};</script>`);
+  html = swap(html, '<script>window.SERVER_AUTH = true;</script>', `<script>window.SERVER_AUTH = true; window.__NEWS = ${scriptJson({ story: s, linked, related })};</script>`);
   res.type('html').send(html);
 });
 

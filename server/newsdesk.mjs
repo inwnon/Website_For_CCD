@@ -2,7 +2,8 @@
 // - GET  /api/pr/news?q=&show=all|live|imported|withdrawn|scheduled&unit=&limit=&offset=
 // - POST /api/pr/news/:id/feature   { featured }
 // - POST /api/pr/news/:id/withdraw  { reason }      the story page answers 410 with the reason
-// - POST /api/pr/news/:id/restore
+// - POST /api/pr/news/:id/restore                  (a story taken back with ยกเลิกการเผยแพร่: its work is published again)
+// - PUT  /api/pr/news/:id/related   { ids }         ข่าวที่เกี่ยวข้อง, up to MAX_RELATED, in this order
 // - GET  /api/pr/news/:id/revisions   every version of the story, newest first (news_revisions, migration 010)
 // - POST /api/pr/import/fetch       { url }         reads a public Facebook post: text, photos, date (best effort)
 // - GET  /api/pr/import/check?url=&unit=&date=&title=   stories that may be the same one
@@ -54,10 +55,14 @@ router.get('/pr/news', async (req, res) => {
   const where = [...base];
   if (SHOW[req.query.show]) where.push(SHOW[req.query.show]);
   const rows = (await query(
-    `select n.*, s.ref, u.name creator_name, w.name withdrawn_by_name, count(*) over ()::int total
+    `select n.*, s.ref, s.status submission_status, u.name creator_name, w.name withdrawn_by_name, count(*) over ()::int total
      from news n left join submissions s on s.id = n.submission_id left join users u on u.id = n.created_by left join users w on w.id = n.withdrawn_by
      ${where.length ? `where ${where.join(' and ')}` : ''}
      order by n.published_at desc, n.id limit ${limit} offset ${offset}`, params)).rows;
+  // Titles of each story's ข่าวที่เกี่ยวข้อง, in their order
+  const ids = [...new Set(rows.flatMap((n) => n.related))];
+  const named = ids.length ? new Map((await query('select id, title, withdrawn_at from news where id = any($1)', [ids])).rows.map((r) => [r.id, r])) : new Map();
+  const titles = new Map(rows.map((n) => [n.id, n.related.map((id) => named.get(id)).filter(Boolean).map((r) => ({ id: r.id, title: r.title, withdrawn: !!r.withdrawn_at }))]));
   res.json({
     counts, total: rows[0]?.total ?? 0,
     items: rows.map((n) => ({
@@ -66,6 +71,8 @@ router.get('/pr/news', async (req, res) => {
       publishedAt: n.published_at, scheduled: n.published_at > new Date(), featured: n.featured, views: n.views,
       imported: n.imported, sourceUrl: n.source_url, albumUrl: n.album_url, ref: n.ref, createdBy: n.creator_name,
       withdrawn: n.withdrawn_at ? { at: n.withdrawn_at, reason: n.withdrawn_reason, by: n.withdrawn_by_name } : null,
+      submissionStatus: n.submission_status || null,
+      related: (titles.get(n.id) || []),
     })),
   });
 });
@@ -115,6 +122,22 @@ router.put('/pr/news/:id/album', async (req, res) => {
   res.json({ ok: true, albumUrl: url });
 });
 
+export const MAX_RELATED = 6;
+router.put('/pr/news/:id/related', async (req, res) => {
+  const n = await story(req.params.id);
+  const want = Array.isArray(req.body?.ids) ? [...new Set(req.body.ids.filter((x) => typeof x === 'string' && UUID.test(x)))] : null;
+  if (!want) throw new HttpError(400, 'ส่งรายการข่าวที่เกี่ยวข้องมาไม่ถูกต้อง');
+  if (want.includes(n.id)) throw new HttpError(400, 'เลือกข่าวนี้เป็นข่าวที่เกี่ยวข้องกับตัวเองไม่ได้');
+  if (want.length > MAX_RELATED) throw new HttpError(400, `เลือกข่าวที่เกี่ยวข้องได้ไม่เกิน ${MAX_RELATED} ข่าว`);
+  const found = new Set((await query('select id from news where id = any($1)', [want])).rows.map((r) => r.id));
+  if (want.some((id) => !found.has(id))) throw new HttpError(400, 'ไม่พบข่าวบางข่าวที่เลือก');
+  await tx(async (c) => {
+    await c.query('update news set related = $2 where id = $1', [n.id, want]);
+    await audit(c, req.user, 'news.related', n.id, `ข่าวที่เกี่ยวข้องของ "${n.title}": ${want.length} ข่าว`, { ids: want, before: n.related });
+  }, req.user);
+  res.json({ ok: true, ids: want });
+});
+
 router.post('/pr/news/:id/withdraw', async (req, res) => {
   const n = await story(req.params.id);
   const reason = str(req.body?.reason, 300, 'เหตุผล');
@@ -132,6 +155,8 @@ router.post('/pr/news/:id/restore', async (req, res) => {
   if (!n.withdrawn_at) throw new HttpError(409, 'ข่าวนี้ยังเผยแพร่อยู่');
   await tx(async (c) => {
     await c.query('update news set withdrawn_at = null, withdrawn_reason = null, withdrawn_by = null where id = $1', [n.id]);
+    const back = n.submission_id && (await c.query("update submissions set status = 'published' where id = $1 and status <> 'published' returning id", [n.submission_id])).rows[0];
+    if (back) await c.query("insert into submission_events (submission_id, status, actor_id) values ($1, 'published', $2)", [back.id, req.user.id]);
     await audit(c, req.user, 'news.restore', n.id, `คืนข่าว "${n.title}"`);
   }, req.user);
   res.json({ ok: true });

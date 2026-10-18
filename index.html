@@ -177,7 +177,7 @@
     }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=bea04c8535">
+  <link rel="stylesheet" href="/assets/app.css?v=a2f3118b75">
 </head>
 
 <body class="min-h-screen">
@@ -493,6 +493,12 @@
       ? `<img src="${esc(n.cover || n.videoThumb)}"${n.coverSet && n.cover ? ` srcset="${esc(n.coverSet)}" sizes="(min-width: 1024px) 340px, (min-width: 640px) 50vw, 100vw"` : ''} alt="" decoding="async" class="t-spring h-full w-full object-cover group-hover:scale-[1.05]" loading="lazy" width="640" height="360">`
       : `<div class="t-spring grid h-full w-full place-items-center group-hover:scale-[1.05]" style="background: radial-gradient(60% 90% at 80% 20%, rgb(122 60 226 / .9), transparent 70%), radial-gradient(60% 90% at 10% 100%, rgb(222 20 42 / .85), transparent 70%), #1B2560">
            <span class="grid h-14 w-14 place-items-center rounded-full bg-shell/95 text-brand shadow-float"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></div>`;
+    // Same labels and colours as the archive cards (search.html)
+    const KIND = { news: ['ข่าวพร้อมภาพ', 'bg-royal-soft text-royal'], video: ['วิดีโอ', 'bg-red-soft text-brand'], banner: ['อินโฟกราฟิก', 'bg-gold-soft text-gold'] };
+    const kindChips = (n) => {
+      const [kl, kc] = KIND[n.kind] || KIND.news;
+      return `<div class="absolute left-3 top-3 flex flex-wrap gap-1.5 text-[12px]"><span class="rounded-full ${kc} px-2.5 font-display font-semibold leading-6">${kl}</span>${n.internal ? `<span class="rounded-full bg-purple-soft px-2.5 font-display font-semibold leading-6 text-purple">${esc(n.audience)}</span>` : ''}</div>`;
+    };
     const card = (n) => n.locked ? lockedCard(n) : `
       <article class="reveal">
         <div class="lift t-spring group relative h-full rounded-card hover:-translate-y-1">
@@ -501,16 +507,12 @@
             ${coverOf(n)}
             <div class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></div>
             <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-50"></div>
+            ${kindChips(n)}
             ${n.photos ? `<span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-lg bg-shell px-2 py-0.5 font-display text-[12px] font-semibold text-royal shadow-raised">${ic.photo}${n.photos} ภาพ</span>` : ''}
           </div>
           <div class="flex flex-1 flex-col p-[18px]">
             <div class="mb-2 flex items-center justify-between gap-2 text-[12px] text-ink2">
               <span class="inline-flex items-center gap-1">${ic.clock}<time datetime="${isoDay(n.publishedAt)}">${fmtDay.format(new Date(n.publishedAt))}</time></span>
-              ${n.internal
-                ? `<span class="rounded-full bg-purple-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-purple">${esc(n.audience)}</span>`
-                : n.video
-                ? `<span class="inline-flex items-center gap-1 rounded-full bg-red-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-brand">${ic.play}วิดีโอ</span>`
-                : `<span class="inline-flex items-center gap-1 rounded-full bg-royal-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-royal">${ic.photo}ภาพข่าว</span>`}
             </div>
             <h3 class="clamp-2 font-display text-[17px] font-semibold">${esc(n.title)}</h3>
             <div class="mt-auto flex items-center gap-3 pt-3 text-[12px] text-ink2">

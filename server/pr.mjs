@@ -1,6 +1,8 @@
 // PR desk — everything here needs role pr or admin (pr.html)
 // - GET    /api/pr/submissions?status=&type=&q=&unread=1&limit=&offset=   list + counts per status
 // - GET    /api/pr/submissions/:ref                    full item, sender profile, published story
+// - POST   /api/pr/submissions/:ref/unpublish          ยกเลิกการเผยแพร่: the story leaves the site, the work goes back to รอตรวจ;
+//          publishing it again updates the same story (same link, reads and history kept)
 // - POST   /api/pr/submissions/:ref/status             { status: review|writing|revise|rejected, message }
 //   rejected = "ลบข่าว": hidden, not deleted. The sender no longer sees it and is not told; PR can move it back to review
 //   (also without telling the sender). It still counts in reports, and its files go with the retention rule.
@@ -14,7 +16,7 @@ import { join } from 'node:path';
 import { Router } from 'express';
 import { domainRole, publicUser, requirePr } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
-import { abs, publishImage } from './files.mjs';
+import { abs, publishImage, removeMedia } from './files.mjs';
 import { HttpError, str } from './http.mjs';
 import { AUDIENCES, MAX_CATS, albumUrl, audienceLabel, categories } from './rules.mjs';
 import { audit } from './audit.mjs';
@@ -78,7 +80,8 @@ async function detail(s) {
   const [t, sender, news] = await Promise.all([
     loadThread([s.id]),
     one('select * from users where id = $1', [s.sender_id]),
-    s.news_id ? one('select id, title, published_at, cover_path from news where id = $1', [s.news_id]) : null,
+    s.news_id ? one(`select id, title, title_en, lead, body, body_en, categories, audience, video_url, album_url, featured, published_at,
+      cover_path, withdrawn_at from news where id = $1`, [s.news_id]) : null,
   ]);
   return { submission: submissionOut(s, t, 'pr'), sender: publicUser(sender), news };
 }
@@ -107,6 +110,21 @@ router.post('/pr/submissions/:ref/status', async (req, res) => {
     const summary = status === 'rejected' ? `ลบงาน ${s.ref}` : s.status === 'rejected' ? `กู้คืนงาน ${s.ref} ไปที่รอตรวจ` : `เปลี่ยนสถานะ ${s.ref} เป็น${STATUS_TH[status]}`;
     await audit(c, req.user, 'submission.status', s.ref, summary, { from: s.status, to: status });
   });
+  res.json(await detail(await one('select * from submissions where id = $1', [s.id])));
+});
+
+// ยกเลิกการเผยแพร่: off the site (readers who open the link see that it is being updated), back in the queue for PR.
+// The sender sees the work as รอ PR ตรวจ again; no email (PR will publish it again or tell them).
+export const UNPUBLISH_REASON = 'ทีมประชาสัมพันธ์กำลังปรับปรุงข่าวนี้ และจะเผยแพร่อีกครั้งเร็ว ๆ นี้';
+router.post('/pr/submissions/:ref/unpublish', async (req, res) => {
+  const s = await findSubmission(req.params.ref, req.user);
+  if (s.status !== 'published' || !s.news_id) throw new HttpError(409, 'งานนี้ยังไม่ได้เผยแพร่');
+  await tx(async (c) => {
+    await c.query('update news set withdrawn_at = now(), withdrawn_reason = $2, withdrawn_by = $3, featured = false where id = $1', [s.news_id, UNPUBLISH_REASON, req.user.id]);
+    await c.query("update submissions set status = 'review', pr_unread = false where id = $1", [s.id]);
+    await c.query("insert into submission_events (submission_id, status, actor_id) values ($1, 'unpublished', $2)", [s.id, req.user.id]);
+    await audit(c, req.user, 'submission.unpublish', s.ref, `ยกเลิกการเผยแพร่ ${s.ref} กลับไปที่รอตรวจ`, { newsId: s.news_id });
+  }, req.user);
   res.json(await detail(await one('select * from submissions where id = $1', [s.id])));
 });
 
@@ -163,13 +181,23 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
   if (s.type !== 'video' && !coverFile) errors.cover = 'เลือกภาพปก';
   if (Object.keys(errors).length) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', errors);
 
-  const newsId = (await one('select gen_random_uuid() id')).id;
+  // Published before and taken back (ยกเลิกการเผยแพร่): the new version goes into the same story, so its link still works
+  const prev = s.news_id ? await one('select id, cover_path, gallery from news where id = $1', [s.news_id]) : null;
+  const newsId = prev?.id || (await one('select gen_random_uuid() id')).id;
   try {
     const cover = coverFile ? await publishImage(newsId, coverFile) : null;
     const gallery = [];
     for (const f of galleryFiles) gallery.push(await publishImage(newsId, f));
     await tx(async (c) => {
-      await c.query(
+      if (prev) {
+        await c.query(
+          `update news set title = $2, title_en = $3, lead = $4, body = $5, body_en = $6, categories = $7, audience = $8, cover_path = $9, gallery = $10,
+             video_url = $11, featured = $12, published_at = $13, album_url = $14, withdrawn_at = null, withdrawn_reason = null, withdrawn_by = null
+           where id = $1`,
+          [newsId, story.title, story.title_en, story.lead, story.body, story.body_en, story.categories, story.audience, cover, gallery,
+            story.video_url, story.featured, story.published_at, story.album_url],
+        );
+      } else await c.query(
         `insert into news (id, kind, submission_id, title, title_en, lead, body, body_en, unit, categories, audience, cover_path, gallery,
            video_url, credit, event_date, place, featured, published_at, created_by, album_url)
          values ($1, $20, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $21)`,
@@ -181,10 +209,13 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
       const note = str(b.message, 2000, 'ข้อความ') || get('messages').published;
       await addMessage(c, s, req.user, 'pr', note);
       await statusChanged(c, { ...s, title: story.title }, 'published', note, newsId);
-      await audit(c, req.user, 'submission.publish', s.ref, `เผยแพร่ ${s.ref} เป็นข่าว "${story.title}"`, { newsId });
+      await audit(c, req.user, 'submission.publish', s.ref, `${prev ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่'} ${s.ref} เป็นข่าว "${story.title}"`, { newsId });
     }, req.user);
+    // Pictures of the earlier version that this one does not use
+    if (prev) await Promise.all([prev.cover_path, ...prev.gallery].filter((p) => p && p !== cover && !gallery.includes(p)).map(removeMedia));
   } catch (err) {
-    await rm(abs(join('media', newsId)), { recursive: true, force: true });
+    // A new story's folder goes; an earlier story keeps its pictures (the same files are written again with the same names)
+    if (!prev) await rm(abs(join('media', newsId)), { recursive: true, force: true });
     throw err;
   }
   res.status(201).json(await detail(await one('select * from submissions where id = $1', [s.id])));

@@ -163,6 +163,11 @@ export async function publishFile(newsId, srcAbs, name) {
   return `${newsId}/${id}.webp`;
 }
 export const tempPath = (ext = '') => join(TMP, randomUUID() + ext);
+// A published picture ("{newsId}/{id}.webp" as in news.cover_path / gallery) with its full-size and card-size copies
+export const removeMedia = (rel) => {
+  const base = abs(join('media', rel.replace(/\.webp$/, '')));
+  return Promise.all(['.webp', '.full.jpg', '.w480.webp', '.w960.webp'].map((x) => rm(base + x, { force: true })));
+};
 
 // Sends a file under UPLOAD_DIR with the given cache policy (and as a download when downloadName is set)
 export function sendMedia(res, rel, cacheControl, downloadName) {

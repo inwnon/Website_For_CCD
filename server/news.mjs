@@ -5,7 +5,7 @@
 // - GET    /api/news/search?q=&kind=&cat=&cat=&unit=&from=&to=&sort=relevance|newest&limit=&offset=
 //          search and filters (search.html, unit pages). Only stories the viewer may read; never placeholders.
 // - GET    /api/news/archive?year=2026      { years, months: { '01': n }, days: { 'YYYY-MM-DD': n } }
-// - GET    /api/news/:id                     full story + related; 401/403 { locked } internal, 410 { withdrawn }
+// - GET    /api/news/:id                     full story + linked (ข่าวที่เกี่ยวข้อง, set by PR) + related (nearby); 401/403 { locked }, 410 { withdrawn }
 // - POST   /api/news/:id/read  { ref }       counts a read: once per reader per story per day, bots ignored
 // - GET    /api/me/saved                     { ids } of the signed-in user's saved stories
 // - PUT    /api/news/:id/save · DELETE /api/news/:id/save
@@ -188,9 +188,13 @@ async function readable(req, id = req.params.id) {
 // Throws HttpError 404 / 410 / 401 / 403 like readable().
 export async function storyPayload(req, id) {
   const n = await readable(req, id);
+  // ข่าวที่เกี่ยวข้อง: the PR team's picks, in their order, live ones the reader may open
+  const picked = n.related?.length ? (await query(`select n.* from news n where ${LIVE} and n.id = any($1)`, [n.related])).rows : [];
+  const linked = n.related.map((id) => picked.find((r) => r.id === id)).filter((r) => r && canRead(r, req.user));
+  // ข่าวใกล้เคียง: same categories first, never one of the picks
   const related = (await query(
-    `select n.* from news n where ${LIVE} and n.id <> $1 and n.audience && $3::audience[]
-     order by (n.categories && $2) desc, n.published_at desc limit 4`, [n.id, n.categories, readableBy(req.user)])).rows;
+    `select n.* from news n where ${LIVE} and n.id <> $1 and n.audience && $3::audience[] and not (n.id = any($4))
+     order by (n.categories && $2) desc, n.published_at desc limit 4`, [n.id, n.categories, readableBy(req.user), linked.map((r) => r.id)])).rows;
   const saved = req.user ? !!(await one('select 1 from saved_news where user_id = $1 and news_id = $2', [req.user.id, n.id])) : false;
   return {
     raw: n,
@@ -203,12 +207,13 @@ export async function storyPayload(req, id) {
       credit: n.credit, eventDate: n.event_date, place: n.place, featured: n.featured, views: n.views,
       publishedAt: n.published_at, saved,
     },
+    linked: linked.map((r) => cardOut(r, req.user)),
     related: related.map((r) => cardOut(r, req.user)),
   };
 }
 router.get('/news/:id', async (req, res) => {
-  const { story, related } = await storyPayload(req, req.params.id);
-  res.json({ story, related });
+  const { story, linked, related } = await storyPayload(req, req.params.id);
+  res.json({ story, linked, related });
 });
 
 // ---- Reads ----
