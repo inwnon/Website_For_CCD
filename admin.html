@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ตั้งค่าระบบ | หลังบ้าน ข่าว มรส.</title>
   <meta name="robots" content="noindex">
-  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
   <script>
     (function () {
@@ -28,7 +28,7 @@
     .swatch { background: radial-gradient(90% 60% at 100% 0%, var(--glow), transparent 65%), radial-gradient(80% 50% at 0% 100%, rgb(122 60 226 / .6), transparent 70%), var(--bg-c); }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=6ced3bc19b">
+  <link rel="stylesheet" href="/assets/app.css?v=37612f3165">
 </head>
 <body class="app">
   <a href="#panel" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่การตั้งค่า</a>
@@ -126,7 +126,7 @@
           <div class="min-w-0"><p class="truncate font-display text-[15px] font-semibold">${esc(u.name || u.email)}</p>
             <p class="truncate text-[13px] text-ink2">${esc(u.email)}${u.affiliation ? `, ${esc(u.affiliation)}` : ''}</p>
             <p class="text-[12px] text-ink2">${u.signedIn ? (u.lastLoginAt ? `เข้าสู่ระบบล่าสุด ${dayTime(u.lastLoginAt)}` : '') : 'ให้สิทธิ์ล่วงหน้า ยังไม่เคยเข้าสู่ระบบ'}</p></div>
-          ${roleSelect(u)}
+          ${u.developer ? '<span class="justify-self-start rounded-full bg-grad px-3 font-display text-[13px] font-semibold leading-7 text-white">ผู้พัฒนาระบบ</span>' : roleSelect(u)}
           <input data-unit list="unitList" value="${esc(u.coordUnit || '')}" placeholder="หน่วยงานที่ดูแล" aria-label="หน่วยงานที่ ${esc(u.email)} ดูแล" class="field h-10 rounded-xl px-3 text-[14px]" ${u.role === 'coordinator' ? '' : 'hidden'}>
           <button type="button" data-apply class="press t-quick h-10 rounded-xl border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5" hidden>บันทึก</button>
         </div>`).join('') : '<p class="rounded-2xl border border-dashed border-line p-8 text-center text-ink2">ไม่พบผู้ใช้</p>';

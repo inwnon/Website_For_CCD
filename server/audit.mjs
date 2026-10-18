@@ -22,6 +22,7 @@ export const ACTIONS = {
   'news.restore': 'คืนข่าว',
   'role.set': 'กำหนดบทบาท',
   'role.remove': 'ยกเลิกบทบาท',
+  'role.switch': 'สลับบทบาท (ผู้พัฒนาระบบ)',
   'settings.update': 'ตั้งค่าระบบ',
   'digest.update': 'จัดเล่มสรุปข่าว',
   'digest.publish': 'เผยแพร่เล่มสรุปข่าว',

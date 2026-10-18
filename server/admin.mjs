@@ -7,7 +7,7 @@
 // - GET  /api/admin/backups                  the last backup and restore test (backup.mjs / restore-test.mjs status.json)
 import { Router } from 'express';
 import { readStatus } from './backup.mjs';
-import { domainRole, requireAdmin } from './auth.mjs';
+import { DEVELOPERS, domainRole, requireAdmin } from './auth.mjs';
 import { ACTIONS, audit } from './audit.mjs';
 import { query, tx } from './db.mjs';
 import { HttpError, str } from './http.mjs';
@@ -63,7 +63,7 @@ router.get('/admin/users', async (req, res) => {
     total: rows[0]?.total ?? 0, counts: Object.fromEntries(counts.map((c) => [c.role, c.n])),
     items: rows.map((r) => ({
       email: r.email, name: r.name, role: r.role, coordUnit: r.coord_unit, affiliation: r.affiliation, signedIn: !!r.id,
-      lastLoginAt: r.last_login_at, assigned: r.assigned, domainRole: domainRole(r.email),
+      lastLoginAt: r.last_login_at, assigned: r.assigned, domainRole: domainRole(r.email), ...(DEVELOPERS.has(r.email) ? { developer: true } : {}),
     })),
   });
 });
@@ -75,6 +75,7 @@ router.put('/admin/roles', async (req, res) => {
   if (!ROLE_TH[role]) throw new HttpError(400, 'บทบาทไม่ถูกต้อง');
   const unit = role === 'coordinator' ? str(req.body?.unit, 200, 'หน่วยงาน') : null;
   if (role === 'coordinator' && !(STAFF_UNITS.has(unit) || FACULTIES.has(unit))) throw new HttpError(400, 'เลือกหน่วยงานที่ผู้ประสานงานดูแล');
+  if (DEVELOPERS.has(email)) throw new HttpError(409, 'บัญชีผู้พัฒนาระบบมีสิทธิ์สูงสุดเสมอ เปลี่ยนบทบาทจากหน้านี้ไม่ได้');
   if (email === req.user.email && role !== 'admin') throw new HttpError(409, 'เปลี่ยนบทบาทของตัวเองไม่ได้ ให้ผู้ดูแลระบบคนอื่นเปลี่ยนให้');
   await tx(async (c) => {
     if (role === 'default') {

@@ -4,6 +4,7 @@
 // - POST /api/auth/logout
 // - GET  /api/me                            { user, unread } or { user: null }
 // - PUT  /api/me/profile                    sign-up steps 2–3 of login.html
+// - POST /api/me/role       { role }        developer accounts only: work as 'pr' (ทีม PR งานสื่อสารองค์กร) or 'admin' (ผู้พัฒนาระบบ)
 // - PUT  /api/me/photo                      multipart "photo" JPG/PNG/WebP ≤ 5 MB → square 512px WebP · DELETE removes it
 // - GET  /api/avatars/:file                 profile photos (signed-in users only)
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
@@ -17,6 +18,7 @@ import { one, query } from './db.mjs';
 import { UPLOAD_DIR, abs, removeTemp, sendMedia } from './files.mjs';
 import { HttpError, parseCookies, str } from './http.mjs';
 import { FACULTIES, ORG, STAFF_UNITS, majorsOf, tracksOf } from './org.mjs';
+import { audit } from './audit.mjs';
 import { DEV_ACCOUNTS, limit, matchesName } from './security.mjs';
 
 const COOKIE = 'sid';
@@ -26,6 +28,11 @@ const DEV_LOGIN = !PROD && process.env.ALLOW_DEV_LOGIN === '1';
 const DOMAINS = { 'sru.ac.th': 'staff', 'student.sru.ac.th': 'student' };
 const google = new OAuth2Client();
 const hash = (token) => createHash('sha256').update(token).digest('hex');
+
+// ผู้พัฒนาระบบ: the highest rights (admin), not given or taken away on admin.html (pr_team), and may switch to
+// working as the PR team to see the site as they do. DEVELOPER_EMAILS in .env adds more (comma separated).
+export const DEVELOPERS = new Set(['satearnpong.nis@sru.ac.th', ...(process.env.DEVELOPER_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)]);
+export const SWITCH_ROLES = { pr: 'ทีม PR งานสื่อสารองค์กร', admin: 'ผู้พัฒนาระบบ' };
 
 export const isPr = (u) => u?.role === 'pr' || u?.role === 'admin';
 export const isAdmin = (u) => u?.role === 'admin';
@@ -49,12 +56,14 @@ export function publicUser(u) {
     unit: u.unit, subUnit: u.sub_unit, position: u.position, major: u.major, track: u.track,
     year: u.year, org: u.org, consentAt: u.consent_at, onboarded: onboarded(u),
     ...(u.coord_unit ? { coordUnit: u.coord_unit } : {}),
+    ...(u.developer ? { developer: true } : {}),
   };
 }
 
 export const domainRole = (email) => DOMAINS[email.split('@')[1]] ?? 'external';
 
 async function roleFor(email) {
+  if (DEVELOPERS.has(email)) return 'admin';
   const pr = await one('select role from pr_team where email = $1', [email]);
   return pr?.role ?? domainRole(email);
 }
@@ -90,11 +99,16 @@ export async function loadUser(req, res, next) {
   if (token) {
     req.sessionId = hash(token);
     req.user = await one(
-      `select u.*, t.unit coord_unit from sessions s join users u on u.id = s.user_id
+      `select u.*, t.unit coord_unit, s.acting_role from sessions s join users u on u.id = s.user_id
        left join pr_team t on t.email = u.email and t.role = 'coordinator'
        where s.id = $1 and s.expires_at > now()`,
       [req.sessionId],
     );
+    // A developer works as the role chosen for this session (admin unless switched); nobody else can have one
+    if (req.user) {
+      req.user.developer = DEVELOPERS.has(req.user.email);
+      if (req.user.developer) req.user.role = req.user.acting_role === 'pr' ? 'pr' : 'admin';
+    }
   }
   next();
 }
@@ -152,6 +166,17 @@ if (DEV_LOGIN) {
     res.json({ user: publicUser(user) });
   });
 }
+
+router.post('/me/role', async (req, res) => {
+  if (!req.user) throw new HttpError(401, 'กรุณาเข้าสู่ระบบ');
+  if (!req.user.developer) throw new HttpError(403, 'สลับบทบาทได้เฉพาะบัญชีผู้พัฒนาระบบ');
+  const role = req.body?.role;
+  if (!SWITCH_ROLES[role]) throw new HttpError(400, 'บทบาทไม่ถูกต้อง');
+  const from = req.user.role;
+  await query('update sessions set acting_role = $2 where id = $1', [req.sessionId, role]);
+  if (from !== role) await audit({ query }, { ...req.user, role }, 'role.switch', req.user.email, `สลับบทบาทจาก ${SWITCH_ROLES[from]} เป็น ${SWITCH_ROLES[role]}`, { from, to: role });
+  res.json({ user: publicUser({ ...req.user, role }) });
+});
 
 router.post('/auth/logout', async (req, res) => {
   if (req.sessionId) await query('delete from sessions where id = $1', [req.sessionId]);

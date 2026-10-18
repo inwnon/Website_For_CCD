@@ -16,6 +16,7 @@ import { get as setting, load as loadSettings, publicSite } from './settings.mjs
 import { router as prRouter } from './pr.mjs';
 import { router as submissionsRouter } from './submissions.mjs';
 import { router as draftsRouter } from './drafts.mjs';
+import { router as contactRouter } from './contact.mjs';
 import { media as digestMedia, ensureUpcoming, router as digestsRouter } from './digests.mjs';
 import { dailyIfDue, router as notifyRouter, sendQueued } from './notify.mjs';
 import { purge, router as privacyRouter } from './privacy.mjs';
@@ -65,6 +66,7 @@ api.use(adminRouter);
 api.use(digestsRouter);
 api.use(notifyRouter);
 api.use(privacyRouter);
+api.use(contactRouter);
 api.use((req, res) => res.status(404).json({ error: 'ไม่พบ API นี้' }));
 app.use('/api', api);
 

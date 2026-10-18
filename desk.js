@@ -48,6 +48,8 @@
           <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
           <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
         </button>
+        <!-- Developer accounts: work as the PR team or as ผู้พัฒนาระบบ (POST /api/me/role) -->
+        <div id="roleSwitch" class="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-surface2 p-1" role="group" aria-label="สลับบทบาท" hidden></div>
         <div id="who" class="flex items-center gap-2 rounded-2xl bg-shell p-2 shadow-raised" hidden>
           <span id="whoAvatar" class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-purple-soft font-display text-[15px] font-semibold text-purple"></span>
           <span class="min-w-0 flex-1 leading-tight"><span id="whoName" class="block truncate font-display text-[14px] font-semibold"></span><span id="whoRole" class="block truncate text-[12px] text-ink2"></span></span>
@@ -140,11 +142,12 @@
       document.getElementById('who').hidden = false;
       document.getElementById('whoAvatar').textContent = (me.user.name || me.user.email).trim().charAt(0);
       document.getElementById('whoName').textContent = me.user.name || me.user.email;
-      document.getElementById('whoRole').textContent = role === 'coordinator' && me.user.coordUnit ? `ผู้ประสานงาน ${me.user.coordUnit}` : ROLE_TH[role] || '';
+      document.getElementById('whoRole').textContent = role === 'coordinator' && me.user.coordUnit ? `ผู้ประสานงาน ${me.user.coordUnit}` : window.roleName?.(me.user) || ROLE_TH[role] || '';
       document.getElementById('logout').addEventListener('click', async () => {
         try { await api('/auth/logout', { method: 'POST' }); } catch (e) {}
         location.href = 'index.html';
       });
+      window.mountRoleSwitch?.(document.getElementById('roleSwitch'), me.user);
     }
     if (!ok) { gate(me, allow); return null; }
     return me.user;

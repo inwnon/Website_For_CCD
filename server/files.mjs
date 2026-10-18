@@ -15,6 +15,10 @@ import { HttpError } from './http.mjs';
 import { UPLOADS } from './rules.mjs';
 import { matchesName } from './security.mjs';
 
+// libvips keeps files it has read open in its cache; on Windows an open file cannot be renamed or deleted
+// (withdrawn stories, erased accounts, the test cleanup). No cache: each file is closed when sharp is done with it.
+sharp.cache(false);
+
 export const UPLOAD_DIR = resolve(import.meta.dirname, '..', process.env.UPLOAD_DIR || 'uploads');
 const TMP = join(UPLOAD_DIR, 'tmp');
 mkdirSync(TMP, { recursive: true });

@@ -85,6 +85,29 @@
   // ---- Header account menu (re-run with window.renderAccountButton() after marking items read) ----
   // The page's <a id="login"> becomes a button that opens a menu: profile, inbox, PR tools, settings, theme, sign out.
   const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
+  // Developer accounts switch between these two (POST /api/me/role); ผู้พัฒนาระบบ has the highest rights
+  const SWITCH = [['pr', 'ทีม PR งานสื่อสารองค์กร'], ['admin', 'ผู้พัฒนาระบบ']];
+  const roleName = (u) => (u.developer ? Object.fromEntries(SWITCH)[u.role] : ROLE_TH[u.role]) || '';
+  window.roleName = roleName;
+  // After switching: the PR team cannot open the settings page, so go to the PR desk instead of a "no access" page
+  const afterSwitch = (role) => { if (role === 'pr' && /(^|\/)admin\.html$/.test(location.pathname)) location.href = 'pr.html'; else location.reload(); };
+  async function switchRole(role, buttons) {
+    buttons.forEach((b) => { b.disabled = true; });
+    try { await api('/me/role', { method: 'POST', body: { role } }); afterSwitch(role); } catch (err) { buttons.forEach((b) => { b.disabled = false; }); alert(err.message); }
+  }
+  // The two buttons in a back-office side bar (#roleSwitch); shown for developer accounts only
+  window.mountRoleSwitch = (box, u) => {
+    if (!box || !u?.developer) return;
+    box.hidden = false;
+    box.innerHTML = SWITCH.map(([k, l]) => {
+      const on = u.role === k;
+      return `<button type="button" data-switch-role="${k}" aria-pressed="${on}" class="press t-quick min-h-10 rounded-xl px-2 py-1.5 font-display text-[12px] leading-tight ${on ? 'bg-shell font-semibold text-purple shadow-raised' : 'font-medium text-ink2 hover:text-ink'}">${l}</button>`;
+    }).join('');
+    box.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-switch-role]');
+      if (b && b.getAttribute('aria-pressed') !== 'true' && !b.disabled) switchRole(b.dataset.switchRole, [...box.querySelectorAll('button')]);
+    });
+  };
   const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
   const svg = (d, w = 18) => `<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -141,12 +164,19 @@
     .acct-seg button:hover { color: rgb(var(--ink)); }
     .acct-seg button:active { transform: scale(.94); }
     .acct-seg button[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
+    .acct-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 2px 4px 6px; padding: 4px; border-radius: 16px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
+    .acct-roles button { min-height: 44px; padding: 6px 8px; border-radius: 12px; font: 500 13px/1.35 Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); transition: transform .35s var(--spring); }
+    .acct-roles button:hover { color: rgb(var(--ink)); }
+    .acct-roles button:active { transform: scale(.96); }
+    .acct-roles button:focus-visible { outline: 2px solid rgb(var(--focus)); outline-offset: 2px; }
+    .acct-roles button[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--purple)); font-weight: 600; box-shadow: var(--shadow-raised); }
+    .acct-roles button:disabled { opacity: .6; }
     .acct-intro { padding: 18px 16px 4px; }
     .acct-intro p + p { font-size: 14px; line-height: 1.6; color: rgb(var(--ink-2)); margin-top: 4px; }
     .acct-cta { margin: 12px 16px 14px; display: flex; height: 46px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: var(--grad); color: #fff; font: 600 15px Kanit, sans-serif; box-shadow: var(--shadow-glow); transition: transform .45s var(--spring); }
     .acct-cta:hover { transform: translateY(-2px); }
     .acct-cta:active { transform: scale(.97); }
-    @media (prefers-reduced-motion: reduce) { .acct-panel, .acct-panel.open, .acct-btn, .acct-cta, .acct-item, .acct-seg button { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .acct-panel, .acct-panel.open, .acct-btn, .acct-cta, .acct-item, .acct-seg button, .acct-roles button { transition: none; } }
   `;
 
   // Theme: light | dark | system (no saved choice). The header switch and this menu stay in step.
@@ -176,7 +206,8 @@
     const prTools = u.role === 'pr' || u.role === 'admin'
       ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr.html', 'desk', 'งานที่ส่งเข้ามา')}${item('pr-news.html', 'news', 'จัดการข่าว')}${item('digest-studio.html', 'book', 'เล่มสรุปข่าว')}${item('report.html', 'chart', 'รายงาน')}${u.role === 'admin' ? item('admin.html', 'gear', 'ตั้งค่าระบบ') : ''}</div>`
       : u.role === 'coordinator' ? `<div class="acct-grp">${item('report.html', 'chart', 'รายงานของหน่วยงาน')}</div>` : '';
-    return `<div class="acct-id"><span class="acct-av">${avatar(u)}</span><div style="min-width:0"><p class="acct-name">${esc(u.name || u.email)}</p>${u.name ? `<p class="acct-mail">${esc(u.email)}</p>` : ''}<span class="acct-role">${esc(ROLE_TH[u.role] || '')}${aff ? ` ${esc(aff)}` : ''}</span></div></div>
+    return `<div class="acct-id"><span class="acct-av">${avatar(u)}</span><div style="min-width:0"><p class="acct-name">${esc(u.name || u.email)}</p>${u.name ? `<p class="acct-mail">${esc(u.email)}</p>` : ''}<span class="acct-role">${esc(roleName(u))}${aff ? ` ${esc(aff)}` : ''}</span></div></div>
+      ${u.developer ? `<div class="acct-grp"><p class="acct-label" id="acctRoleLabel">สลับบทบาท</p><div class="acct-roles" role="group" aria-labelledby="acctRoleLabel">${SWITCH.map(([k, l]) => `<button type="button" data-switch-role="${k}" aria-pressed="${u.role === k}">${l}</button>`).join('')}</div></div>` : ''}
       <div class="acct-grp">${item('inbox.html', 'inbox', 'ข่าวของฉัน', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${u.role !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
       ${prTools}
       <div class="acct-grp"><p class="acct-label">บัญชีและการตั้งค่า</p>${item('login.html?profile=1', 'edit', 'แก้ไขโปรไฟล์และสังกัด')}${item('inbox.html#notify', 'bell', 'การแจ้งเตือนทางอีเมล')}${item('privacy.html#rights', 'shield', 'ข้อมูลส่วนบุคคลของฉัน')}${themeRow}</div>
@@ -225,6 +256,11 @@
     panel.addEventListener('click', async (e) => {
       const t = e.target.closest('[data-theme]');
       if (t) { setTheme(t.dataset.theme); panel.querySelectorAll('[data-theme]').forEach((b) => b.setAttribute('aria-pressed', b === t)); return; }
+      const sw = e.target.closest('[data-switch-role]');
+      if (sw) {
+        if (sw.getAttribute('aria-pressed') !== 'true') switchRole(sw.dataset.switchRole, [...panel.querySelectorAll('[data-switch-role]')]);
+        return;
+      }
       if (e.target.closest('[data-signout]')) {
         await api('/auth/logout', { method: 'POST' }).catch(() => {});
         location.href = 'index.html';

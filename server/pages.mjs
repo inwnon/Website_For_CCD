@@ -196,7 +196,7 @@ router.get('/search.html', loadUser, async (req, res, next) => {
 });
 
 // The other reader pages: CSS in the page, nothing else changes
-for (const [route, rel] of [['/', 'index.html'], ['/index.html', 'index.html'], ['/digest.html', 'digest.html'], ['/privacy.html', 'privacy.html']]) {
+for (const [route, rel] of [['/', 'index.html'], ['/index.html', 'index.html'], ['/digest.html', 'digest.html'], ['/privacy.html', 'privacy.html'], ['/contact.html', 'contact.html']]) {
   router.get(route, async (req, res) => { res.set('Cache-Control', 'no-cache').type('html').send(await readerPage(rel)); });
 }
 
@@ -222,6 +222,7 @@ router.get('/sitemap.xml', async (req, res) => {
     { loc: `${ORIGIN}/search.html`, lastmod: day(latest), freq: 'daily' },
     { loc: `${ORIGIN}/digest.html`, freq: 'weekly' },
     { loc: `${ORIGIN}/privacy.html`, freq: 'yearly' },
+    { loc: `${ORIGIN}/contact.html`, freq: 'monthly' },
     ...stories.map((n) => ({ loc: `${ORIGIN}/news.html?id=${n.id}`, lastmod: day(n.at) })),
     ...digests.map((d) => ({ loc: `${ORIGIN}/digest.html?id=${encodeURIComponent(d.id)}`, lastmod: d.published_at ? day(d.published_at) : null })),
   ];

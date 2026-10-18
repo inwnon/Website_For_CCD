@@ -1,7 +1,7 @@
 // npm run build:images — page-sized copies of the brand images in assets/img (the originals in brand_assets/ are
 // 1254px PNGs of 0.5–1.8 MB; pages show the logo at about 44px and Hawky at up to about 380px).
 //   logo-96.webp, logo-192.webp   header and footer logo (1× / 2×+ screens)
-//   icon-32.png, icon-180.png     browser tab and home-screen icons
+//   icon-32.png, icon-180.png     browser tab (the circle only, transparent) and home-screen icons
 //   hawky-480.webp, hawky-640.webp, hawky-960.webp
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -14,7 +14,6 @@ mkdirSync(OUT, { recursive: true });
 const jobs = [
   ['Logo-CCD.png', 'logo-96.webp', 96, (s) => s.webp({ quality: 86 })],
   ['Logo-CCD.png', 'logo-192.webp', 192, (s) => s.webp({ quality: 86 })],
-  ['Logo-CCD.png', 'icon-32.png', 32, (s) => s.png({ compressionLevel: 9, palette: true })],
   ['Logo-CCD.png', 'icon-180.png', 180, (s) => s.png({ compressionLevel: 9, palette: true })],
   ['Hawky-bgTran.png', 'hawky-480.webp', 480, (s) => s.webp({ quality: 82, alphaQuality: 90 })],
   ['Hawky-bgTran.png', 'hawky-640.webp', 640, (s) => s.webp({ quality: 80, alphaQuality: 90 })],
@@ -23,6 +22,28 @@ const jobs = [
 for (const [src, out, w, enc] of jobs) {
   const info = await enc(sharp(join(SRC, src)).resize(w, w, { fit: 'inside' })).toFile(join(OUT, out));
   console.log(`${out.padEnd(16)} ${info.width}x${info.height} ${Math.round(info.size / 1024)} KB`);
+}
+
+// icon-32.png: the browser tab icon is the logo's purple circle alone on a transparent background (no near-white square
+// around it). The circle sits off-centre in Logo-CCD.png, so find it: the box of everything that is not the background.
+{
+  const { data, info } = await sharp(join(SRC, 'Logo-CCD.png')).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const [br, bg, bb] = data; // the top-left pixel is background
+  let x0 = info.width, y0 = info.height, x1 = 0, y1 = 0;
+  for (let y = 0; y < info.height; y++) for (let x = 0; x < info.width; x++) {
+    const i = (y * info.width + x) * 3;
+    if (Math.abs(data[i] - br) + Math.abs(data[i + 1] - bg) + Math.abs(data[i + 2] - bb) > 40) {
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+  }
+  const size = Math.max(x1 - x0, y1 - y0) + 1;
+  // The mask sits 1% inside the circle's edge, so no light anti-aliased rim shows against a dark tab bar
+  const r = size / 2;
+  const mask = Buffer.from(`<svg width="${size}" height="${size}"><circle cx="${r}" cy="${r}" r="${r * 0.99}"/></svg>`);
+  const disc = await sharp(join(SRC, 'Logo-CCD.png')).extract({ left: x0, top: y0, width: size, height: size }).ensureAlpha()
+    .composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer();
+  const info32 = await sharp(disc).resize(32, 32).png({ compressionLevel: 9 }).toFile(join(OUT, 'icon-32.png'));
+  console.log(`${'icon-32.png'.padEnd(16)} 32x32 ${Math.round(info32.size / 1024)} KB (circle ${size}px at ${x0},${y0}, transparent)`);
 }
 
 // og-default.jpg 1200×630: the picture shown when a page without its own photo is shared (Facebook, LINE)

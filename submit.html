@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ส่งข่าว | ข่าว มรส.</title>
   <meta name="description" content="ส่งข่าวพร้อมภาพ วิดีโอ หรือแบนเนอร์และอินโฟกราฟิก ให้งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี ตรวจและเผยแพร่">
-  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
 
   <script>
@@ -302,7 +302,7 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=6ced3bc19b">
+  <link rel="stylesheet" href="/assets/app.css?v=37612f3165">
 </head>
 
 <body class="min-h-screen">
@@ -350,6 +350,9 @@
       </a>
       <a href="submit.html" aria-current="page" class="press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-red-soft px-4 font-display text-[15px] font-medium text-brand hover:opacity-90">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>ส่งข่าว
+      </a>
+      <a href="contact.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>ติดต่อเรา
       </a>
     </nav>
   </header>
@@ -579,7 +582,7 @@
                 </div>
                 <div>
                   <label for="place" class="mb-2 block font-display text-[15px] font-semibold">สถานที่ <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
-                  <input id="place" name="place" type="text" maxlength="120" placeholder="เช่น หอประชุมมหาวิทยาลัย" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
+                  <input id="place" name="place" type="text" maxlength="120" placeholder="เช่น หอประชุมวชิราลงกรณ" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
                 </div>
               </div>
 
@@ -588,6 +591,24 @@
                 <select id="unit" name="unit" required class="field sel h-14 w-full rounded-2xl pl-4 pr-12 text-[16px]" aria-describedby="unitHint unitError"></select>
                 <p id="unitHint" class="mt-2 text-[13px] text-ink2">ดึงจากสังกัดในโปรไฟล์ของคุณ เปลี่ยนได้หากส่งแทนหน่วยงานอื่น</p>
                 <p id="unitError" class="mt-2 text-[14px] font-medium text-brand" hidden>เลือกหน่วยงาน</p>
+              </div>
+
+              <!-- Banner / infographic: who designed it -->
+              <div data-for="banner">
+                <div class="mb-2 flex items-baseline justify-between gap-3">
+                  <label for="designer" class="font-display text-[15px] font-semibold">ผู้ออกแบบ <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+                  <span class="text-[12px] text-ink2"><span data-count="designer">0</span>/120</span>
+                </div>
+                <input id="designer" name="designer" type="text" maxlength="120" autocomplete="off" placeholder="ชื่อผู้ออกแบบ หรือทีม / บริษัทที่ออกแบบ" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
+              </div>
+
+              <!-- Video: who produced it -->
+              <div data-for="video">
+                <div class="mb-2 flex items-baseline justify-between gap-3">
+                  <label for="producer" class="font-display text-[15px] font-semibold">ผู้ผลิต <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+                  <span class="text-[12px] text-ink2"><span data-count="producer">0</span>/120</span>
+                </div>
+                <input id="producer" name="producer" type="text" maxlength="120" autocomplete="off" placeholder="ชื่อผู้ผลิต หรือทีม / บริษัทที่ผลิตวิดีโอ" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
               </div>
 
               <fieldset id="catSet" data-for="news video" aria-describedby="catError">
@@ -972,6 +993,7 @@
       </a>
       <span>คลังข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
       <span class="flex gap-6 md:ml-auto">
+        <a href="contact.html" class="press t-quick rounded hover:text-ink hover:underline">ติดต่อเรา</a>
         <a href="privacy.html" class="press t-quick rounded hover:text-ink hover:underline">นโยบายความเป็นส่วนตัว</a>
         <span>โดยงานประชาสัมพันธ์ มรส.</span>
       </span>
@@ -1686,7 +1708,7 @@
 
     // ---- Kept in this browser while typing (text only), so a closed tab or a sign-in loses nothing ----
     const DRAFT_KEY = 'newsDraft';
-    const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl'];
+    const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'designer', 'producer', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl'];
     const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'newsPlatform'];
     let draftTimer = null;
     // A draft opened from ข่าวของฉัน (submit.html?draft=ID) lives on the server; "บันทึกร่าง" saves it there
@@ -1821,7 +1843,7 @@
       return {
         type, title: val('title'), lead: val('lead'), desc: val('desc'), body: val('body'), eventDate: val('eventDate'), place: val('place'), unit: val('unit'),
         categories: cats(), contentMode: radio('contentMode'), credit: val('credit'), newsVideo: val('newsVideo'), newsPlatform: radio('newsPlatform'),
-        videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), albumUrl: val('albumUrl'),
+        videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), albumUrl: val('albumUrl'), designer: val('designer'), producer: val('producer'),
         chairPrefix: prefixOf('chair'), chairName: val('chairName'), chairPos: val('chairPos'),
         reporterPrefix: prefixOf('reporter'), reporterName: val('reporterName'), reporterPos: val('reporterPos'),
         guests: guests.filter((g) => g.name.trim() || g.pos.trim()).map((g) => ({ prefix: (g.prefix || '').trim(), name: g.name.trim(), pos: g.pos.trim() })),
@@ -1923,11 +1945,11 @@
           ['ใครเห็นได้', aud],
         ],
         video: [
-          ['ชื่อวิดีโอ', sub.title], ['หน่วยงาน', sub.unit], ['วันที่จัดกิจกรรม', thDate(val('eventDate'))],
+          ['ชื่อวิดีโอ', sub.title], ['หน่วยงาน', sub.unit], ...(val('producer') ? [['ผู้ผลิต', val('producer')]] : []), ['วันที่จัดกิจกรรม', thDate(val('eventDate'))],
           ['ประเภทข่าว', cats().join(', ')], ['วิดีโอ', videoText()], ['ใครเห็นได้', aud],
         ],
         banner: [
-          ['ชื่องาน', sub.title], ['หน่วยงาน', sub.unit], ['ไฟล์งาน', `${n('art')} ไฟล์`], ['ใครเห็นได้', aud],
+          ['ชื่องาน', sub.title], ['หน่วยงาน', sub.unit], ...(val('designer') ? [['ผู้ออกแบบ', val('designer')]] : []), ['ไฟล์งาน', `${n('art')} ไฟล์`], ['ใครเห็นได้', aud],
         ],
       }[type];
       $('#doneSummary').innerHTML = rows.map(([k, v]) => `<div><dt class="text-[13px] text-ink2">${k}</dt><dd class="font-display text-[16px] font-medium">${esc(v)}</dd></div>`).join('');
@@ -2029,7 +2051,7 @@
       // Fill the form from what was sent
       const set = (id, v) => { if (v != null) $('#' + id).value = v; };
       set('title', sub.title); set('lead', f.lead); set('desc', f.desc); set('body', f.body); set('eventDate', f.eventDate?.slice(0, 10)); set('place', f.place);
-      set('credit', f.credit); set('newsVideo', f.newsVideo); set('videoLink', f.videoLink); set('titleEn', f.titleEn); set('bodyEn', f.bodyEn); set('albumUrl', f.albumUrl);
+      set('credit', f.credit); set('newsVideo', f.newsVideo); set('videoLink', f.videoLink); set('titleEn', f.titleEn); set('bodyEn', f.bodyEn); set('albumUrl', f.albumUrl); set('designer', f.designer); set('producer', f.producer);
       set('note', '');
       if (![...$('#unit').options].some((o) => o.value === sub.unit)) $('#unit').insertAdjacentHTML('beforeend', `<option>${esc(sub.unit)}</option>`);
       $('#unit').value = sub.unit;

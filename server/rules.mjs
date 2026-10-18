@@ -105,6 +105,8 @@ export function checkSubmission(user, d, fileCounts) {
     audience: d.audience,
     note: str(d.note, 300, 'หมายเหตุ'),
     album_url: null,
+    designer: type === 'banner' ? str(d.designer, 120, 'ผู้ออกแบบ') : null,
+    producer: type === 'video' ? str(d.producer, 120, 'ผู้ผลิต') : null,
   };
 
   need('title', row.title, 'กรอกหัวข้อ');
@@ -175,7 +177,7 @@ export function checkSubmission(user, d, fileCounts) {
 // Nothing is required; the full checks (checkSubmission) run when the draft is sent.
 const DRAFT_TEXT = { title: MAX_TITLE, lead: MAX_LEAD, desc: 5000, body: 20000, eventDate: 10, place: 120, unit: 200, contentMode: 10, credit: 80,
   newsVideo: 500, newsPlatform: 20, videoLink: 500, videoPlatform: 20, albumUrl: 500, chairPrefix: 60, chairName: 100, chairPos: 120,
-  reporterPrefix: 60, reporterName: 100, reporterPos: 120, titleEn: 160, bodyEn: 20000, note: 300 };
+  reporterPrefix: 60, reporterName: 100, reporterPos: 120, titleEn: 160, bodyEn: 20000, note: 300, designer: 120, producer: 120 };
 export function draftData(d) {
   if (!d || typeof d !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลร่าง');
   if (!TYPES.includes(d.type)) throw new HttpError(400, 'กรุณาเลือกประเภทงาน');

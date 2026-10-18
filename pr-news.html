@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ข่าวที่เผยแพร่ | หลังบ้าน ข่าว มรส.</title>
   <meta name="robots" content="noindex">
-  <link rel="icon" href="/assets/img/icon-32.png" sizes="32x32">
+  <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
   <script>
     (function () {
@@ -26,7 +26,7 @@
     .row-item.is-gone img { filter: grayscale(1); opacity: .6; }
     .star[aria-pressed="true"] svg { fill: currentColor; }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=6ced3bc19b">
+  <link rel="stylesheet" href="/assets/app.css?v=37612f3165">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการข่าว</a>
@@ -139,6 +139,8 @@
     const KIND = { news: 'ข่าวพร้อมภาพ', video: 'วิดีโอ', banner: 'แบนเนอร์' };
     const PAGE = 30;
     const state = { show: 'all', q: '', offset: 0, items: [], seq: 0 };
+    // After an action the list is drawn again: focus goes back to the same button (or the story's first one, or the list)
+    let refocus = null;
 
     const badge = (cls, text) => `<span class="inline-flex shrink-0 items-center rounded-full ${cls} px-2.5 font-display text-[12px] font-semibold leading-6">${text}</span>`;
     function row(n) {
@@ -246,6 +248,11 @@
         $('#list').innerHTML = r.items.length ? r.items.map(row).join('')
           : `<div class="grid place-items-center gap-2 p-12 text-center text-ink2"><p class="font-display text-[17px] font-semibold text-ink">${state.q ? `ไม่พบข่าวที่ตรงกับ “${esc(state.q)}”` : 'ยังไม่มีข่าวในกลุ่มนี้'}</p>
              ${state.show === 'imported' ? '<a href="pr-import.html" class="text-purple underline underline-offset-4">นำเข้าข่าวย้อนหลังข่าวแรก</a>' : ''}</div>`;
+        if (refocus) {
+          const row = $(`#list [data-id="${refocus.id}"]`);
+          (row?.querySelector(`[data-act="${refocus.act}"]`) || row?.querySelector('[data-act]') || $('#list [data-act]') || $('#q')).focus({ preventScroll: !row });
+          refocus = null;
+        }
         const from = r.total ? state.offset + 1 : 0;
         $('#pageInfo').textContent = r.total ? `${num(from)}–${num(state.offset + r.items.length)} จาก ${num(r.total)} ข่าว` : '';
         $('#prev').disabled = state.offset === 0;
@@ -263,10 +270,13 @@
       const b = e.target.closest('[data-act]');
       if (!b) return;
       const n = state.items.find((x) => x.id === b.closest('[data-id]').dataset.id);
+      if (!n || b.disabled) return;
       try {
         if (b.dataset.act === 'feature') {
+          b.disabled = true; // a second click before the answer would undo the first
           const r = await api(`/pr/news/${n.id}/feature`, { method: 'POST', body: { featured: !n.featured } });
           toast(r.featured ? 'ตั้งเป็นข่าวเด่นแล้ว แสดงบนหน้าแรก' : 'เลิกเป็นข่าวเด่นแล้ว');
+          refocus = { id: n.id, act: 'feature' };
           load();
         } else if (b.dataset.act === 'withdraw') {
           pending = n;
@@ -282,36 +292,47 @@
         } else if (b.dataset.act === 'history') {
           openHistory(n);
         } else if (b.dataset.act === 'restore') {
+          b.disabled = true;
           await api(`/pr/news/${n.id}/restore`, { method: 'POST' });
           toast('คืนข่าวแล้ว ข่าวกลับมาแสดงบนเว็บไซต์');
+          refocus = { id: n.id, act: 'withdraw' };
           load();
         }
-      } catch (err) { toast(err.message, true); }
+      } catch (err) { b.disabled = false; toast(err.message, true); }
     });
+    // Dialog forms: the submit button waits for the answer too
+    const sending = (form, on) => { const btn = form.querySelector('[type=submit], button:not([type])'); if (btn) btn.disabled = on; };
     $('#wdPresets').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { $('#wdReason').value = b.textContent; $('#wdReason').focus(); } });
     $('#wdCancel').addEventListener('click', () => $('#wdDlg').close());
     $('#wdForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const f = e.currentTarget;
+      if (e.submitter?.disabled) return;
+      sending(f, true);
       try {
         await api(`/pr/news/${pending.id}/withdraw`, { method: 'POST', body: { reason: $('#wdReason').value } });
         $('#wdDlg').close();
         toast('ถอนข่าวแล้ว');
+        refocus = { id: pending.id, act: 'restore' };
         load();
-      } catch (err) { toast(err.message, true); }
+      } catch (err) { toast(err.message, true); } finally { sending(f, false); }
     });
 
     $('#alCancel').addEventListener('click', () => $('#alDlg').close());
     $('#alForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const f = e.currentTarget;
+      sending(f, true);
       try {
         const r = await api(`/pr/news/${pending.id}/album`, { method: 'PUT', body: { albumUrl: $('#alUrl').value.trim() } });
         $('#alDlg').close();
         toast(r.albumUrl ? 'บันทึกลิงก์แล้ว หน้าข่าวแสดงปุ่ม "ดูรูปภาพเพิ่มเติม"' : 'ลบลิงก์ภาพเพิ่มเติมแล้ว');
+        refocus = { id: pending.id, act: 'album' };
         load();
       } catch (err) {
         if (err.details?.albumUrl) { $('#alErr').textContent = err.details.albumUrl; $('#alErr').hidden = false; $('#alUrl').focus(); }
         else toast(err.message, true);
-      }
+      } finally { sending(f, false); }
     });
 
     $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-show]'); if (b) { state.show = b.dataset.show; state.offset = 0; load(); } });
