@@ -141,6 +141,8 @@
   // ---- Page renderers (sizes in cqw so text scales with the page) ----
   const year = (d) => (d.range.match(/(\d{4})$/) || [])[1] || '';
   const shortRange = (d) => d.range.replace(/\s*\d{4}$/, '');
+  // On the cover: a day and its month on one line ("28 ก.ย. – 4 ต.ค.", never "4" and "ต.ค." apart)
+  const coverRange = (d) => shortRange(d).replace(/(\d{1,2}) (?=\D)/g, '$1\u00a0');
   const photo = (st, w, h) => `
     <div class="relative overflow-hidden rounded-[1.4cqw] bg-[#E8EDFF]" style="aspect-ratio:${w}/${h}">
       ${st.img ? `<img src="${esc(st.img)}" alt="" class="h-full w-full object-cover" loading="lazy">` : '<div class="absolute inset-0" style="background:radial-gradient(70% 90% at 80% 10%,rgb(122 60 226/.85),transparent 70%),radial-gradient(70% 90% at 10% 100%,rgb(222 20 42/.8),transparent 70%),#1B2560"></div>'}
@@ -163,7 +165,7 @@
         <div class="grain-abs"></div>
         <div class="relative flex h-full flex-col p-[7cqw] text-white">
           <p class="flex justify-between font-display text-[3cqw] font-semibold tracking-[.18em]"><span>${esc(KIND[d.kind].masthead)}</span> <span>No.${esc(d.no)}</span></p>
-          <p class="mt-[8cqw] font-display text-[13cqw] font-bold leading-[1.05] tracking-[-0.03em]">${esc(shortRange(d))}</p>
+          <p class="mt-[8cqw] font-display text-[13cqw] font-bold leading-[1.05] tracking-[-0.03em]">${esc(coverRange(d))}</p>
           <p class="mt-[1.5cqw] font-display text-[4cqw] font-medium text-white/80">${year(d)} · ${iss.count} ข่าว</p>
           <ol class="mt-[7cqw] grid gap-[2.4cqw] border-t border-white/25 pt-[4cqw]">
             ${iss.stories.slice(0, 3).map((st) => `<li class="text-[3.4cqw] leading-[1.35]"><span class="block font-display text-[2.6cqw] font-semibold text-white/70">${esc(st.cat)}</span>${esc(st.title)}</li>`).join('')}
@@ -237,7 +239,7 @@
       <span class="grain-abs"></span>
       <span class="relative flex h-full flex-col p-[8cqw] text-left text-white">
         <span class="flex justify-between font-display text-[4cqw] font-semibold tracking-[.16em]"><span>${esc(KIND[d.kind].masthead)}</span> <span>No.${esc(d.no)}</span></span>
-        <span class="mt-[8cqw] font-display text-[15cqw] font-bold leading-[1.05] tracking-[-0.03em]">${esc(shortRange(d))}</span>
+        <span class="mt-[8cqw] font-display text-[15cqw] font-bold leading-[1.05] tracking-[-0.03em]">${esc(coverRange(d))}</span>
         <span class="mt-[2cqw] font-display text-[5cqw] font-medium text-white/80">${year(d)}</span>
         <img src="/assets/img/hawky-960.webp" srcset="/assets/img/hawky-480.webp 480w, /assets/img/hawky-640.webp 640w, /assets/img/hawky-960.webp 960w" sizes="(min-width: 768px) 380px, (min-width: 640px) 300px, 245px" alt="" class="absolute bottom-[-3cqw] right-[-6cqw] h-auto w-[62cqw] drop-shadow-[0_3cqw_4cqw_rgb(0_0_0/.35)]">
       </span>

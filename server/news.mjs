@@ -7,7 +7,7 @@
 // - GET    /api/news/search?q=&kind=&cat=&cat=&unit=&from=&to=&sort=relevance|newest&limit=&offset=
 //          search and filters (search.html, unit pages). Only stories the viewer may read; never placeholders.
 // - GET    /api/news/archive?year=2026      { years, months: { '01': n }, days: { 'YYYY-MM-DD': n } }
-// - GET    /api/news/:id                     full story + linked (ข่าวที่เกี่ยวข้อง, set by PR) + related (nearby); 401/403 { locked }, 410 { withdrawn }
+// - GET    /api/news/:id                     full story + linked (ข่าวที่เกี่ยวข้อง, set by PR) + related (nearby) + sets (อัลบั้มข่าว); 401/403 { locked }, 410 { withdrawn }
 // - POST   /api/news/:id/read  { ref }       counts a read: once per reader per story per day, bots ignored
 // - GET    /api/me/saved                     { ids } of the signed-in user's saved stories
 // - PUT    /api/news/:id/save · DELETE /api/news/:id/save
@@ -199,15 +199,31 @@ async function readable(req, id = req.params.id) {
 
 // One story and four related ones, as the API and the server-rendered news.html (pages.mjs) send it.
 // Throws HttpError 404 / 410 / 401 / 403 like readable().
+// อัลบั้มข่าว (collections.mjs) this story is in, each with its other live stories (a few) and how many there are
+async function setsOf(newsId, user) {
+  const sets = (await query('select * from collections where $1 = any(items) order by updated_at desc limit 3', [newsId])).rows;
+  const out = [];
+  for (const c of sets) {
+    const rows = (await query(`select n.* from news n where ${LIVE} and n.id = any($1)`, [c.items])).rows;
+    const items = c.items.map((id) => rows.find((n) => n.id === id)).filter(Boolean).map((n) => cardOut(n, user));
+    // others: a preview, so only stories this reader may open (count is the whole set, as collection.html shows it)
+    out.push({ id: c.id, title: c.title, count: items.length, others: items.filter((n) => n.id !== newsId && !n.locked).slice(0, 8) });
+  }
+  return out;
+}
+
 export async function storyPayload(req, id) {
   const n = await readable(req, id);
   // ข่าวที่เกี่ยวข้อง: the PR team's picks, in their order, live ones the reader may open
   const picked = n.related?.length ? (await query(`select n.* from news n where ${LIVE} and n.id = any($1)`, [n.related])).rows : [];
   const linked = n.related.map((id) => picked.find((r) => r.id === id)).filter((r) => r && canRead(r, req.user));
   // ข่าวใกล้เคียง: same categories first, never one of the picks
+  // อัลบั้มข่าว first: the stories shown with the set are not suggested again below it
+  const sets = await setsOf(n.id, req.user);
+  const shown = [...linked.map((r) => r.id), ...sets.flatMap((c) => c.others.map((r) => r.id))];
   const related = (await query(
     `select n.* from news n where ${LIVE} and n.id <> $1 and n.audience && $3::audience[] and not (n.id = any($4))
-     order by (n.categories && $2) desc, n.published_at desc limit 4`, [n.id, n.categories, readableBy(req.user), linked.map((r) => r.id)])).rows;
+     order by (n.categories && $2) desc, n.published_at desc limit 4`, [n.id, n.categories, readableBy(req.user), shown])).rows;
   const saved = req.user ? !!(await one('select 1 from saved_news where user_id = $1 and news_id = $2', [req.user.id, n.id])) : false;
   return {
     raw: n,
@@ -224,11 +240,12 @@ export async function storyPayload(req, id) {
     },
     linked: linked.map((r) => cardOut(r, req.user)),
     related: related.map((r) => cardOut(r, req.user)),
+    sets,
   };
 }
 router.get('/news/:id', async (req, res) => {
-  const { story, linked, related } = await storyPayload(req, req.params.id);
-  res.json({ story, linked, related });
+  const { story, linked, related, sets } = await storyPayload(req, req.params.id);
+  res.json({ story, linked, related, sets });
 });
 
 // ---- Reads ----

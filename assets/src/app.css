@@ -68,3 +68,11 @@
   .tt-editor.is-empty { position: relative; }
 }
 @tailwind utilities;
+
+/* แจ้งเตือนงานใหม่ (arrivals.js): the notice rises in, the bell swings once */
+.arrivals-card { animation: arrive-in .5s cubic-bezier(.34, 1.56, .64, 1); }
+.arrivals-bell svg { transform-origin: 50% 10%; animation: bell-ring .9s ease-in-out .15s 1; }
+@keyframes arrive-in { from { opacity: 0; transform: translateY(16px) scale(.97); } }
+@keyframes bell-ring { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(16deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-4deg); } }
+.alert-switch:hover { border-color: rgb(var(--purple) / .45); }
+@media (prefers-reduced-motion: reduce) { .arrivals-card, .arrivals-bell svg { animation: none; } }

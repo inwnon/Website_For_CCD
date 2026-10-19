@@ -275,7 +275,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
+  <link rel="stylesheet" href="/assets/app.css?v=0c6408e3d6">
 </head>
 
 <body class="app">
@@ -309,6 +309,10 @@
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
           ข่าวที่เผยแพร่
         </a>
+        <a href="pr-collections.html" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 font-display text-[15px] font-medium">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/></svg>
+          อัลบั้มข่าว
+        </a>
         <a href="pr-import.html" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 font-display text-[15px] font-medium">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
           นำเข้าข่าวย้อนหลัง
@@ -336,6 +340,7 @@
       </div>
 
       <div class="mt-auto grid gap-3 pt-6">
+        <div id="alertSlot"></div>
         <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
           <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
           <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
@@ -585,6 +590,7 @@
   <!-- auth.js: the role names and the role switch of developer accounts (this page keeps its own api()) -->
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
+  <script src="arrivals.js"></script>
   <script src="text-tools.js"></script>
   <script src="sortable.js"></script>
   <script>
@@ -638,7 +644,7 @@
     };
     // Menu order follows the work: review → writing → published, then the side state and "all"; deleted work last, apart
     const MENU = ['review', 'writing', 'published', 'revise', '', 'rejected'];
-    const ROLE_LABEL = { staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ' };
+    const ROLE_LABEL = { staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.' };
     // ประเภทข่าว: replaced by the settings from /api/pr/config; video-only ones are offered for videos
     let VIDEO_CATEGORIES = ['วิดีโอเสียงตามสาย'];
     let CATEGORIES = ['ข่าวผู้บริหาร', 'ข่าวกิจกรรมนักศึกษา', 'รางวัล/ความสำเร็จ', 'ข่าวการศึกษา', 'ข่าวความร่วมมือ/MOU', 'ข่าวประชุม/สัมมนา', 'ข่าววิจัย/นวัตกรรม', 'ข่าวบริการวิชาการ', 'ข่าวกิจกรรมเพื่อชุมชน/ท้องถิ่น', 'ข่าววิศวกรสังคม'];
@@ -758,8 +764,11 @@
     $('#q').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value.trim(); loadList(); }, 250); });
 
     // ---- List ----
-    async function loadList(append = false) {
-      const p = new URLSearchParams({ limit: PAGE, offset: append ? items.length : 0 });
+    let listSeq = 0;
+    // keep: reload as many as are shown (refresh, after an action), not only the first page
+    async function loadList(append = false, keep = false) {
+      const seq = ++listSeq;
+      const p = new URLSearchParams({ limit: keep ? Math.min(200, Math.max(PAGE, items.length)) : PAGE, offset: append ? items.length : 0 });
       if (state.status) p.set('status', state.status);
       if (state.type) p.set('type', state.type);
       if (state.q) p.set('q', state.q);
@@ -767,20 +776,23 @@
       $('#list').classList.add('is-loading');
       try {
         const r = await api('/pr/submissions?' + p);
-        items = append ? [...items, ...r.items] : r.items;
+        if (seq !== listSeq) return;
+        // Unread work comes first, so the order can move between two pages: never the same work twice
+        items = append ? [...items, ...r.items.filter((x) => !items.some((y) => y.ref === x.ref))] : r.items;
         total = r.total;
         counts = r.counts;
         renderMenu();
         renderList();
       } catch (e) {
-        toast(e.message, true);
+        if (seq === listSeq) toast(e.message, true);
       } finally {
-        $('#list').classList.remove('is-loading');
+        if (seq === listSeq) $('#list').classList.remove('is-loading');
       }
     }
     $('#more').addEventListener('click', () => loadList(true));
 
     function renderList() {
+      const had = document.activeElement?.closest?.('#list [data-ref]')?.dataset.ref;
       $('#listCount').textContent = total ? `${total.toLocaleString('th-TH')} งาน` : '';
       $('#list').innerHTML = items.map((s) => {
         const T = TYPE[s.type], S = STATUS[s.status];
@@ -804,6 +816,7 @@
           </button>
         </li>`;
       }).join('');
+      if (had) $(`#list [data-ref="${CSS.escape(had)}"]`)?.focus({ preventScroll: true });
       const none = !items.length;
       $('#empty').hidden = !none;
       $('#more').hidden = none || items.length >= total;
@@ -832,14 +845,18 @@
       $('#detail').classList.remove('flex');
       $('#detailEmpty').hidden = isMobile();
     }
+    let openSeq = 0;
     async function openItem(ref, fromClick) {
+      const seq = ++openSeq;
       current = ref;
       try { history.replaceState(null, '', `?status=${state.status}&ref=${encodeURIComponent(ref)}`); } catch (e) {}
       renderList();
       try {
-        detailData = await api(`/pr/submissions/${encodeURIComponent(ref)}`);
+        const d = await api(`/pr/submissions/${encodeURIComponent(ref)}`);
+        if (seq !== openSeq) return;
+        detailData = d;
       } catch (e) {
-        toast(e.message, true);
+        if (seq === openSeq) toast(e.message, true);
         return;
       }
       const s = detailData.submission;
@@ -993,7 +1010,7 @@
             <span class="ml-auto text-ink2">ส่งเมื่อ ${when(s.sentAt)}</span>
           </div>
           <h2 id="dTitle" tabindex="-1" class="mt-1.5 font-display text-[clamp(19px,1.8vw,23px)] font-semibold leading-snug">${esc(s.title)}</h2>
-          <p class="mt-1 text-[13px] text-ink2"><span class="font-medium text-ink">${esc(sender?.name || '–')}</span>${sender?.position ? ` ${esc(sender.position)}` : ''} · ${esc(s.unit)} · <a href="mailto:${esc(sender?.email)}" class="rounded text-royal underline decoration-[rgb(var(--royal)/.45)] underline-offset-2 hover:decoration-[rgb(var(--royal))]">${esc(sender?.email)}</a>${sender?.phone ? ` · <a href="tel:${esc(sender.phone)}" class="rounded text-royal underline decoration-[rgb(var(--royal)/.45)] underline-offset-2 hover:decoration-[rgb(var(--royal))]" title="โทรหาผู้ส่ง">${sender.role === 'student' || sender.role === 'external' ? 'โทร' : 'โทรภายใน'} ${esc(sender.phone)}</a>` : ''}</p>
+          <p class="mt-1 text-[13px] text-ink2"><span class="font-medium text-ink">${esc(sender?.name || '–')}</span>${sender?.position ? ` ${esc(sender.position)}` : ''} · ${esc(s.unit)} · <a href="mailto:${esc(sender?.email)}" class="rounded text-royal underline decoration-[rgb(var(--royal)/.45)] underline-offset-2 hover:decoration-[rgb(var(--royal))]">${esc(sender?.email)}</a>${sender?.phone ? ` · <a href="tel:${esc(sender.phone)}" class="rounded text-royal underline decoration-[rgb(var(--royal)/.45)] underline-offset-2 hover:decoration-[rgb(var(--royal))]" title="โทรหาผู้ส่ง">${['student', 'external'].includes(sender.baseRole || sender.role) ? 'โทร' : 'โทรภายใน'} ${esc(sender.phone)}</a>` : ''}</p>
 
           <div class="grain relative mt-3 flex flex-col gap-3 overflow-hidden rounded-2xl px-4 py-3 ${S.cls} md:flex-row md:items-center">
             <p class="relative min-w-0 flex-1 font-display text-[15px] font-semibold">${S.title}</p>
@@ -1060,7 +1077,7 @@
       try {
         detailData = await promise;
         renderDetail(false);
-        await loadList();
+        await loadList(false, true);
         toast(done);
         $('#dTitle').focus({ preventScroll: true });
         return true;
@@ -1317,9 +1334,10 @@
     function refresh() {
       if (!me || document.hidden || $$('dialog[open]').length) return;
       lastRefresh = Date.now();
-      loadList();
+      loadList(false, true);
     }
     document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastRefresh > 15000) refresh(); });
+    window.onArrivals = () => { if (me && !$$('dialog[open]').length) { lastRefresh = Date.now(); loadList(false, true); } };
     setInterval(refresh, 60000);
 
     // ---- Theme switch ----

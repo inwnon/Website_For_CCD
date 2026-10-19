@@ -35,6 +35,20 @@ export const router = Router();
 // Everything under /pr is the PR team's, but /pr/import (newsdesk.mjs), which นักศึกษาฝึกงาน สสอ. may use too
 router.use('/pr', (req, res, next) => (/^\/import(\/|$)/.test(req.path) ? next() : requirePr(req, res, next)));
 
+// แจ้งเตือนงานใหม่ (arrivals.js): work sent or sent again since `since` (at most a day back), newest first, and the
+// server's time to ask from next. The back-office pages ask every 20 seconds.
+router.get('/pr/arrivals', async (req, res) => {
+  const now = new Date();
+  const asked = new Date(String(req.query.since || ''));
+  const since = Number.isNaN(asked.getTime()) ? now : new Date(Math.max(asked.getTime(), now.getTime() - 864e5));
+  const rows = (await query(
+    `select distinct on (s.id) s.ref, s.type, s.title, s.unit, e.status kind, e.at, coalesce(nullif(trim(concat_ws(' ', u.first_name, u.last_name)), ''), u.name, u.email) sender
+     from submission_events e join submissions s on s.id = e.submission_id join users u on u.id = s.sender_id
+     where e.status in ('sent', 'resent') and e.at > $1 and e.at <= $2 and s.status <> 'rejected'
+     order by s.id, e.at desc limit 50`, [since, now])).rows.sort((a, b) => b.at - a.at);
+  res.json({ now, items: rows.map((r) => ({ ref: r.ref, type: r.type, title: r.title, unit: r.unit, again: r.kind === 'resent', at: r.at, sender: r.sender })) });
+});
+
 router.get('/pr/submissions', async (req, res) => {
   const { status, type, q, unread } = req.query;
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);

@@ -184,7 +184,7 @@
     }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
+  <link rel="stylesheet" href="/assets/app.css?v=0c6408e3d6">
 </head>
 
 <body class="min-h-screen">
@@ -246,6 +246,9 @@
       </a>
       <a href="search.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>คลังข่าว
+      </a>
+      <a href="collection.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/></svg>อัลบั้มข่าว
       </a>
       <a href="digest.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>เล่มสรุปข่าว
@@ -322,7 +325,7 @@
           <span class="t-spring hidden h-14 w-12 shrink-0 sm:grid place-items-center rounded-2xl bg-shell/75 text-purple shadow-[0_4px_0_rgb(255_255_255/.4),0_6px_14px_rgb(122_60_226/.08)] group-hover:-rotate-6 group-hover:scale-110">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>
           </span>
-          <span class="min-w-0"><span class="block font-display text-[clamp(18px,2vw,24px)] font-bold text-purple">ข่าวเด่น</span><span class="hidden text-[13px] text-ink2 sm:block">คัดโดยทีม PR</span></span>
+          <span class="min-w-0"><span class="block font-display text-[clamp(18px,2vw,24px)] font-bold text-purple">ข่าวเด่น</span><span class="hidden text-[13px] text-ink2 sm:block">ข่าวเด่นสัปดาห์นี้</span></span>
         </a>
         <a href="#archive" class="lift press t-spring group relative flex min-h-[104px] items-center gap-4 overflow-hidden rounded-card bg-sky-soft p-5 hover:-translate-y-1">
           <span class="t-spring hidden h-14 w-12 shrink-0 sm:grid place-items-center rounded-2xl bg-shell/75 text-sky shadow-[0_4px_0_rgb(255_255_255/.4),0_6px_14px_rgb(0_150_215/.08)] group-hover:-rotate-6 group-hover:scale-110">
@@ -341,8 +344,8 @@
       <!-- Shelf: featured -->
       <section id="featured" class="cv-auto mt-shelf" aria-labelledby="featured-title">
         <div class="reveal mb-6">
-          <p class="font-display text-[14px] font-medium text-brand">คัดเลือกโดยทีมประชาสัมพันธ์</p>
-          <h2 id="featured-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวเด่น</h2>
+          <p class="font-display text-[14px] font-medium text-brand">ช่วงนี้มีอะไรเกิดขึ้นบ้างนะ</p>
+          <h2 id="featured-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวเด่นสัปดาห์นี้</h2>
         </div>
         <div id="featuredGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="featuredEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ทีม PR ยังไม่ได้เลือกข่าวเด่น</p>
@@ -383,6 +386,20 @@
         </div>
         <div id="soundGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="soundEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ยังไม่มีวิดีโอเสียงตามสาย</p>
+      </section>
+
+      <!-- Shelf: อัลบั้มข่าว (pr-collections.html), the four changed last; hidden while there are none -->
+      <section id="sets" class="cv-auto mt-shelf" aria-labelledby="sets-title" hidden>
+        <div class="reveal mb-6 flex items-end justify-between gap-4">
+          <div>
+            <p class="font-display text-[14px] font-medium text-brand">ข่าว วิดีโอ และอินโฟกราฟิกของงานเดียวกันในหน้าเดียว</p>
+            <h2 id="sets-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">อัลบั้มข่าว</h2>
+          </div>
+          <a href="collection.html" class="press t-spring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2 font-display text-[15px] font-medium text-purple hover:translate-x-0.5">ดูทั้งหมด<span class="sr-only">อัลบั้มข่าว</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+        <div id="setsGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
       </section>
 
       <!-- Shelf: archive -->
@@ -618,6 +635,31 @@
         $('#soundEmpty').textContent = `โหลดวิดีโอเสียงตามสายไม่สำเร็จ: ${err.message}`;
         $('#soundEmpty').classList.remove('hidden');
       }
+    }
+
+    // ---- อัลบั้มข่าว: a card per set, its first picture behind the name ----
+    const SET_KIND = { news: 'ข่าว', video: 'วิดีโอ', banner: 'อินโฟกราฟิก' };
+    const setCard = (c) => `
+      <article class="reveal">
+        <a href="collection.html?id=${c.id}" class="lift press t-spring group relative flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-card border border-line bg-surface2 hover:-translate-y-1">
+          ${c.cover ? `<img src="${esc(c.cover.url)}"${c.cover.set ? ` srcset="${esc(c.cover.set)}" sizes="(min-width: 1024px) 340px, (min-width: 640px) 50vw, 100vw"` : ''} alt="" loading="lazy" decoding="async" class="t-spring absolute inset-0 h-full w-full object-cover group-hover:scale-[1.05]" width="640" height="480">`
+            : '<span class="absolute inset-0 bg-grad"></span>'}
+          <span class="absolute inset-0 bg-[rgb(38_66_200/.25)] mix-blend-multiply"></span>
+          <span class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></span>
+          <span class="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-shell px-2.5 font-display text-[12px] font-semibold leading-6 text-purple shadow-raised">อัลบั้มข่าว ${c.count} ชิ้น</span>
+          <span class="relative p-[18px]">
+            <span class="clamp-2 block font-display text-[19px] font-semibold leading-snug text-white">${esc(c.title)}</span>
+            <span class="mt-1 block text-[13px] text-white/85">${Object.keys(SET_KIND).filter((k) => c.kinds[k]).map((k) => `${SET_KIND[k]} ${c.kinds[k]}`).concat(c.locked ? [`ข่าวภายใน ${c.locked}`] : []).join(', ')}</span>
+          </span>
+        </a>
+      </article>`;
+    async function loadSets() {
+      try {
+        const { items } = await api('/collections?limit=4');
+        $('#sets').hidden = !items.length;
+        $('#setsGrid').innerHTML = items.map(setCard).join('');
+        reveal($('#sets'));
+      } catch (err) { $('#sets').hidden = true; }
     }
 
     // ---- Latest: time range, a day from the archive, or a search ----
@@ -859,6 +901,7 @@
       loadFeatured();
       loadLatest();
       loadSoundline();
+      loadSets();
       loadArchive();
     })();
   </script>

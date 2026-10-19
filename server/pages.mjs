@@ -21,7 +21,7 @@ const SITE = 'ข่าว มรส.';
 const OG_DEFAULT = '/assets/img/og-default.jpg';
 
 // Pages that are not for search results (signed-in tools, sign-in, errors)
-export const PRIVATE_PAGES = new Set(['login.html', 'submit.html', 'inbox.html', 'pr.html', 'pr-news.html', 'pr-import.html', 'report.html',
+export const PRIVATE_PAGES = new Set(['login.html', 'submit.html', 'inbox.html', 'pr.html', 'pr-news.html', 'pr-collections.html', 'pr-import.html', 'report.html',
   'admin.html', 'digest-studio.html', 'status.html', '404.html', 'maintenance.html']);
 export function noindex(req, res, next) {
   const page = req.path.replace(/^\//, '');
@@ -103,7 +103,7 @@ router.get('/news.html', loadUser, async (req, res, next) => {
     return res.type('html').send(head(html, { title: err.status === 410 ? 'ข่าวนี้ถูกถอนแล้ว' : err.status === 404 ? 'ไม่พบข่าวนี้' : 'ข่าวภายใน',
       description: 'ข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี', url: `${ORIGIN}/news.html?id=${encodeURIComponent(id)}`, image: ORIGIN + OG_DEFAULT, robots: 'noindex' }));
   }
-  const { story: s, linked, related, raw } = data;
+  const { story: s, linked, related, sets, raw } = data;
   const url = `${ORIGIN}/news.html?id=${s.id}`;
   const lead = s.cover || s.gallery[0] || null;
   const image = lead ? ORIGIN + (lead.full || lead.web) : s.videoThumb ? ORIGIN + s.videoThumb : ORIGIN + OG_DEFAULT;
@@ -140,7 +140,7 @@ router.get('/news.html', loadUser, async (req, res, next) => {
     html = swap(html, '<figure id="leadFig" class="', '<figure id="leadFig" hidden class="');
   }
   // The data the page script would fetch from /api/news/:id
-  html = swap(html, '<script>window.SERVER_AUTH = true;</script>', `<script>window.SERVER_AUTH = true; window.__NEWS = ${scriptJson({ story: s, linked, related })};</script>`);
+  html = swap(html, '<script>window.SERVER_AUTH = true;</script>', `<script>window.SERVER_AUTH = true; window.__NEWS = ${scriptJson({ story: s, linked, related, sets })};</script>`);
   res.type('html').send(html);
 });
 

@@ -196,7 +196,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
+  <link rel="stylesheet" href="/assets/app.css?v=0c6408e3d6">
 </head>
 
 <body class="min-h-screen">
@@ -257,6 +257,9 @@
       </a>
       <a href="search.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>คลังข่าว
+      </a>
+      <a href="collection.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/></svg>อัลบั้มข่าว
       </a>
       <a href="digest.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>เล่มสรุปข่าว
@@ -416,6 +419,9 @@
           </div>
         </div>
       </article>
+
+      <!-- ===== อัลบั้มข่าว: the other stories of the set(s) this one is in (pr-collections.html) ===== -->
+      <div id="sets"></div>
 
       <!-- ===== ข่าวที่เกี่ยวข้อง: chosen by the PR team (pr-news.html) ===== -->
       <section id="linked" class="mt-shelf" aria-labelledby="linked-title" hidden>
@@ -590,7 +596,7 @@
     $('#stateIcon').innerHTML = ICON.wait;
 
     // ---- Render the story ----
-    function render(s, related, linked = []) {
+    function render(s, related, linked = [], sets = []) {
       story = s;
       photos = [s.cover, ...s.gallery].filter(Boolean);
       document.title = `${s.title} | ข่าว มรส.`;
@@ -672,6 +678,24 @@
       try { start = localStorage.getItem('newsLang') || 'th'; } catch (e) {}
       setLang(start);
 
+      // One block per set: its name, how many stories, a link to the whole set, and a few of its other stories
+      const picked = new Set((linked || []).map((r) => r.id));
+      $('#sets').innerHTML = (sets || []).filter((c) => c.count > 1).map((c, i) => {
+        const others = c.others.filter((r) => !r.locked && !picked.has(r.id)).slice(0, 4);
+        return `
+        <section class="mt-shelf" aria-labelledby="set-${i}">
+          <div class="reveal mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div class="min-w-0">
+              <p class="inline-flex items-center gap-2 font-display text-[14px] font-medium text-brand">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/></svg>ข่าวนี้อยู่ในอัลบั้มข่าว</p>
+              <h2 id="set-${i}" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">${esc(c.title)}</h2>
+            </div>
+            <a href="collection.html?id=${c.id}" class="bg-grad press t-spring inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">ดูทั้งอัลบั้ม ${c.count} ข่าว<span class="sr-only">: ${esc(c.title)}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </div>
+          ${others.length ? `<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">${others.map(card).join('')}</div>` : ''}
+        </section>`;
+      }).join('');
       $('#linkedGrid').innerHTML = (linked || []).map(card).join('');
       $('#linked').hidden = !linked?.length;
       $('#relatedGrid').innerHTML = related.map(card).join('');
@@ -775,7 +799,7 @@
       ? `<img src="${esc(n.cover || n.videoThumb)}"${n.coverSet && n.cover ? ` srcset="${esc(n.coverSet)}" sizes="(min-width: 1024px) 340px, (min-width: 640px) 50vw, 100vw"` : ''} alt="" decoding="async" class="t-spring h-full w-full object-cover group-hover:scale-[1.05]" loading="lazy" width="640" height="360">`
       : `<div class="t-spring grid h-full w-full place-items-center group-hover:scale-[1.05]" style="background: radial-gradient(60% 90% at 80% 20%, rgb(122 60 226 / .9), transparent 70%), radial-gradient(60% 90% at 10% 100%, rgb(222 20 42 / .85), transparent 70%), #1B2560">
            <span class="grid h-14 w-14 place-items-center rounded-full bg-shell/95 text-brand shadow-float">${ic.play}</span></div>`;
-    const card = (n) => `
+    const card = (n) => n.locked ? '' : `
       <article class="reveal">
         <div class="lift t-spring group relative h-full rounded-card hover:-translate-y-1">
         <a href="news.html?id=${n.id}" class="press t-quick flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface">
@@ -792,6 +816,8 @@
                 ? `<span class="rounded-full bg-purple-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-purple">${esc(n.audience)}</span>`
                 : n.video
                 ? `<span class="inline-flex items-center gap-1 rounded-full bg-red-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-brand">${ic.play}วิดีโอ</span>`
+                : n.kind === 'banner'
+                ? `<span class="inline-flex items-center gap-1 rounded-full bg-gold-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-gold">${ic.photo}อินโฟกราฟิก</span>`
                 : `<span class="inline-flex items-center gap-1 rounded-full bg-royal-soft px-2.5 font-display text-[12px] font-semibold leading-6 text-royal">${ic.photo}ภาพข่าว</span>`}
             </div>
             <h3 class="clamp-2 font-display text-[17px] font-semibold">${esc(n.title)}</h3>
@@ -846,7 +872,7 @@
       if (!id) { location.replace('index.html#latest'); return; }
       // The server put the story in the page (pages.mjs): show it now, before the sign-in check comes back
       const pre = window.__NEWS?.story?.id === id ? window.__NEWS : null;
-      if (pre) render(pre.story, pre.related, pre.linked);
+      if (pre) render(pre.story, pre.related, pre.linked, pre.sets);
       me = await window.ME;
       try {
         const [r, s] = await Promise.all([
@@ -854,7 +880,7 @@
           me.user ? api('/me/saved').catch(() => ({ ids: [] })) : { ids: [] },
         ]);
         saved = new Set(s.ids);
-        if (!pre) render(r.story, r.related, r.linked);
+        if (!pre) render(r.story, r.related, r.linked, r.sets);
         applySaved();
         // One read per reader per story per day; the server ignores bots
         api(`/news/${encodeURIComponent(id)}/read`, { method: 'POST', body: { ref: document.referrer } }).catch(() => {});

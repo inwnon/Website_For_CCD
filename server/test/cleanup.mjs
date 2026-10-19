@@ -31,6 +31,7 @@ export async function restore(snap) {
     await client.query('begin');
     if (await tableExists('audit_log')) await client.query('delete from audit_log where at >= $1 and (actor_id = any($2) or actor_id is null)', [snap.at, devIds]);
     await client.query('delete from news where id = any($1)', [news]); // saved_news and read counts cascade
+    if (await tableExists('collections')) await client.query('delete from collections where created_at >= $1 and created_by = any($2)', [snap.at, devIds]);
     // Reads counted during the run, on stories that stay (the seed stories)
     const reads = (await client.query('delete from news_reads where at >= $1 returning news_id, day, source, device', [snap.at])).rows;
     for (const r of reads) {

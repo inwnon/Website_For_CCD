@@ -26,7 +26,7 @@
     .row-item.is-gone img { filter: grayscale(1); opacity: .6; }
     .star[aria-pressed="true"] svg { fill: currentColor; }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
+  <link rel="stylesheet" href="/assets/app.css?v=0c6408e3d6">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการข่าว</a>
@@ -152,7 +152,9 @@
           <label for="rlQ" class="font-display text-[15px] font-semibold">ค้นหาข่าวเพื่อเพิ่ม</label>
           <input id="rlQ" type="search" autocomplete="off" placeholder="ชื่อข่าว หรือหน่วยงาน" class="field mt-2 h-12 w-full rounded-2xl px-4 text-[15px]">
           <p id="rlFull" class="mt-2 text-[13px] text-gold" hidden>ครบ 6 ข่าวแล้ว เอาข่าวเดิมออกก่อนถ้าจะเพิ่มข่าวอื่น</p>
+          <p id="rlNote" class="mt-2 text-[13px] text-ink2" aria-live="polite"></p>
           <ul id="rlResults" class="mt-2 grid gap-2" aria-label="ผลการค้นหา"></ul>
+          <button type="button" id="rlMore" class="press t-spring mt-3 inline-flex h-11 w-full items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5 disabled:opacity-60" hidden>แสดงเพิ่ม</button>
           <p id="rlLive" class="sr-only" role="status" aria-live="polite"></p>
         </section>
       </div>
@@ -199,7 +201,9 @@
 
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
+  <script src="arrivals.js"></script>
   <script src="desk.js"></script>
+  <script src="story-pick.js"></script>
   <script>
     const { esc, day, dayTime, num, toast } = DESK;
     const $ = (s) => document.querySelector(s);
@@ -469,7 +473,7 @@
     // ---- ข่าวที่เกี่ยวข้อง: PR picks up to MAX_RELATED stories, shown in this order under the story ----
     const announce = (msg) => { const el = $('#rlLive'); el.textContent = ''; setTimeout(() => { el.textContent = msg; }, 50); };
     const MAX_RELATED = 6;
-    let picked = [], rlSeq = 0;
+    let picked = [];
     function paintPicked() {
       $('#rlCount').textContent = picked.length;
       $('#rlPicked').innerHTML = picked.length ? picked.map((p, i) => `
@@ -481,51 +485,28 @@
           <button type="button" data-drop="${i}" class="press t-quick h-9 shrink-0 rounded-full px-3 font-display text-[13px] font-medium text-brand hover:bg-shell" aria-label="เอาออก: ${esc(p.title)}">เอาออก</button>
         </li>`).join('') : '<li class="rounded-2xl border border-dashed border-line px-4 py-5 text-center text-[14px] text-ink2">ยังไม่ได้เลือก ค้นหาข่าวด้านล่างแล้วกด “เพิ่ม”</li>';
     }
-    let rlResults = [];
-    function paintResults() {
-      const full = picked.length >= MAX_RELATED;
-      $('#rlResults').innerHTML = rlResults.length ? rlResults.map((r) => {
-        const has = picked.some((p) => p.id === r.id);
-        return `<li class="flex items-center gap-3 rounded-2xl border border-line px-3 py-2">
-          <span class="min-w-0 flex-1 text-[14px]"><span class="clamp-2 font-medium">${esc(r.title)}</span><span class="text-[12px] text-ink2">${esc(r.unit)} · ${day(r.publishedAt)}</span></span>
-          <button type="button" data-add="${r.id}" class="press t-quick h-9 shrink-0 rounded-full border border-line px-4 font-display text-[13px] font-medium hover:-translate-y-0.5 disabled:opacity-40" aria-label="${has ? 'เลือกแล้ว' : 'เพิ่ม'}: ${esc(r.title)}"${has || full ? ' disabled' : ''}>${has ? 'เลือกแล้ว' : 'เพิ่ม'}</button>
-        </li>`;
-      }).join('') : `<li class="px-1 text-[14px] text-ink2">${$('#rlQ').value.trim() ? 'ไม่พบข่าวที่ตรงกับคำค้น' : 'ข่าวล่าสุดจะแสดงที่นี่'}</li>`;
-      $('#rlFull').hidden = !full;
-    }
-    async function searchRelated() {
-      const seq = ++rlSeq;
-      const p = new URLSearchParams({ show: 'live', limit: '8' });
-      const q = $('#rlQ').value.trim(); if (q) p.set('q', q);
-      try {
-        const r = await api('/pr/news?' + p);
-        if (seq !== rlSeq) return;
-        rlResults = r.items.filter((x) => x.id !== pending.id);
-        paintResults();
-      } catch (err) { toast(err.message, true); }
-    }
+    // Every live story can be found: the newest 20, "แสดงเพิ่ม" for the next ones, or search (story-pick.js)
+    const rlPick = StoryPick({
+      input: $('#rlQ'), list: $('#rlResults'), more: $('#rlMore'), note: $('#rlNote'),
+      has: (id) => picked.some((p) => p.id === id), full: () => picked.length >= MAX_RELATED, self: () => pending?.id,
+      onAdd(r) {
+        if (picked.length >= MAX_RELATED) return;
+        picked.push({ id: r.id, title: r.title, withdrawn: false });
+        paintPicked(); paintResults();
+        announce(`เพิ่มแล้ว เลือกไว้ ${picked.length} ข่าว`);
+      },
+    });
+    function paintResults() { $('#rlFull').hidden = picked.length < MAX_RELATED; rlPick.paint(); }
     function openRelated(n) {
       pending = n;
       picked = n.related.map((r) => ({ ...r }));
       $('#rlNews').textContent = n.title;
-      $('#rlQ').value = '';
-      rlResults = [];
-      paintPicked(); paintResults();
+      paintPicked();
+      $('#rlFull').hidden = picked.length < MAX_RELATED;
+      rlPick.reset();
       $('#rlDlg').showModal();
-      searchRelated();
       $('#rlQ').focus();
     }
-    let rlTimer;
-    $('#rlQ').addEventListener('input', () => { clearTimeout(rlTimer); rlTimer = setTimeout(searchRelated, 250); });
-    $('#rlResults').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-add]');
-      if (!b || b.disabled || picked.length >= MAX_RELATED) return;
-      const r = rlResults.find((x) => x.id === b.dataset.add);
-      picked.push({ id: r.id, title: r.title, withdrawn: false });
-      paintPicked(); paintResults();
-      announce(`เพิ่มแล้ว เลือกไว้ ${picked.length} ข่าว`);
-      (b.closest('li').nextElementSibling?.querySelector('[data-add]:not([disabled])') || $('#rlQ')).focus();
-    });
     $('#rlPicked').addEventListener('click', (e) => {
       const up = e.target.closest('[data-up]'), down = e.target.closest('[data-down]'), drop = e.target.closest('[data-drop]');
       const i = Number((up || down || drop)?.dataset.up ?? (up || down || drop)?.dataset.down ?? (up || down || drop)?.dataset.drop);
