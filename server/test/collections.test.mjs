@@ -121,3 +121,22 @@ describe('แจ้งเตือนงานใหม่ (/api/pr/arrivals)', 
     assert.ok(!later.items.some((x) => x.ref === v.body.submission.ref), 'not twice');
   });
 });
+
+describe('ข่าวในอัลบั้มเดียวกันเป็นข่าวที่เกี่ยวข้องอัตโนมัติ', () => {
+  test('after the PR team\'s picks, in album order; out of the album, out of ข่าวที่เกี่ยวข้อง', async () => {
+    const a = (await pr.call('POST', '/api/pr/collections', { title: 'อัลบั้มสำหรับข่าวที่เกี่ยวข้อง', items: [ids[0], ids[1], ids[2]] })).body.collection.id;
+    await pr.call('PUT', `/api/pr/news/${ids[0]}/related`, { ids: [ids[2]] });
+    const s = (await anon.call('GET', `/api/news/${ids[0]}`)).body;
+    assert.deepEqual(s.linked.map((n) => n.id), [ids[2], ids[1]], 'the pick first, then the album story not already picked');
+    assert.equal(s.linkedFromAlbum, 1);
+    assert.ok(!s.related.some((r) => [ids[1], ids[2]].includes(r.id)), 'อ่านข่าวไหนต่อดี? does not repeat them');
+    // The other story of the album has this one as related too, without anyone picking it
+    assert.ok((await anon.call('GET', `/api/news/${ids[1]}`)).body.linked.some((n) => n.id === ids[0]));
+    // The desk knows the album
+    const row = (await pr.call('GET', '/api/pr/news?show=all&limit=100')).body.items.find((n) => n.id === ids[0]);
+    assert.ok(row.albums.some((x) => x.id === a && x.count === 2));
+    await pr.call('PUT', `/api/pr/collections/${a}`, { title: 'อัลบั้มสำหรับข่าวที่เกี่ยวข้อง', items: [ids[0], ids[2]] });
+    assert.deepEqual((await anon.call('GET', `/api/news/${ids[0]}`)).body.linked.map((n) => n.id), [ids[2]], 'taken out of the album: no longer related');
+    await pr.call('PUT', `/api/pr/news/${ids[0]}/related`, { ids: [] });
+  });
+});

@@ -212,6 +212,14 @@ async function setsOf(newsId, user) {
   return out;
 }
 
+export const MAX_LINKED = 8;
+function linkedWithAlbums(picks, sets) {
+  const ids = new Set(picks.map((r) => r.id));
+  const auto = [];
+  for (const r of sets.flatMap((c) => c.others)) if (!ids.has(r.id)) { ids.add(r.id); auto.push(r); }
+  return [...picks, ...auto].slice(0, Math.max(MAX_LINKED, picks.length));
+}
+
 export async function storyPayload(req, id) {
   const n = await readable(req, id);
   // ข่าวที่เกี่ยวข้อง: the PR team's picks, in their order, live ones the reader may open
@@ -225,6 +233,9 @@ export async function storyPayload(req, id) {
     `select n.* from news n where ${LIVE} and n.id <> $1 and n.audience && $3::audience[] and not (n.id = any($4))
      order by (n.categories && $2) desc, n.published_at desc limit 4`, [n.id, n.categories, readableBy(req.user), shown])).rows;
   const saved = req.user ? !!(await one('select 1 from saved_news where user_id = $1 and news_id = $2', [req.user.id, n.id])) : false;
+  // ข่าวที่เกี่ยวข้อง: the PR team's picks, then (on their own) the other stories of this story's อัลบั้มข่าว, in album order.
+  // Worked out when read: a story taken out of the album is no longer related.
+  const linkedCards = linkedWithAlbums(linked.map((r) => cardOut(r, req.user)), sets);
   return {
     raw: n,
     story: {
@@ -238,14 +249,15 @@ export async function storyPayload(req, id) {
       publishedAt: n.published_at, saved, imported: n.imported,
       submittedBy: n.submitted_by || null, reviewedBy: n.reviewed_by_name || null, bodySize: n.body_size, bodyLeading: n.body_leading,
     },
-    linked: linked.map((r) => cardOut(r, req.user)),
+    linked: linkedCards,
+    linkedFromAlbum: linkedCards.length - linked.length,
     related: related.map((r) => cardOut(r, req.user)),
     sets,
   };
 }
 router.get('/news/:id', async (req, res) => {
-  const { story, linked, related, sets } = await storyPayload(req, req.params.id);
-  res.json({ story, linked, related, sets });
+  const { story, linked, linkedFromAlbum, related, sets } = await storyPayload(req, req.params.id);
+  res.json({ story, linked, linkedFromAlbum, related, sets });
 });
 
 // ---- Reads ----

@@ -69,6 +69,8 @@ router.get('/pr/news', async (req, res) => {
   const ids = [...new Set(rows.flatMap((n) => n.related))];
   const named = ids.length ? new Map((await query('select id, title, withdrawn_at from news where id = any($1)', [ids])).rows.map((r) => [r.id, r])) : new Map();
   const titles = new Map(rows.map((n) => [n.id, n.related.map((id) => named.get(id)).filter(Boolean).map((r) => ({ id: r.id, title: r.title, withdrawn: !!r.withdrawn_at }))]));
+  // อัลบั้มข่าว each story is in: their other stories are ข่าวที่เกี่ยวข้อง on their own (news.mjs)
+  const albums = rows.length ? (await query('select id, title, items from collections where items && $1::uuid[]', [rows.map((n) => n.id)])).rows : [];
   res.json({
     counts, total: SHOW[req.query.show] ? counts[req.query.show] : counts.all,
     items: rows.map((n) => ({
@@ -79,6 +81,7 @@ router.get('/pr/news', async (req, res) => {
       withdrawn: n.withdrawn_at ? { at: n.withdrawn_at, reason: n.withdrawn_reason, by: n.withdrawn_by_name } : null,
       submissionStatus: n.submission_status || null,
       related: (titles.get(n.id) || []),
+      albums: albums.filter((c) => c.items.includes(n.id)).map((c) => ({ id: c.id, title: c.title, count: c.items.length - 1 })),
     })),
   });
 });

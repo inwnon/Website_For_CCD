@@ -420,14 +420,13 @@
         </div>
       </article>
 
-      <!-- ===== อัลบั้มข่าว: the other stories of the set(s) this one is in (pr-collections.html) ===== -->
-      <div id="sets"></div>
-
       <!-- ===== ข่าวที่เกี่ยวข้อง: chosen by the PR team (pr-news.html) ===== -->
       <section id="linked" class="mt-shelf" aria-labelledby="linked-title" hidden>
         <div class="reveal mb-6">
           <h2 id="linked-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวที่เกี่ยวข้อง</h2>
-          <p class="mt-1 text-[15px] text-ink2">เรื่องเดียวกันหรือข่าวต่อเนื่อง คัดโดยงานประชาสัมพันธ์</p>
+          <p id="linkedNote" class="mt-1 text-[15px] text-ink2">เรื่องเดียวกันหรือข่าวต่อเนื่อง คัดโดยงานประชาสัมพันธ์</p>
+          <!-- อัลบั้มข่าว this story is in: its stories are in the grid below (news.mjs linkedWithAlbums) -->
+          <ul id="linkedAlbums" class="mt-4 grid gap-2" aria-label="อัลบั้มข่าวที่มีข่าวนี้"></ul>
         </div>
         <div id="linkedGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
       </section>
@@ -596,7 +595,7 @@
     $('#stateIcon').innerHTML = ICON.wait;
 
     // ---- Render the story ----
-    function render(s, related, linked = [], sets = []) {
+    function render(s, related, linked = [], sets = [], fromAlbum = 0) {
       story = s;
       photos = [s.cover, ...s.gallery].filter(Boolean);
       document.title = `${s.title} | ข่าว มรส.`;
@@ -679,25 +678,21 @@
       setLang(start);
 
       // One block per set: its name, how many stories, a link to the whole set, and a few of its other stories
-      const picked = new Set((linked || []).map((r) => r.id));
-      $('#sets').innerHTML = (sets || []).filter((c) => c.count > 1).map((c, i) => {
-        const others = c.others.filter((r) => !r.locked && !picked.has(r.id)).slice(0, 4);
-        return `
-        <section class="mt-shelf" aria-labelledby="set-${i}">
-          <div class="reveal mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div class="min-w-0">
-              <p class="inline-flex items-center gap-2 font-display text-[14px] font-medium text-brand">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/></svg>ข่าวนี้อยู่ในอัลบั้มข่าว</p>
-              <h2 id="set-${i}" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">${esc(c.title)}</h2>
-            </div>
-            <a href="collection.html?id=${c.id}" class="bg-grad press t-spring inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">ดูทั้งอัลบั้ม ${c.count} ข่าว<span class="sr-only">: ${esc(c.title)}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-          </div>
-          ${others.length ? `<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">${others.map(card).join('')}</div>` : ''}
-        </section>`;
-      }).join('');
+      // ข่าวที่เกี่ยวข้อง: the PR team's picks, then the other stories of the album(s) this one is in; a bar per album above them
+      const albums = (sets || []).filter((c) => c.count > 1);
+      const picks = (linked || []).length - fromAlbum;
+      $('#linkedNote').textContent = fromAlbum && picks > 0 ? 'คัดโดยงานประชาสัมพันธ์ และข่าวอื่นในอัลบั้มข่าวเดียวกัน'
+        : fromAlbum || (albums.length && !picks) ? 'ข่าวอื่นในอัลบั้มข่าวเดียวกัน' : 'เรื่องเดียวกันหรือข่าวต่อเนื่อง คัดโดยงานประชาสัมพันธ์';
+      $('#linkedAlbums').innerHTML = albums.map((c) => `
+        <li class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line bg-surface2/60 px-4 py-3">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-shell text-purple shadow-raised" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/></svg></span>
+          <span class="min-w-0 flex-1 leading-tight"><span class="block text-[13px] text-ink2">ข่าวนี้อยู่ในอัลบั้มข่าว</span><span class="block font-display text-[16px] font-semibold text-ink">${esc(c.title)}</span></span>
+          <a href="collection.html?id=${c.id}" class="press t-spring inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-shell px-4 font-display text-[14px] font-semibold text-purple shadow-raised hover:-translate-y-0.5">ดูทั้งอัลบั้ม ${c.count} ข่าว<span class="sr-only">: ${esc(c.title)}</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </li>`).join('');
       $('#linkedGrid').innerHTML = (linked || []).map(card).join('');
-      $('#linked').hidden = !linked?.length;
+      $('#linkedGrid').hidden = !linked?.length;
+      $('#linked').hidden = !linked?.length && !albums.length;
       $('#relatedGrid').innerHTML = related.map(card).join('');
       $('#related').hidden = !related.length;
 
@@ -872,7 +867,7 @@
       if (!id) { location.replace('index.html#latest'); return; }
       // The server put the story in the page (pages.mjs): show it now, before the sign-in check comes back
       const pre = window.__NEWS?.story?.id === id ? window.__NEWS : null;
-      if (pre) render(pre.story, pre.related, pre.linked, pre.sets);
+      if (pre) render(pre.story, pre.related, pre.linked, pre.sets, pre.linkedFromAlbum);
       me = await window.ME;
       try {
         const [r, s] = await Promise.all([
@@ -880,7 +875,7 @@
           me.user ? api('/me/saved').catch(() => ({ ids: [] })) : { ids: [] },
         ]);
         saved = new Set(s.ids);
-        if (!pre) render(r.story, r.related, r.linked, r.sets);
+        if (!pre) render(r.story, r.related, r.linked, r.sets, r.linkedFromAlbum);
         applySaved();
         // One read per reader per story per day; the server ignores bots
         api(`/news/${encodeURIComponent(id)}/read`, { method: 'POST', body: { ref: document.referrer } }).catch(() => {});
