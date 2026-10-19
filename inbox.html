@@ -229,7 +229,7 @@
       *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 
 <body class="min-h-screen">
@@ -444,7 +444,7 @@
     let filter = 'all', query = '', current = new URLSearchParams(location.search).get('ref');
 
     // ---- Signed-in state ----
-    const ROLE_LABEL = { staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน' };
+    const ROLE_LABEL = { staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.' };
     async function load() {
       const r = await api('/submissions');
       subs = r.submissions;
@@ -465,7 +465,7 @@
         <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-purple-soft font-display text-[14px] font-semibold text-purple">${esc(name[0])}</span>
         <span class="min-w-0"><span class="block truncate font-display font-semibold leading-tight">${esc(name)}${profile.position ? ` <span class="font-sans font-normal text-ink2">${esc(profile.position)}</span>` : ''}</span>
         <span class="block truncate text-[12px] leading-tight text-ink2">${esc(ROLE_LABEL[profile.role] || '')}${where ? ' · ' + esc(where) : ''}</span></span>`;
-      if (profile.role === 'external') { const a = $('#who a[href="submit.html"]'); if (a) a.hidden = true; }
+      if (window.baseRole(profile) === 'external') { const a = $('#who a[href="submit.html"]'); if (a) a.hidden = true; }
       loadDrafts().then(() => { if (location.hash === '#drafts' && drafts.length) { $('#drafts').scrollIntoView({ block: 'start' }); $('#draftsTitle').focus({ preventScroll: true }); } });
       try { await load(); } catch (err) {
         $('#list').innerHTML = `<li class="rounded-card border border-dashed border-line p-6 text-center text-brand">โหลดงานไม่สำเร็จ: ${esc(err.message)}</li>`;
@@ -600,7 +600,7 @@
       const none = !list.length;
       $('#empty').hidden = !none;
       if (none) {
-        const external = profile.role === 'external';
+        const external = window.baseRole(profile) === 'external';
         $('#emptyTitle').textContent = !subs.length ? (external ? 'ยังไม่มีข้อความ' : 'ยังไม่มีงานที่ส่ง') : 'ไม่พบงานที่ตรงกับตัวกรอง';
         $('#emptyText').textContent = !subs.length ? (external ? 'บุคคลภายนอกจะได้รับข้อความจาก PR ที่นี่' : 'งานที่คุณส่งจะแสดงที่นี่ พร้อมสถานะและข้อความจาก PR') : 'ลองเลือกตัวกรอง "ทั้งหมด" หรือเปลี่ยนคำค้นหา';
         $('#emptyCta').hidden = !!subs.length || external;

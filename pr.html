@@ -275,7 +275,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 
 <body class="app">
@@ -674,6 +674,7 @@
         showGate();
         $('#devLogin').hidden = !res.devLogin;
         if (me?.role === 'coordinator') { location.replace('report.html'); return; }
+        if (me?.role === 'intern') { location.replace('pr-import.html'); return; }
         if (me) {
           $('#gateText').textContent = `บัญชี ${me.email} ไม่ได้อยู่ในทีม PR ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์`;
           $('#gateBtn').textContent = 'กลับหน้าแรก';
@@ -917,6 +918,7 @@
           ${body}
           ${f.newsVideo ? linkRow(f.newsVideo, 'วิดีโอประกอบข่าว') : ''}
           ${s.type === 'video' && f.videoMode === 'link' && f.videoLink ? linkRow(f.videoLink, 'ลิงก์วิดีโอ') : ''}
+          ${(s.fields.videoLinks || []).map((u, i) => linkRow(u, `ลิงก์วิดีโอเพิ่มเติมที่ ${i + 1}`)).join('')}
           ${f.albumUrl ? linkRow(f.albumUrl, 'ลิงก์ภาพเพิ่มเติมจากผู้ส่ง', ic.link) : ''}
           ${f.titleEn || f.bodyEn ? `<details class="group rounded-2xl border border-line"><summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 font-display text-[15px] font-semibold">ฉบับภาษาอังกฤษจากผู้ส่ง<svg class="t-spring group-open:rotate-180" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="px-4 pb-4"><p class="font-display text-[16px] font-semibold" lang="en">${esc(f.titleEn || '')}</p><p class="mt-2 whitespace-pre-line text-[15px] leading-[1.7]" lang="en">${esc(f.bodyEn || '')}</p></div></details>` : ''}
           ${!f.lead && !f.desc && !body ? '<p class="text-[14px] text-ink2">ผู้ส่งไม่ได้ใส่คำอธิบาย</p>' : ''}

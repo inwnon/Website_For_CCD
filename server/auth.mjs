@@ -20,12 +20,14 @@ import { HttpError, parseCookies, str } from './http.mjs';
 import { FACULTIES, ORG, STAFF_UNITS, majorsOf, tracksOf } from './org.mjs';
 import { audit } from './audit.mjs';
 import { DEV_ACCOUNTS, limit, matchesName } from './security.mjs';
+import { baseRole, domainRole } from './rules.mjs';
+
+export { baseRole, domainRole };
 
 const COOKIE = 'sid';
 const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const PROD = process.env.NODE_ENV === 'production';
 const DEV_LOGIN = !PROD && process.env.ALLOW_DEV_LOGIN === '1';
-const DOMAINS = { 'sru.ac.th': 'staff', 'student.sru.ac.th': 'student' };
 const google = new OAuth2Client();
 const hash = (token) => createHash('sha256').update(token).digest('hex');
 
@@ -38,7 +40,9 @@ export const isPr = (u) => u?.role === 'pr' || u?.role === 'admin';
 export const isAdmin = (u) => u?.role === 'admin';
 // ผู้ประสานงานหน่วยงาน: reads the reports of one unit (u.coord_unit, from pr_team)
 export const isCoordinator = (u) => u?.role === 'coordinator';
-export const isUniversity = (u) => !!u && u.role !== 'external';
+// นักศึกษาฝึกงาน สสอ.: imports past stories (pr-import.html) only; elsewhere their baseRole (rules.mjs)
+export const isIntern = (u) => u?.role === 'intern';
+export const isUniversity = (u) => !!u && baseRole(u) !== 'external';
 
 // Staff (and PR / admin / coordinators, all on @sru.ac.th) give their internal extension; others a phone number
 export const usesExtension = (role) => role !== 'student' && role !== 'external';
@@ -56,11 +60,11 @@ export function publicUser(u) {
     unit: u.unit, subUnit: u.sub_unit, position: u.position, major: u.major, track: u.track,
     year: u.year, org: u.org, consentAt: u.consent_at, onboarded: onboarded(u),
     ...(u.coord_unit ? { coordUnit: u.coord_unit } : {}),
+    ...(u.role === 'intern' ? { baseRole: domainRole(u.email) } : {}),
     ...(u.developer ? { developer: true } : {}),
   };
 }
 
-export const domainRole = (email) => DOMAINS[email.split('@')[1]] ?? 'external';
 
 async function roleFor(email) {
   if (DEVELOPERS.has(email)) return 'admin';
@@ -133,6 +137,12 @@ export const requirePr = (req, res, next) => {
   if (!isPr(req.user)) throw new HttpError(403, 'เฉพาะทีมงานประชาสัมพันธ์');
   next();
 };
+// นำเข้าข่าวย้อนหลัง: the PR team and the interns
+export const requireImport = (req, res, next) => {
+  if (!req.user) throw new HttpError(401, 'กรุณาเข้าสู่ระบบ');
+  if (!isPr(req.user) && !isIntern(req.user)) throw new HttpError(403, 'เฉพาะทีมงานประชาสัมพันธ์และนักศึกษาฝึกงาน สสอ.');
+  next();
+};
 
 export const router = Router();
 
@@ -161,7 +171,7 @@ if (DEV_LOGIN) {
     if (!LOCAL_HOSTS.has(req.hostname)) throw new HttpError(403, 'ล็อกอินจำลองใช้ได้เฉพาะบน localhost');
     const as = req.body?.as;
     if (!DEV[as]) throw new HttpError(400, `as ต้องเป็น ${Object.keys(DEV).join(', ')}`);
-    if (as === 'pr' || as === 'admin' || as === 'coordinator') {
+    if (as === 'pr' || as === 'admin' || as === 'coordinator' || as === 'intern') {
       const unit = as === 'coordinator' ? DEV_COORD_UNIT : null;
       await query('insert into pr_team (email, role, unit) values ($1, $2, $3) on conflict (email) do update set role = $2, unit = $3', [DEV[as], as, unit]);
     }
@@ -197,7 +207,7 @@ router.get('/me', async (req, res) => {
 // Mirrors the checks in login.html step 2 (name, phone, affiliation) and step 3 (consent)
 router.put('/me/profile', requireUser, limit('profile', { max: 30, windowMs: 10 * 60 * 1000 }), async (req, res) => {
   const b = req.body || {};
-  const role = req.user.role;
+  const role = baseRole(req.user);
   const errors = {};
   const p = { unit: null, sub_unit: null, position: null, major: null, track: null, year: null, org: null };
 

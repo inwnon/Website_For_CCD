@@ -302,7 +302,7 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 
 <body class="min-h-screen">
@@ -814,6 +814,14 @@
 
             <p id="videoError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
 
+            <!-- ลิงก์วิดีโอเพิ่มเติม: optional, for a video in several parts or on several platforms -->
+            <div class="mt-6">
+              <h3 id="videoLinksTitle" class="font-display text-[15px] font-semibold">ลิงก์วิดีโอเพิ่มเติม <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></h3>
+              <p id="videoLinksInfo" class="mt-1 text-[13px] text-ink2"></p>
+              <div id="videoLinksBox" class="mt-3" role="group" aria-labelledby="videoLinksTitle" aria-describedby="videoLinksInfo videoLinksError"></div>
+              <p id="videoLinksError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
+            </div>
+
             <!-- ภาพหน้าปก: optional, one picture; the card and the story use it -->
             <div class="mt-6">
               <h3 class="font-display text-[15px] font-semibold">ภาพหน้าปก <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></h3>
@@ -1033,9 +1041,10 @@
   <script src="auth.js"></script>
   <script src="site-config.js"></script>
   <script src="text-tools.js"></script>
+  <script src="video-links.js"></script>
   <script>
     // Sending is for university accounts; other Google accounts get the explanation page
-    window.ME.then((m) => { if (m.user?.role === 'external') location.replace('status.html?s=domain'); });
+    window.ME.then((m) => { if (m.user && window.baseRole(m.user) === 'external') location.replace('status.html?s=domain'); });
   </script>
   <script>
     // ---- Per-type wording ----
@@ -1116,6 +1125,15 @@
     // จัดรูปแบบเนื้อหา: bold, font size and line spacing for the story text (news) or the description (video, banner)
     const tools = TextTools.attach([$('#body'), $('#desc')], { onChange: () => scheduleDraft() });
     const toolsOut = () => ({ bodyLeading: tools.get().leading });
+    // ลิงก์วิดีโอเพิ่มเติม (video): each from one of the platforms, as the main link
+    const MAX_MORE = 5;
+    const moreVideos = VideoLinks($('#videoLinksBox'), {
+      max: MAX_MORE, placeholder: 'วางลิงก์ตอนอื่น หรือลิงก์จากแพลตฟอร์มอื่น',
+      onChange: () => { scheduleDraft(); if (moreBad() < 0) { setError('#videoLinksError', false); moreVideos.inputs().forEach((x) => x.setAttribute('aria-invalid', 'false')); } },
+    });
+    const moreBad = () => moreVideos.inputs().findIndex((x) => x.value.trim() && !Object.values(PLATFORMS).some((p) => p.re.test(x.value.trim())));
+    const platformNames = () => Object.values(PLATFORMS).map((p) => p.label).join(', ');
+    $('#videoLinksInfo').textContent = `วิดีโอที่มีหลายตอน หรือเผยแพร่ไว้หลายที่ ใส่ลิงก์อื่นได้อีกไม่เกิน ${MAX_MORE} ลิงก์ จาก ${platformNames()}`;
     $('#catList').innerHTML = [...CATEGORIES.map((c) => [c, '']), ...VIDEO_CATS.map((c) => [c, ' data-for="video"'])].map(([c, only]) => `<label class="opt chip-opt"${only}><input type="checkbox" name="category" value="${c}"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">${c}</span></label>`).join('');
 
     // ---- Platform chips (news link + video link) ----
@@ -1147,7 +1165,7 @@
         : `ส่งในนาม ${p.name || p.email}${p.position ? ' ' + p.position : ''} (${p.email}) PR จะติดต่อกลับตามข้อมูลในโปรไฟล์ของคุณ`;
       // Students post as their own faculty; staff may pick any unit, sub-units listed under their parent
       const myUnit = p ? ORG.displayUnit(p) : '';
-      const groups = p?.role === 'student'
+      const groups = p && window.baseRole(p) === 'student'
         ? [{ label: 'คณะ / วิทยาลัย', units: ORG.faculties[p.unit] ? [p.unit] : Object.keys(ORG.faculties) }]
         : ORG.staffGroups.flatMap((g) => [g, ...g.units.filter((u) => ORG.subUnits[u]).map((u) => ({ label: `${ORG.subUnits[u].label} (${u})`, units: ORG.subUnits[u].units }))]);
       const keep = $('#unit').value;
@@ -1707,6 +1725,8 @@
     function validate() {
       const videoMsg = val('videoLink') ? platformErr('videoPlatform') : `วางลิงก์วิดีโอจาก ${PLATFORMS[radio('videoPlatform')].label}`;
       const mode = radio('contentMode');
+      const mb = moreBad();
+      moreVideos.inputs().forEach((x) => x.setAttribute('aria-invalid', 'false'));
       const rules = [
         // [types, errId, bad, field, focusSelector, message]
         ['news video banner', '#titleError', !val('title'), $('#title')],
@@ -1721,6 +1741,7 @@
         ['news', '#albumError', !albumOk(), $('#albumUrl')],
         ['news', '#newsVideoError', !newsVideoOk(), $('#newsVideo'), null, platformErr('newsPlatform')],
         ['video', '#videoError', !videoOk(), $('#videoLink'), '#videoLink', videoMsg],
+        ['video', '#videoLinksError', mb >= 0, moreVideos.inputs()[mb], null, `ลิงก์เพิ่มเติมที่ ${mb + 1} ไม่ใช่ลิงก์วิดีโอจาก ${platformNames()}`],
         ['banner', '#artError', !up.art.items.length, $('#artDrop'), '#artInput'],
         ['news video banner', '#audError', !audVals().length, $('#audSet'), 'input[name=audience]'],
         ['news video banner', '#consentError', !$('#consent').checked, $('#consent')],
@@ -1764,7 +1785,7 @@
       if (!type || editing || draftId) return;
       const d = Object.fromEntries(DRAFT_FIELDS.map((k) => [k, $('#' + k).value]));
       DRAFT_RADIOS.forEach((n) => { d[n] = radio(n); });
-      Object.assign(d, { type, categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), assigneePrefix: prefixOf('assignee'), guests: guests.filter((g) => g.name || g.pos), ...toolsOut() });
+      Object.assign(d, { type, videoLinks: moreVideos.get(), categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), assigneePrefix: prefixOf('assignee'), guests: guests.filter((g) => g.name || g.pos), ...toolsOut() });
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) { return; }
       const now = new Date();
       const el = $('#draftState');
@@ -1787,6 +1808,7 @@
       guests = Array.isArray(d.guests) ? d.guests.map((g) => ({ prefix: g.prefix || '', name: g.name || '', pos: g.pos || '' })) : [];
       $('#enToggle').checked = !!d.en; $('#enFields').hidden = !d.en;
       tools.set({ size: d.bodySize, leading: d.bodyLeading });
+      moreVideos.set(Array.isArray(d.videoLinks) ? d.videoLinks : []);
     }
     function restoreDraft() {
       let d = null;
@@ -1886,12 +1908,13 @@
       categories: ['#catError', '#catSet'], contentMode: ['#modeError', '#modeSet'], body: ['#bodyError', '#body'], attach: ['#attachError', '#attachDrop'],
       photo: ['#photoError', '#photoDrop'], newsVideo: ['#newsVideoError', '#newsVideo'], videoLink: ['#videoError', '#videoLink'], art: ['#artError', '#artDrop'],
       audience: ['#audError', '#audSet'], consent: ['#consentError', '#consent'], albumUrl: ['#albumError', '#albumUrl'],
+      videoLinks: ['#videoLinksError', '#videoLinksBox input'],
     };
     function payload() {
       return {
         type, title: val('title'), lead: val('lead'), desc: val('desc'), body: val('body'), eventDate: val('eventDate'), place: val('place'), unit: val('unit'),
         categories: cats(), contentMode: radio('contentMode'), credit: val('credit'), newsVideo: val('newsVideo'), newsPlatform: radio('newsPlatform'),
-        videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), albumUrl: val('albumUrl'), designer: val('designer'), producer: val('producer'),
+        videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), videoLinks: type === 'video' ? moreVideos.get() : [], albumUrl: val('albumUrl'), designer: val('designer'), producer: val('producer'),
         chairPrefix: prefixOf('chair'), chairName: val('chairName'), chairPos: val('chairPos'),
         reporterPrefix: prefixOf('reporter'), reporterName: val('reporterName'), reporterPos: val('reporterPos'),
         assigneePrefix: prefixOf('assignee'), assigneeName: val('assigneeName'), assigneePos: val('assigneePos'),
@@ -1996,7 +2019,7 @@
         ],
         video: [
           ['ชื่อวิดีโอ', sub.title], ['หน่วยงาน', sub.unit], ...(val('producer') ? [['ผู้ผลิต', val('producer')]] : []), ['วันที่จัดกิจกรรม', thDate(val('eventDate'))],
-          ['ประเภทข่าว', cats().join(', ')], ['วิดีโอ', videoText()], ['ใครเห็นได้', aud],
+          ['ประเภทข่าว', cats().join(', ')], ['วิดีโอ', `${videoText()}${moreVideos.get().length ? ` และลิงก์เพิ่มเติม ${moreVideos.get().length} ลิงก์` : ''}`], ['ใครเห็นได้', aud],
         ],
         banner: [
           ['ชื่องาน', sub.title], ['หน่วยงาน', sub.unit], ...(val('designer') ? [['ผู้ออกแบบ', val('designer')]] : []), ['ไฟล์งาน', `${n('art')} ไฟล์`], ['ใครเห็นได้', aud],
@@ -2064,7 +2087,7 @@
       const u = m.user;
       $('#devSignIn').hidden = !(m.devLogin && !u);
       if (!u) return setupSender(null);
-      if (u.role === 'external') return; // sent to status.html?s=domain above
+      if (window.baseRole(u) === 'external') return; // sent to status.html?s=domain above
       // The sender's unit and position come from the profile: set it up first
       if (!u.onboarded) { saveDraft(); leaving = true; location.replace(window.loginUrl()); return; }
       setupSender(u);
@@ -2104,6 +2127,7 @@
       set('credit', f.credit); set('newsVideo', f.newsVideo); set('videoLink', f.videoLink); set('titleEn', f.titleEn); set('bodyEn', f.bodyEn); set('albumUrl', f.albumUrl); set('designer', f.designer); set('producer', f.producer);
       set('note', '');
       tools.set({ size: f.bodySize, leading: f.bodyLeading });
+      moreVideos.set(f.videoLinks || []);
       if (![...$('#unit').options].some((o) => o.value === sub.unit)) $('#unit').insertAdjacentHTML('beforeend', `<option>${esc(sub.unit)}</option>`);
       $('#unit').value = sub.unit;
       const pick = (name, v) => { const r = v && document.querySelector(`input[name=${name}][value="${CSS.escape(v)}"]`); if (r) r.checked = true; };

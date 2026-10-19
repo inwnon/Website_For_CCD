@@ -61,7 +61,9 @@ describe('import (นำเข้าข่าวย้อนหลัง)', () =
   });
 
   test('imports at the original date, live at once, no submission', async () => {
-    const r = await pr.call('POST', '/api/pr/import', form(IMPORT, { photo: [['ปก.jpg', await img('#468'), 'image/jpeg'], ['สอง.jpg', await img('#864'), 'image/jpeg']] }));
+    // Seed stories keep the dates of the day they were seeded, so one of them may come near this date: confirmed here,
+    // the warning itself is checked below
+    const r = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, confirmDuplicate: true }, { photo: [['ปก.jpg', await img('#468'), 'image/jpeg'], ['สอง.jpg', await img('#864'), 'image/jpeg']] }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
     id = r.body.news.id;
     assert.equal(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(r.body.news.publishedAt)), IMPORT.date);

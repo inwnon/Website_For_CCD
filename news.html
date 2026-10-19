@@ -196,7 +196,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 
 <body class="min-h-screen">
@@ -380,6 +380,11 @@
               </span>
               <span class="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1 text-[13px] font-semibold text-white backdrop-blur" id="videoLabel"></span>
             </a>
+            <!-- ลิงก์วิดีโอเพิ่มเติม: the other parts / platforms of the video, after the main one -->
+            <div id="videoMoreBox" class="mt-5" hidden>
+              <h3 id="videoMoreTitle" class="mb-2 font-display text-[17px] font-semibold text-ink">ลิงก์วิดีโอเพิ่มเติม</h3>
+              <ol id="videoMore" class="grid gap-2 sm:grid-cols-2" aria-labelledby="videoMoreTitle"></ol>
+            </div>
           </section>
 
           <!-- Gallery -->
@@ -621,6 +626,17 @@
         $('#videoLabel').textContent = name;
         if (s.videoThumb) $('#videoArt').outerHTML = `<img id="videoArt" src="${esc(s.videoThumb)}" alt="" class="aspect-video w-full object-cover" loading="lazy" width="1280" height="720">`;
       }
+      // More links: numbered from 2 (the one above is the first)
+      const more = s.videoUrl ? s.videoLinks || [] : [];
+      $('#videoMoreBox').hidden = !more.length;
+      $('#videoMore').innerHTML = more.map((v, i) => {
+        const name = PLATFORM[v.platform] || 'วิดีโอ';
+        return `<li><a href="${esc(v.url)}" target="_blank" rel="noopener" class="lift press t-spring flex min-h-[64px] items-center gap-3 rounded-2xl border border-line bg-surface p-3 hover:-translate-y-0.5">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-soft text-brand"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span>
+          <span class="min-w-0 flex-1 leading-tight"><span class="block font-display text-[15px] font-semibold text-ink">วิดีโอที่ ${i + 2}</span> <span class="block text-[13px] text-ink2">ดูบน ${name}<span class="sr-only"> (เปิดในแท็บใหม่)</span></span></span>
+          <svg class="shrink-0 text-ink2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+        </a></li>`;
+      }).join('');
 
       // Gallery: first 8, the last tile opens the rest. Shown for 2+ photos or when there is an album link.
       const banner = s.kind === 'banner';
@@ -767,7 +783,7 @@
             ${coverOf(n)}
             <div class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></div>
             <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-50"></div>
-            ${n.photos ? `<span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-lg bg-shell px-2 py-0.5 font-display text-[12px] font-semibold text-royal shadow-raised">${ic.photo}${n.photos} ภาพ</span>` : ''}
+            ${n.photos ? `<span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-lg bg-shell px-2 py-0.5 font-display text-[12px] font-semibold text-royal shadow-raised">${ic.photo}${n.photos} ${n.kind === 'video' ? 'ชิ้น' : 'ภาพ'}</span>` : ''}
           </div>
           <div class="flex flex-1 flex-col p-[18px]">
             <div class="mb-2 flex items-center justify-between gap-2 text-[12px] text-ink2">

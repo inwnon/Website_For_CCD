@@ -199,7 +199,7 @@
       *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 
 <body class="flex min-h-screen flex-col lg:h-dvh lg:min-h-0 lg:overflow-hidden">
@@ -631,6 +631,7 @@
         <div class="mt-2 grid gap-2 sm:grid-cols-2">
           <button type="button" data-dev="pr" data-go="pr.html" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">ทีม PR</button>
           <button type="button" data-dev="admin" data-go="admin.html" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5">ผู้ดูแลระบบ</button>
+          <button type="button" data-dev="intern" data-go="pr-import.html" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5 sm:col-span-2">นักศึกษาฝึกงาน สสอ.</button>
         </div>`;
     }
     $('#devBox').addEventListener('click', async (e) => {
@@ -651,7 +652,7 @@
       // Clear what the prototype kept in this browser
       ['profile', 'submissions'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
       state.user = user;
-      state.role = formRole(user.role);
+      state.role = formRole(user.baseRole || user.role);
       // First sign-up: the name starts from the Google account (first word / the rest), the user corrects it
       const g = (user.name || '').trim().split(/\s+/);
       Object.assign(state, {
@@ -1008,7 +1009,7 @@
     document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => go(state.step - 1, true)));
 
     function renderSummary(u, returning) {
-      const p = { ...u, role: formRole(u.role) };
+      const p = { ...u, role: formRole(u.baseRole || u.role) };
       $('[data-step="4"] .step-title').textContent = returning ? `เข้าสู่ระบบแล้ว` : 'พร้อมใช้งานแล้ว!';
       $('#doneText').textContent = returning ? `คุณเข้าสู่ระบบด้วย ${u.email}` : 'ระบบจะใช้ข้อมูลนี้กรอกฟอร์มส่งข่าวให้ทุกครั้ง แก้ไขได้ทุกเมื่อ';
       $('#nextLink').href = NEXT || 'index.html';

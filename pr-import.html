@@ -38,7 +38,7 @@
     .err { color: rgb(var(--red)); font-size: 13px; font-weight: 500; margin-top: 4px; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 <body class="app">
   <a href="#importForm" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่ฟอร์ม</a>
@@ -161,6 +161,12 @@
                 <input id="credit" maxlength="80" placeholder="งานประชาสัมพันธ์ มรส." class="field h-12 rounded-2xl px-4 text-[15px]" aria-labelledby="creditLabel">
               </label>
             </div>
+            <!-- ลิงก์วิดีโอเพิ่มเติม: a video in several parts or on several platforms (video-links.js) -->
+            <div class="grid gap-1.5">
+              <span id="videoLinksTitle" class="font-display text-[15px] font-semibold">ลิงก์วิดีโอเพิ่มเติม <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ ใช้เมื่อวิดีโอมีหลายตอนหรือหลายลิงก์)</span></span>
+              <div id="videoLinksBox" role="group" aria-labelledby="videoLinksTitle" aria-describedby="videoLinksErr"></div>
+              <span id="videoLinksErr" class="err" hidden></span>
+            </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="grid content-start gap-1.5">
                 <span class="font-display text-[15px] font-semibold">ลิงก์ต้นฉบับ</span>
@@ -195,7 +201,7 @@
         <section class="rounded-card bg-shell p-4 shadow-raised" aria-labelledby="doneTitle">
           <div class="flex items-baseline justify-between gap-2">
             <h2 id="doneTitle" class="font-display text-[17px] font-semibold">นำเข้าในรอบนี้</h2>
-            <a href="pr-news.html?show=imported" class="rounded text-[13px] font-medium text-purple hover:underline">ดูข่าวนำเข้าทั้งหมด</a>
+            <a id="allImported" href="pr-news.html?show=imported" class="rounded text-[13px] font-medium text-purple hover:underline">ดูข่าวนำเข้าทั้งหมด</a>
           </div>
           <ol id="doneList" class="mt-2 grid gap-2 text-[14px]"><li class="text-ink2">ยังไม่มี</li></ol>
         </section>
@@ -223,6 +229,7 @@
   <script src="desk.js"></script>
   <script src="text-tools.js"></script>
   <script src="sortable.js"></script>
+  <script src="video-links.js"></script>
   <script>
     const { esc, day, isoDay, toast } = DESK;
     const $ = (s) => document.querySelector(s);
@@ -258,7 +265,7 @@
       const field = document.getElementById(key);
       if (field) field.setAttribute('aria-invalid', String(!!msg));
     }
-    const clearErrs = () => ['unit', 'date', 'title', 'body', 'categories', 'photos', 'videoUrl', 'albumUrl'].forEach((k) => setErr(k));
+    const clearErrs = () => ['unit', 'date', 'title', 'body', 'categories', 'photos', 'videoUrl', 'videoLinks', 'albumUrl'].forEach((k) => setErr(k));
 
     // Kind decides which fields are required
     function syncKind() {
@@ -400,11 +407,16 @@
     $('#importForm').addEventListener('click', (e) => { const b = e.target.closest('[data-next]'); if (b) nextAfter = b.dataset.next === '1'; });
     $('#lead').addEventListener('input', () => { $('#leadCount').textContent = $('#lead').value.length; });
     let tools = null; // text-tools.js on the story text
+    // ลิงก์วิดีโอเพิ่มเติม: the same platforms as ลิงก์วิดีโอ (rules.mjs PLATFORMS, videoLinks)
+    const MAX_MORE = 5;
+    const VIDEO_RE = [/^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/|live\/)|youtu\.be\/)[\w-]{6,}/i, /^https?:\/\/((www|m|web)\.)?(facebook\.com|fb\.watch)\/\S+/i,
+      /^https?:\/\/((www|vm|vt|m)\.)?tiktok\.com\/\S+/i, /^https?:\/\/drive\.google\.com\/\S+/i];
+    const moreVideos = VideoLinks($('#videoLinksBox'), { max: MAX_MORE, placeholder: 'ลิงก์ตอนอื่น หรือจากแพลตฟอร์มอื่น', onChange: () => setErr('videoLinks') });
     function data(confirmDuplicate) {
       return {
         kind: radio('kind'), title: $('#title').value, lead: $('#lead').value, body: $('#body').value,
         unit: $('#unit').value.trim(), date: $('#date').value, time: $('#time').value || '12:00',
-        categories: cats(), audience: AUD[radio('aud')], videoUrl: $('#videoUrl').value.trim() || null,
+        categories: cats(), audience: AUD[radio('aud')], videoUrl: $('#videoUrl').value.trim() || null, videoLinks: moreVideos.get(),
         credit: $('#credit').value, sourceUrl: $('#sourceUrl').value.trim() || null, albumUrl: $('#albumUrl').value.trim() || null,
         bodySize: null, bodyLeading: tools?.get().leading,
         remoteImages: photos.filter((p) => p.on && p.kind === 'remote').map((p) => p.url), confirmDuplicate,
@@ -425,6 +437,9 @@
       if (d.kind !== 'banner' && !d.categories.length) errs.categories = 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท';
       if (d.kind !== 'video' && !on) errs.photos = 'เลือกหรือแนบภาพอย่างน้อย 1 ภาพ';
       if (d.kind === 'video' && !d.videoUrl) errs.videoUrl = 'ใส่ลิงก์วิดีโอ';
+      const bad = d.videoLinks.findIndex((u) => !VIDEO_RE.some((r) => r.test(u)));
+      if (bad >= 0) errs.videoLinks = `ลิงก์เพิ่มเติมที่ ${bad + 1} ไม่ใช่ลิงก์วิดีโอจาก YouTube, Facebook, TikTok หรือ Google Drive`;
+      else if (d.videoLinks.length && !d.videoUrl) errs.videoUrl = 'ใส่ลิงก์วิดีโอหลักก่อนลิงก์เพิ่มเติม';
       Object.entries(errs).forEach(([k, m]) => setErr(k, m));
       const first = Object.keys(errs)[0];
       if (first) (document.getElementById(first) || document.getElementById(first + 'Err')).scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -478,6 +493,7 @@
       $('#fetchNotes').hidden = true;
       $('#time').value = '12:00';
       $('#leadCount').textContent = '0';
+      moreVideos.set([]);
       $('#dupList').innerHTML = 'เลือกหน่วยงานและวันที่ หรือวางลิงก์ต้นฉบับ ระบบจะเตือนถ้ามีข่าวที่อาจซ้ำ';
       document.querySelectorAll('input[name=cat]').forEach((i) => { i.disabled = false; });
       syncKind();
@@ -524,6 +540,7 @@
       document.querySelectorAll('input[name=cat]').forEach((i) => { i.checked = s.categories.includes(i.value); });
       document.querySelector(`input[name=aud][value=${audValue(s.audience)}]`).checked = true;
       $('#videoUrl').value = s.videoUrl || '';
+      moreVideos.set(s.videoLinks || []);
       $('#credit').value = s.credit || '';
       $('#sourceUrl').value = s.sourceUrl || '';
       $('#albumUrl').value = s.albumUrl || '';
@@ -565,8 +582,13 @@
     $('#dupCancel').addEventListener('click', () => $('#dupDlg').close());
     $('#dupOk').addEventListener('click', () => { $('#dupDlg').close(); send(true); });
 
-    DESK.start({ page: 'import', allow: ['pr', 'admin'] }).then((user) => {
+    DESK.start({ page: 'import', allow: ['pr', 'admin', 'intern'] }).then((user) => {
       if (!user) return;
+      // นักศึกษาฝึกงาน สสอ.: imports only (no list of published stories, no editing them)
+      if (user.role === 'intern') {
+        if (EDIT) { location.replace('pr-import.html'); return; }
+        $('#allImported').hidden = true;
+      }
       $('#importForm').hidden = false;
       $('#sidePanel').hidden = false;
       tools = TextTools.attach($('#body'));

@@ -132,6 +132,13 @@
     }
     .hover-fill:hover::before { opacity: 1; transform: none; }
 
+    /* ประเภทเนื้อหา (ข่าวล่าสุด): chips like the time range ones */
+    .kind-chip { border-color: rgb(var(--line)); background: rgb(var(--surface)); color: rgb(var(--ink)); }
+    .kind-chip:hover { border-color: rgb(var(--purple) / .45); }
+    .kind-chip .kind-ic { color: rgb(var(--ink-2)); }
+    /* Chosen: the same gradient, white text and glow as the time range chips (วันนี้อยากอ่านข่าวช่วงไหน?) */
+    .kind-chip[aria-pressed="true"] { border-color: transparent; background: var(--grad); color: #fff; box-shadow: var(--shadow-glow); }
+    .kind-chip[aria-pressed="true"] .kind-ic { color: inherit; }
     /* SVG grain for banner depth */
     .grain::after {
       content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .08; mix-blend-mode: overlay; border-radius: inherit;
@@ -177,7 +184,7 @@
     }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 
 <body class="min-h-screen">
@@ -348,15 +355,34 @@
             <p id="latestEyebrow" class="font-display text-[14px] font-medium text-brand">อัปเดตจาก 42 หน่วยงาน</p>
             <h2 id="latest-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวล่าสุด</h2>
           </div>
-          <a href="search.html" class="press t-spring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2 font-display text-[15px] font-medium text-purple hover:translate-x-0.5">ดูทั้งหมด
+          <a id="latestAll" href="search.html" class="press t-spring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2 font-display text-[15px] font-medium text-purple hover:translate-x-0.5">ดูทั้งหมด
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
+        </div>
+        <div class="reveal -mx-1 mb-5 flex flex-wrap items-center gap-2 px-1 py-1">
+          <span id="kindLabel" class="mr-1 font-display text-[14px] font-medium text-ink2">ประเภทเนื้อหา</span>
+          <div id="kindChips" class="flex flex-wrap gap-2" role="group" aria-labelledby="kindLabel"></div>
         </div>
         <div id="latestGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="emptyMsg" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2" role="status">ยังไม่มีข่าวในช่วงเวลานี้</p>
         <div class="mt-8 flex justify-center">
           <button id="moreBtn" type="button" hidden class="press t-spring inline-flex h-12 items-center gap-2 rounded-2xl border border-line bg-shell px-6 font-display text-[16px] font-medium text-ink shadow-raised hover:-translate-y-0.5">แสดงข่าวเพิ่ม</button>
         </div>
+      </section>
+
+      <!-- Shelf: วิดีโอเสียงตามสาย (the newest four of that category) -->
+      <section id="soundline" class="cv-auto mt-shelf" aria-labelledby="soundline-title">
+        <div class="reveal mb-6 flex items-end justify-between gap-4">
+          <div>
+            <p class="font-display text-[14px] font-medium text-brand">ฟังข่าวสารประจำวันของมหาวิทยาลัย</p>
+            <h2 id="soundline-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">วิดีโอเสียงตามสาย</h2>
+          </div>
+          <a href="search.html?cat=%E0%B8%A7%E0%B8%B4%E0%B8%94%E0%B8%B5%E0%B9%82%E0%B8%AD%E0%B9%80%E0%B8%AA%E0%B8%B5%E0%B8%A2%E0%B8%87%E0%B8%95%E0%B8%B2%E0%B8%A1%E0%B8%AA%E0%B8%B2%E0%B8%A2&amp;sort=newest" class="press t-spring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2 font-display text-[15px] font-medium text-purple hover:translate-x-0.5">ดูทั้งหมด<span class="sr-only">วิดีโอเสียงตามสาย</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+        <div id="soundGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <p id="soundEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ยังไม่มีวิดีโอเสียงตามสาย</p>
       </section>
 
       <!-- Shelf: archive -->
@@ -508,7 +534,7 @@
             <div class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></div>
             <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-50"></div>
             ${kindChips(n)}
-            ${n.photos ? `<span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-lg bg-shell px-2 py-0.5 font-display text-[12px] font-semibold text-royal shadow-raised">${ic.photo}${n.photos} ภาพ</span>` : ''}
+            ${n.photos ? `<span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-lg bg-shell px-2 py-0.5 font-display text-[12px] font-semibold text-royal shadow-raised">${ic.photo}${n.photos} ${n.kind === 'video' ? 'ชิ้น' : 'ภาพ'}</span>` : ''}
           </div>
           <div class="flex flex-1 flex-col p-[18px]">
             <div class="mb-2 flex items-center justify-between gap-2 text-[12px] text-ink2">
@@ -577,13 +603,30 @@
       }
     }
 
+    // ---- วิดีโอเสียงตามสาย: the newest stories of that category the reader may open ----
+    async function loadSoundline() {
+      const grid = $('#soundGrid');
+      grid.innerHTML = skeleton(4);
+      try {
+        const { items } = await api(`/news/search?${new URLSearchParams({ cat: 'วิดีโอเสียงตามสาย', sort: 'newest', limit: 4 })}`);
+        grid.innerHTML = items.map(card).join('');
+        $('#soundEmpty').classList.toggle('hidden', items.length > 0);
+        applySaved(grid);
+        reveal(grid);
+      } catch (err) {
+        grid.innerHTML = '';
+        $('#soundEmpty').textContent = `โหลดวิดีโอเสียงตามสายไม่สำเร็จ: ${err.message}`;
+        $('#soundEmpty').classList.remove('hidden');
+      }
+    }
+
     // ---- Latest: time range, a day from the archive, or a search ----
     const PAGE = 8;
     const grid = $('#latestGrid');
     const emptyMsg = $('#emptyMsg');
     const moreBtn = $('#moreBtn');
     const chips = document.querySelectorAll('.chip');
-    const latest = { range: 'all', date: null, q: '', offset: 0, seq: 0 };
+    const latest = { range: 'all', date: null, q: '', kind: '', offset: 0, seq: 0 };
     function paintChips() {
       const pick = latest.date || latest.q ? null : latest.range;
       chips.forEach((b) => {
@@ -593,11 +636,32 @@
           (on ? 'bg-grad border-transparent text-white shadow-glow' : 'border-line bg-surface text-ink');
       });
     }
+    // ดูทั้งหมด opens the archive (search.html) with the same filters: the type, and the days as a date range
+    function paintSeeAll() {
+      const p = new URLSearchParams();
+      if (latest.kind) p.set('kind', latest.kind);
+      const day = (d) => d.toISOString().slice(0, 10);
+      const today = new Date(isoDay(new Date()) + 'T00:00:00Z');
+      let from = null, to = null;
+      if (latest.date) from = to = latest.date;
+      else if (latest.range === 'today') from = to = day(today);
+      else if (latest.range === 'week') { // Sunday–Saturday, as /api/news range=week
+        const s = new Date(today); s.setUTCDate(s.getUTCDate() - s.getUTCDay());
+        const e = new Date(s); e.setUTCDate(e.getUTCDate() + 6);
+        from = day(s); to = day(e);
+      } else if (latest.range === 'month') {
+        from = day(today).slice(0, 8) + '01';
+        to = day(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0)));
+      }
+      if (from) { p.set('range', 'custom'); p.set('from', from); p.set('to', to); }
+      $('#latestAll').href = `search.html${p.size ? `?${p}` : ''}`;
+      $('#latestAll').setAttribute('aria-label', p.size ? 'ดูทั้งหมดตามตัวกรองที่เลือก' : 'ดูทั้งหมด');
+    }
     function paintHeading(total) {
       const title = $('#latest-title'), eyebrow = $('#latestEyebrow');
       if (latest.q) { title.textContent = `ผลการค้นหา “${latest.q}”`; eyebrow.textContent = `พบ ${total.toLocaleString('th-TH')} ข่าว`; }
       else if (latest.date) { title.textContent = `ข่าววันที่ ${fmtLong.format(new Date(latest.date + 'T12:00:00+07:00'))}`; eyebrow.textContent = `${total.toLocaleString('th-TH')} ข่าว`; }
-      else { title.textContent = 'ข่าวล่าสุด'; eyebrow.textContent = 'อัปเดตจาก 42 หน่วยงาน'; }
+      else { title.textContent = 'ข่าวล่าสุด'; eyebrow.textContent = latest.kind ? `เฉพาะ${KIND[latest.kind][0]}` : 'อัปเดตจาก 42 หน่วยงาน'; }
     }
     async function loadLatest(append = false) {
       const seq = ++latest.seq; // ignore answers to requests that a newer one replaced
@@ -607,7 +671,9 @@
       if (latest.q) p.set('q', latest.q);
       else if (latest.date) p.set('date', latest.date);
       else if (latest.range !== 'all') p.set('range', latest.range);
-      if (!latest.date) p.set('feed', '1');
+      if (latest.kind) p.set('kind', latest.kind);
+      // The stories on the ข่าวเด่น shelf are not shown again here; once no longer featured they are back by date
+      if (!latest.date) { p.set('feed', '1'); p.set('skipShelf', '1'); }
       moreBtn.disabled = true;
       try {
         const r = await api('/news?' + p);
@@ -618,7 +684,8 @@
         applySaved(grid);
         reveal(grid);
         paintHeading(r.total);
-        emptyMsg.textContent = latest.q ? `ไม่พบข่าวที่ตรงกับ “${latest.q}” ลองใช้คำอื่น หรือเลือกดูจากคลังข่าว` : 'ยังไม่มีข่าวในช่วงเวลานี้';
+        paintSeeAll();
+        emptyMsg.textContent = latest.q ? `ไม่พบข่าวที่ตรงกับ “${latest.q}” ลองใช้คำอื่น หรือเลือกดูจากคลังข่าว` : `ยังไม่มี${latest.kind ? KIND[latest.kind][0] : 'ข่าว'}ในช่วงเวลานี้`;
         emptyMsg.classList.toggle('hidden', latest.offset > 0);
         moreBtn.hidden = !r.hasMore;
       } catch (err) {
@@ -637,6 +704,25 @@
       history.replaceState(null, '', location.pathname + '#latest');
       loadLatest();
     }));
+    // ---- ประเภทเนื้อหา: buttons above the ข่าวล่าสุด cards; the choice applies with the time range ----
+    const KIND_ICON = {
+      '': '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+      news: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 8"/>',
+      video: '<rect x="2" y="5" width="15" height="14" rx="2"/><path d="m17 10 5-3v10l-5-3"/>',
+      banner: '<path d="M4 20V9M10 20V4M16 20v-7M22 20H2"/>',
+    };
+    const kindBar = $('#kindChips');
+    kindBar.innerHTML = [['', 'ทั้งหมด'], ...Object.entries(KIND).map(([k, [l]]) => [k, l])].map(([k, l]) => `
+      <button type="button" data-kind="${k}" aria-pressed="${latest.kind === k}" class="kind-chip press t-spring inline-flex h-11 items-center gap-2 rounded-full border px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">
+        <svg class="kind-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KIND_ICON[k]}</svg>${l}</button>`).join('');
+    kindBar.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-kind]');
+      if (!b || b.dataset.kind === latest.kind) return;
+      latest.kind = b.dataset.kind;
+      kindBar.querySelectorAll('[data-kind]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      loadLatest();
+    });
+
     function showDay(day) {
       Object.assign(latest, { date: day, q: '' });
       loadLatest();
@@ -772,6 +858,7 @@
       if (me.user) { try { saved = new Set((await api('/me/saved')).ids); } catch (e) {} }
       loadFeatured();
       loadLatest();
+      loadSoundline();
       loadArchive();
     })();
   </script>

@@ -19,7 +19,7 @@ import { limit } from './security.mjs';
 import { arrange, audienceLabel, checkSubmission } from './rules.mjs';
 
 const COLUMNS = ['type', 'title', 'lead', 'description', 'body', 'event_date', 'place', 'unit', 'categories', 'content_mode',
-  'people', 'credit', 'news_video_url', 'news_video_platform', 'video_mode', 'video_url', 'video_platform',
+  'people', 'credit', 'news_video_url', 'news_video_platform', 'video_mode', 'video_url', 'video_platform', 'video_links',
   'title_en', 'body_en', 'audience', 'note', 'album_url', 'designer', 'producer', 'body_size', 'body_leading'];
 const firstStatus = (row) => (row.type === 'news' && row.content_mode === 'pr' ? 'writing' : 'review');
 const countKinds = (files) => files.reduce((c, f) => ({ ...c, [f.kind]: (c[f.kind] || 0) + 1 }), { photo: 0, attach: 0, art: 0 });
@@ -80,7 +80,7 @@ export function submissionOut(s, t, viewer) {
     fields: {
       lead: s.lead, desc: s.description, body: s.body, eventDate: s.event_date, place: s.place, categories: s.categories,
       contentMode: s.content_mode, people: s.people, credit: s.credit, newsVideo: s.news_video_url, newsPlatform: s.news_video_platform,
-      videoMode: s.video_mode, videoLink: s.video_url, videoPlatform: s.video_platform, titleEn: s.title_en, bodyEn: s.body_en, note: s.note, albumUrl: s.album_url, designer: s.designer, producer: s.producer,
+      videoMode: s.video_mode, videoLink: s.video_url, videoPlatform: s.video_platform, videoLinks: s.video_links || [], titleEn: s.title_en, bodyEn: s.body_en, note: s.note, albumUrl: s.album_url, designer: s.designer, producer: s.producer,
       bodySize: s.body_size, bodyLeading: s.body_leading,
     },
   };

@@ -5,7 +5,7 @@
 (function () {
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const TZ = 'Asia/Bangkok';
-  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
+  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
   const I = {
     inbox: '<path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z"/>',
     news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
@@ -19,12 +19,12 @@
   const MENU = [
     { id: 'inbox', href: 'pr.html', label: 'งานที่ส่งเข้ามา', roles: ['pr', 'admin'] },
     { id: 'news', href: 'pr-news.html', label: 'ข่าวที่เผยแพร่', roles: ['pr', 'admin'] },
-    { id: 'import', href: 'pr-import.html', label: 'นำเข้าข่าวย้อนหลัง', roles: ['pr', 'admin'] },
+    { id: 'import', href: 'pr-import.html', label: 'นำเข้าข่าวย้อนหลัง', roles: ['pr', 'admin', 'intern'] },
     { id: 'report', href: 'report.html', label: 'รายงาน', roles: ['pr', 'admin', 'coordinator'] },
     { id: 'admin', href: 'admin.html', label: 'ตั้งค่าระบบ', roles: ['admin'] },
     { sep: true },
     { id: 'digest', href: 'digest-studio.html', label: 'จัดทำเล่มสรุปข่าว', roles: ['pr', 'admin'] },
-    { id: 'site', href: 'index.html', label: 'ไปหน้าเว็บไซต์', roles: ['pr', 'admin', 'coordinator'] },
+    { id: 'site', href: 'index.html', label: 'ไปหน้าเว็บไซต์', roles: ['pr', 'admin', 'coordinator', 'intern'] },
   ];
   const icon = (k, size = 19) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
 
@@ -84,18 +84,20 @@
     if (!g) return;
     const signedIn = !!me.user;
     const canReports = signedIn && me.user.role === 'coordinator';
+    const canImport = signedIn && me.user.role === 'intern';
     const title = !signedIn ? 'เข้าสู่ระบบเพื่อใช้หลังบ้าน' : allow.includes('admin') && allow.length === 1 ? 'หน้านี้สำหรับผู้ดูแลระบบ' : 'หน้านี้สำหรับทีมงานประชาสัมพันธ์';
     const text = !signedIn ? 'ใช้บัญชีที่ได้รับสิทธิ์ในทีม PR หรือผู้ประสานงานหน่วยงาน'
       : canReports ? 'บัญชีผู้ประสานงานหน่วยงานเปิดได้เฉพาะหน้ารายงานของหน่วยงานตน'
+      : canImport ? 'บัญชีนักศึกษาฝึกงาน สสอ. เปิดได้เฉพาะหน้านำเข้าข่าวย้อนหลัง'
       : `บัญชี ${me.user.email} ยังไม่มีสิทธิ์ใช้หน้านี้ ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์`;
     g.innerHTML = `
       <img src="/assets/img/hawky-480.webp" alt="" class="bob w-[140px] drop-shadow-[0_20px_28px_rgb(38_66_200/.22)]" width="1254" height="1254">
       <h1 class="font-display text-[22px] font-semibold">${title}</h1>
       <p class="max-w-[460px] text-[15px] text-ink2">${esc(text)}</p>
-      <a href="${canReports ? 'report.html' : signedIn ? 'index.html' : 'login.html'}" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">${canReports ? 'ไปหน้ารายงาน' : signedIn ? 'กลับหน้าเว็บไซต์' : 'เข้าสู่ระบบ'}</a>
+      <a href="${canReports ? 'report.html' : canImport ? 'pr-import.html' : signedIn ? 'index.html' : 'login.html'}" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">${canReports ? 'ไปหน้ารายงาน' : canImport ? 'ไปหน้านำเข้าข่าวย้อนหลัง' : signedIn ? 'กลับหน้าเว็บไซต์' : 'เข้าสู่ระบบ'}</a>
       ${me.devLogin && !signedIn ? `<div class="flex flex-wrap justify-center gap-2">
         <span class="w-full text-[13px] text-ink2">โหมดพัฒนา: ทดลองเข้าสู่ระบบโดยไม่ใช้ Google</span>
-        ${[['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ'], ['coordinator', 'ผู้ประสานงาน (คณะครุศาสตร์)']].map(([k, l]) => `<button type="button" data-dev="${k}" class="press t-spring inline-flex h-11 items-center rounded-full border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">${l}</button>`).join('')}
+        ${[['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ'], ['coordinator', 'ผู้ประสานงาน (คณะครุศาสตร์)'], ['intern', 'นักศึกษาฝึกงาน สสอ.']].map(([k, l]) => `<button type="button" data-dev="${k}" class="press t-spring inline-flex h-11 items-center rounded-full border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">${l}</button>`).join('')}
       </div>` : ''}`;
     g.hidden = false;
     g.addEventListener('click', async (e) => {
@@ -109,7 +111,7 @@
     const me = await window.ME;
     const role = me.user?.role;
     const ok = !!me.user && allow.includes(role);
-    document.getElementById('side').innerHTML = side(page, ok || role === 'coordinator' ? role : null);
+    document.getElementById('side').innerHTML = side(page, ok || role === 'coordinator' || role === 'intern' ? role : null);
     const item = MENU.find((m) => m.id === page);
     const mbar = document.getElementById('mbar');
     if (mbar) mbar.innerHTML = `

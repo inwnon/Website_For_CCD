@@ -57,7 +57,7 @@
     @media (prefers-reduced-motion: reduce) { .fdrop[open] .fpanel { animation: none; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 
 <body class="min-h-screen">
@@ -365,7 +365,7 @@
             <span class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></span>
             <span class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent"></span>
             <div class="absolute left-3 top-3 flex flex-wrap gap-1.5 text-[12px]">${badges(n, kl, kc)}</div>
-            ${n.photos ? `<span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 text-[12px] font-semibold leading-6 text-white backdrop-blur">${n.photos} ภาพ</span>` : ''}
+            ${n.photos ? `<span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 text-[12px] font-semibold leading-6 text-white backdrop-blur">${n.photos} ${n.kind === 'video' ? 'ชิ้น' : 'ภาพ'}</span>` : ''}
           </div>
           <div class="flex flex-1 flex-col p-4">
             <time class="text-[12px] text-ink2" datetime="${esc(n.publishedAt)}">${fmtDay.format(new Date(n.publishedAt))}</time>
@@ -392,7 +392,7 @@
               <time datetime="${esc(n.publishedAt)}">${fmtDay.format(new Date(n.publishedAt))}</time>
               <span class="rounded-full ${kc} px-2.5 font-display font-semibold leading-6">${kl}</span>
               ${n.internal ? `<span class="rounded-full bg-purple-soft px-2.5 font-display font-semibold leading-6 text-purple">${esc(n.audience)}</span>` : ''}
-              ${n.photos ? `<span>${n.photos} ภาพ</span>` : ''}
+              ${n.photos ? `<span>${n.photos} ${n.kind === 'video' ? 'ชิ้น' : 'ภาพ'}</span>` : ''}
             </div>
             <h3 class="mt-1.5 font-display text-[18px] font-semibold leading-snug">
               <a href="news.html?id=${n.id}" class="rounded after:absolute after:inset-0 after:rounded-card hover:text-purple focus-visible:outline-none focus-visible:after:shadow-[inset_0_0_0_3px_rgb(var(--focus))]">${mark(n.title)}</a>

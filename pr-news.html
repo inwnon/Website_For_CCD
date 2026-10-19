@@ -26,7 +26,7 @@
     .row-item.is-gone img { filter: grayscale(1); opacity: .6; }
     .star[aria-pressed="true"] svg { fill: currentColor; }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการข่าว</a>
@@ -59,14 +59,24 @@
             </label>
           </div>
         </div>
-        <div id="list" class="scroll-thin min-h-0 flex-1 overflow-y-auto p-2 sm:p-3" aria-live="polite"></div>
-        <div class="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-[13px] text-ink2">
-          <span id="pageInfo"></span>
-          <span class="flex gap-2">
-            <button id="prev" type="button" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5 disabled:opacity-40">ก่อนหน้า</button>
-            <button id="next" type="button" class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5 disabled:opacity-40">ถัดไป</button>
+        <div id="list" class="scroll-thin min-h-0 flex-1 overflow-y-auto p-2 sm:p-3"></div>
+        <nav class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line px-4 py-2.5 text-[13px] text-ink2" aria-label="หน้าของรายการข่าว">
+          <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <label class="inline-flex items-center gap-2">แสดง
+              <select id="perPage" class="field sel h-10 rounded-xl pl-3 pr-9 font-display text-[14px] font-medium text-ink">
+                <option value="20">20</option><option value="40">40</option><option value="60">60</option><option value="80">80</option><option value="100">100</option>
+              </select>
+              รายการต่อหน้า</label>
+            <span id="pageInfo" aria-live="polite"></span>
           </span>
-        </div>
+          <span class="flex items-center gap-2">
+            <button id="prev" type="button" class="press t-quick inline-flex h-10 items-center gap-1 rounded-full border border-line bg-shell pl-3 pr-4 font-display text-[14px] font-medium text-ink hover:-translate-y-0.5 disabled:opacity-40">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>หน้าก่อนหน้า</button>
+            <span id="pageNo" class="min-w-[4.5rem] text-center font-display text-[14px] font-semibold text-ink"></span>
+            <button id="next" type="button" class="press t-quick inline-flex h-10 items-center gap-1 rounded-full border border-line bg-shell pl-4 pr-3 font-display text-[14px] font-medium text-ink hover:-translate-y-0.5 disabled:opacity-40">หน้าถัดไป
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+          </span>
+        </nav>
       </section>
     </main>
   </div>
@@ -194,13 +204,16 @@
     const { esc, day, dayTime, num, toast } = DESK;
     const $ = (s) => document.querySelector(s);
     const TABS = [['all', 'ทั้งหมด'], ['live', 'เผยแพร่อยู่'], ['imported', 'นำเข้าย้อนหลัง'], ['scheduled', 'ตั้งเวลาไว้'], ['withdrawn', 'ถอนแล้ว']];
-    const KIND = { news: 'ข่าวพร้อมภาพ', video: 'วิดีโอ', banner: 'แบนเนอร์' };
-    const PAGE = 30;
+    const KIND = { news: 'ข่าวพร้อมภาพ', video: 'วิดีโอ', banner: 'อินโฟกราฟิก' };
+    // รายการต่อหน้า: 20–100, kept in this browser and in the link
+    const PER = [20, 40, 60, 80, 100];
+    let PAGE = 20;
+    try { const v = Number(localStorage.getItem('prNewsPer')); if (PER.includes(v)) PAGE = v; } catch (e) {}
     const state = { show: 'all', q: '', offset: 0, items: [], seq: 0 };
     // After an action the list is drawn again: focus goes back to the same button (or the story's first one, or the list)
     let refocus = null;
     // This list as a link (tab, search, page), so แก้ไขข่าว can come back to it
-    const here = () => `pr-news.html?${new URLSearchParams({ show: state.show, ...(state.q ? { q: state.q } : {}), ...(state.offset ? { offset: state.offset } : {}) })}`;
+    const here = () => `pr-news.html?${new URLSearchParams({ show: state.show, ...(state.q ? { q: state.q } : {}), ...(state.offset ? { offset: state.offset } : {}), per: PAGE })}`;
 
     const badge = (cls, text) => `<span class="inline-flex shrink-0 items-center rounded-full ${cls} px-2.5 font-display text-[12px] font-semibold leading-6">${text}</span>`;
     function row(n) {
@@ -223,7 +236,7 @@
             ${n.withdrawn ? esc(n.title) : `<a href="news.html?id=${n.id}" target="_blank" rel="noopener" class="rounded hover:text-purple hover:underline">${esc(n.title)}</a>`}
           </h2>
           <p class="mt-0.5 flex flex-wrap gap-x-3 text-[13px] text-ink2">
-            <span>${esc(n.unit)}</span><span>${day(n.publishedAt)}</span><span>${KIND[n.kind]}${n.photos ? ` ${n.photos} ภาพ` : ''}</span><span>อ่าน ${num(n.views)} ครั้ง</span>
+            <span>${esc(n.unit)}</span><span>${day(n.publishedAt)}</span><span>${KIND[n.kind]}${n.photos ? ` ${n.photos} ${n.kind === 'video' ? 'ชิ้น' : 'ภาพ'}` : ''}</span><span>อ่าน ${num(n.views)} ครั้ง</span>
             ${n.ref ? `<span>จากงาน ${esc(n.ref)}</span>` : ''}${n.imported && n.createdBy ? `<span>นำเข้าโดย ${esc(n.createdBy)}</span>` : ''}
           </p>
           ${n.withdrawn ? `<p class="mt-1 text-[13px] text-brand">ถอนเมื่อ ${day(n.withdrawn.at)}${n.withdrawn.by ? ` โดย ${esc(n.withdrawn.by)}` : ''}: ${esc(n.withdrawn.reason)}</p>` : ''}
@@ -321,8 +334,15 @@
         }
         const from = r.total ? state.offset + 1 : 0;
         $('#pageInfo').textContent = r.total ? `${num(from)}–${num(state.offset + r.items.length)} จาก ${num(r.total)} ข่าว` : '';
+        // The page button that had the focus may now be off (first / last page): the focus moves to the other one
+        const had = document.activeElement;
         $('#prev').disabled = state.offset === 0;
         $('#next').disabled = state.offset + r.items.length >= r.total;
+        if ((had === $('#prev') || had === $('#next')) && had.disabled) (had === $('#prev') ? $('#next') : $('#prev')).focus({ preventScroll: true });
+        const pages = Math.max(1, Math.ceil(r.total / PAGE));
+        $('#pageNo').textContent = r.total ? `หน้า ${num(Math.floor(state.offset / PAGE) + 1)} / ${num(pages)}` : '';
+        // A page past the end (the last story of the page deleted, or fewer stories meanwhile): go to the last one
+        if (!r.items.length && state.offset > 0) { state.offset = (pages - 1) * PAGE; load(); return; }
       } catch (err) {
         toast(err.message, true);
       } finally {
@@ -420,8 +440,12 @@
       sending(f, true);
       try {
         await api(`/pr/news/${pending.id}`, { method: 'DELETE' });
+        // Focus: the story after it (or before it) once the list is drawn again
+        const i = state.items.findIndex((x) => x.id === pending.id);
+        const near = state.items[i + 1] || state.items[i - 1];
         $('#delDlg').close();
         toast('ลบข่าวแล้ว');
+        refocus = { id: near?.id || '', act: 'history' };
         load();
       } catch (err) { toast(err.message, true); } finally { sending(f, false); }
     });
@@ -532,14 +556,30 @@
     $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-show]'); if (b) { state.show = b.dataset.show; state.offset = 0; load(); } });
     let qTimer;
     $('#q').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value.trim(); state.offset = 0; load(); }, 250); });
-    $('#prev').addEventListener('click', () => { state.offset = Math.max(0, state.offset - PAGE); load(); });
-    $('#next').addEventListener('click', () => { state.offset += PAGE; load(); });
+    // A new page starts at the top of the list
+    // (on a phone the page scrolls, not the list: back up to the list's top)
+    const turn = (offset) => {
+      state.offset = offset;
+      $('#list').scrollTop = 0;
+      if ($('#app').getBoundingClientRect().top < 0) $('#app').scrollIntoView({ block: 'start' });
+      load();
+    };
+    $('#prev').addEventListener('click', () => turn(Math.max(0, state.offset - PAGE)));
+    $('#next').addEventListener('click', () => turn(state.offset + PAGE));
+    $('#perPage').addEventListener('change', (e) => {
+      PAGE = Number(e.target.value);
+      try { localStorage.setItem('prNewsPer', String(PAGE)); } catch (err) {}
+      // Keep the first story on screen in the new page
+      turn(Math.floor(state.offset / PAGE) * PAGE);
+    });
 
     DESK.start({ page: 'news', allow: ['pr', 'admin'] }).then((user) => {
       if (!user) return;
       const P = new URLSearchParams(location.search);
       if (TABS.some(([k]) => k === P.get('show'))) state.show = P.get('show');
       if (P.get('q')) { state.q = P.get('q').slice(0, 100); $('#q').value = state.q; }
+      if (PER.includes(Number(P.get('per')))) PAGE = Number(P.get('per'));
+      $('#perPage').value = String(PAGE);
       if (Number(P.get('offset')) > 0) state.offset = Math.floor(Number(P.get('offset')) / PAGE) * PAGE;
       // Back from แก้ไขข่าว (pr-import.html): say so, and put the focus on that story
       let saved = null;

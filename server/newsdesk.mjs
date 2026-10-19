@@ -1,4 +1,5 @@
-// PR desk for published stories and imports (pr-news.html, pr-import.html). Role pr or admin.
+// PR desk for published stories and imports (pr-news.html, pr-import.html). Role pr or admin; /pr/import also intern
+// (นักศึกษาฝึกงาน สสอ.), who imports past stories and has no other part of the desk.
 // - GET  /api/pr/news?q=&show=all|live|imported|withdrawn|scheduled&unit=&limit=&offset=
 // - POST /api/pr/news/:id/feature   { featured }
 // - POST /api/pr/news/:id/withdraw  { reason }      the story page answers 410 with the reason
@@ -21,14 +22,14 @@ import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { Router } from 'express';
-import { requirePr } from './auth.mjs';
+import { requireImport, requirePr } from './auth.mjs';
 import { audit } from './audit.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, acceptUpload, publishFile, removeMedia, removeTemp, tempPath } from './files.mjs';
 import { HttpError, str } from './http.mjs';
 import { LOCAL_DAY } from './news.mjs';
 import { allUnits } from './org.mjs';
-import { AUDIENCES, MAX_CATS, PLATFORMS, SOLO_MSG, TYPES, albumUrl, audienceLabel, bodyLeading, bodySize, categories, soloOk } from './rules.mjs';
+import { AUDIENCES, MAX_CATS, PLATFORMS, SOLO_MSG, TYPES, albumUrl, audienceLabel, bodyLeading, bodySize, categories, soloOk, videoLinks } from './rules.mjs';
 import { get } from './settings.mjs';
 import { limit } from './security.mjs';
 
@@ -36,7 +37,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MB = 1024 * 1024;
 export const router = Router();
 router.use('/pr/news', requirePr);
-router.use('/pr/import', requirePr);
+router.use('/pr/import', requireImport);
 
 // ---- Published stories ----
 const SHOW = {
@@ -69,7 +70,7 @@ router.get('/pr/news', async (req, res) => {
   const named = ids.length ? new Map((await query('select id, title, withdrawn_at from news where id = any($1)', [ids])).rows.map((r) => [r.id, r])) : new Map();
   const titles = new Map(rows.map((n) => [n.id, n.related.map((id) => named.get(id)).filter(Boolean).map((r) => ({ id: r.id, title: r.title, withdrawn: !!r.withdrawn_at }))]));
   res.json({
-    counts, total: rows[0]?.total ?? 0,
+    counts, total: SHOW[req.query.show] ? counts[req.query.show] : counts.all,
     items: rows.map((n) => ({
       id: n.id, title: n.title, unit: n.unit, kind: n.kind, categories: n.categories, audience: audienceLabel(n.audience),
       cover: n.cover_path ? `/media/${n.cover_path}` : null, photos: (n.cover_path ? 1 : 0) + n.gallery.length,
@@ -111,7 +112,7 @@ router.get('/pr/news/:id', async (req, res) => {
   res.json({
     story: {
       id: n.id, kind: n.kind, title: n.title, titleEn: n.title_en, lead: n.lead, body: n.body, bodyEn: n.body_en, bodySize: n.body_size, bodyLeading: n.body_leading,
-      unit: n.unit, categories: n.categories, audience: n.audience, videoUrl: n.video_url, credit: n.credit, place: n.place,
+      unit: n.unit, categories: n.categories, audience: n.audience, videoUrl: n.video_url, videoLinks: n.video_links, credit: n.credit, place: n.place,
       sourceUrl: n.source_url, albumUrl: n.album_url, imported: n.imported, publishedAt: n.published_at, withdrawn: !!n.withdrawn_at,
       ref: s?.ref || null, submissionStatus: s?.status || null,
       photos: [n.cover_path, ...n.gallery].filter(Boolean).map((p) => ({ path: p, url: `/media/${p}` })),
@@ -145,11 +146,11 @@ router.put('/pr/news/:id', limit('import', { max: 120, windowMs: 10 * 60 * 1000 
         `update news set kind = $2, title = $3, lead = $4, body = $5, unit = $6, categories = $7, audience = $8, cover_path = $9, gallery = $10,
            video_url = $11, credit = $12, place = $13, album_url = $14, source_url = $15, published_at = $16, body_size = $17, body_leading = $18,
            event_date = case when imported then $19::date else event_date end,
-           title_en = case when $20 then $21 else title_en end, body_en = case when $20 then $22 else body_en end
+           title_en = case when $20 then $21 else title_en end, body_en = case when $20 then $22 else body_en end, video_links = $23
          where id = $1`,
         [n.id, row.kind, row.title, row.lead, row.body, row.unit, row.categories, row.audience, paths[0] || null, paths.slice(1),
           row.video_url, row.credit, row.place, row.album_url, row.source_url ?? n.source_url, row.published_at, row.body_size, row.body_leading,
-          row.date, d.titleEn !== undefined || d.bodyEn !== undefined, row.title_en, row.body_en]);
+          row.date, d.titleEn !== undefined || d.bodyEn !== undefined, row.title_en, row.body_en, row.video_links]);
       await audit(c, req.user, 'news.update', n.id, `แก้ไขข่าว "${row.title}"`, { before: n.title !== row.title ? n.title : undefined });
     }, req.user);
     await Promise.all(had.filter((p) => !paths.includes(p)).map(removeMedia));
@@ -412,6 +413,10 @@ function checkImport(d, photoCount, opts = { imported: true }) {
   if (row.kind !== 'video') need('photos', photoCount > 0, 'แนบภาพอย่างน้อย 1 ภาพ');
   if (row.kind === 'video') need('videoUrl', row.video_url && Object.values(PLATFORMS).some((r) => r.test(row.video_url)), 'ใส่ลิงก์วิดีโอจาก YouTube, Facebook, TikTok หรือ Google Drive');
   if (row.video_url) need('videoUrl', Object.values(PLATFORMS).some((r) => r.test(row.video_url)), 'ลิงก์วิดีโอไม่ถูกต้อง');
+  const more = videoLinks(d.videoLinks, row.video_url);
+  row.video_links = more.links;
+  if (more.error) need('videoLinks', false, more.error);
+  if (row.video_links.length) need('videoUrl', row.video_url, 'ใส่ลิงก์วิดีโอหลักก่อนลิงก์เพิ่มเติม');
   // Original date (and time): not in the future
   const date = /^\d{4}-\d{2}-\d{2}$/.test(d.date || '') ? d.date : null;
   const time = /^\d{2}:\d{2}$/.test(d.time || '') ? d.time : '12:00';
@@ -449,11 +454,11 @@ router.post('/pr/import', limit('import', { max: 120, windowMs: 10 * 60 * 1000 }
     const created = await tx(async (c) => {
       const n = (await c.query(
         `insert into news (id, kind, imported, source_url, title, title_en, lead, body, body_en, unit, categories, audience,
-           cover_path, gallery, video_url, credit, place, event_date, published_at, created_by, album_url, body_size, body_leading, reviewed_by)
-         values ($1, $2, true, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $19) returning *`,
+           cover_path, gallery, video_url, credit, place, event_date, published_at, created_by, album_url, body_size, body_leading, reviewed_by, video_links)
+         values ($1, $2, true, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $19, $23) returning *`,
         [newsId, row.kind, row.source_url, row.title, row.title_en, row.lead, row.body, row.body_en, row.unit, row.categories, row.audience,
           paths[0] || null, paths.slice(1), row.video_url, row.credit, row.place, row.date, row.published_at, req.user.id, row.album_url,
-          row.body_size, row.body_leading])).rows[0];
+          row.body_size, row.body_leading, row.video_links])).rows[0];
       await audit(c, req.user, 'news.import', n.id, `นำเข้าข่าวย้อนหลัง "${n.title}" (${row.unit}, ${row.date})`,
         { sourceUrl: row.source_url, duplicatesConfirmed: dupes.length ? dupes.map((x) => x.id) : undefined });
       return n;

@@ -4,6 +4,13 @@ import { FACULTIES, STAFF_SEND_UNITS } from './org.mjs';
 import { get, VIDEO_CATEGORIES } from './settings.mjs';
 
 export const TYPES = ['news', 'video', 'banner'];
+
+// Role from the email domain (accounts not listed in pr_team). Here and not in auth.mjs, which imports this file.
+const DOMAINS = { 'sru.ac.th': 'staff', 'student.sru.ac.th': 'student' };
+export const domainRole = (email) => DOMAINS[email.split('@')[1]] ?? 'external';
+// นักศึกษาฝึกงาน สสอ. (intern) imports past stories and nothing else of the PR desk. Everywhere else (profile form,
+// what they may read and send) they are what their email makes them, a student usually.
+export const baseRole = (u) => (u?.role === 'intern' ? domainRole(u.email) : u?.role);
 export const AUDIENCES = ['public', 'student', 'staff'];
 export const MAX_CATS = 5;
 export const MAX_GUESTS = 5;
@@ -34,6 +41,19 @@ export const PLATFORMS = {
   tiktok: /^https?:\/\/((www|vm|vt|m)\.)?tiktok\.com\/\S+/i,
   drive: /^https?:\/\/drive\.google\.com\/\S+/i,
 };
+const PLATFORM_TH = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
+
+// ลิงก์วิดีโอเพิ่มเติม: up to MAX_VIDEO_LINKS links after the main one (video_url), each from one of the platforms.
+// Returns { links, error }: empty boxes dropped, a link given twice (or the main one again) kept once.
+export const MAX_VIDEO_LINKS = 5;
+export function videoLinks(v, main, platforms = Object.keys(PLATFORMS)) {
+  const given = (Array.isArray(v) ? v : []).filter((x) => typeof x === 'string').map((x) => x.trim()).filter(Boolean);
+  const links = [...new Set(given)].filter((u) => u !== main);
+  if (given.length > MAX_VIDEO_LINKS) return { links, error: `ใส่ลิงก์วิดีโอเพิ่มเติมได้ไม่เกิน ${MAX_VIDEO_LINKS} ลิงก์` };
+  const bad = given.findIndex((u) => u.length > 500 || !platforms.some((p) => PLATFORMS[p]?.test(u)));
+  if (bad >= 0) return { links, error: `ลิงก์เพิ่มเติมที่ ${bad + 1} ไม่ใช่ลิงก์วิดีโอจาก ${platforms.map((p) => PLATFORM_TH[p]).join(', ')}` };
+  return { links };
+}
 
 // "ดูรูปภาพเพิ่มเติม" album link: any https page; known photo hosts get their name on the button
 export const ALBUM_HOSTS = {
@@ -116,6 +136,7 @@ export function checkSubmission(user, d, fileCounts) {
     video_mode: type === 'video' ? 'link' : null,
     video_url: null,
     video_platform: null,
+    video_links: [],
     title_en: isNews && d.en ? str(d.titleEn, 160, 'หัวข้อภาษาอังกฤษ') : null,
     body_en: isNews && d.en ? str(d.bodyEn, 20000, 'เนื้อหาภาษาอังกฤษ') : null,
     audience: d.audience,
@@ -130,7 +151,7 @@ export function checkSubmission(user, d, fileCounts) {
   need('title', row.title, 'กรอกหัวข้อ');
   need('unit', row.unit, 'เลือกหน่วยงาน');
   if (row.unit) {
-    const ok = user.role === 'student' ? FACULTIES.has(row.unit) && (!user.unit || row.unit === user.unit) : STAFF_SEND_UNITS.has(row.unit);
+    const ok = baseRole(user) === 'student' ? FACULTIES.has(row.unit) && (!user.unit || row.unit === user.unit) : STAFF_SEND_UNITS.has(row.unit);
     need('unit', ok, 'หน่วยงานไม่ถูกต้อง');
   }
   if (hasDate) need('eventDate', isDate(row.event_date), 'เลือกวันที่จัดกิจกรรม');
@@ -171,6 +192,9 @@ export function checkSubmission(user, d, fileCounts) {
     row.video_url = str(d.videoLink, 500, 'ลิงก์วิดีโอ');
     row.video_platform = d.videoPlatform;
     need('videoLink', row.video_url && platformOk(d.videoPlatform, row.video_url), 'ลิงก์วิดีโอไม่ตรงกับแพลตฟอร์มที่เลือก');
+    const more = videoLinks(d.videoLinks, row.video_url, get('platforms'));
+    row.video_links = more.links;
+    if (more.error) need('videoLinks', false, more.error);
   }
   if (type === 'banner') need('art', fileCounts.art > 0, 'แนบไฟล์งานอย่างน้อย 1 ไฟล์');
   if (isNews) {
@@ -207,6 +231,7 @@ export function draftData(d) {
   for (const [k, max] of Object.entries(DRAFT_TEXT)) { const v = typeof d[k] === 'string' ? d[k].slice(0, max) : ''; if (v) out[k] = v; }
   const list = (v, n, len) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, n).map((x) => x.slice(0, len)) : []);
   out.categories = list(d.categories, MAX_CATS, 100);
+  out.videoLinks = list(d.videoLinks, MAX_VIDEO_LINKS, 500);
   out.audience = list(d.audience, 3, 10).filter((a) => AUDIENCES.includes(a));
   out.guests = (Array.isArray(d.guests) ? d.guests : []).slice(0, MAX_GUESTS).filter((g) => g && typeof g === 'object')
     .map((g) => ({ prefix: String(g.prefix || '').slice(0, 60), name: String(g.name || '').slice(0, 100), pos: String(g.pos || '').slice(0, 160) }));

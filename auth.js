@@ -21,7 +21,7 @@
   window.ME = api('/me').catch(() => ({ user: null, unread: 0 }));
   // login.html comes back to this page (or `next`) after signing in
   window.loginUrl = (next = location.pathname.replace(/^\//, '') + location.search) => `login.html?next=${encodeURIComponent(next || 'index.html')}`;
-  // Development sign-in (server has ALLOW_DEV_LOGIN=1): as = staff | student | external | pr | admin | coordinator
+  // Development sign-in (server has ALLOW_DEV_LOGIN=1): as = staff | student | external | pr | admin | coordinator | intern
   window.devLogin = async (as) => { await api('/auth/dev', { method: 'POST', body: { as } }); location.reload(); };
 
   const read = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
@@ -78,11 +78,13 @@
 
   // ---- Header account menu (re-run with window.renderAccountButton() after marking items read) ----
   // The page's <a id="login"> becomes a button that opens a menu: profile, inbox, PR tools, settings, theme, sign out.
-  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
+  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
   // Developer accounts switch between these two (POST /api/me/role); ผู้พัฒนาระบบ has the highest rights
   const SWITCH = [['pr', 'ทีม PR งานสื่อสารองค์กร'], ['admin', 'ผู้พัฒนาระบบ']];
   const roleName = (u) => (u.developer ? Object.fromEntries(SWITCH)[u.role] : ROLE_TH[u.role]) || '';
   window.roleName = roleName;
+  // นักศึกษาฝึกงาน สสอ. are what their email makes them (a student, usually) everywhere but the import page
+  window.baseRole = (u) => u?.baseRole || u?.role;
   // After switching: the PR team cannot open the settings page, so go to the PR desk instead of a "no access" page
   const afterSwitch = (role) => { if (role === 'pr' && /(^|\/)admin\.html$/.test(location.pathname)) location.href = 'pr.html'; else location.reload(); };
   async function switchRole(role, buttons) {
@@ -199,10 +201,11 @@
     const aff = affiliation(u);
     const prTools = u.role === 'pr' || u.role === 'admin'
       ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr.html', 'desk', 'งานที่ส่งเข้ามา')}${item('pr-news.html', 'news', 'จัดการข่าว')}${item('digest-studio.html', 'book', 'เล่มสรุปข่าว')}${item('report.html', 'chart', 'รายงาน')}${u.role === 'admin' ? item('admin.html', 'gear', 'ตั้งค่าระบบ') : ''}</div>`
-      : u.role === 'coordinator' ? `<div class="acct-grp">${item('report.html', 'chart', 'รายงานของหน่วยงาน')}</div>` : '';
+      : u.role === 'coordinator' ? `<div class="acct-grp">${item('report.html', 'chart', 'รายงานของหน่วยงาน')}</div>`
+      : u.role === 'intern' ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr-import.html', 'news', 'นำเข้าข่าวย้อนหลัง')}</div>` : '';
     return `<div class="acct-id"><span class="acct-av">${avatar(u)}</span><div style="min-width:0"><p class="acct-name">${esc(u.name || u.email)}</p>${u.name ? `<p class="acct-mail">${esc(u.email)}</p>` : ''}<span class="acct-role">${esc(roleName(u))}${aff ? ` ${esc(aff)}` : ''}</span></div></div>
       ${u.developer ? `<div class="acct-grp"><p class="acct-label" id="acctRoleLabel">สลับบทบาท</p><div class="acct-roles" role="group" aria-labelledby="acctRoleLabel">${SWITCH.map(([k, l]) => `<button type="button" data-switch-role="${k}" aria-pressed="${u.role === k}">${l}</button>`).join('')}</div></div>` : ''}
-      <div class="acct-grp">${item('inbox.html', 'inbox', 'ข่าวของฉัน', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${u.role !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
+      <div class="acct-grp">${item('inbox.html', 'inbox', 'ข่าวของฉัน', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${window.baseRole(u) !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
       ${prTools}
       <div class="acct-grp"><p class="acct-label">บัญชีและการตั้งค่า</p>${item('login.html?profile=1', 'edit', 'แก้ไขโปรไฟล์และสังกัด')}${item('inbox.html#notify', 'bell', 'การแจ้งเตือนทางอีเมล')}${item('privacy.html#rights', 'shield', 'ข้อมูลส่วนบุคคลของฉัน')}${themeRow}</div>
       <div class="acct-grp"><button type="button" class="acct-item danger" data-signout>${svg(IC.out)}<span>ออกจากระบบ</span></button></div>`;

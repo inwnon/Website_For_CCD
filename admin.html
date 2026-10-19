@@ -28,7 +28,7 @@
     .swatch { background: radial-gradient(90% 60% at 100% 0%, var(--glow), transparent 65%), radial-gradient(80% 50% at 0% 100%, rgb(122 60 226 / .6), transparent 70%), var(--bg-c); }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=a9304a1416">
+  <link rel="stylesheet" href="/assets/app.css?v=d34ec3f8c6">
 </head>
 <body class="app">
   <a href="#panel" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่การตั้งค่า</a>
@@ -75,15 +75,15 @@
     }
 
     // ================= Users and roles =================
-    const ROLE_OPTS = [['default', 'ตามโดเมนอีเมล'], ['coordinator', 'ผู้ประสานงานหน่วยงาน'], ['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ']];
+    const ROLE_OPTS = [['default', 'ตามโดเมนอีเมล'], ['intern', 'นักศึกษาฝึกงาน สสอ.'], ['coordinator', 'ผู้ประสานงานหน่วยงาน'], ['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ']];
     const UNITS = () => { const o = S.settings.org || S.fileOrg; return [...o.staffGroups.flatMap((g) => g.units), ...Object.keys(o.faculties)]; };
     const usersState = { q: '', role: '', offset: 0 };
     function roleSelect(u) {
-      const v = ['coordinator', 'pr', 'admin'].includes(u.role) ? u.role : 'default';
+      const v = ['intern', 'coordinator', 'pr', 'admin'].includes(u.role) ? u.role : 'default';
       return `<select data-role class="field sel h-10 rounded-xl pl-3 pr-9 text-[14px]" aria-label="บทบาทของ ${esc(u.email)}">${ROLE_OPTS.map(([k, l]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
     }
     async function users() {
-      $('#panel').innerHTML = head('ผู้ใช้และบทบาท', 'ทุกคนที่เคยเข้าสู่ระบบ บทบาทเริ่มต้นมาจากโดเมนอีเมล (@sru.ac.th = บุคลากร, @student.sru.ac.th = นักศึกษา) ให้สิทธิ์ทีม PR ผู้ดูแลระบบ หรือผู้ประสานงานหน่วยงาน ได้ที่นี่ ให้สิทธิ์ล่วงหน้าก่อนผู้ใช้เข้าสู่ระบบครั้งแรกได้') + `
+      $('#panel').innerHTML = head('ผู้ใช้และบทบาท', 'ทุกคนที่เคยเข้าสู่ระบบ บทบาทเริ่มต้นมาจากโดเมนอีเมล (@sru.ac.th = บุคลากร, @student.sru.ac.th = นักศึกษา) ให้สิทธิ์ทีม PR ผู้ดูแลระบบ ผู้ประสานงานหน่วยงาน หรือนักศึกษาฝึกงาน สสอ. (นำเข้าข่าวย้อนหลังได้อย่างเดียว) ได้ที่นี่ ให้สิทธิ์ล่วงหน้าก่อนผู้ใช้เข้าสู่ระบบครั้งแรกได้') + `
         <div class="grid gap-4 p-5 sm:px-6">
           <form id="grant" class="grid gap-2 rounded-card border border-line bg-surface2/50 p-4 sm:grid-cols-[minmax(0,1.3fr)_200px_minmax(0,1fr)_auto] sm:items-end">
             <label class="grid gap-1"><span class="font-display text-[14px] font-semibold">ให้สิทธิ์อีเมล</span><input name="email" type="email" required placeholder="ชื่อ@sru.ac.th" class="field h-11 rounded-xl px-3 text-[15px]"></label>
@@ -120,7 +120,7 @@
       const r = await api('/admin/users?' + p).catch((err) => { toast(err.message, true); return null; });
       if (!r) return;
       const chip = (k, l) => `<button type="button" data-rolef="${k}" aria-pressed="${usersState.role === k}" class="press t-quick h-9 rounded-full px-3 font-display text-[13px] font-semibold ${usersState.role === k ? 'bg-grad text-white shadow-glow' : 'border border-line'}">${l}${k ? ` ${num(r.counts[k] || 0)}` : ''}</button>`;
-      $('#roleChips').innerHTML = chip('', 'ทั้งหมด') + ['admin', 'pr', 'coordinator', 'staff', 'student', 'external'].map((k) => chip(k, ROLE_TH[k])).join('');
+      $('#roleChips').innerHTML = chip('', 'ทั้งหมด') + ['admin', 'pr', 'coordinator', 'intern', 'staff', 'student', 'external'].map((k) => chip(k, ROLE_TH[k])).join('');
       $('#userList').innerHTML = r.items.length ? r.items.map((u) => `
         <div class="grid items-center gap-2 rounded-2xl border border-line p-3 sm:grid-cols-[minmax(0,1fr)_200px_minmax(0,220px)_auto]" data-email="${esc(u.email)}">
           <div class="min-w-0"><p class="truncate font-display text-[15px] font-semibold">${esc(u.name || u.email)}</p>

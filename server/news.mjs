@@ -1,5 +1,7 @@
 // Published stories — reading side (index.html, news.html, search.html)
-// - GET    /api/news?feed=1&featured=1&range=today|week|month&date=YYYY-MM-DD&limit=&offset=
+// - GET    /api/news?feed=1&featured=1&range=today|week|month&date=YYYY-MM-DD&kind=news|video|banner&skipShelf=1&limit=&offset=
+//          skipShelf=1 (ข่าวล่าสุด on the home page): leaves out the stories on the ข่าวเด่น shelf (the newest SHELF featured
+//          ones), so a story is not shown twice; once it is no longer featured it is back in its place by date.
 //          live stories, newest first (feed=1 is the home page; imported stories (นำเข้าย้อนหลัง) are in it too, at their original date).
 //          Stories the viewer may not read come back as { locked: true } placeholders.
 // - GET    /api/news/search?q=&kind=&cat=&cat=&unit=&from=&to=&sort=relevance|newest&limit=&offset=
@@ -17,7 +19,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { createReadStream, existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { Router } from 'express';
-import { isPr, requireUser } from './auth.mjs';
+import { baseRole, isPr, requireUser } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, sendMedia } from './files.mjs';
 import { HttpError } from './http.mjs';
@@ -38,8 +40,9 @@ const TODAY = "(now() at time zone 'Asia/Bangkok')::date";
 export function readableBy(user) {
   if (!user) return ['public'];
   if (isPr(user)) return ['public', 'student', 'staff'];
-  if (user.role === 'staff' || user.role === 'coordinator') return ['public', 'staff'];
-  if (user.role === 'student') return ['public', 'student'];
+  const role = baseRole(user);
+  if (role === 'staff' || role === 'coordinator') return ['public', 'staff'];
+  if (role === 'student') return ['public', 'student'];
   return ['public'];
 }
 const canRead = (story, user) => story.audience.some((a) => readableBy(user).includes(a));
@@ -72,13 +75,17 @@ export function cardOut(n, user) {
 export const router = Router();
 
 // ---- Home page lists and the archive day view ----
+export const SHELF = 4;
 router.get('/news', async (req, res) => {
-  const { featured, range, date } = req.query;
+  const { featured, range, date, kind } = req.query;
   const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 48);
   const offset = Math.max(Number(req.query.offset) || 0, 0);
   const where = [LIVE];
   const params = [];
   if (featured === '1') where.push('n.featured');
+  if (TYPES.includes(kind)) { params.push(kind); where.push(`n.kind = $${params.length}`); }
+  if (req.query.skipShelf === '1') where.push(`n.id not in (select f.id from news f where f.featured and f.published_at <= now() and f.withdrawn_at is null
+    order by f.published_at desc, f.id limit ${SHELF})`);
   if (range === 'today') where.push(`${LOCAL_DAY} = ${TODAY}`);
   // Week = Sunday–Saturday, as the calendar on index.html
   if (range === 'week') where.push(`${LOCAL_DAY} between ${TODAY} - extract(dow from ${TODAY})::int and ${TODAY} - extract(dow from ${TODAY})::int + 6`);
@@ -209,6 +216,7 @@ export async function storyPayload(req, id) {
       categories: n.categories, audience: audienceLabel(n.audience), internal: !n.audience.includes('public'),
       cover: n.cover_path ? image(n.cover_path) : null, gallery: n.gallery.map(image),
       videoUrl: n.video_url, videoPlatform: platformOf(n.video_url), videoThumb: videoThumb(n),
+      videoLinks: (n.video_links || []).map((url) => ({ url, platform: platformOf(url) })),
       albumUrl: n.album_url, albumHost: n.album_url ? albumHost(n.album_url) : null,
       credit: n.credit, eventDate: n.event_date, place: n.place, featured: n.featured, views: n.views,
       publishedAt: n.published_at, saved, imported: n.imported,

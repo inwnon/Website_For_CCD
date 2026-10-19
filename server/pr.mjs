@@ -20,7 +20,7 @@ import { domainRole, publicUser, requirePr } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, publishImage, removeMedia } from './files.mjs';
 import { HttpError, str } from './http.mjs';
-import { AUDIENCES, MAX_CATS, SOLO_MSG, albumUrl, audienceLabel, bodyLeading, bodySize, categories, soloOk } from './rules.mjs';
+import { AUDIENCES, MAX_CATS, SOLO_MSG, albumUrl, audienceLabel, bodyLeading, bodySize, categories, soloOk, videoLinks } from './rules.mjs';
 import { audit } from './audit.mjs';
 import { prMessaged, statusChanged } from './notify.mjs';
 import { limit } from './security.mjs';
@@ -32,7 +32,8 @@ const STATUS_TH = { review: 'รอ PR ตรวจ', writing: 'PR กำลั�
 const PR_MOVES = ['review', 'writing', 'revise', 'rejected']; // "published" goes through /publish
 
 export const router = Router();
-router.use('/pr', requirePr);
+// Everything under /pr is the PR team's, but /pr/import (newsdesk.mjs), which นักศึกษาฝึกงาน สสอ. may use too
+router.use('/pr', (req, res, next) => (/^\/import(\/|$)/.test(req.path) ? next() : requirePr(req, res, next)));
 
 router.get('/pr/submissions', async (req, res) => {
   const { status, type, q, unread } = req.query;
@@ -201,6 +202,10 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
     body_size: b.bodySize === undefined ? s.body_size : bodySize(b.bodySize),
     body_leading: b.bodyLeading === undefined ? s.body_leading : bodyLeading(b.bodyLeading),
   };
+  // ลิงก์วิดีโอเพิ่มเติม: the sender's unless PR sent their own list
+  const more = videoLinks(Array.isArray(b.videoLinks) ? b.videoLinks : s.video_links || [], story.video_url);
+  story.video_links = more.links;
+  if (more.error) errors.videoLinks = more.error;
   if (s.type === 'news' && story.body.length < 50) errors.body = 'ใส่เนื้อหาข่าวก่อนเผยแพร่';
   if (s.type === 'video' && !story.video_url) errors.videoUrl = 'ใส่ลิงก์วิดีโอที่เผยแพร่แล้ว (เช่น YouTube ของมหาวิทยาลัย)';
   if (!story.categories.every((c) => categories().includes(c)) || story.categories.length > MAX_CATS) errors.categories = 'ประเภทข่าวไม่ถูกต้อง';
@@ -230,19 +235,19 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
         await c.query(
           `update news set title = $2, title_en = $3, lead = $4, body = $5, body_en = $6, categories = $7, audience = $8, cover_path = $9, gallery = $10,
              video_url = $11, featured = $12, published_at = $13, album_url = $14, withdrawn_at = null, withdrawn_reason = null, withdrawn_by = null,
-             body_size = $15, body_leading = $16, reviewed_by = $17
+             body_size = $15, body_leading = $16, reviewed_by = $17, video_links = $18
            where id = $1`,
           [newsId, story.title, story.title_en, story.lead, story.body, story.body_en, story.categories, story.audience, cover, gallery,
-            story.video_url, story.featured, story.published_at, story.album_url, story.body_size, story.body_leading, req.user.id],
+            story.video_url, story.featured, story.published_at, story.album_url, story.body_size, story.body_leading, req.user.id, story.video_links],
         );
       } else await c.query(
         `insert into news (id, kind, submission_id, title, title_en, lead, body, body_en, unit, categories, audience, cover_path, gallery,
-           video_url, credit, event_date, place, featured, published_at, created_by, album_url, body_size, body_leading, reviewed_by)
-         values ($1, $20, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $21, $22, $23, $19)`,
+           video_url, credit, event_date, place, featured, published_at, created_by, album_url, body_size, body_leading, reviewed_by, video_links)
+         values ($1, $20, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $21, $22, $23, $19, $24)`,
         // The credit line under the picture: photographer (news), producer (video), designer (banner)
         [newsId, s.id, story.title, story.title_en, story.lead, story.body, story.body_en, s.unit, story.categories, story.audience,
           cover, gallery, story.video_url, s.credit || s.producer || s.designer, s.event_date, s.place, story.featured, story.published_at, req.user.id, s.type, story.album_url,
-          story.body_size, story.body_leading],
+          story.body_size, story.body_leading, story.video_links],
       );
       await c.query(`update submissions set status = 'published', news_id = $2, sender_unread = true, pr_unread = false, pr_edit = null where id = $1`, [s.id, newsId]);
       await c.query(`insert into submission_events (submission_id, status, actor_id) values ($1, 'published', $2)`, [s.id, req.user.id]);
