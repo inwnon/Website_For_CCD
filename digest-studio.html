@@ -266,7 +266,7 @@
     .spread.is-single .leaf { width: 100%; }
     .page {
       position: absolute; inset: 0; overflow: hidden; container-type: inline-size;
-      background: #FBFAFF; color: #1B2560; line-height: 1.6;
+      background: #FCFBF7; color: #23233A; line-height: 1.6;
       box-shadow: 0 26px 44px -18px rgb(0 0 0 / .65), 0 8px 16px -8px rgb(0 0 0 / .4);
     }
     .leaf-left .page { border-radius: 10px 2px 2px 10px; box-shadow: inset -26px 0 30px -24px rgb(27 37 96 / .4), 0 26px 44px -18px rgb(0 0 0 / .65); }
@@ -303,7 +303,7 @@
     .toast-box { pointer-events: auto; animation: stepIn .45s var(--spring); }
     #meterBar { transform-origin: left center; }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=91b6086606">
+  <link rel="stylesheet" href="/assets/app.css?v=f4b8427248">
 </head>
 
 <body class="min-h-screen">
@@ -487,10 +487,15 @@
     <form method="dialog" class="p-6 sm:p-7">
       <h2 id="approveTitle" class="font-display text-[22px] font-semibold"></h2>
       <dl id="approveSummary" class="mt-4 grid gap-2 rounded-2xl bg-surface2 p-4 text-[14px]"></dl>
-      <p class="mt-4 text-[14px] text-ink2">เล่มจะขึ้นชั้นหนังสือทันที ผู้อ่านเห็นได้ทุกคน และระบบจะหยุดส่งอีเมลเตือน</p>
+      <p class="mt-4 text-[14px] text-ink2">เล่มจะขึ้นชั้นหนังสือทันที ผู้อ่านเห็นได้ทุกคน และระบบจะหยุดส่งอีเมลเตือน ก่อนเผยแพร่ ระบบสร้างภาพของทุกหน้าในเครื่องนี้ (ใช้เวลาประมาณหน้าละ 1 วินาที อย่าปิดหน้านี้ระหว่างนั้น)</p>
+      <!-- Making the page pictures: progress, or what went wrong -->
+      <div id="approveWork" class="mt-4 grid gap-2" hidden>
+        <div class="h-2 overflow-hidden rounded-full bg-surface2" aria-hidden="true"><div id="approveBar" class="h-full w-full origin-left scale-x-0 rounded-full bg-grad t-quick"></div></div>
+        <p id="approveStep" class="text-[14px] font-medium" role="status" aria-live="polite"></p>
+      </div>
       <div class="mt-6 flex flex-wrap justify-end gap-3">
         <button value="cancel" class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl px-5 font-display text-[15px] font-medium">ยกเลิก</button>
-        <button id="approveConfirm" value="ok" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">อนุมัติและเผยแพร่</button>
+        <button id="approveConfirm" value="ok" type="button" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">อนุมัติและเผยแพร่</button>
       </div>
     </form>
   </dialog>
@@ -619,9 +624,11 @@
             <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-shell text-royal shadow-raised"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
             <div class="min-w-0 flex-1">
               <h2 id="statusTitle" class="font-display text-[20px] font-semibold">เผยแพร่แล้ว</h2>
+              ${d.pagesReady ? '' : '<p class="mt-2 rounded-xl bg-gold-soft px-3 py-2 text-[14px] text-ink">เล่มนี้ยังไม่มีภาพหน้า (เผยแพร่ก่อนมีภาพหน้า หรือมีข่าวถูกถอนหลังเผยแพร่) ผู้อ่านเห็นหน้าที่ระบบวาดให้แทน กด &quot;สร้างภาพหน้า&quot; เพื่อทำใหม่</p>'}
               <p class="mt-1 text-[15px] text-ink2">อนุมัติและเผยแพร่เมื่อ ${full(st.publishedAt)} หยุดส่งอีเมลเตือนแล้ว${d.reminders ? ` (ส่งไปทั้งหมด ${d.reminders} ฉบับ)` : ''}</p>
             </div>
             <div class="flex shrink-0 flex-wrap gap-2">
+              ${d.pagesReady ? '' : '<button id="repaintBtn" type="button" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">สร้างภาพหน้า</button>'}
               <button id="unpublishBtn" type="button" class="press t-spring inline-flex h-12 items-center justify-center rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">ถอนออกจากชั้นหนังสือ</button>
               <a href="digest.html?issue=${d.id}&view=flip" class="bg-grad press t-spring inline-flex h-12 items-center justify-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">ดูบนชั้นหนังสือ</a>
             </div>
@@ -684,6 +691,19 @@
     }
     $('#status').addEventListener('click', async (e) => {
       if (e.target.closest('#approveBtn')) openApprove();
+      const rp = e.target.closest('#repaintBtn');
+      if (rp) {
+        rp.disabled = true;
+        try {
+          const r = await B.rasterize(issueNow(), (n, total) => { rp.textContent = `กำลังสร้างภาพหน้า ${n}/${total}`; });
+          rp.textContent = 'กำลังอัปโหลด';
+          await B.uploadPages(d.id, r);
+          await apply(await api(`/pr/digests/${encodeURIComponent(d.id)}`));
+          render();
+          toast('สร้างภาพหน้าแล้ว');
+        } catch (err) { toast(`สร้างภาพหน้าไม่สำเร็จ: ${err.message}`); rp.disabled = false; rp.textContent = 'สร้างภาพหน้า'; }
+        return;
+      }
       if (e.target.closest('#unpublishBtn')) {
         try { await apply(await api(`/pr/digests/${encodeURIComponent(d.id)}/unpublish`, { method: 'POST' })); render(); toast('ถอนเล่มออกจากชั้นหนังสือแล้ว แก้ไขแล้วอนุมัติใหม่ได้'); } catch (err) { toast(err.message); }
       }
@@ -985,16 +1005,47 @@
       const rows = st.mode === 'pdf'
         ? [['จัดทำจาก', 'PDF ที่ทำเอง'], ['ไฟล์', st.pdf.name], ['จำนวนหน้า', `${st.pdf.pages} หน้า`], ['ปก', 'หน้าแรกของไฟล์']]
         : [['จัดทำจาก', 'ข่าวในระบบ'], ['จำนวนหน้า', `${it.pages.length} หน้า`], ['ข่าวในเล่ม', `${it.count} ข่าว${st.excluded.length ? ` (ไม่ได้ลงเล่ม ${st.excluded.length} ข่าว)` : ''}`], ['ปก', st.cover ? `รูปที่อัปโหลด ${st.cover.name}` : 'ปกที่ระบบสร้าง']];
+      skipPictures = false;
+      $('#approveWork').hidden = true;
+      $('#approveConfirm').textContent = 'อนุมัติและเผยแพร่';
       $('#approveSummary').innerHTML = rows.map(([k, v]) => `<div class="grid grid-cols-[100px_1fr] gap-3"><dt class="text-ink2">${k}</dt><dd class="min-w-0 break-words font-display font-medium">${esc(v)}</dd></div>`).join('');
       dlg.showModal();
     }
-    dlg.addEventListener('close', async () => {
-      if (dlg.returnValue !== 'ok') { $('#approveBtn')?.focus(); return; }
+    dlg.addEventListener('close', () => { if (dlg.returnValue !== 'ok') $('#approveBtn')?.focus(); });
+    // อนุมัติ: save, make a picture of every page in this browser and send them, then publish.
+    // If the pictures cannot be made, the PR team may still publish: the reader then draws the pages itself.
+    let skipPictures = false, approving = false;
+    function step(msg, part) {
+      $('#approveWork').hidden = false;
+      $('#approveStep').textContent = msg;
+      $('#approveBar').style.transform = `scaleX(${part})`;
+    }
+    async function makePictures() {
+      const iss = issueNow();
+      const r = await B.rasterize(iss, (n, total) => step(`กำลังสร้างภาพหน้า ${n} จาก ${total}`, (n - 1) / total));
+      step('กำลังอัปโหลดภาพหน้า', 0.95);
+      await B.uploadPages(d.id, r);
+    }
+    $('#approveConfirm').addEventListener('click', async () => {
+      if (approving) return;
+      approving = true;
+      const btn = $('#approveConfirm');
+      btn.disabled = true;
       try {
         if (saveTimer) await save(true);
         await saving;
+        if (!skipPictures) {
+          try { await makePictures(); } catch (err) {
+            step(`สร้างภาพหน้าไม่สำเร็จ: ${err.message} เผยแพร่ต่อได้ ผู้อ่านจะเห็นหน้าที่ระบบวาดให้แทนภาพ`, 0);
+            skipPictures = true;
+            btn.textContent = 'เผยแพร่โดยไม่ใช้ภาพหน้า';
+            return;
+          }
+        }
+        step('กำลังเผยแพร่', 1);
         await apply(await api(`/pr/digests/${encodeURIComponent(d.id)}/publish`, { method: 'POST' }));
-      } catch (err) { toast(err.message); return; }
+      } catch (err) { step(err.message, 0); return; } finally { approving = false; btn.disabled = false; }
+      dlg.close('ok');
       render();
       $('#statusTitle').setAttribute('tabindex', '-1');
       $('#statusTitle').focus();

@@ -9,9 +9,12 @@
 // - POST /api/pr/digests/:id/reset        back to the automatic layout
 // - PUT  /api/pr/digests/:id/cover        multipart "file" JPG/PNG ≤ 10 MB · DELETE removes it
 // - PUT  /api/pr/digests/:id/pdf          multipart "file" PDF ≤ 50 MB + "pages", "notA4", "shelf" (page 1 as JPG) · DELETE
+// - PUT  /api/pr/digests/:id/pages        multipart "page" × n (WebP, page order) + "meta" [{ body, links }] — the pages as pictures,
+//                                          drawn in the PR team's browser when they approve (digest-book.js rasterize)
 // - POST /api/pr/digests/:id/publish · POST /api/pr/digests/:id/unpublish
+// - GET  /api/digests?q=                  also the published issues whose page text has the words, with those pages
 // Files: GET /media/digests/:id/:file — published issues for anyone, drafts for PR only
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { open as openFile, mkdir, rm } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import { Router } from 'express';
@@ -46,20 +49,24 @@ const TH = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', ye
 const youtubeId = (url) => url?.match(PLATFORMS.youtube)?.[4] || null; // group 4: the video id
 export async function pool(d) {
   const rows = (await query(
-    `select n.id, n.title, n.unit, n.lead, n.kind, n.categories, n.audience, n.cover_path, n.video_url, n.published_at
-     from news n where ${LIVE} and ${LOCAL_DAY} between $1 and $2 order by n.published_at`, [d.range_start, d.range_end])).rows;
+    // Public stories only (a published book is for everyone); the most read first
+    `select n.id, n.title, n.unit, n.lead, n.kind, n.categories, n.audience, n.cover_path, n.video_url, n.published_at, n.views
+     from news n where ${LIVE} and ${LOCAL_DAY} between $1 and $2 and 'public' = any(n.audience)
+     order by n.views desc, n.published_at`, [d.range_start, d.range_end])).rows;
   return rows.map((n) => ({
     id: n.id, title: n.title, unit: n.unit, lead: n.lead, cat: catOf(n), audience: n.audience, internal: !n.audience.includes('public'),
     // A video story without a cover: its YouTube picture through this server (news.mjs /media/video), not from YouTube
     img: n.cover_path ? `/media/${n.cover_path}` : youtubeId(n.video_url) ? `/media/video/${youtubeId(n.video_url)}.webp` : null,
-    publishedAt: n.published_at,
+    publishedAt: n.published_at, views: n.views,
   }));
 }
-// Automatic layout: categories in the settings order, each capped, until the book is full
+// Automatic layout: the most read stories first (pool order), so the category of the most read story leads the book;
+// each category capped, until the book is full
 export function autoGroups(kind, stories) {
   const R = RULES[kind];
   let budget = R.maxPages - FIXED_PAGES;
-  const cats = [...new Set([...catOrder(), ...stories.map((s) => s.cat)])];
+  const top = (cat) => Math.max(...stories.filter((s) => s.cat === cat).map((s) => s.views || 0));
+  const cats = [...new Set(stories.map((s) => s.cat))].sort((a, b) => top(b) - top(a) || catOrder().indexOf(a) - catOrder().indexOf(b));
   const out = [];
   for (const cat of cats) {
     const ids = stories.filter((s) => s.cat === cat).map((s) => s.id);
@@ -82,6 +89,13 @@ function layout(d, stories, user) {
 }
 
 const fileUrl = (d, rel) => (rel ? `/media/digests/${d.id}/${basename(rel)}` : null);
+// The layout the page pictures were made from: they are used only while the issue still looks like that
+const sigOf = (d, groups) => createHash('sha1').update(JSON.stringify([d.mode, d.mode === 'pdf' ? [] : groups, d.cover_path, d.pdf_path, d.pdf_meta?.pages])).digest('hex');
+async function pagesOf(d, groups) {
+  if (!d.pages_sig || d.pages_sig !== sigOf(d, groups)) return null;
+  const rows = (await query('select no, path, thumb, w, h, body, links from digest_pages where digest_id = $1 order by no', [d.id])).rows;
+  return rows.length ? rows.map((p) => ({ no: p.no, src: fileUrl(d, p.path), thumb: fileUrl(d, p.thumb), w: p.w, h: p.h, text: p.body, links: p.links })) : null;
+}
 function out(d, extra = {}) {
   const t = d.theme || {};
   return {
@@ -139,10 +153,27 @@ export const router = Router();
 // ---- Reading ----
 router.get('/digests', async (req, res) => {
   const rows = (await query(`select * from digests order by coalesce(published_at, drafted_at) desc, range_start desc`)).rows;
+  // ค้นหาในเล่ม: the words in the pages' text (every word, in any order)
+  const words = String(req.query.q || '').trim().slice(0, 100).split(/\s+/).filter(Boolean).slice(0, 6);
+  if (words.length) {
+    const hits = (await query(
+      `select p.digest_id, p.no, p.body from digest_pages p join digests d on d.id = p.digest_id
+       where d.status = 'published' and d.pages_sig is not null and ${words.map((_, i) => `p.body ilike $${i + 1}`).join(' and ')}
+       order by d.published_at desc, p.no limit 200`, words.map((w) => `%${w.replace(/[\\%_]/g, '\\$&')}%`))).rows;
+    const results = [];
+    for (const d of rows.filter((x) => x.status === 'published')) {
+      const mine = hits.filter((h) => h.digest_id === d.id);
+      if (!mine.length) continue;
+      const { groups } = layout(d, d.mode === 'pdf' ? [] : await pool(d), req.user);
+      if (d.pages_sig !== sigOf(d, groups)) continue;
+      results.push({ ...out(d, measure(d, groups)), hits: mine.map((h) => ({ page: h.no, snippet: snippet(h.body, words[0]) })) });
+    }
+    return res.json({ results, mastheads: get('digest').mastheads });
+  }
   const published = [];
   for (const d of rows.filter((x) => x.status === 'published')) {
-    const { groups } = layout(d, await pool(d), req.user);
-    const stories = d.mode === 'pdf' ? [] : (await pool(d));
+    const stories = d.mode === 'pdf' ? [] : await pool(d);
+    const { groups } = layout(d, stories, req.user);
     const byId = new Map(stories.map((s) => [s.id, s]));
     // First three stories for the hero's "ในฉบับนี้"
     const top = groups.flatMap((g) => g.ids).slice(0, 3).map((id) => byId.get(id)).filter(Boolean).map(storyOut);
@@ -158,8 +189,15 @@ router.get('/digests/:id', async (req, res) => {
   const stories = d.mode === 'pdf' ? [] : await pool(d);
   const { groups } = layout(d, stories, req.user);
   const used = new Set(groups.flatMap((g) => g.ids));
-  res.json({ digest: out(d, measure(d, groups)), groups, stories: stories.filter((s) => used.has(s.id)).map(storyOut), mastheads: get('digest').mastheads });
+  res.json({ digest: out(d, measure(d, groups)), groups, stories: stories.filter((s) => used.has(s.id)).map(storyOut), pages: await pagesOf(d, groups), mastheads: get('digest').mastheads });
 });
+// A few words of the page text around the first word searched
+function snippet(body, word) {
+  const t = body.replace(/\s+/g, ' ');
+  const i = Math.max(0, t.toLowerCase().indexOf(word.toLowerCase()));
+  const from = Math.max(0, i - 40);
+  return `${from ? '…' : ''}${t.slice(from, i + word.length + 80).trim()}${i + word.length + 80 < t.length ? '…' : ''}`;
+}
 
 // ---- PR team ----
 router.use('/pr/digests', requirePr);
@@ -181,7 +219,8 @@ async function studio(req, d) {
   const stories = await pool(d);
   const { groups, excluded } = layout(d, stories, req.user);
   const reminders = (await one(`select count(*)::int n, max(created_at) last from email_outbox where kind = 'digest.reminder' and ref = $1`, [d.id]));
-  return { digest: out(d, { ...measure(d, groups), news: stories.length, reminders: reminders.n, lastReminder: reminders.last }), groups, excluded, stories: stories.map(storyOut), mastheads: get('digest').mastheads };
+  const pagesReady = !!(await pagesOf(d, groups));
+  return { digest: out(d, { ...measure(d, groups), news: stories.length, reminders: reminders.n, lastReminder: reminders.last, pagesReady }), groups, excluded, stories: stories.map(storyOut), mastheads: get('digest').mastheads };
 }
 router.get('/pr/digests/:id', async (req, res) => res.json(await studio(req, await load(req.params.id))));
 
@@ -317,6 +356,62 @@ router.delete('/pr/digests/:id/pdf', async (req, res) => {
   res.json(await studio(req, await load(d.id)));
 });
 
+// ---- Pages as pictures (digest-book.js rasterize, in the studio when the PR team approves) ----
+const pageUpload = multer({ dest: TMP, limits: { fileSize: 4 * MB, files: 60, fields: 2, fieldSize: 2 * MB }, defParamCharset: 'utf8' }).array('page', 60);
+const NEWS_LINK = /^news\.html\?id=[0-9a-f-]{36}$/;
+const unit = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+function cleanLinks(list, pages) {
+  return (Array.isArray(list) ? list : []).slice(0, 40).filter((l) => l && [l.x, l.y, l.w, l.h].every(unit)).map((l) => {
+    const box = { x: l.x, y: l.y, w: l.w, h: l.h };
+    if (typeof l.href === 'string' && (NEWS_LINK.test(l.href) || /^https:\/\/[^\s"'<>]{4,500}$/.test(l.href))) return { ...box, href: l.href, label: String(l.label || '').slice(0, 200) };
+    if (Number.isInteger(l.goto) && l.goto >= 1 && l.goto <= pages) return { ...box, goto: l.goto, label: String(l.label || '').slice(0, 200) };
+    return null;
+  }).filter(Boolean);
+}
+router.put('/pr/digests/:id/pages', fileLimit, (req, res, next) => pageUpload(req, res, (err) => (err ? next(new HttpError(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400, err.code === 'LIMIT_FILE_SIZE' ? 'ภาพหน้าใหญ่เกิน 4 MB' : 'อัปโหลดภาพหน้าไม่สำเร็จ')) : next())), async (req, res) => {
+  const files = req.files || [];
+  const made = [];
+  try {
+    const d = await load(req.params.id);
+    const { groups } = layout(d, d.mode === 'pdf' ? [] : await pool(d), req.user);
+    const total = measure(d, groups).pages;
+    if (files.length !== total) throw new HttpError(400, `ภาพหน้าไม่ครบ: เล่มนี้มี ${total} หน้า ได้รับ ${files.length} ภาพ`);
+    let meta;
+    try { meta = JSON.parse(req.body?.meta || '[]'); } catch { meta = null; }
+    if (!Array.isArray(meta) || meta.length !== total) throw new HttpError(400, 'ข้อมูลหน้าไม่ตรงกับภาพ');
+    await mkdir(abs(dirOf(d)), { recursive: true });
+    const rows = [];
+    for (const [i, f] of files.entries()) {
+      let info;
+      try { info = await sharp(f.path).metadata(); } catch { info = null; }
+      if (!info || info.format !== 'webp' || info.width < 600 || info.width > 2480) throw new HttpError(400, `ภาพหน้า ${i + 1} ไม่ใช่ WebP ขนาดหน้ากระดาษ`);
+      const id = randomUUID();
+      const path = join(dirOf(d), `page-${id}.webp`).replaceAll('\\', '/');
+      const thumb = join(dirOf(d), `thumb-${id}.webp`).replaceAll('\\', '/');
+      // Encoded again here: only pixels are kept from what the browser sent
+      await sharp(f.path).webp({ quality: 84 }).toFile(abs(path));
+      await sharp(f.path).resize(240).webp({ quality: 72 }).toFile(abs(thumb));
+      made.push(path, thumb);
+      rows.push({ no: i + 1, path, thumb, w: info.width, h: info.height, body: String(meta[i]?.body || '').slice(0, 20000), links: cleanLinks(meta[i]?.links, total) });
+    }
+    const old = (await query('select path, thumb from digest_pages where digest_id = $1', [d.id])).rows;
+    await tx(async (c) => {
+      await c.query('delete from digest_pages where digest_id = $1', [d.id]);
+      for (const r of rows) {
+        await c.query('insert into digest_pages (digest_id, no, path, thumb, w, h, body, links) values ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [d.id, r.no, r.path, r.thumb, r.w, r.h, r.body, JSON.stringify(r.links)]);
+      }
+      await c.query('update digests set pages_sig = $2 where id = $1', [d.id, sigOf(d, groups)]);
+    });
+    made.length = 0;
+    await Promise.all(old.flatMap((o) => [removeRel(o.path), removeRel(o.thumb)]));
+    res.json({ pages: rows.length });
+  } finally {
+    await Promise.all(made.map(removeRel));
+    await removeTemp(files);
+  }
+});
+
 // ---- Approve ----
 router.post('/pr/digests/:id/publish', async (req, res) => {
   const d = await load(req.params.id);
@@ -347,10 +442,12 @@ router.post('/pr/digests/:id/unpublish', async (req, res) => {
 export const media = Router();
 media.get('/:id/:file', async (req, res) => {
   const { id, file } = req.params;
-  if (!/^[wm]-\d{4}-\d{2}(-\d{2})?$/.test(id) || !/^(cover|shelf|issue)-[0-9a-f-]{36}\.(jpg|pdf)$/.test(file)) return res.status(404).end();
+  if (!/^[wm]-\d{4}-\d{2}(-\d{2})?$/.test(id) || !/^((cover|shelf|issue)-[0-9a-f-]{36}\.(jpg|pdf)|(page|thumb)-[0-9a-f-]{36}\.webp)$/.test(file)) return res.status(404).end();
   const d = await one('select * from digests where id = $1', [id]);
-  const rel = d && [d.cover_path, d.pdf_path, d.shelf_path].find((p) => p && basename(p) === file);
+  const page = d && /^(page|thumb)-/.test(file) ? await one('select path, thumb from digest_pages where digest_id = $1 and (path like $2 or thumb like $2)', [id, `%/${file}`]) : null;
+  const rel = d && (page ? [page.path, page.thumb] : [d.cover_path, d.pdf_path, d.shelf_path]).find((p) => p && basename(p) === file);
   if (!rel || (d.status !== 'published' && !isPr(req.user))) return res.status(404).end();
   const name = req.query.download === '1' ? `${get('digest').mastheads[d.kind].replace(/\s+/g, '-')}-No.${d.no}-${d.range_label.replace(/[\s/–]+/g, '-')}${extname(file)}` : null;
-  sendMedia(res, rel, d.status === 'published' ? 'public, max-age=3600' : 'private, no-cache', name);
+  // Page pictures never change (a new set gets new names)
+  sendMedia(res, rel, d.status !== 'published' ? 'private, no-cache' : page ? 'public, max-age=31536000, immutable' : 'public, max-age=3600', name);
 });

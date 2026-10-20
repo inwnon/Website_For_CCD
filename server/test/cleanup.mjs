@@ -17,6 +17,7 @@ export async function snapshot() {
     counters: (await query('select * from ref_counters')).rows,
     settings: (await tableExists('settings')) ? (await query('select key, value from settings')).rows : null,
     digests: (await query('select * from digests')).rows,
+    digestPages: (await tableExists('digest_pages')) ? (await query('select * from digest_pages')).rows : [],
     notify: (await query('select email, notify, photo_path, name, first_name, last_name, phone from users where email = any($1)', [DEV_EMAILS])).rows,
   };
 }
@@ -64,9 +65,17 @@ export async function restore(snap) {
     await client.query('delete from digests where not (id = any($1))', [keep]);
     for (const d of snap.digests) {
       await client.query(`update digests set status = $2, mode = $3, groups = $4, edited = $5, cover_path = $6, cover_meta = $7, pdf_path = $8,
-        pdf_meta = $9, shelf_path = $10, published_at = $11, approved_by = $12, drafted_at = $13 where id = $1`,
+        pdf_meta = $9, shelf_path = $10, published_at = $11, approved_by = $12, drafted_at = $13, pages_sig = $14 where id = $1`,
         [d.id, d.status, d.mode, JSON.stringify(d.groups), d.edited, d.cover_path, d.cover_meta && JSON.stringify(d.cover_meta), d.pdf_path,
-          d.pdf_meta && JSON.stringify(d.pdf_meta), d.shelf_path, d.published_at, d.approved_by, d.drafted_at]);
+          d.pdf_meta && JSON.stringify(d.pdf_meta), d.shelf_path, d.published_at, d.approved_by, d.drafted_at, d.pages_sig ?? null]);
+    }
+    // Page pictures (digest_pages): as they were
+    if (snap.digestPages) {
+      await client.query('delete from digest_pages');
+      for (const p of snap.digestPages) {
+        await client.query('insert into digest_pages (digest_id, no, path, thumb, w, h, body, links) values ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [p.digest_id, p.no, p.path, p.thumb, p.w, p.h, p.body, JSON.stringify(p.links)]);
+      }
     }
     await client.query('commit');
   } catch (err) {
@@ -81,7 +90,8 @@ export async function restore(snap) {
     ...news.map((id) => rm(abs(join('media', id)), { recursive: true, force: true })),
   ]);
   // Digest files no row points to any more
-  const used = new Set(snap.digests.flatMap((d) => [d.cover_path, d.pdf_path, d.shelf_path]).filter(Boolean).map((p) => p.replaceAll('\\', '/')));
+  const used = new Set([...snap.digests.flatMap((d) => [d.cover_path, d.pdf_path, d.shelf_path]), ...(snap.digestPages || []).flatMap((p) => [p.path, p.thumb])]
+    .filter(Boolean).map((p) => p.replaceAll('\\', '/')));
   for (const dir of await readdir(abs('digests')).catch(() => [])) {
     for (const f of await readdir(abs(join('digests', dir))).catch(() => [])) {
       if (!used.has(`digests/${dir}/${f}`)) await rm(abs(join('digests', dir, f)), { force: true });

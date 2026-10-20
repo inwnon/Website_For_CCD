@@ -97,3 +97,17 @@
 @media (prefers-reduced-motion: reduce) { .seg-switch span { transition: none; } }
 /* The list view (search.html): the colour runs down the left side */
 .kside { box-shadow: inset 4px 0 0 rgb(var(--k)), var(--shadow-raised); background: linear-gradient(90deg, rgb(var(--ks)) 0%, rgb(var(--surface)) 55%); }
+
+/* Inside a digest page (digest-book.js; digest.html reader, digest-studio.html previews, print). Sizes in cqw of the page. */
+.page-head { display: flex; justify-content: space-between; gap: 2cqw; padding-bottom: 1.6cqw; border-bottom: 1px solid #E6E1D8; font-size: 2.45cqw; line-height: 1.5; color: #6E685D; }
+.page-no { flex-shrink: 0; padding-top: 2.4cqw; font-size: 2.5cqw; color: #6E685D; font-variant-numeric: tabular-nums; }
+.page-link { color: #6C3BD6; text-decoration: underline; text-underline-offset: .35em; text-decoration-thickness: .12em; border-radius: .6cqw; transition: opacity .2s ease-out; }
+.page-link:hover { opacity: .75; }
+.page-link:focus-visible { outline: 2px solid #6C3BD6; outline-offset: 2px; }
+.toc-row { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 3cqw; padding: 2.3cqw .8cqw; border-bottom: 1px dotted #CFC7BA; font-size: 3.3cqw; line-height: 1.5; color: #23233A; text-align: left; border-radius: .8cqw; transition: transform .35s cubic-bezier(.34, 1.56, .64, 1); }
+.toc-row span:last-child { color: #6B6458; }
+.toc-row:hover { background: #F3EEE6; }
+.toc-row:active { transform: scale(.985); }
+.toc-row:focus-visible { outline: 2px solid #6C3BD6; outline-offset: 1px; }
+/* Section tab on the outer edge of a digest category page (digest-book.js secTab) */
+.sec-tab { position: absolute; z-index: 1; display: grid; place-items: center; width: 3.4cqw; height: 7cqw; font: 600 2.2cqw/1 Kanit, sans-serif; color: #fff; }
