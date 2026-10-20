@@ -12,7 +12,7 @@ import { unitFamily } from './org.mjs';
 import { get } from './settings.mjs';
 
 export const KIND_TH = { news: 'ข่าวพร้อมภาพ', video: 'วิดีโอ', banner: 'แบนเนอร์ / อินโฟกราฟิก' };
-export const SOURCE_TH = { search: 'เครื่องมือค้นหา', facebook: 'Facebook', line: 'LINE', internal: 'ในเว็บข่าว มรส.', direct: 'เปิดลิงก์ตรง', other: 'เว็บอื่น ๆ' };
+export const SOURCE_TH = { search: 'เครื่องมือค้นหา', facebook: 'Facebook', line: 'LINE', internal: 'ในเว็บคลังข่าว มรส.', direct: 'เปิดลิงก์ตรง', other: 'เว็บอื่น ๆ' };
 export const DEVICE_TH = { mobile: 'มือถือ', tablet: 'แท็บเล็ต', desktop: 'คอมพิวเตอร์' };
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -114,9 +114,9 @@ router.get('/reports/export.xlsx', async (req, res) => {
   const sc = await scope(req);
   const r = await report(sc);
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'ข่าว มรส.';
+  wb.creator = 'คลังข่าว มรส.';
   wb.created = new Date();
-  const title = `รายงานข่าว มรส. ${thDate(sc.from)} – ${thDate(sc.to)}${sc.unit ? ` · ${sc.unit}` : ' · ทุกหน่วยงาน'}`;
+  const title = `รายงานคลังข่าว มรส. ${thDate(sc.from)} – ${thDate(sc.to)}${sc.unit ? ` · ${sc.unit}` : ' · ทุกหน่วยงาน'}`;
 
   const a = r.approval;
   const summary = sheet(wb, 'สรุป', [{ header: 'หัวข้อ', key: 'k', width: 36 }, { header: 'ค่า', key: 'v', width: 30 }], [

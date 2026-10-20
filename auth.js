@@ -189,6 +189,20 @@
   const avatar = (u) => (u.avatarUrl ? `<img src="${esc(u.avatarUrl)}" alt="" referrerpolicy="no-referrer">` : esc(([...(u.name || u.email || '?').trim()][0] || '?').toUpperCase()));
   const affiliation = (u) => (u.role === 'external' ? u.org : u.role === 'student' ? u.major || u.unit : u.subUnit || u.unit) || '';
 
+  // เพิ่มข่าว (pr-import.html?mode=add) in place of ส่งข่าว in the header and the menu bar, for the PR team only
+  const ADD_NEWS = 'pr-import.html?mode=add';
+  const isDesk = (u) => u?.role === 'pr' || u?.role === 'admin';
+  function addNewsButtons(u) {
+    if (!isDesk(u)) return;
+    document.querySelectorAll('header a[href="submit.html"], nav a[href="submit.html"]').forEach((a) => {
+      a.href = ADD_NEWS;
+      a.removeAttribute('aria-current');
+      const w = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
+      for (let t; (t = w.nextNode());) if (t.nodeValue.includes('ส่งข่าว')) t.nodeValue = t.nodeValue.replace('ส่งข่าว', 'เพิ่มข่าว');
+      if (a.getAttribute('aria-label')) a.setAttribute('aria-label', 'เพิ่มข่าว');
+    });
+  }
+
   function menuHtml(me) {
     const u = me.user;
     const theme = themeNow();
@@ -205,7 +219,7 @@
       : u.role === 'intern' ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr-import.html', 'news', 'นำเข้าข่าวย้อนหลัง')}</div>` : '';
     return `<div class="acct-id"><span class="acct-av">${avatar(u)}</span><div style="min-width:0"><p class="acct-name">${esc(u.name || u.email)}</p>${u.name ? `<p class="acct-mail">${esc(u.email)}</p>` : ''}<span class="acct-role">${esc(roleName(u))}${aff ? ` ${esc(aff)}` : ''}</span></div></div>
       ${u.developer ? `<div class="acct-grp"><p class="acct-label" id="acctRoleLabel">สลับบทบาท</p><div class="acct-roles" role="group" aria-labelledby="acctRoleLabel">${SWITCH.map(([k, l]) => `<button type="button" data-switch-role="${k}" aria-pressed="${u.role === k}">${l}</button>`).join('')}</div></div>` : ''}
-      <div class="acct-grp">${item('inbox.html', 'inbox', 'ข่าวของฉัน', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${window.baseRole(u) !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
+      <div class="acct-grp">${item('inbox.html', 'inbox', 'ข่าวของฉัน', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${isDesk(u) ? item(ADD_NEWS, 'send', 'เพิ่มข่าว') : window.baseRole(u) !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
       ${prTools}
       <div class="acct-grp"><p class="acct-label">บัญชีและการตั้งค่า</p>${item('login.html?profile=1', 'edit', 'แก้ไขโปรไฟล์และสังกัด')}${item('inbox.html#notify', 'bell', 'การแจ้งเตือนทางอีเมล')}${item('privacy.html#rights', 'shield', 'ข้อมูลส่วนบุคคลของฉัน')}${themeRow}</div>
       <div class="acct-grp"><button type="button" class="acct-item danger" data-signout>${svg(IC.out)}<span>ออกจากระบบ</span></button></div>`;
@@ -228,6 +242,7 @@
     }
     const btn = wrap.querySelector('#login');
     const panel = wrap.querySelector('#acctPanel');
+    addNewsButtons(u);
     btn.innerHTML = (u ? `<span class="acct-av">${avatar(u)}</span>` : svg(IC.person, 20)) + (u && me.unread ? `<span class="acct-dot" aria-hidden="true">${me.unread}</span>` : '');
     btn.setAttribute('aria-label', u ? `บัญชีของ ${u.name || u.email}${me.unread ? ` มีข้อความใหม่ ${me.unread} รายการ` : ''}` : 'เมนูบัญชี ยังไม่ได้เข้าสู่ระบบ');
     panel.innerHTML = menuHtml(me);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>หลังบ้าน | ข่าว มรส.</title>
+  <title>หลังบ้าน | คลังข่าว มรส.</title>
   <meta name="description" content="หลังบ้านทีมงานประชาสัมพันธ์ ตรวจงานที่หน่วยงานและนักศึกษาส่งเข้ามา ตอบผู้ส่ง และเผยแพร่ขึ้นเว็บไซต์">
   <meta name="robots" content="noindex">
   <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
@@ -275,7 +275,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=0c6408e3d6">
+  <link rel="stylesheet" href="/assets/app.css?v=91b6086606">
 </head>
 
 <body class="app">
@@ -297,7 +297,7 @@
       <a href="index.html" class="press t-quick flex items-center gap-3 rounded-2xl px-2 hover:opacity-90"><span class="sr-only">ไปหน้าเว็บไซต์ </span>
         <span class="logo-crop h-11 w-11 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
-          <span class="block font-display text-[19px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
+          <span class="block font-display text-[19px] font-semibold"><span class="text-brand">คลังข่าว</span> <span class="text-royal">มรส.</span></span>
           <span class="block text-[12px] text-ink2">หลังบ้านทีม PR</span>
         </span>
       </a>
@@ -312,6 +312,10 @@
         <a href="pr-collections.html" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 font-display text-[15px] font-medium">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/></svg>
           อัลบั้มข่าว
+        </a>
+        <a href="pr-import.html?mode=add" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 font-display text-[15px] font-medium">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+          เพิ่มข่าว
         </a>
         <a href="pr-import.html" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 font-display text-[15px] font-medium">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
@@ -740,7 +744,7 @@
       const title = state.status ? STATUS[state.status].label : 'งานทั้งหมด';
       $('#listTitle').textContent = title;
       $('#mTitle').textContent = title;
-      document.title = `${title} | หลังบ้าน ข่าว มรส.`;
+      document.title = `${title} | หลังบ้าน คลังข่าว มรส.`;
     }
     $('#statusNav').addEventListener('click', (e) => {
       const b = e.target.closest('[data-status]');
@@ -916,10 +920,10 @@
       if (s.type !== 'banner') facts.push(['วันที่จัดกิจกรรม', thDate(f.eventDate)]);
       if (f.place) facts.push(['สถานที่', f.place]);
       if (f.categories?.length) facts.push(['ประเภทข่าว', f.categories.join(', ')]);
-      if (f.designer) facts.push(['ผู้ออกแบบ', f.designer]);
+      if (f.designer) facts.push([f.creditKind === 'source' ? 'ที่มา' : 'ผู้ออกแบบ', f.designer]);
       if (f.producer) facts.push(['ผู้ผลิต', f.producer]);
       facts.push(['ใครเห็นได้', s.audience]);
-      if (f.credit) facts.push(['เครดิตภาพ', f.credit]);
+      if (f.credit) facts.push([f.creditKind === 'source' ? 'ที่มาของภาพ' : 'เครดิตภาพ', f.credit]);
       const p = f.people || {};
       const ppl = [p.chair && ['ประธาน', p.chair], p.reporter && ['ผู้กล่าวรายงาน', p.reporter], p.assignee && ['ผู้ที่ได้รับมอบหมาย', p.assignee], ...(p.guests || []).map((g) => ['ภายนอก', g])].filter(Boolean);
       let body = '';
@@ -936,7 +940,8 @@
           ${f.newsVideo ? linkRow(f.newsVideo, 'วิดีโอประกอบข่าว') : ''}
           ${s.type === 'video' && f.videoMode === 'link' && f.videoLink ? linkRow(f.videoLink, 'ลิงก์วิดีโอ') : ''}
           ${(s.fields.videoLinks || []).map((u, i) => linkRow(u, `ลิงก์วิดีโอเพิ่มเติมที่ ${i + 1}`)).join('')}
-          ${f.albumUrl ? linkRow(f.albumUrl, 'ลิงก์ภาพเพิ่มเติมจากผู้ส่ง', ic.link) : ''}
+          ${f.albumUrl ? linkRow(f.albumUrl, `ลิงก์ภาพเพิ่มเติมจากผู้ส่ง${f.albumLinks?.length ? ' ชุดที่ 1' : ''}`, ic.link) : ''}
+          ${(f.albumLinks || []).map((u, i) => linkRow(u, `ลิงก์ภาพเพิ่มเติมจากผู้ส่ง ชุดที่ ${i + 2}`, ic.link)).join('')}
           ${f.titleEn || f.bodyEn ? `<details class="group rounded-2xl border border-line"><summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 font-display text-[15px] font-semibold">ฉบับภาษาอังกฤษจากผู้ส่ง<svg class="t-spring group-open:rotate-180" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="px-4 pb-4"><p class="font-display text-[16px] font-semibold" lang="en">${esc(f.titleEn || '')}</p><p class="mt-2 whitespace-pre-line text-[15px] leading-[1.7]" lang="en">${esc(f.bodyEn || '')}</p></div></details>` : ''}
           ${!f.lead && !f.desc && !body ? '<p class="text-[14px] text-ink2">ผู้ส่งไม่ได้ใส่คำอธิบาย</p>' : ''}
         </div>

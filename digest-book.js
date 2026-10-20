@@ -224,9 +224,9 @@
         <div class="grain-abs"></div>
         <div class="relative flex h-full flex-col items-center justify-center gap-[4cqw] p-[8cqw] text-center text-white">
           <span class="logo-crop h-[22cqw] w-[22cqw]"><img src="/assets/img/logo-192.webp" alt=""></span>
-          <p class="font-display text-[6cqw] font-bold leading-[1.2]">ข่าว มรส.</p>
+          <p class="font-display text-[6cqw] font-bold leading-[1.2]">คลังข่าว มรส.</p>
           <p class="text-[3.2cqw] leading-[1.6] text-white/80">จัดทำโดยงานประชาสัมพันธ์<br>มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</p>
-          <p class="mt-[4cqw] rounded-full bg-white/15 px-[5cqw] py-[1.6cqw] text-[3cqw]">อ่านข่าวฉบับเต็มบนเว็บไซต์ ข่าว มรส.</p>
+          <p class="mt-[4cqw] rounded-full bg-white/15 px-[5cqw] py-[1.6cqw] text-[3cqw]">อ่านข่าวฉบับเต็มบนเว็บไซต์ คลังข่าว มรส.</p>
         </div>
       </div>`;
   }

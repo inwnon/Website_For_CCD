@@ -10,6 +10,7 @@
     inbox: '<path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z"/>',
     news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
     collections: '<path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/>',
+    add: '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/>',
     import: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
     report: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     admin: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
@@ -21,6 +22,8 @@
     { id: 'inbox', href: 'pr.html', label: 'งานที่ส่งเข้ามา', roles: ['pr', 'admin'] },
     { id: 'news', href: 'pr-news.html', label: 'ข่าวที่เผยแพร่', roles: ['pr', 'admin'] },
     { id: 'collections', href: 'pr-collections.html', label: 'อัลบั้มข่าว', roles: ['pr', 'admin'] },
+    // เพิ่มข่าว: the PR team's own story of the day, live at once (pr-import.html?mode=add)
+    { id: 'add', href: 'pr-import.html?mode=add', label: 'เพิ่มข่าว', roles: ['pr', 'admin'] },
     { id: 'import', href: 'pr-import.html', label: 'นำเข้าข่าวย้อนหลัง', roles: ['pr', 'admin', 'intern'] },
     { id: 'report', href: 'report.html', label: 'รายงาน', roles: ['pr', 'admin', 'coordinator'] },
     { id: 'admin', href: 'admin.html', label: 'ตั้งค่าระบบ', roles: ['admin'] },
@@ -36,7 +39,7 @@
       <a href="index.html" class="press t-quick flex items-center gap-3 rounded-2xl px-2 hover:opacity-90"><span class="sr-only">ไปหน้าเว็บไซต์ </span>
         <span class="logo-crop h-11 w-11 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
-          <span class="block font-display text-[19px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
+          <span class="block font-display text-[19px] font-semibold"><span class="text-brand">คลังข่าว</span> <span class="text-royal">มรส.</span></span>
           <span class="block text-[12px] text-ink2">${role === 'coordinator' ? 'รายงานของหน่วยงาน' : 'หลังบ้านทีม PR'}</span>
         </span>
       </a>

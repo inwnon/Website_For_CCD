@@ -8,7 +8,7 @@ import { restore, snapshot } from './cleanup.mjs';
 import { BASE, ID_OTHER, ID_STAFF, form, img, login } from './helpers.mjs';
 
 const NEWS = {
-  type: 'news', title: 'ค่ายนักวิทยาศาสตร์น้อย ประจำปี 2569', lead: 'สรุปข่าวสั้น ๆ', eventDate: '2026-10-10', place: 'หอประชุม',
+  type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ค่ายนักวิทยาศาสตร์น้อย ประจำปี 2569', lead: 'สรุปข่าวสั้น ๆ', eventDate: '2026-10-10', place: 'หอประชุม',
   unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], contentMode: 'own', body: 'ก'.repeat(160),
   chairName: 'ผศ.ดร.ตัวอย่าง', chairPos: 'อธิการบดี', guests: [{ name: 'แขก', pos: 'ผู้อำนวยการ' }],
   audience: ['public'], consent: true, note: 'ขอเผยแพร่ก่อนวันศุกร์', albumUrl: 'https://www.facebook.com/media/set/?set=a.123',
@@ -59,7 +59,7 @@ describe('profile: name and phone', () => {
 
 describe('sending work', () => {
   test('rejects missing fields with a message per field', async () => {
-    const r = await staff.call('POST', '/api/submissions', form({ type: 'news', title: 'x', audience: [] }));
+    const r = await staff.call('POST', '/api/submissions', form({ type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'x', audience: [] }));
     assert.equal(r.status, 400);
     for (const k of ['eventDate', 'categories', 'contentMode', 'photo', 'audience', 'consent']) assert.ok(r.body.details[k], k);
   });
@@ -87,7 +87,7 @@ describe('sending work', () => {
   });
 
   test('video files are never uploaded (videos are links)', async () => {
-    const r = await staff.call('POST', '/api/submissions', form({ type: 'video', title: 'วิดีโอ', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+    const r = await staff.call('POST', '/api/submissions', form({ type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอ', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
       videoPlatform: 'youtube', videoLink: 'https://youtu.be/dQw4w9WgXcQ', audience: ['staff'], consent: true }, { video: [['v.mp4', Buffer.from('x'), 'video/mp4']] }));
     assert.equal(r.status, 400);
   });
@@ -226,7 +226,7 @@ describe('other types', () => {
   });
 
   test('video link must match its platform', async () => {
-    const v = { type: 'video', title: 'วิดีโอ', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], videoMode: 'link',
+    const v = { type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอ', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], videoMode: 'link',
       videoPlatform: 'youtube', videoLink: 'https://www.facebook.com/x', audience: ['staff', 'student'], consent: true };
     assert.equal((await staff.call('POST', '/api/submissions', form(v))).status, 400);
     const r = await staff.call('POST', '/api/submissions', form({ ...v, videoLink: 'https://youtu.be/dQw4w9WgXcQ' }));

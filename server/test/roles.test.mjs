@@ -56,6 +56,26 @@ describe('developer role switch', () => {
 });
 
 describe('banner designer', () => {
+  test('ผู้ออกแบบ or ที่มา must be filled; ที่มา goes on to the story; a video needs its description', async () => {
+    const base = { type: 'banner', title: 'แบนเนอร์จากที่อื่น', desc: 'ข้อความ', unit: 'กองกลาง', audience: ['public'], consent: true };
+    const art = { art: [['art.jpg', await img('#a55'), 'image/jpeg']] };
+    const none = await staff.call('POST', '/api/submissions', form({ ...base, creditKind: 'source' }, art));
+    assert.equal(none.status, 400);
+    assert.equal(none.body.details.designer, 'กรอกที่มาของงาน');
+    const s = await staff.call('POST', '/api/submissions', form({ ...base, designer: 'กระทรวง อว.', creditKind: 'source' }, art));
+    assert.equal(s.status, 201, JSON.stringify(s.body));
+    const ref = s.body.submission.ref;
+    assert.equal((await pr.call('GET', `/api/submissions/${ref}`)).body.submission.fields.creditKind, 'source');
+    const files = (await pr.call('GET', `/api/pr/submissions/${ref}`)).body.submission.files;
+    const pub = await pr.call('POST', `/api/pr/submissions/${ref}/publish`, { cover: files[0].id, audience: ['public'] });
+    assert.equal(pub.status, 201, JSON.stringify(pub.body));
+    const story = (await pr.call('GET', `/api/news/${pub.body.news.id}`)).body.story;
+    assert.equal(story.creditKind, 'source');
+    const video = await staff.call('POST', '/api/submissions', form({ type: 'video', title: 'วิดีโอไม่มีคำอธิบาย', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+      videoPlatform: 'youtube', videoLink: 'https://youtu.be/dQw4w9WgXcQ', audience: ['public'], consent: true }));
+    assert.equal(video.body.details.desc, 'กรอกคำอธิบายวิดีโอ');
+  });
+
   test('ผู้ออกแบบ is kept on banners and shown to PR; other types ignore it', async () => {
     await staff.call('PUT', '/api/me/profile', { ...ID_STAFF, unit: 'สำนักงานอธิการบดี', subUnit: 'กองกลาง', position: 'นักประชาสัมพันธ์', consent: true });
     const art = [['art.jpg', await img('#fa0', 800, 600), 'image/jpeg']];

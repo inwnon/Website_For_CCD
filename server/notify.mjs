@@ -14,7 +14,7 @@ import { get } from './settings.mjs';
 import { limit } from './security.mjs';
 
 const ORIGIN = (process.env.APP_ORIGIN || 'http://localhost:3000').replace(/\/$/, '');
-const FROM = process.env.MAIL_FROM || 'ข่าว มรส. <no-reply@sru.ac.th>';
+const FROM = process.env.MAIL_FROM || 'คลังข่าว มรส. <no-reply@sru.ac.th>';
 export const SMTP = !!process.env.SMTP_HOST;
 const transport = SMTP ? nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -37,7 +37,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 // One layout for every email: heading, paragraphs, an optional quote, one button
 function render({ title, lines = [], quote, button }) {
   const text = [title, '', ...lines, ...(quote ? ['', `“${quote}”`] : []), ...(button ? ['', `${button.label}: ${button.href}`] : []),
-    '', '—', 'ข่าว มรส. งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี', `ตั้งค่าการแจ้งเตือน: ${link('inbox.html#notify')}`].join('\n');
+    '', '—', 'คลังข่าว มรส. งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี', `ตั้งค่าการแจ้งเตือน: ${link('inbox.html#notify')}`].join('\n');
   const html = `<!doctype html><html lang="th"><body style="margin:0;background:#F5F4FF;font-family:'Noto Sans Thai',Tahoma,sans-serif;color:#1B2560">
   <div style="max-width:560px;margin:0 auto;padding:24px 16px">
     <p style="margin:0 0 12px;font-size:15px;font-weight:700"><span style="color:#DE142A">ข่าว</span> <span style="color:#2642C8">มรส.</span></p>
@@ -56,7 +56,7 @@ export async function enqueue(db, { kind, ref = null, to, subject, ...content })
   if (!to) return;
   const { text, html } = render(content);
   await (db || pool).query('insert into email_outbox (kind, ref, to_email, subject, body, html) values ($1, $2, $3, $4, $5, $6)',
-    [kind, ref, to.toLowerCase(), `[ข่าว มรส.] ${subject}`, text, html]);
+    [kind, ref, to.toLowerCase(), `[คลังข่าว มรส.] ${subject}`, text, html]);
 }
 
 // The PR team (pr / admin), with what each wants
@@ -198,7 +198,7 @@ router.get('/admin/mail/:id', requireAdmin, async (req, res) => {
 });
 router.post('/admin/mail/test', requireAdmin, mailTest, async (req, res) => {
   await enqueue(null, {
-    kind: 'test', to: req.user.email, subject: 'อีเมลทดสอบ', title: 'อีเมลทดสอบจากระบบข่าว มรส.',
+    kind: 'test', to: req.user.email, subject: 'อีเมลทดสอบ', title: 'อีเมลทดสอบจากระบบคลังข่าว มรส.',
     lines: [SMTP ? 'ถ้าคุณได้รับอีเมลนี้ แปลว่าการตั้งค่า SMTP ใช้งานได้' : 'ยังไม่ได้ตั้งค่า SMTP อีเมลนี้จึงบันทึกไว้ในระบบเท่านั้น'],
     button: { label: 'เปิดหน้าตั้งค่าระบบ', href: link('admin.html#mail') },
   });

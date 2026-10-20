@@ -74,6 +74,27 @@ export function albumUrl(v) {
   return u.href;
 }
 
+// ลิงก์ภาพเพิ่มเติม: more than one album (Facebook albums, Drive folders). The first is album_url, up to MAX_ALBUM_LINKS
+// more go in album_links. albumSet(list) → { url, links, error }: empty boxes dropped, a link given twice kept once.
+export const MAX_ALBUM_LINKS = 5;
+export function albumSet(list) {
+  const given = (Array.isArray(list) ? list : []).filter((x) => typeof x === 'string').map((x) => x.trim()).filter(Boolean);
+  const out = [];
+  for (const [i, v] of given.entries()) {
+    try { const u = albumUrl(v); if (u && !out.includes(u)) out.push(u); } catch {
+      return { url: out[0] || null, links: out.slice(1), error: `ลิงก์ภาพเพิ่มเติมที่ ${i + 1} ต้องขึ้นต้นด้วย https://` };
+    }
+  }
+  if (out.length > MAX_ALBUM_LINKS + 1) return { url: out[0], links: out.slice(1, MAX_ALBUM_LINKS + 1), error: `ใส่ลิงก์ภาพเพิ่มเติมได้ไม่เกิน ${MAX_ALBUM_LINKS + 1} ลิงก์` };
+  return { url: out[0] || null, links: out.slice(1) };
+}
+// Whom the credit line names. แบนเนอร์ / อินโฟกราฟิก: ผู้ออกแบบ (designer) or ที่มา (source);
+// ข่าวพร้อมภาพ: เครดิตภาพ (null) or ที่มา (source). Videos name their producer.
+export const CREDIT_KINDS = { designer: 'ผู้ออกแบบ', source: 'ที่มา', photo: 'เครดิตภาพ' };
+export const creditKind = (v) => (v === 'source' ? 'source' : 'designer');
+export const creditKindOf = (kind, v) => (kind === 'banner' ? creditKind(v) : kind === 'news' && v === 'source' ? 'source' : null);
+export const creditMissing = (kind, ck) => (ck === 'source' ? (kind === 'news' ? 'กรอกที่มาของภาพ' : 'กรอกที่มาของงาน') : kind === 'news' ? 'กรอกเครดิตภาพ' : 'กรอกชื่อผู้ออกแบบ');
+
 const MB = 1024 * 1024;
 const DOC_EXT = /\.(pdf|docx?|pptx?|xlsx?)$/i;
 const IMAGE_EXT = /\.(jpe?g|png|webp|heic)$/i;
@@ -130,7 +151,7 @@ export function checkSubmission(user, d, fileCounts) {
     categories: type === 'banner' ? [] : d.categories,
     content_mode: isNews ? d.contentMode || null : null,
     people: {},
-    credit: isNews ? str(d.credit, 80, 'เครดิตภาพ') : null,
+    credit: isNews ? str(d.credit, 80, d.creditKind === 'source' ? 'ที่มาของภาพ' : 'เครดิตภาพ') : null,
     news_video_url: isNews ? str(d.newsVideo, 500, 'ลิงก์วิดีโอ') : null,
     news_video_platform: null,
     video_mode: type === 'video' ? 'link' : null,
@@ -142,7 +163,9 @@ export function checkSubmission(user, d, fileCounts) {
     audience: d.audience,
     note: str(d.note, 300, 'หมายเหตุ'),
     album_url: null,
-    designer: type === 'banner' ? str(d.designer, 120, 'ผู้ออกแบบ') : null,
+    album_links: [],
+    designer: type === 'banner' ? str(d.designer, 120, CREDIT_KINDS[creditKind(d.creditKind)]) : null,
+    credit_kind: creditKindOf(type, d.creditKind),
     producer: type === 'video' ? str(d.producer, 120, 'ผู้ผลิต') : null,
     body_size: bodySize(d.bodySize),
     body_leading: bodyLeading(d.bodyLeading),
@@ -156,6 +179,9 @@ export function checkSubmission(user, d, fileCounts) {
   }
   if (hasDate) need('eventDate', isDate(row.event_date), 'เลือกวันที่จัดกิจกรรม');
   if (type === 'banner') need('desc', row.description, 'กรอกข้อความประกอบโพสต์');
+  if (type === 'video') need('desc', row.description, 'กรอกคำอธิบายวิดีโอ');
+  if (type === 'banner') need('designer', row.designer, creditMissing(type, row.credit_kind));
+  if (isNews) need('credit', row.credit, creditMissing(type, row.credit_kind));
 
   if (type !== 'banner') {
     const cats = Array.isArray(row.categories) ? [...new Set(row.categories)] : [];
@@ -199,6 +225,10 @@ export function checkSubmission(user, d, fileCounts) {
   if (type === 'banner') need('art', fileCounts.art > 0, 'แนบไฟล์งานอย่างน้อย 1 ไฟล์');
   if (isNews) {
     try { row.album_url = albumUrl(d.albumUrl); } catch (err) { need('albumUrl', false, err.details?.albumUrl || err.message); }
+    const more = albumSet([row.album_url || '', ...(Array.isArray(d.albumLinks) ? d.albumLinks : [])].filter(Boolean));
+    if (more.error) need('albumLinks', false, more.error);
+    row.album_url = more.url;
+    row.album_links = more.links;
   }
 
   const aud = Array.isArray(row.audience) ? [...new Set(row.audience)] : [];
@@ -223,7 +253,7 @@ export function checkSubmission(user, d, fileCounts) {
 const DRAFT_TEXT = { title: MAX_TITLE, lead: MAX_LEAD, desc: 5000, body: 20000, eventDate: 10, place: 120, unit: 200, contentMode: 10, credit: 80,
   newsVideo: 500, newsPlatform: 20, videoLink: 500, videoPlatform: 20, albumUrl: 500, chairPrefix: 60, chairName: 100, chairPos: 120,
   reporterPrefix: 60, reporterName: 100, reporterPos: 120, assigneePrefix: 60, assigneeName: 100, assigneePos: 120, titleEn: 160, bodyEn: 20000, note: 300, designer: 120, producer: 120,
-  bodySize: 2, bodyLeading: 10 };
+  bodySize: 2, bodyLeading: 10, creditKind: 10 };
 export function draftData(d) {
   if (!d || typeof d !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลร่าง');
   if (!TYPES.includes(d.type)) throw new HttpError(400, 'กรุณาเลือกประเภทงาน');
@@ -232,6 +262,7 @@ export function draftData(d) {
   const list = (v, n, len) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, n).map((x) => x.slice(0, len)) : []);
   out.categories = list(d.categories, MAX_CATS, 100);
   out.videoLinks = list(d.videoLinks, MAX_VIDEO_LINKS, 500);
+  out.albumLinks = list(d.albumLinks, MAX_ALBUM_LINKS, 500);
   out.audience = list(d.audience, 3, 10).filter((a) => AUDIENCES.includes(a));
   out.guests = (Array.isArray(d.guests) ? d.guests : []).slice(0, MAX_GUESTS).filter((g) => g && typeof g === 'object')
     .map((g) => ({ prefix: String(g.prefix || '').slice(0, 60), name: String(g.name || '').slice(0, 100), pos: String(g.pos || '').slice(0, 160) }));

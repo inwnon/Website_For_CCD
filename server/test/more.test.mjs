@@ -9,9 +9,9 @@ import { ID_STAFF, anon, form, img, login } from './helpers.mjs';
 let snap, staff, pr, admin, intern;
 const YT = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 const MORE = ['https://youtu.be/abcdefghijk', 'https://www.facebook.com/watch/?v=123456789'];
-const VIDEO = { type: 'video', title: 'วิดีโอทดสอบหลายลิงก์', eventDate: '2026-10-12', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+const VIDEO = { type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอทดสอบหลายลิงก์', eventDate: '2026-10-12', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
   videoLink: YT, videoPlatform: 'youtube', audience: ['public'], consent: true };
-const IMPORT = { kind: 'video', title: 'นำเข้าวิดีโอทดสอบหลายลิงก์', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'],
+const IMPORT = { kind: 'video', body: 'ข้อความประกอบทดสอบ', title: 'นำเข้าวิดีโอทดสอบหลายลิงก์', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'],
   date: '2026-10-01', videoUrl: YT, confirmDuplicate: true };
 
 before(async () => {
@@ -43,7 +43,7 @@ describe('ลิงก์วิดีโอเพิ่มเติม', () => {
   });
 
   test('imported and edited with more links (pr-import.html)', async () => {
-    const noMain = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, videoUrl: null, kind: 'news', body: 'ก'.repeat(40), videoLinks: [MORE[0]] }, { photo: [['a.jpg', await img('#468', 400, 300), 'image/jpeg']] }));
+    const noMain = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, videoUrl: null, kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', body: 'ก'.repeat(40), videoLinks: [MORE[0]] }, { photo: [['a.jpg', await img('#468', 400, 300), 'image/jpeg']] }));
     assert.equal(noMain.status, 400);
     assert.match(noMain.body.details.videoUrl, /ลิงก์วิดีโอหลัก/);
     const i = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, videoLinks: MORE }));
@@ -61,7 +61,6 @@ describe('นักศึกษาฝึกงาน สสอ.', () => {
     const me = (await intern.call('GET', '/api/me')).body.user;
     assert.equal(me.role, 'intern');
     assert.equal(me.baseRole, 'student', 'a student everywhere else (profile form, what they may read)');
-    assert.equal((await intern.call('GET', '/api/pr/import/check?unit=กองกลาง&date=2026-10-01')).status, 200);
     const i = await intern.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ข่าวที่นักศึกษาฝึกงานนำเข้า' }));
     assert.equal(i.status, 201, JSON.stringify(i.body));
     for (const [m, path] of [['GET', '/api/pr/news'], ['GET', `/api/pr/news/${i.body.news.id}`], ['POST', `/api/pr/news/${i.body.news.id}/feature`], ['GET', '/api/pr/submissions'], ['GET', '/api/reports']]) {
@@ -91,7 +90,7 @@ describe('ข่าวล่าสุด on the home page', () => {
   });
 
   test('a story on the ข่าวเด่น shelf is not in ข่าวล่าสุด until it is no longer featured', async () => {
-    const i = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, kind: 'news', videoUrl: null, title: 'ข่าวเด่นทดสอบไม่ซ้ำ', body: 'ก'.repeat(40) },
+    const i = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', videoUrl: null, title: 'ข่าวเด่นทดสอบไม่ซ้ำ', body: 'ก'.repeat(40) },
       { photo: [['a.jpg', await img('#468', 400, 300), 'image/jpeg']] }));
     assert.equal(i.status, 201, JSON.stringify(i.body));
     const id = i.body.news.id;

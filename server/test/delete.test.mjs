@@ -8,7 +8,7 @@ import { restore, snapshot } from './cleanup.mjs';
 import { ID_STAFF, form, img, login } from './helpers.mjs';
 
 const NEWS = {
-  type: 'news', title: 'งานทดสอบการลบ', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+  type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'งานทดสอบการลบ', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
   contentMode: 'own', body: 'ก'.repeat(160), audience: ['public'], consent: true, albumUrl: 'https://www.facebook.com/media/set/?set=a.456',
   reporterName: 'ผู้รายงาน', reporterPos: 'คณบดี', assigneePrefix: 'ผศ.ดร.', assigneeName: 'ผู้แทน ทดสอบ', assigneePos: 'รองอธิการบดีฝ่ายวิชาการ',
 };

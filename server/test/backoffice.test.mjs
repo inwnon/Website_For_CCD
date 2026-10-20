@@ -10,7 +10,7 @@ import { BASE, BROWSER_UA, ID_STAFF, anon, form, img, login } from './helpers.mj
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
 const daysAgo = (n) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(Date.now() - n * 86400000));
 const IMPORT = {
-  kind: 'news', title: 'ทดสอบนำเข้า สัมมนาวิชาการครูภาษาไทยระดับภูมิภาค', lead: 'สัมมนาครูภาษาไทย',
+  kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ทดสอบนำเข้า สัมมนาวิชาการครูภาษาไทยระดับภูมิภาค', lead: 'สัมมนาครูภาษาไทย',
   body: 'คณะครุศาสตร์จัดสัมมนาวิชาการสำหรับครูภาษาไทยในภูมิภาค มีครูเข้าร่วมกว่าสองร้อยคน', unit: 'คณะครุศาสตร์',
   categories: ['ข่าวประชุม/สัมมนา'], audience: ['public'], date: daysAgo(9), time: '09:30',
   sourceUrl: 'https://m.facebook.com/sru.pr/posts/pfbid0TEST123?__cft__=abc&ref=share',
@@ -107,15 +107,61 @@ describe('import (นำเข้าข่าวย้อนหลัง)', () =
     assert.ok(desk.counts.imported >= 1);
   });
 
-  test('warns about duplicates: same source link, or same unit a few days apart', async () => {
-    const check = (await pr.call('GET', `/api/pr/import/check?url=${encodeURIComponent('https://www.facebook.com/sru.pr/posts/pfbid0TEST123')}&unit=${encodeURIComponent('คณะครุศาสตร์')}&date=${daysAgo(8)}`)).body;
-    const d = check.duplicates.find((x) => x.id === id);
-    assert.deepEqual(d.reasons.slice(0, 2), ['ลิงก์ต้นฉบับเดียวกัน', 'หน่วยงานเดียวกัน วันที่ใกล้กัน']);
+  test('no duplicate check: the same post imports again without being asked', async () => {
+    assert.equal((await pr.call('GET', `/api/pr/import/check?unit=${encodeURIComponent('คณะครุศาสตร์')}`)).status, 404);
     const again = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'อีกข่าวหนึ่ง' }, { photo: [['a.jpg', await img('#468'), 'image/jpeg']] }));
-    assert.equal(again.status, 409);
-    assert.ok(again.body.details.duplicates.some((x) => x.id === id));
-    const forced = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'อีกข่าวหนึ่ง', confirmDuplicate: true }, { photo: [['a.jpg', await img('#468'), 'image/jpeg']] }));
-    assert.equal(forced.status, 201);
+    assert.equal(again.status, 201, JSON.stringify(again.body));
+  });
+
+  test('every kind needs its text; a banner needs ผู้ออกแบบ or ที่มา, which the story keeps', async () => {
+    const pic = { photo: [['a.jpg', await img('#468'), 'image/jpeg']] };
+    const banner = { ...IMPORT, kind: 'banner', title: 'อินโฟกราฟิกทดสอบที่มา', categories: [] };
+    const noText = await pr.call('POST', '/api/pr/import', form({ ...banner, body: '', credit: 'กระทรวง อว.' }, pic));
+    assert.equal(noText.status, 400);
+    assert.ok(noText.body.details.body);
+    const noCredit = await pr.call('POST', '/api/pr/import', form({ ...banner, body: 'ข้อความประกอบ', credit: '', creditKind: 'source' }, pic));
+    assert.equal(noCredit.body.details.credit, 'กรอกที่มาของงาน');
+    const ok = await pr.call('POST', '/api/pr/import', form({ ...banner, body: 'ข้อความประกอบ', credit: 'กระทรวง อว.', creditKind: 'source',
+      albumUrl: 'https://www.facebook.com/media/set/?set=a.1', albumLinks: ['https://drive.google.com/drive/folders/abc', 'https://www.facebook.com/media/set/?set=a.1'] }, pic));
+    assert.equal(ok.status, 201, JSON.stringify(ok.body));
+    const s = (await anon.call('GET', `/api/news/${ok.body.news.id}`)).body.story;
+    assert.equal(s.creditKind, 'source');
+    assert.equal(s.credit, 'กระทรวง อว.');
+    // The first link is the main one; the same link twice is kept once
+    assert.equal(s.albumUrl, 'https://www.facebook.com/media/set/?set=a.1');
+    assert.deepEqual(s.albumLinks, [{ url: 'https://drive.google.com/drive/folders/abc', host: 'drive' }]);
+    const bad = await pr.call('POST', '/api/pr/import', form({ ...banner, body: 'ข้อความ', credit: 'x', albumLinks: ['http://insecure.example'] }, pic));
+    assert.equal(bad.status, 400);
+    assert.ok(bad.body.details.albumLinks);
+  });
+
+  test('ข่าวพร้อมภาพ: เครดิตภาพ or ที่มา must be filled; ที่มา is kept on the story', async () => {
+    const pic = { photo: [['a.jpg', await img('#468'), 'image/jpeg']] };
+    const none = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ไม่มีเครดิตภาพ', credit: '' }, pic));
+    assert.equal(none.body.details?.credit, 'กรอกเครดิตภาพ');
+    const none2 = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ไม่มีที่มา', credit: '', creditKind: 'source' }, pic));
+    assert.equal(none2.body.details?.credit, 'กรอกที่มาของภาพ');
+    const ok = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ภาพจากเพจคณะ', credit: 'เพจคณะครุศาสตร์', creditKind: 'source' }, pic));
+    assert.equal(ok.status, 201, JSON.stringify(ok.body));
+    assert.equal((await anon.call('GET', `/api/news/${ok.body.news.id}`)).body.story.creditKind, 'source');
+    const photo = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ภาพของงาน PR', creditKind: 'photo' }, pic));
+    assert.equal((await anon.call('GET', `/api/news/${photo.body.news.id}`)).body.story.creditKind, null);
+  });
+
+  test('เพิ่มข่าว (fresh): not an import, may be set for later; interns cannot', async () => {
+    const later = new Date(Date.now() + 3 * 86400000);
+    const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(later);
+    const r = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: `ข่าวที่ PR เพิ่มเอง ${Date.now()}`, sourceUrl: null, date, time: '14:30', fresh: true },
+      { photo: [['a.jpg', await img('#468'), 'image/jpeg']] }));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const desk = (await pr.call('GET', '/api/pr/news?show=scheduled')).body.items.find((n) => n.id === r.body.news.id);
+    assert.ok(desk && !desk.imported);
+    // An import may not be in the future
+    const past = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'นำเข้าวันพรุ่งนี้', date, time: '14:30' }, { photo: [['a.jpg', await img('#468'), 'image/jpeg']] }));
+    assert.equal(past.status, 400);
+    const intern = await login('intern');
+    const no = await intern.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ฝึกงานเพิ่มข่าว', fresh: true }, { photo: [['a.jpg', await img('#468'), 'image/jpeg']] }));
+    assert.equal(no.status, 403);
   });
 
   test('every import is in the usage history', async () => {
@@ -225,7 +271,7 @@ describe('settings, roles and history', () => {
     assert.equal((await admin.call('PUT', '/api/admin/settings/categories', { value: next })).status, 200);
     const site = await (await fetch(`${BASE}/site-config.js`)).text();
     assert.ok(site.includes('ข่าวกีฬา'));
-    const r = await staff.call('POST', '/api/submissions', form({ type: 'video', title: 'วิดีโอกีฬา', eventDate: today, unit: 'กองกลาง', categories: ['ข่าวกีฬา'],
+    const r = await staff.call('POST', '/api/submissions', form({ type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอกีฬา', eventDate: today, unit: 'กองกลาง', categories: ['ข่าวกีฬา'],
       videoPlatform: 'youtube', videoLink: 'https://youtu.be/dQw4w9WgXcQ', audience: ['staff'], consent: true }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
   });
@@ -233,7 +279,7 @@ describe('settings, roles and history', () => {
   test('photo limits apply to submissions', async () => {
     assert.equal((await admin.call('PUT', '/api/admin/settings/photos', { value: { min: 5, max: 2 } })).status, 400);
     assert.equal((await admin.call('PUT', '/api/admin/settings/photos', { value: { min: 2, max: 10 } })).status, 200);
-    const r = await staff.call('POST', '/api/submissions', form({ type: 'news', title: 'ภาพเดียว', lead: 'x', eventDate: today, unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+    const r = await staff.call('POST', '/api/submissions', form({ type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ภาพเดียว', lead: 'x', eventDate: today, unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
       contentMode: 'own', body: 'ก'.repeat(160), audience: ['staff'], consent: true }, { photo: [['a.jpg', await img('#468'), 'image/jpeg']] }));
     assert.equal(r.status, 400);
     assert.match(r.body.details.photo, /อย่างน้อย 2 ภาพ/);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ค้นหาข่าว | ข่าว มรส.</title>
+  <title>ค้นหาข่าว | คลังข่าว มรส.</title>
   <meta name="description" content="ค้นหาและเปิดคลังข่าวของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี ตามประเภทข่าว หน่วยงาน และช่วงเวลา">
   <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
@@ -57,7 +57,7 @@
     @media (prefers-reduced-motion: reduce) { .fdrop[open] .fpanel { animation: none; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=0c6408e3d6">
+  <link rel="stylesheet" href="/assets/app.css?v=91b6086606">
 </head>
 
 <body class="min-h-screen">
@@ -69,7 +69,7 @@
       <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
-          <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
+          <span class="block font-display text-[21px] font-semibold"><span class="text-brand">คลังข่าว</span> <span class="text-royal">มรส.</span></span>
           <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
         </span>
       <span class="sr-only"> หน้าแรก</span></a>
@@ -83,7 +83,7 @@
       </form>
 
       <div class="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
-        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
+        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative hidden h-11 w-[78px] min-[440px]:inline-flex shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
           <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
           <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
           <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
@@ -262,7 +262,7 @@
     <div class="flex flex-col gap-4 border-t border-line pt-8 text-[14px] text-ink2 md:flex-row md:items-center">
       <a href="index.html" class="press t-quick flex items-center gap-3 rounded-xl hover:opacity-80">
         <span class="logo-crop h-9 w-9"><img src="/assets/img/logo-192.webp" alt=""></span>
-        <span class="font-display font-semibold text-purple">ข่าว มรส.</span>
+        <span class="font-display font-semibold text-purple">คลังข่าว มรส.</span>
       </a>
       <span>คลังข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
       <span class="flex gap-6 md:ml-auto">
@@ -357,12 +357,12 @@
       ? `<img src="${esc(n.cover || n.videoThumb)}"${n.coverSet && n.cover ? ` srcset="${esc(n.coverSet)}" sizes="(min-width: 1024px) 300px, (min-width: 640px) 45vw, 100vw"` : ''} alt="" decoding="async" class="t-spring h-full w-full object-cover group-hover:scale-[1.04]" loading="${i === 0 ? 'eager' : 'lazy'}"${i === 0 ? ' fetchpriority="high"' : ''} width="320" height="180">`
       : `<span class="grid h-full w-full place-items-center" style="background: radial-gradient(60% 90% at 80% 20%, rgb(122 60 226 / .9), transparent 70%), radial-gradient(60% 90% at 10% 100%, rgb(222 20 42 / .85), transparent 70%), #1B2560"><span class="grid h-11 w-11 place-items-center rounded-full bg-shell/95 text-brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></span></span>`;
     const badges = (n, kl, kc) => `
-              <span class="rounded-full ${kc} px-2.5 font-display font-semibold leading-6">${kl}</span>
+              <span class="kchip rounded-full px-2.5 font-display font-semibold leading-6 shadow-raised">${kl}</span>
               ${n.internal ? `<span class="rounded-full bg-purple-soft px-2.5 font-display font-semibold leading-6 text-purple">${esc(n.audience)}</span>` : ''}`;
     function card(n, i = 99) {
       const [kl, kc] = KIND[n.kind] || KIND.news;
       return `<li${i >= 2 ? ' class="cv-card"' : ''}>
-        <article class="group relative flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface shadow-raised">
+        <article class="kcard kcard-${['video', 'banner'].includes(n.kind) ? n.kind : 'news'} group relative flex h-full flex-col overflow-hidden rounded-card border bg-surface shadow-raised">
           <div class="relative aspect-[16/10] overflow-hidden bg-surface2">
             ${thumb(n, i)}
             <span class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></span>
@@ -370,7 +370,7 @@
             <div class="absolute left-3 top-3 flex flex-wrap gap-1.5 text-[12px]">${badges(n, kl, kc)}</div>
             ${n.photos ? `<span class="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 text-[12px] font-semibold leading-6 text-white backdrop-blur">${n.photos} ${n.kind === 'video' ? 'ชิ้น' : 'ภาพ'}</span>` : ''}
           </div>
-          <div class="flex flex-1 flex-col p-4">
+          <div class="kbody flex flex-1 flex-col p-4">
             <time class="text-[12px] text-ink2" datetime="${esc(n.publishedAt)}">${fmtDay.format(new Date(n.publishedAt))}</time>
             <h3 class="clamp-2 mt-1 font-display text-[17px] font-semibold leading-snug">
               <a href="news.html?id=${n.id}" class="rounded after:absolute after:inset-0 after:rounded-card hover:text-purple focus-visible:outline-none focus-visible:after:shadow-[inset_0_0_0_3px_rgb(var(--focus))]">${mark(n.title)}</a>
@@ -384,7 +384,7 @@
     function item(n, i = 99) {
       const [kl, kc] = KIND[n.kind] || KIND.news;
       return `<li${i >= 2 ? ' class="cv-card"' : ''}>
-        <article class="group relative grid gap-4 rounded-card border border-line bg-surface p-3 shadow-raised sm:grid-cols-[220px_minmax(0,1fr)]">
+        <article class="kcard kcard-${['video', 'banner'].includes(n.kind) ? n.kind : 'news'} kside group relative grid gap-4 rounded-card border bg-surface p-3 shadow-raised sm:grid-cols-[220px_minmax(0,1fr)]">
           <div class="relative aspect-[16/9] overflow-hidden rounded-2xl bg-surface2">
             ${thumb(n, i)}
             <span class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></span>
@@ -393,7 +393,7 @@
           <div class="min-w-0 py-1 sm:pr-2">
             <div class="flex flex-wrap items-center gap-2 text-[12px] text-ink2">
               <time datetime="${esc(n.publishedAt)}">${fmtDay.format(new Date(n.publishedAt))}</time>
-              <span class="rounded-full ${kc} px-2.5 font-display font-semibold leading-6">${kl}</span>
+              <span class="kchip rounded-full px-2.5 font-display font-semibold leading-6">${kl}</span>
               ${n.internal ? `<span class="rounded-full bg-purple-soft px-2.5 font-display font-semibold leading-6 text-purple">${esc(n.audience)}</span>` : ''}
               ${n.photos ? `<span>${n.photos} ${n.kind === 'video' ? 'ชิ้น' : 'ภาพ'}</span>` : ''}
             </div>
@@ -460,7 +460,7 @@
         $('#resultTitle').textContent = state.q ? `ผลการค้นหา “${state.q}”` : unitPage ? 'ข่าวทั้งหมดของหน่วยงาน' : 'ข่าวทั้งหมด';
         $('#resultCount').textContent = r.total ? `พบ ${r.total.toLocaleString('th-TH')} ข่าว` : '';
         if (unitPage) $('#unitText').textContent = `${r.total.toLocaleString('th-TH')} ข่าว รวมข่าวของหน่วยงานย่อย`;
-        document.title = `${state.q ? `ค้นหา “${state.q}”` : unitPage ? state.unit : 'ค้นหาข่าว'} | ข่าว มรส.`;
+        document.title = `${state.q ? `ค้นหา “${state.q}”` : unitPage ? state.unit : 'ค้นหาข่าว'} | คลังข่าว มรส.`;
       } catch (err) {
         if (seq !== state.seq) return;
         $('#results').innerHTML = `<li class="rounded-card border border-dashed border-line p-8 text-center text-brand">โหลดข่าวไม่สำเร็จ: ${esc(err.message)}</li>`;

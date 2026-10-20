@@ -32,7 +32,7 @@ const PROD = process.env.NODE_ENV === 'production';
 if (PROD) {
   const problems = productionProblems(process.env);
   if (problems.length) {
-    console.error(['ข่าว มรส. ไม่เริ่มทำงาน: ตั้งค่าใน .env ให้ถูกต้องก่อน', ...problems.map((p) => `  - ${p}`)].join('\n'));
+    console.error(['คลังข่าว มรส. ไม่เริ่มทำงาน: ตั้งค่าใน .env ให้ถูกต้องก่อน', ...problems.map((p) => `  - ${p}`)].join('\n'));
     process.exit(1);
   }
 }
@@ -136,4 +136,4 @@ await loadSettings();
 hourly();
 // Production listens on this machine only (the reverse proxy is the way in); the Docker image sets HOST=0.0.0.0
 const HOST = process.env.HOST || (PROD ? '127.0.0.1' : undefined);
-app.listen(PORT, HOST, () => console.log(`ข่าว มรส. → ${ORIGIN}${HOST ? ` (listening on ${HOST}:${PORT})` : ''}`));
+app.listen(PORT, HOST, () => console.log(`คลังข่าว มรส. → ${ORIGIN}${HOST ? ` (listening on ${HOST}:${PORT})` : ''}`));

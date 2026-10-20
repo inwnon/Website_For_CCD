@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ส่งข่าว | ข่าว มรส.</title>
+  <title>ส่งข่าว | คลังข่าว มรส.</title>
   <meta name="description" content="ส่งข่าวพร้อมภาพ วิดีโอ หรือแบนเนอร์และอินโฟกราฟิก ให้งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี ตรวจและเผยแพร่">
   <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
@@ -302,7 +302,7 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=0c6408e3d6">
+  <link rel="stylesheet" href="/assets/app.css?v=91b6086606">
 </head>
 
 <body class="min-h-screen">
@@ -314,14 +314,14 @@
       <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
-          <span class="block font-display text-[21px] font-semibold"><span class="text-brand">ข่าว</span> <span class="text-royal">มรส.</span></span>
+          <span class="block font-display text-[21px] font-semibold"><span class="text-brand">คลังข่าว</span> <span class="text-royal">มรส.</span></span>
           <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
         </span>
       <span class="sr-only"> หน้าแรก</span></a>
 
       <div class="ml-auto flex shrink-0 items-center gap-2">
         <p id="draftState" class="mr-1 hidden items-center gap-1.5 text-[13px] text-ink2 lg:inline-flex" aria-live="polite"></p>
-        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
+        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative hidden h-11 w-[78px] min-[440px]:inline-flex shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
           <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
           <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
           <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
@@ -596,13 +596,21 @@
                 <p id="unitError" class="mt-2 text-[14px] font-medium text-brand" hidden>เลือกหน่วยงาน</p>
               </div>
 
-              <!-- Banner / infographic: who designed it -->
+              <!-- Banner / infographic: who designed it, or where it came from (ที่มา) when someone else made it -->
               <div data-for="banner">
-                <div class="mb-2 flex items-baseline justify-between gap-3">
-                  <label for="designer" class="font-display text-[15px] font-semibold">ผู้ออกแบบ <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
-                  <span class="text-[12px] text-ink2"><span data-count="designer">0</span>/120</span>
+                <div class="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                  <label for="designer" class="font-display text-[15px] font-semibold"><span id="designerLabel">ผู้ออกแบบ</span> <span class="text-brand">*</span></label>
+                  <div class="flex items-center gap-3">
+                    <div class="seg-switch" role="radiogroup" aria-label="ระบุเป็นผู้ออกแบบ หรือที่มาของงาน">
+                      <label><input type="radio" name="creditKind" value="designer" checked><span>ผู้ออกแบบ</span></label>
+                      <label><input type="radio" name="creditKind" value="source"><span>ที่มา</span></label>
+                    </div>
+                    <span class="text-[12px] text-ink2"><span data-count="designer">0</span>/120</span>
+                  </div>
                 </div>
-                <input id="designer" name="designer" type="text" maxlength="120" autocomplete="off" placeholder="ชื่อผู้ออกแบบ หรือทีม / บริษัทที่ออกแบบ" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
+                <input id="designer" name="designer" type="text" maxlength="120" autocomplete="off" placeholder="ชื่อผู้ออกแบบ หรือทีม / บริษัทที่ออกแบบ" class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="designerHint designerError">
+                <p id="designerHint" class="mt-2 text-[13px] text-ink2">หน่วยงานออกแบบเอง ใส่ชื่อผู้ออกแบบ ถ้าได้งานมาจากที่อื่น เลือก "ที่มา" แล้วใส่ชื่อต้นทาง</p>
+                <p id="designerError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรอกชื่อผู้ออกแบบ</p>
               </div>
 
               <!-- Video: who produced it -->
@@ -774,16 +782,28 @@
             <ul id="photoList" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" aria-label="ภาพที่แนบ เรียงตามลำดับในข่าว"></ul>
             <p id="photoOrderHint" class="sr-only">ลากภาพ หรือกดลูกศรซ้ายขวาที่ภาพเพื่อย้ายลำดับ ภาพแรกเป็นภาพปก</p>
 
+            <!-- เครดิตภาพ (who took the pictures, "ภาพ: …" on the story) or ที่มา (where they came from) -->
             <div class="mt-6">
-              <label for="credit" class="mb-2 block font-display text-[15px] font-semibold">เครดิตภาพ <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
-              <input id="credit" name="credit" type="text" maxlength="80" placeholder="เช่น ฝ่ายประชาสัมพันธ์คณะวิทยาศาสตร์ฯ" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <label for="credit" class="font-display text-[15px] font-semibold"><span id="creditLabel">เครดิตภาพ</span> <span class="text-brand">*</span></label>
+                <div class="seg-switch" role="radiogroup" aria-label="ระบุเป็นเครดิตภาพ หรือที่มาของภาพ">
+                  <label><input type="radio" name="photoCredit" value="photo" checked><span>เครดิตภาพ</span></label>
+                  <label><input type="radio" name="photoCredit" value="source"><span>ที่มา</span></label>
+                </div>
+              </div>
+              <input id="credit" name="credit" type="text" maxlength="80" placeholder="เช่น ฝ่ายประชาสัมพันธ์คณะวิทยาศาสตร์ฯ" class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="creditHint creditError">
+              <p id="creditHint" class="mt-2 text-[13px] text-ink2">ถ่ายภาพเอง ใส่ชื่อผู้ถ่ายหรือหน่วยงาน ถ้าได้ภาพมาจากที่อื่น เลือก "ที่มา" แล้วใส่ชื่อต้นทาง</p>
+              <p id="creditError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรอกเครดิตภาพ</p>
             </div>
 
             <div class="mt-6">
               <label for="albumUrl" class="mb-2 block font-display text-[15px] font-semibold">ลิงก์ภาพเพิ่มเติม <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
               <input id="albumUrl" name="albumUrl" type="url" inputmode="url" placeholder="https://www.facebook.com/media/set/... หรือ https://drive.google.com/..." class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="albumHint albumError">
-              <p id="albumHint" class="mt-2 text-[13px] text-ink2">อัลบั้ม Facebook หรือโฟลเดอร์ Google Drive ที่มีภาพทั้งหมดของกิจกรรม ผู้อ่านจะเห็นปุ่ม "ดูรูปภาพเพิ่มเติม" ในหน้าข่าว</p>
+              <p id="albumHint" class="mt-2 text-[13px] text-ink2">อัลบั้ม Facebook หรือโฟลเดอร์ Google Drive ที่มีภาพทั้งหมดของกิจกรรม ผู้อ่านจะเห็นปุ่ม "ดูรูปภาพเพิ่มเติม" ในหน้าข่าว ภาพอยู่หลายอัลบั้ม กด "เพิ่มลิงก์ภาพ" ได้อีกไม่เกิน 5 ลิงก์</p>
               <p id="albumError" class="mt-2 text-[14px] font-medium text-brand" hidden>ใส่ลิงก์ที่ขึ้นต้นด้วย https://</p>
+              <!-- ภาพอยู่หลายอัลบั้ม: more links after the first (video-links.js) -->
+              <div id="albumLinksBox" class="mt-3" role="group" aria-label="ลิงก์ภาพเพิ่มเติมอื่น" aria-describedby="albumLinksError"></div>
+              <p id="albumLinksError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
             </div>
             <fieldset class="mt-6">
               <legend class="mb-2 font-display text-[15px] font-semibold">ลิงก์วิดีโอประกอบข่าว <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></legend>
@@ -1025,7 +1045,7 @@
     <div class="flex flex-col gap-4 border-t border-line pt-8 text-[14px] text-ink2 md:flex-row md:items-center">
       <a href="index.html" class="press t-quick flex items-center gap-3 rounded-xl hover:opacity-80">
         <span class="logo-crop h-9 w-9"><img src="/assets/img/logo-192.webp" alt=""></span>
-        <span class="font-display font-semibold text-purple">ข่าว มรส.</span>
+        <span class="font-display font-semibold text-purple">คลังข่าว มรส.</span>
       </a>
       <span>คลังข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
       <span class="flex gap-6 md:ml-auto">
@@ -1061,24 +1081,24 @@
       video: {
         noun: 'วิดีโอ', detailsTitle: 'รายละเอียดวิดีโอ', titleLabel: 'ชื่อวิดีโอ', unitLabel: 'หน่วยงานผู้จัด / เจ้าของวิดีโอ',
         titlePh: 'เช่น บรรยากาศพิธีไหว้ครู ประจำปีการศึกษา 2569',
-        descLabel: 'คำอธิบายวิดีโอ', descPh: 'เล่าสั้น ๆ ว่าวิดีโอนี้เกี่ยวกับอะไร ใช้เป็นคำบรรยายใต้วิดีโอ', descRequired: false,
+        descLabel: 'คำอธิบายวิดีโอ', descPh: 'เล่าสั้น ๆ ว่าวิดีโอนี้เกี่ยวกับอะไร ใช้เป็นคำบรรยายใต้วิดีโอ', descRequired: true, descError: 'กรอกคำอธิบายวิดีโอ',
         consentText: 'ฉันยืนยันว่าข้อมูลถูกต้อง หน่วยงานมีสิทธิ์ในวิดีโอ เพลง และภาพในวิดีโอ และบุคคลในวิดีโอยินยอมให้เผยแพร่',
         submit: 'ส่งวิดีโอให้ PR', done: 'ส่งวิดีโอเรียบร้อยแล้ว!',
       },
       banner: {
         noun: 'งาน', detailsTitle: 'รายละเอียดงาน', titleLabel: 'ชื่องาน', unitLabel: 'หน่วยงานเจ้าของงาน',
         titlePh: 'เช่น รับสมัครนักศึกษาใหม่ ปีการศึกษา 2570',
-        descLabel: 'ข้อความประกอบโพสต์', descPh: 'ข้อความที่ใช้ประกอบเวลาโพสต์ เช่น รายละเอียด วันที่ ลิงก์สมัคร', descRequired: true,
+        descLabel: 'ข้อความประกอบโพสต์', descPh: 'ข้อความที่ใช้ประกอบเวลาโพสต์ เช่น รายละเอียด วันที่ ลิงก์สมัคร', descRequired: true, descError: 'กรอกข้อความประกอบโพสต์',
         consentText: 'ฉันยืนยันว่าข้อมูลถูกต้อง และหน่วยงานมีสิทธิ์ในภาพ ฟอนต์ และองค์ประกอบทั้งหมดในงานนี้',
         submit: 'ส่งงานให้ PR', done: 'ส่งแบนเนอร์ / อินโฟกราฟิกเรียบร้อยแล้ว!',
       },
     };
     // ---- Section menu: which checks (CHECKS keys) belong to each section; sections without checks are optional ----
     const SECTIONS = {
-      details: { label: () => TYPES[type].detailsTitle, checks: ['title', 'date', 'desc', 'unit', 'cat'] },
+      details: { label: () => TYPES[type].detailsTitle, checks: ['title', 'date', 'desc', 'unit', 'designer', 'cat'] },
       people: { label: () => 'บุคคลสำคัญ', checks: [] },
       content: { label: () => 'เนื้อหาข่าว', checks: ['content'] },
-      photos: { label: () => 'ภาพข่าว', checks: ['photo'] },
+      photos: { label: () => 'ภาพข่าว', checks: ['photo', 'credit'] },
       video: { label: () => 'ลิงก์วิดีโอ', checks: ['video'] },
       art: { label: () => 'ไฟล์งาน', checks: ['art'] },
       en: { label: () => 'ฉบับภาษาอังกฤษ', checks: [] },
@@ -1134,6 +1154,21 @@
       max: MAX_MORE, placeholder: 'วางลิงก์ตอนอื่น หรือลิงก์จากแพลตฟอร์มอื่น',
       onChange: () => { scheduleDraft(); if (moreBad() < 0) { setError('#videoLinksError', false); moreVideos.inputs().forEach((x) => x.setAttribute('aria-invalid', 'false')); } },
     });
+    // ลิงก์ภาพเพิ่มเติม (news) after the first: up to 5 more, each an https link (rules.mjs albumSet)
+    const moreAlbums = VideoLinks($('#albumLinksBox'), {
+      max: 5, placeholder: 'อัลบั้มอื่น หรือโฟลเดอร์ Google Drive', label: 'ลิงก์ภาพเพิ่มเติม', add: 'เพิ่มลิงก์ภาพ',
+      onChange: () => { scheduleDraft(); if (albumBad() < 0) { setError('#albumLinksError', false); moreAlbums.inputs().forEach((x) => x.setAttribute('aria-invalid', 'false')); } },
+    });
+    const albumBad = () => moreAlbums.inputs().findIndex((x) => x.value.trim() && !/^https:\/\/\S+\.\S+/i.test(x.value.trim()));
+    // ผู้ออกแบบ / ที่มา: the field is named by the side chosen
+    function syncCreditKind() {
+      const photoSource = radio('photoCredit') === 'source';
+      $('#creditLabel').textContent = photoSource ? 'ที่มา' : 'เครดิตภาพ';
+      $('#credit').placeholder = photoSource ? 'เช่น เพจคณะ หรือสำนักข่าวต้นทาง' : 'เช่น ฝ่ายประชาสัมพันธ์คณะวิทยาศาสตร์ฯ';
+      const source = radio('creditKind') === 'source';
+      $('#designerLabel').textContent = source ? 'ที่มา' : 'ผู้ออกแบบ';
+      $('#designer').placeholder = source ? 'เช่น กระทรวงการอุดมศึกษาฯ หรือชื่อเพจต้นทาง' : 'ชื่อผู้ออกแบบ หรือทีม / บริษัทที่ออกแบบ';
+    }
     const moreBad = () => moreVideos.inputs().findIndex((x) => x.value.trim() && !Object.values(PLATFORMS).some((p) => p.re.test(x.value.trim())));
     const platformNames = () => Object.values(PLATFORMS).map((p) => p.label).join(', ');
     $('#videoLinksInfo').textContent = `วิดีโอที่มีหลายตอน หรือเผยแพร่ไว้หลายที่ ใส่ลิงก์อื่นได้อีกไม่เกิน ${MAX_MORE} ลิงก์ จาก ${platformNames()}`;
@@ -1488,12 +1523,14 @@
     const CHECKS = [
       { key: 'title', for: 'news video banner', label: () => TYPES[type].titleLabel, ok: () => !!val('title'), focus: '#title' },
       { key: 'date', for: 'news video', label: () => 'วันที่และหน่วยงาน', ok: () => !!val('eventDate') && !!val('unit'), focus: '#eventDate' },
-      { key: 'desc', for: 'banner', label: () => 'ข้อความประกอบโพสต์', ok: descOk, focus: '#desc' },
+      { key: 'desc', for: 'video banner', label: () => TYPES[type].descLabel, ok: descOk, focus: '#desc' },
+      { key: 'designer', for: 'banner', label: () => (radio('creditKind') === 'source' ? 'ที่มาของงาน' : 'ผู้ออกแบบ'), ok: () => !!val('designer'), focus: '#designer' },
       { key: 'unit', for: 'banner', label: () => 'หน่วยงาน', ok: () => !!val('unit'), focus: '#unit' },
       { key: 'cat', for: 'news video', label: () => 'ประเภทข่าว', ok: () => cats().length > 0, focus: 'input[name=category]' },
       { key: 'content', for: 'news', label: () => prWrites() ? 'เอกสารให้ PR เขียนข่าว' : radio('contentMode') === 'own' ? `เนื้อหาอย่างน้อย ${MIN_BODY} ตัวอักษร` : 'เนื้อหาข่าว', ok: contentOk,
         focus: () => !radio('contentMode') ? 'input[name=contentMode]' : prWrites() ? '#attachInput' : '#body' },
       { key: 'photo', for: 'news', label: () => `ภาพข่าวอย่างน้อย ${PHOTOS.min} ภาพ`, ok: () => up.photo.items.length >= PHOTOS.min, focus: '#photoInput' },
+      { key: 'credit', for: 'news', label: () => (radio('photoCredit') === 'source' ? 'ที่มาของภาพ' : 'เครดิตภาพ'), ok: () => !!val('credit'), focus: '#credit' },
       { key: 'video', for: 'video', label: () => 'ลิงก์วิดีโอ', ok: videoOk, focus: '#videoLink' },
       { key: 'art', for: 'banner', label: () => 'ไฟล์งานอย่างน้อย 1 ไฟล์', ok: () => up.art.items.length > 0, focus: '#artInput' },
       { key: 'aud', for: 'news video banner', label: () => 'ใครเห็นงานนี้ได้', ok: () => audVals().length > 0, focus: 'input[name=audience]' },
@@ -1524,9 +1561,11 @@
       $('#desc').placeholder = T.descPh || '';
       $('#descReq').hidden = !T.descRequired;
       $('#descOpt').hidden = !!T.descRequired;
+      $('#descError').textContent = T.descError || '';
+      syncCreditKind();
       $('#titleError').textContent = `กรอก${T.titleLabel}`;
       $('#submitLabel').textContent = submitText();
-      document.title = `ส่ง${t === 'banner' ? 'แบนเนอร์ / อินโฟกราฟิก' : T.noun} | ข่าว มรส.`;
+      document.title = `ส่ง${t === 'banner' ? 'แบนเนอร์ / อินโฟกราฟิก' : T.noun} | คลังข่าว มรส.`;
       // Clear errors that belong to the old type
       form.querySelectorAll('[id$=Error]').forEach((e) => { e.hidden = true; });
       form.querySelectorAll('[aria-invalid]').forEach((e) => e.removeAttribute('aria-invalid'));
@@ -1728,12 +1767,14 @@
     function validate() {
       const videoMsg = val('videoLink') ? platformErr('videoPlatform') : `วางลิงก์วิดีโอจาก ${PLATFORMS[radio('videoPlatform')].label}`;
       const mode = radio('contentMode');
-      const mb = moreBad();
+      const mb = moreBad(), ab = albumBad();
       moreVideos.inputs().forEach((x) => x.setAttribute('aria-invalid', 'false'));
+      moreAlbums.inputs().forEach((x) => x.setAttribute('aria-invalid', 'false'));
       const rules = [
         // [types, errId, bad, field, focusSelector, message]
         ['news video banner', '#titleError', !val('title'), $('#title')],
-        ['banner', '#descError', !descOk(), $('#desc')],
+        ['video banner', '#descError', !descOk(), $('#desc')],
+        ['banner', '#designerError', !val('designer'), $('#designer'), null, radio('creditKind') === 'source' ? 'กรอกที่มาของงาน' : 'กรอกชื่อผู้ออกแบบ'],
         ['news video', '#dateError', !val('eventDate'), $('#eventDate')],
         ['news video banner', '#unitError', !val('unit'), $('#unit')],
         ['news video', '#catError', !cats().length, $('#catSet'), 'input[name=category]'],
@@ -1741,7 +1782,9 @@
         ['news', '#bodyError', mode === 'own' && val('body').length < MIN_BODY, $('#body')],
         ['news', '#attachError', mode === 'pr' && !up.attach.items.length, $('#attachDrop'), '#attachInput'],
         ['news', '#photoError', up.photo.items.length < PHOTOS.min, $('#photoDrop'), '#photoInput'],
+        ['news', '#creditError', !val('credit'), $('#credit'), null, radio('photoCredit') === 'source' ? 'กรอกที่มาของภาพ' : 'กรอกเครดิตภาพ'],
         ['news', '#albumError', !albumOk(), $('#albumUrl')],
+        ['news', '#albumLinksError', ab >= 0, moreAlbums.inputs()[ab], null, `ลิงก์ภาพเพิ่มเติมที่ ${ab + 2} ต้องขึ้นต้นด้วย https://`],
         ['news', '#newsVideoError', !newsVideoOk(), $('#newsVideo'), null, platformErr('newsPlatform')],
         ['video', '#videoError', !videoOk(), $('#videoLink'), '#videoLink', videoMsg],
         ['video', '#videoLinksError', mb >= 0, moreVideos.inputs()[mb], null, `ลิงก์เพิ่มเติมที่ ${mb + 1} ไม่ใช่ลิงก์วิดีโอจาก ${platformNames()}`],
@@ -1772,6 +1815,10 @@
       if (id === 'newsVideo' && newsVideoOk()) setError('#newsVideoError', false, e.target);
       if (id === 'videoLink' && videoOk()) setError('#videoError', false, e.target);
       if (id === 'albumUrl' && albumOk()) setError('#albumError', false, e.target);
+      if (id === 'designer' && val('designer')) setError('#designerError', false, e.target);
+      if (id === 'credit' && val('credit')) setError('#creditError', false, e.target);
+      if (name === 'photoCredit') syncCreditKind();
+      if (name === 'creditKind') { syncCreditKind(); if (val('designer')) setError('#designerError', false, $('#designer')); }
       if (id === 'consent' && e.target.checked) setError('#consentError', false, e.target);
       if (name === 'category') { syncCats(); if (cats().length) setError('#catError', false, $('#catSet')); }
       if (name === 'audience' && audVals().length) setError('#audError', false, $('#audSet'));
@@ -1780,7 +1827,7 @@
     // ---- Kept in this browser while typing (text only), so a closed tab or a sign-in loses nothing ----
     const DRAFT_KEY = 'newsDraft';
     const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'designer', 'producer', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'assigneeName', 'assigneePos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl'];
-    const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'newsPlatform'];
+    const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'newsPlatform', 'creditKind', 'photoCredit'];
     let draftTimer = null;
     // A draft opened from ข่าวของฉัน (submit.html?draft=ID) lives on the server; "บันทึกร่าง" saves it there
     let draftId = new URLSearchParams(location.search).get('draft');
@@ -1788,7 +1835,7 @@
       if (!type || editing || draftId) return;
       const d = Object.fromEntries(DRAFT_FIELDS.map((k) => [k, $('#' + k).value]));
       DRAFT_RADIOS.forEach((n) => { d[n] = radio(n); });
-      Object.assign(d, { type, videoLinks: moreVideos.get(), categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), assigneePrefix: prefixOf('assignee'), guests: guests.filter((g) => g.name || g.pos), ...toolsOut() });
+      Object.assign(d, { type, videoLinks: moreVideos.get(), albumLinks: moreAlbums.get(), categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), assigneePrefix: prefixOf('assignee'), guests: guests.filter((g) => g.name || g.pos), ...toolsOut() });
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) { return; }
       const now = new Date();
       const el = $('#draftState');
@@ -1812,6 +1859,8 @@
       $('#enToggle').checked = !!d.en; $('#enFields').hidden = !d.en;
       tools.set({ size: d.bodySize, leading: d.bodyLeading });
       moreVideos.set(Array.isArray(d.videoLinks) ? d.videoLinks : []);
+      moreAlbums.set(Array.isArray(d.albumLinks) ? d.albumLinks : []);
+      syncCreditKind();
     }
     function restoreDraft() {
       let d = null;
@@ -1911,13 +1960,14 @@
       categories: ['#catError', '#catSet'], contentMode: ['#modeError', '#modeSet'], body: ['#bodyError', '#body'], attach: ['#attachError', '#attachDrop'],
       photo: ['#photoError', '#photoDrop'], newsVideo: ['#newsVideoError', '#newsVideo'], videoLink: ['#videoError', '#videoLink'], art: ['#artError', '#artDrop'],
       audience: ['#audError', '#audSet'], consent: ['#consentError', '#consent'], albumUrl: ['#albumError', '#albumUrl'],
-      videoLinks: ['#videoLinksError', '#videoLinksBox input'],
+      videoLinks: ['#videoLinksError', '#videoLinksBox input'], albumLinks: ['#albumLinksError', '#albumLinksBox input'], designer: ['#designerError', '#designer'], credit: ['#creditError', '#credit'],
     };
     function payload() {
       return {
         type, title: val('title'), lead: val('lead'), desc: val('desc'), body: val('body'), eventDate: val('eventDate'), place: val('place'), unit: val('unit'),
         categories: cats(), contentMode: radio('contentMode'), credit: val('credit'), newsVideo: val('newsVideo'), newsPlatform: radio('newsPlatform'),
-        videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), videoLinks: type === 'video' ? moreVideos.get() : [], albumUrl: val('albumUrl'), designer: val('designer'), producer: val('producer'),
+        videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), videoLinks: type === 'video' ? moreVideos.get() : [], albumUrl: val('albumUrl'), albumLinks: type === 'news' ? moreAlbums.get() : [],
+        designer: val('designer'), creditKind: type === 'banner' ? radio('creditKind') : type === 'news' ? radio('photoCredit') : null, producer: val('producer'),
         chairPrefix: prefixOf('chair'), chairName: val('chairName'), chairPos: val('chairPos'),
         reporterPrefix: prefixOf('reporter'), reporterName: val('reporterName'), reporterPos: val('reporterPos'),
         assigneePrefix: prefixOf('assignee'), assigneeName: val('assigneeName'), assigneePos: val('assigneePos'),
@@ -2016,7 +2066,7 @@
           ['หัวข้อข่าว', sub.title], ['หน่วยงานผู้จัด / เจ้าของข่าว', sub.unit], ['วันที่จัดกิจกรรม', thDate(val('eventDate'))],
           ['ประเภทข่าว', cats().join(', ')],
           ['เนื้อหาข่าว', writes ? `ให้ทีม PR เขียนให้ (แนบ ${n('attach')} ไฟล์)` : 'มีเนื้อหาแล้ว'],
-          ['ภาพ', `${n('photo')} ภาพ${val('newsVideo') ? ` · วิดีโอ ${PLATFORMS[radio('newsPlatform')].label}` : ''}${val('albumUrl') ? ' · มีลิงก์ภาพเพิ่มเติม' : ''}`],
+          ['ภาพ', `${n('photo')} ภาพ${val('newsVideo') ? ` · วิดีโอ ${PLATFORMS[radio('newsPlatform')].label}` : ''}${val('albumUrl') || moreAlbums.get().length ? ` · ลิงก์ภาพเพิ่มเติม ${[val('albumUrl'), ...moreAlbums.get()].filter(Boolean).length} ลิงก์` : ''}`],
           ['บุคคลสำคัญ', people.length ? people.join(', ') : 'ไม่ได้ระบุ'],
           ['ใครเห็นได้', aud],
         ],
@@ -2025,7 +2075,7 @@
           ['ประเภทข่าว', cats().join(', ')], ['วิดีโอ', `${videoText()}${moreVideos.get().length ? ` และลิงก์เพิ่มเติม ${moreVideos.get().length} ลิงก์` : ''}`], ['ใครเห็นได้', aud],
         ],
         banner: [
-          ['ชื่องาน', sub.title], ['หน่วยงาน', sub.unit], ...(val('designer') ? [['ผู้ออกแบบ', val('designer')]] : []), ['ไฟล์งาน', `${n('art')} ไฟล์`], ['ใครเห็นได้', aud],
+          ['ชื่องาน', sub.title], ['หน่วยงาน', sub.unit], [radio('creditKind') === 'source' ? 'ที่มา' : 'ผู้ออกแบบ', val('designer')], ['ไฟล์งาน', `${n('art')} ไฟล์`], ['ใครเห็นได้', aud],
         ],
       }[type];
       $('#doneSummary').innerHTML = rows.map(([k, v]) => `<div><dt class="text-[13px] text-ink2">${k}</dt><dd class="font-display text-[16px] font-medium">${esc(v)}</dd></div>`).join('');
@@ -2131,10 +2181,12 @@
       set('note', '');
       tools.set({ size: f.bodySize, leading: f.bodyLeading });
       moreVideos.set(f.videoLinks || []);
+      moreAlbums.set(f.albumLinks || []);
       if (![...$('#unit').options].some((o) => o.value === sub.unit)) $('#unit').insertAdjacentHTML('beforeend', `<option>${esc(sub.unit)}</option>`);
       $('#unit').value = sub.unit;
       const pick = (name, v) => { const r = v && document.querySelector(`input[name=${name}][value="${CSS.escape(v)}"]`); if (r) r.checked = true; };
-      pick('contentMode', f.contentMode); pick('newsPlatform', f.newsPlatform); pick('videoPlatform', f.videoPlatform);
+      pick('contentMode', f.contentMode); pick('newsPlatform', f.newsPlatform); pick('videoPlatform', f.videoPlatform); if (sub.type === 'news') pick('photoCredit', f.creditKind === 'source' ? 'source' : 'photo'); else pick('creditKind', f.creditKind);
+      syncCreditKind();
       document.querySelectorAll('input[name=category]').forEach((b) => { b.checked = (f.categories || []).includes(b.value); });
       document.querySelectorAll('input[name=audience]').forEach((b) => { b.checked = (sub.audienceValues || []).includes(b.value); });
       const people = f.people || {};
@@ -2153,7 +2205,7 @@
       syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint');
       syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint');
       update();
-      document.title = `แก้ไขงาน ${sub.ref} | ข่าว มรส.`;
+      document.title = `แก้ไขงาน ${sub.ref} | คลังข่าว มรส.`;
     }
   </script>
 </body>

@@ -17,7 +17,7 @@ import { plainText } from './rules.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 export const ORIGIN = (process.env.APP_ORIGIN || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '');
-const SITE = 'ข่าว มรส.';
+const SITE = 'คลังข่าว มรส.';
 const OG_DEFAULT = '/assets/img/og-default.jpg';
 
 // Pages that are not for search results (signed-in tools, sign-in, errors)

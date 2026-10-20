@@ -9,7 +9,7 @@ import { restore, snapshot } from './cleanup.mjs';
 import { ID_OTHER, ID_STAFF, anon, form, img, login } from './helpers.mjs';
 
 const NEWS = {
-  type: 'news', title: 'ทดสอบร่าง', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+  type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ทดสอบร่าง', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
   contentMode: 'own', body: 'ก'.repeat(160), audience: ['public'], consent: true,
 };
 const jpg = async (name, color) => [name, await img(color, 800, 600), 'image/jpeg'];
@@ -83,7 +83,7 @@ describe('drafts', () => {
   test('a draft that is not complete cannot be sent; it stays a draft with its files', async () => {
     const r = await staff.call('POST', '/api/drafts', form({ type: 'news', title: 'ยังไม่ครบ' }, { photo: [await jpg('p.jpg', '#555')] }));
     const id = r.body.draft.id;
-    const s = await staff.call('POST', '/api/submissions', form({ type: 'news', title: 'ยังไม่ครบ', draftId: id, audience: ['public'], consent: true }));
+    const s = await staff.call('POST', '/api/submissions', form({ type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ยังไม่ครบ', draftId: id, audience: ['public'], consent: true }));
     assert.equal(s.status, 400);
     const d = (await staff.call('GET', `/api/drafts/${id}`)).body.draft;
     assert.equal(d.files.length, 1);

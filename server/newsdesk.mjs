@@ -11,11 +11,12 @@
 // - DELETE /api/pr/news/:id          ลบข่าว: only a withdrawn story; gone for good with its pictures, reads and history.
 //        Its work (if any) moves to ลบแล้ว on pr.html unless it is back in the queue (ยกเลิกการเผยแพร่)
 // - POST /api/pr/import/fetch       { url }         reads a public Facebook post: text, photos, date (best effort)
-// - GET  /api/pr/import/check?url=&unit=&date=&title=   stories that may be the same one
 // - POST /api/pr/import             multipart: data (JSON) + photo files; data.remoteImages = photo URLs from /fetch;
 //        data.photoOrder = ['r:<n>' | 'u:<n>'] the pictures in the order arranged (default: Facebook ones first)
 //        Imported stories go live at once with their original date, skip the queue and the inbox,
 //        and take their place by date in every list, the home page too.
+//        data.fresh = true: เพิ่มข่าว (the PR team's own story of the day, not an import): imported stays false and the
+//        time may be later today or after (scheduled). Not for interns, who import past stories only.
 import { createWriteStream } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -27,9 +28,8 @@ import { audit } from './audit.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, acceptUpload, publishFile, removeMedia, removeTemp, tempPath } from './files.mjs';
 import { HttpError, str } from './http.mjs';
-import { LOCAL_DAY } from './news.mjs';
 import { allUnits } from './org.mjs';
-import { AUDIENCES, MAX_CATS, PLATFORMS, SOLO_MSG, TYPES, albumUrl, audienceLabel, bodyLeading, bodySize, categories, soloOk, videoLinks } from './rules.mjs';
+import { AUDIENCES, CREDIT_KINDS, MAX_CATS, PLATFORMS, SOLO_MSG, TYPES, albumSet, albumUrl, audienceLabel, bodyLeading, bodySize, categories, creditKindOf, creditMissing, soloOk, videoLinks } from './rules.mjs';
 import { get } from './settings.mjs';
 import { limit } from './security.mjs';
 
@@ -116,7 +116,8 @@ router.get('/pr/news/:id', async (req, res) => {
     story: {
       id: n.id, kind: n.kind, title: n.title, titleEn: n.title_en, lead: n.lead, body: n.body, bodyEn: n.body_en, bodySize: n.body_size, bodyLeading: n.body_leading,
       unit: n.unit, categories: n.categories, audience: n.audience, videoUrl: n.video_url, videoLinks: n.video_links, credit: n.credit, place: n.place,
-      sourceUrl: n.source_url, albumUrl: n.album_url, imported: n.imported, publishedAt: n.published_at, withdrawn: !!n.withdrawn_at,
+      sourceUrl: n.source_url, albumUrl: n.album_url, albumLinks: n.album_links || [], creditKind: n.credit_kind,
+      imported: n.imported, publishedAt: n.published_at, withdrawn: !!n.withdrawn_at,
       ref: s?.ref || null, submissionStatus: s?.status || null,
       photos: [n.cover_path, ...n.gallery].filter(Boolean).map((p) => ({ path: p, url: `/media/${p}` })),
     },
@@ -137,23 +138,24 @@ router.put('/pr/news/:id', limit('import', { max: 120, windowMs: 10 * 60 * 1000 
     const max = get('photos').max;
     if (order.length > max) throw new HttpError(400, `แนบภาพได้ไม่เกิน ${max} ภาพ`);
     const row = checkImport(d, order.length, { imported: n.imported });
-    const paths = [];
-    for (const t of order) {
-      if (t.startsWith('p:')) { paths.push(t.slice(2)); continue; }
+    const paths = await inTurns(order, PARALLEL, async (t) => {
+      if (t.startsWith('p:')) return t.slice(2);
       const f = uploads[Number(t.slice(2))];
-      paths.push(await publishFile(n.id, f.path, f.originalname));
-      added.push(paths.at(-1));
-    }
+      const p = await publishFile(n.id, f.path, f.originalname);
+      added.push(p);
+      return p;
+    });
     await tx(async (c) => {
       await c.query(
         `update news set kind = $2, title = $3, lead = $4, body = $5, unit = $6, categories = $7, audience = $8, cover_path = $9, gallery = $10,
            video_url = $11, credit = $12, place = $13, album_url = $14, source_url = $15, published_at = $16, body_size = $17, body_leading = $18,
            event_date = case when imported then $19::date else event_date end,
-           title_en = case when $20 then $21 else title_en end, body_en = case when $20 then $22 else body_en end, video_links = $23
+           title_en = case when $20 then $21 else title_en end, body_en = case when $20 then $22 else body_en end, video_links = $23,
+           album_links = $24, credit_kind = $25
          where id = $1`,
         [n.id, row.kind, row.title, row.lead, row.body, row.unit, row.categories, row.audience, paths[0] || null, paths.slice(1),
           row.video_url, row.credit, row.place, row.album_url, row.source_url ?? n.source_url, row.published_at, row.body_size, row.body_leading,
-          row.date, d.titleEn !== undefined || d.bodyEn !== undefined, row.title_en, row.body_en, row.video_links]);
+          row.date, d.titleEn !== undefined || d.bodyEn !== undefined, row.title_en, row.body_en, row.video_links, row.album_links, row.credit_kind]);
       await audit(c, req.user, 'news.update', n.id, `แก้ไขข่าว "${row.title}"`, { before: n.title !== row.title ? n.title : undefined });
     }, req.user);
     await Promise.all(had.filter((p) => !paths.includes(p)).map(removeMedia));
@@ -349,31 +351,6 @@ router.post('/pr/import/fetch', limit('fbFetch', { max: 60, windowMs: 10 * 60 * 
   });
 });
 
-// ---- Possible duplicates: same source link, same unit within 3 days, or a very similar title ----
-async function duplicates({ url, unit, date, title }, excludeId = null) {
-  const src = url ? fbUrl(url) || String(url).slice(0, 500) : null;
-  const rows = (await query(
-    `select n.id, n.title, n.unit, n.published_at, n.imported, n.source_url,
-       (n.source_url is not null and n.source_url = $1) same_source,
-       (n.unit = $2 and $3::date is not null and abs(${LOCAL_DAY} - $3::date) <= 3) near_date,
-       ($4::text is not null and word_similarity($4, n.title) >= 0.6) similar_title
-     from news n
-     where n.withdrawn_at is null and ($5::uuid is null or n.id <> $5) and (
-       (n.source_url is not null and n.source_url = $1)
-       or (n.unit = $2 and $3::date is not null and abs(${LOCAL_DAY} - $3::date) <= 3)
-       or ($4::text is not null and word_similarity($4, n.title) >= 0.6))
-     order by same_source desc, similar_title desc, n.published_at desc limit 5`,
-    [src, unit || null, /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : null, title?.trim() || null, excludeId])).rows;
-  return rows.map((r) => ({
-    id: r.id, title: r.title, unit: r.unit, publishedAt: r.published_at, imported: r.imported,
-    reasons: [r.same_source && 'ลิงก์ต้นฉบับเดียวกัน', r.near_date && 'หน่วยงานเดียวกัน วันที่ใกล้กัน', r.similar_title && 'ชื่อข่าวคล้ายกัน'].filter(Boolean),
-  }));
-}
-
-router.get('/pr/import/check', async (req, res) => {
-  res.json({ duplicates: await duplicates(req.query) });
-});
-
 // ---- Import ----
 async function download(url) {
   let u;
@@ -389,6 +366,17 @@ async function download(url) {
   return path;
 }
 
+// Pictures are made ready a few at a time (each is resized and saved twice by sharp), in the order given
+const PARALLEL = 3;
+async function inTurns(list, n, fn) {
+  const out = new Array(list.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(n, list.length) }, async () => {
+    while (next < list.length) { const i = next++; out[i] = await fn(list[i], i); }
+  }));
+  return out;
+}
+
 // opts.imported: the original date must not be in the future (an edited story that was not imported may be scheduled)
 function checkImport(d, photoCount, opts = { imported: true }) {
   if (!d || typeof d !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลข่าว');
@@ -399,11 +387,17 @@ function checkImport(d, photoCount, opts = { imported: true }) {
     title_en: str(d.titleEn, 200, 'หัวข้อภาษาอังกฤษ'), body_en: str(d.bodyEn, 50000, 'เนื้อหาภาษาอังกฤษ'),
     unit: str(d.unit, 200, 'หน่วยงาน'), categories: Array.isArray(d.categories) ? [...new Set(d.categories)] : [],
     audience: Array.isArray(d.audience) ? [...new Set(d.audience)] : [], video_url: str(d.videoUrl, 500, 'ลิงก์วิดีโอ'),
-    credit: str(d.credit, 80, 'เครดิต'), place: str(d.place, 120, 'สถานที่'),
+    credit: str(d.credit, 80, CREDIT_KINDS[creditKindOf(d.kind, d.creditKind) || (d.kind === 'news' ? 'photo' : 'designer')] || 'เครดิต'), place: str(d.place, 120, 'สถานที่'),
     body_size: bodySize(d.bodySize), body_leading: bodyLeading(d.bodyLeading),
     source_url: d.sourceUrl ? fbUrl(d.sourceUrl) || str(d.sourceUrl, 500, 'ลิงก์ต้นฉบับ') : null,
     album_url: albumUrl(d.albumUrl),
+    credit_kind: creditKindOf(d.kind, d.creditKind),
   };
+  // ลิงก์ภาพเพิ่มเติม: albumUrl is the first, albumLinks the others
+  const albums = albumSet([row.album_url || '', ...(Array.isArray(d.albumLinks) ? d.albumLinks : [])].filter(Boolean));
+  row.album_url = albums.url;
+  row.album_links = albums.links;
+  if (albums.error) need('albumLinks', false, albums.error);
   need('kind', TYPES.includes(row.kind), 'เลือกประเภทเนื้อหา');
   need('title', row.title, 'กรอกหัวข้อข่าว');
   need('unit', row.unit && allUnits().includes(row.unit), 'เลือกหน่วยงานจากรายการ');
@@ -412,7 +406,8 @@ function checkImport(d, photoCount, opts = { imported: true }) {
   need('categories', soloOk(row.categories), SOLO_MSG);
   need('audience', row.audience.length && row.audience.every((a) => AUDIENCES.includes(a)), 'เลือกว่าใครเห็นข่าวนี้ได้');
   if (row.audience.includes('public')) row.audience = [...AUDIENCES];
-  if (row.kind === 'news') need('body', row.body.length >= 20, 'ใส่เนื้อหาข่าว');
+  need('body', row.body.length >= (row.kind === 'news' ? 20 : 1), row.kind === 'news' ? 'ใส่เนื้อหาข่าว' : row.kind === 'video' ? 'ใส่คำอธิบายวิดีโอ' : 'ใส่ข้อความประกอบงาน');
+  if (row.kind !== 'video') need('credit', row.credit, creditMissing(row.kind, row.credit_kind));
   if (row.kind !== 'video') need('photos', photoCount > 0, 'แนบภาพอย่างน้อย 1 ภาพ');
   if (row.kind === 'video') need('videoUrl', row.video_url && Object.values(PLATFORMS).some((r) => r.test(row.video_url)), 'ใส่ลิงก์วิดีโอจาก YouTube, Facebook, TikTok หรือ Google Drive');
   if (row.video_url) need('videoUrl', Object.values(PLATFORMS).some((r) => r.test(row.video_url)), 'ลิงก์วิดีโอไม่ถูกต้อง');
@@ -441,29 +436,27 @@ router.post('/pr/import', limit('import', { max: 120, windowMs: 10 * 60 * 1000 }
     if (req.uploads.some((f) => f.kind !== 'photo')) throw new HttpError(400, 'แนบได้เฉพาะไฟล์ภาพ');
     const max = get('photos').max;
     if (photos.length + remote.length > max) throw new HttpError(400, `แนบภาพได้ไม่เกิน ${max} ภาพ`);
-    const row = checkImport(d, photos.length + remote.length);
-    const dupes = await duplicates({ url: row.source_url, unit: row.unit, date: row.date, title: row.title });
-    if (dupes.length && d.confirmDuplicate !== true) {
-      throw new HttpError(409, 'อาจซ้ำกับข่าวที่มีอยู่แล้ว ตรวจรายการแล้วยืนยันอีกครั้ง', { duplicates: dupes });
-    }
+    const fresh = d?.fresh === true;
+    if (fresh && req.user.role === 'intern') throw new HttpError(403, 'นักศึกษาฝึกงานนำเข้าได้เฉพาะข่าวย้อนหลัง');
+    const row = checkImport(d, photos.length + remote.length, { imported: !fresh });
     // Photos in the order arranged on the page (photoOrder), else Facebook ones first (as on the post), then uploads
     for (const url of remote) temps.push(await download(url));
     newsId = (await one('select gen_random_uuid() id')).id;
     const all = [...temps.map((t, i) => ({ key: `r:${i}`, path: t, name: `ภาพจาก Facebook ภาพที่ ${i + 1}` })), ...photos.map((f, i) => ({ key: `u:${i}`, path: f.path, name: f.originalname }))];
     const want = Array.isArray(d.photoOrder) ? d.photoOrder.filter((k) => typeof k === 'string') : [];
     const ordered = [...want.map((k) => all.find((x) => x.key === k)).filter(Boolean), ...all.filter((x) => !want.includes(x.key))];
-    const paths = [];
-    for (const x of [...new Set(ordered)]) paths.push(await publishFile(newsId, x.path, x.name));
+    const paths = await inTurns([...new Set(ordered)], PARALLEL, (x) => publishFile(newsId, x.path, x.name));
     const created = await tx(async (c) => {
       const n = (await c.query(
         `insert into news (id, kind, imported, source_url, title, title_en, lead, body, body_en, unit, categories, audience,
-           cover_path, gallery, video_url, credit, place, event_date, published_at, created_by, album_url, body_size, body_leading, reviewed_by, video_links)
-         values ($1, $2, true, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $19, $23) returning *`,
+           cover_path, gallery, video_url, credit, place, event_date, published_at, created_by, album_url, body_size, body_leading, reviewed_by, video_links,
+           album_links, credit_kind)
+         values ($1, $2, $24, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $19, $23, $25, $26) returning *`,
         [newsId, row.kind, row.source_url, row.title, row.title_en, row.lead, row.body, row.body_en, row.unit, row.categories, row.audience,
           paths[0] || null, paths.slice(1), row.video_url, row.credit, row.place, row.date, row.published_at, req.user.id, row.album_url,
-          row.body_size, row.body_leading, row.video_links])).rows[0];
-      await audit(c, req.user, 'news.import', n.id, `นำเข้าข่าวย้อนหลัง "${n.title}" (${row.unit}, ${row.date})`,
-        { sourceUrl: row.source_url, duplicatesConfirmed: dupes.length ? dupes.map((x) => x.id) : undefined });
+          row.body_size, row.body_leading, row.video_links, !fresh, row.album_links, row.credit_kind])).rows[0];
+      await audit(c, req.user, 'news.import', n.id, `${fresh ? 'เพิ่มข่าว' : 'นำเข้าข่าวย้อนหลัง'} "${n.title}" (${row.unit}, ${row.date})`,
+        { sourceUrl: row.source_url, fresh: fresh || undefined });
       return n;
     }, req.user);
     res.status(201).json({ news: { id: created.id, title: created.title, unit: created.unit, publishedAt: created.published_at, url: `news.html?id=${created.id}` } });

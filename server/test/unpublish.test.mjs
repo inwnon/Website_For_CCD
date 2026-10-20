@@ -8,7 +8,7 @@ import { restore, snapshot } from './cleanup.mjs';
 import { ID_STAFF, anon, form, img, login } from './helpers.mjs';
 
 let snap, staff, pr, ref, newsId;
-const NEWS = { type: 'news', title: 'ข่าวทดสอบยกเลิกการเผยแพร่', lead: 'คำโปรยเดิม', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+const NEWS = { type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ข่าวทดสอบยกเลิกการเผยแพร่', lead: 'คำโปรยเดิม', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
   contentMode: 'own', body: 'ก'.repeat(160), audience: ['public'], consent: true };
 const publish = (r, extra = {}) => pr.call('POST', `/api/pr/submissions/${r}/publish`, { title: NEWS.title, body: 'ข'.repeat(80), categories: NEWS.categories, audience: ['public'], ...extra });
 
@@ -91,7 +91,7 @@ describe('ข่าวที่เกี่ยวข้อง', () => {
 describe('banner คำโปรย', () => {
   test('kept on banners and in drafts', async () => {
     const art = [['art.jpg', await img('#fa0', 800, 600), 'image/jpeg']];
-    const s = await staff.call('POST', '/api/submissions', form({ type: 'banner', title: 'แบนเนอร์มีคำโปรย', lead: 'คำโปรยแบนเนอร์', desc: 'ข้อความ', unit: 'กองกลาง', audience: ['public'], consent: true }, { art }));
+    const s = await staff.call('POST', '/api/submissions', form({ type: 'banner', designer: 'ทีมกราฟิกทดสอบ', title: 'แบนเนอร์มีคำโปรย', lead: 'คำโปรยแบนเนอร์', desc: 'ข้อความ', unit: 'กองกลาง', audience: ['public'], consent: true }, { art }));
     assert.equal(s.status, 201, JSON.stringify(s.body));
     assert.equal((await pr.call('GET', `/api/submissions/${s.body.submission.ref}`)).body.submission.fields.lead, 'คำโปรยแบนเนอร์');
     const d = await staff.call('POST', '/api/drafts', form({ type: 'banner', title: 'ร่าง', lead: 'โปรยในร่าง' }));

@@ -76,3 +76,24 @@
 @keyframes bell-ring { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(16deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-4deg); } }
 .alert-switch:hover { border-color: rgb(var(--purple) / .45); }
 @media (prefers-reduced-motion: reduce) { .arrivals-card, .arrivals-bell svg { animation: none; } }
+
+/* Card colour by kind of content (every news card): ข่าวพร้อมภาพ royal, วิดีโอ red, อินโฟกราฟิก gold.
+   .kcard on the card, .kbody on its text part: a band of the colour under the picture and a tint behind the text. */
+.kcard { --k: var(--royal); --ks: var(--royal-soft); border-color: rgb(var(--k) / .32); }
+.kcard-video { --k: var(--red); --ks: var(--red-soft); }
+.kcard-banner { --k: var(--gold); --ks: var(--gold-soft); }
+.kbody { background: linear-gradient(180deg, rgb(var(--ks)) 0%, rgb(var(--ks) / .35) 100%); box-shadow: inset 0 3px 0 rgb(var(--k)); }
+.kchip { background: rgb(var(--k)); color: rgb(var(--shell)); }
+
+/* ผู้ออกแบบ / ที่มา (submit.html, pr-import.html): a two-way switch, the chosen side raised */
+.seg-switch { display: inline-flex; padding: 3px; border-radius: 9999px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
+.seg-switch label { position: relative; cursor: pointer; }
+.seg-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.seg-switch span { display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 9999px; font: 500 14px/1 Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), color .2s ease-out; }
+.seg-switch label:hover span { color: rgb(var(--ink)); }
+.seg-switch label:active span { transform: scale(.95); }
+.seg-switch input:focus-visible + span { outline: 3px solid rgb(var(--focus)); outline-offset: 2px; }
+.seg-switch input:checked + span { background: rgb(var(--shell)); color: rgb(var(--purple)); font-weight: 600; box-shadow: var(--shadow-raised); }
+@media (prefers-reduced-motion: reduce) { .seg-switch span { transition: none; } }
+/* The list view (search.html): the colour runs down the left side */
+.kside { box-shadow: inset 4px 0 0 rgb(var(--k)), var(--shadow-raised); background: linear-gradient(90deg, rgb(var(--ks)) 0%, rgb(var(--surface)) 55%); }

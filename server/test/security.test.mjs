@@ -13,7 +13,7 @@ import { restore, snapshot } from './cleanup.mjs';
 import { BASE, ID_OTHER, ID_STAFF, anon, form, img, login, request } from './helpers.mjs';
 
 const NEWS = {
-  type: 'news', title: 'ทดสอบความปลอดภัย', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+  type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ทดสอบความปลอดภัย', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
   contentMode: 'own', body: 'ก'.repeat(160), audience: ['public'], consent: true,
 };
 const photoForm = (name, buf, type) => { const fd = new FormData(); fd.append('photo', new Blob([buf], { type }), name); return fd; };

@@ -12,16 +12,16 @@ before(async () => {
   [pr, staff] = await Promise.all([login('pr'), login('staff')]);
   const pic = await img('#468', 400, 300);
   const make = async (d) => {
-    const r = await pr.call('POST', '/api/pr/import', form({ unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'], confirmDuplicate: true, ...d },
+    const r = await pr.call('POST', '/api/pr/import', form({ unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'], body: 'ข้อความประกอบทดสอบ', credit: 'ทีมกราฟิกทดสอบ', ...d },
       d.kind === 'video' ? {} : { photo: [['a.jpg', pic, 'image/jpeg']] }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
     return r.body.news.id;
   };
   ids = [
-    await make({ kind: 'news', title: 'ชุดทดสอบ ข่าวพิธีเปิด', body: 'ก'.repeat(40), date: day(3) }),
+    await make({ kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ชุดทดสอบ ข่าวพิธีเปิด', body: 'ก'.repeat(40), date: day(3) }),
     await make({ kind: 'video', title: 'ชุดทดสอบ วิดีโอบรรยากาศ', date: day(3), videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }),
     await make({ kind: 'banner', title: 'ชุดทดสอบ อินโฟกราฟิกสรุปงาน', date: day(2) }),
-    await make({ kind: 'news', title: 'ชุดทดสอบ ข่าวภายใน', body: 'ก'.repeat(40), date: day(2), audience: ['staff'] }),
+    await make({ kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ชุดทดสอบ ข่าวภายใน', body: 'ก'.repeat(40), date: day(2), audience: ['staff'] }),
   ];
 });
 after(async () => { await restore(snap); });
@@ -110,7 +110,7 @@ describe('แจ้งเตือนงานใหม่ (/api/pr/arrivals)', 
     const first = (await pr.call('GET', '/api/pr/arrivals')).body;
     assert.deepEqual(first.items, [], 'no time given: nothing, only the time to ask from');
     await staff.call('PUT', '/api/me/profile', { firstName: 'สมชาย', lastName: 'ใจดี', phone: '1234', unit: 'สำนักงานอธิการบดี', subUnit: 'กองกลาง', position: 'นักประชาสัมพันธ์', consent: true });
-    const v = await staff.call('POST', '/api/submissions', form({ type: 'video', title: 'วิดีโอแจ้งเตือนทดสอบ', eventDate: '2026-10-12', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+    const v = await staff.call('POST', '/api/submissions', form({ type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอแจ้งเตือนทดสอบ', eventDate: '2026-10-12', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
       videoLink: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', videoPlatform: 'youtube', audience: ['public'], consent: true }));
     assert.equal(v.status, 201, JSON.stringify(v.body));
     const next = (await pr.call('GET', `/api/pr/arrivals?since=${encodeURIComponent(first.now)}`)).body;

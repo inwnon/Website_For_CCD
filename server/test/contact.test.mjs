@@ -71,20 +71,20 @@ describe('contact page', () => {
 
 describe('video producer', () => {
   test('ผู้ผลิต is kept on videos and shown to PR; at most 120 characters', async () => {
-    const v = { type: 'video', title: 'วิดีโอทดสอบ', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+    const v = { type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอทดสอบ', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
       videoPlatform: 'youtube', videoLink: 'https://youtu.be/dQw4w9WgXcQ', audience: ['public'], consent: true };
     const s = await staff.call('POST', '/api/submissions', form({ ...v, producer: 'ทีมวิดีโอ กองกลาง' }));
     assert.equal(s.status, 201, JSON.stringify(s.body));
     assert.equal((await pr.call('GET', `/api/submissions/${s.body.submission.ref}`)).body.submission.fields.producer, 'ทีมวิดีโอ กองกลาง');
     assert.equal((await staff.call('POST', '/api/submissions', form({ ...v, producer: 'ก'.repeat(121) }))).status, 400);
-    const b = await staff.call('POST', '/api/submissions', form({ type: 'banner', title: 'แบนเนอร์', desc: 'x', unit: 'กองกลาง', producer: 'ไม่ใช่วิดีโอ', audience: ['public'], consent: true },
+    const b = await staff.call('POST', '/api/submissions', form({ type: 'banner', designer: 'ทีมกราฟิกทดสอบ', title: 'แบนเนอร์', desc: 'x', unit: 'กองกลาง', producer: 'ไม่ใช่วิดีโอ', audience: ['public'], consent: true },
       { art: [['a.png', Buffer.from('89504e470d0a1a0a', 'hex'), 'image/png']] }));
     if (b.status === 201) assert.equal((await pr.call('GET', `/api/submissions/${b.body.submission.ref}`)).body.submission.fields.producer, null);
     const d = await staff.call('POST', '/api/drafts', form({ type: 'video', title: 'ร่างวิดีโอ', producer: 'สมศักดิ์' }));
     assert.equal((await staff.call('GET', `/api/drafts/${d.body.draft.id}`)).body.draft.data.producer, 'สมศักดิ์');
   });
   test('ภาพหน้าปก: one picture, videos only; it becomes the story cover', async () => {
-    const v = { type: 'video', title: 'วิดีโอมีปก', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+    const v = { type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอมีปก', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
       videoPlatform: 'facebook', videoLink: 'https://www.facebook.com/sru/videos/123', audience: ['public'], consent: true };
     const pic = async (c) => ['cover.jpg', await img(c, 1280, 720), 'image/jpeg'];
     const s = await staff.call('POST', '/api/submissions', form(v, { cover: [await pic('#a3c')] }));
@@ -93,7 +93,7 @@ describe('video producer', () => {
     const f = sub.files.find((x) => x.kind === 'cover');
     assert.ok(f?.thumb && f.cover, 'cover file with a web copy');
     assert.equal((await staff.call('POST', '/api/submissions', form(v, { cover: [await pic('#111'), await pic('#222')] }))).status, 400, 'one picture only');
-    const news = await staff.call('POST', '/api/submissions', form({ type: 'news', title: 'ข่าว', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+    const news = await staff.call('POST', '/api/submissions', form({ type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ข่าว', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
       contentMode: 'own', body: 'ก'.repeat(160), audience: ['public'], consent: true }, { photo: [await pic('#333')], cover: [await pic('#444')] }));
     assert.equal(news.status, 400, 'not for news');
     const pub = await pr.call('POST', `/api/pr/submissions/${s.body.submission.ref}/publish`, { title: 'วิดีโอมีปก', videoUrl: v.videoLink, categories: ['ข่าวการศึกษา'], audience: ['public'] });
@@ -106,7 +106,7 @@ describe('video producer', () => {
     assert.equal((await staff.call('GET', `/api/drafts/${d.body.draft.id}`)).body.draft.files.filter((x) => x.kind === 'cover').length, 1);
   });
   test('a YouTube video without a cover: its picture from this site on the story and in the digest', async () => {
-    const v = { type: 'video', title: 'วิดีโอ YouTube ไม่มีปก', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+    const v = { type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอ YouTube ไม่มีปก', eventDate: '2026-10-01', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
       videoPlatform: 'youtube', videoLink: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', audience: ['public'], consent: true };
     const s = await staff.call('POST', '/api/submissions', form(v));
     const pub = await pr.call('POST', `/api/pr/submissions/${s.body.submission.ref}/publish`, { title: v.title, videoUrl: v.videoLink, categories: v.categories, audience: ['public'] });
@@ -123,11 +123,11 @@ describe('video producer', () => {
     assert.equal((await staff.call('GET', '/api/video-thumb/not*an*id')).status, 404);
   });
   test('ประเภทข่าว วิดีโอเสียงตามสาย: videos only; the pages get it', async () => {
-    const v = { type: 'video', title: 'วิดีโอเสียงตามสาย', eventDate: '2026-10-01', unit: 'กองกลาง', videoPlatform: 'youtube', videoLink: 'https://youtu.be/dQw4w9WgXcQ', audience: ['public'], consent: true };
+    const v = { type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอเสียงตามสาย', eventDate: '2026-10-01', unit: 'กองกลาง', videoPlatform: 'youtube', videoLink: 'https://youtu.be/dQw4w9WgXcQ', audience: ['public'], consent: true };
     const ok = await staff.call('POST', '/api/submissions', form({ ...v, categories: ['วิดีโอเสียงตามสาย'] }));
     assert.equal(ok.status, 201, JSON.stringify(ok.body));
     assert.deepEqual((await pr.call('GET', `/api/submissions/${ok.body.submission.ref}`)).body.submission.fields.categories, ['วิดีโอเสียงตามสาย']);
-    const news = await staff.call('POST', '/api/submissions', form({ type: 'news', title: 'ข่าว', eventDate: '2026-10-01', unit: 'กองกลาง', contentMode: 'own', body: 'ก'.repeat(160),
+    const news = await staff.call('POST', '/api/submissions', form({ type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ข่าว', eventDate: '2026-10-01', unit: 'กองกลาง', contentMode: 'own', body: 'ก'.repeat(160),
       categories: ['วิดีโอเสียงตามสาย'], audience: ['public'], consent: true }, { photo: [['a.jpg', await img('#468', 800, 600), 'image/jpeg']] }));
     assert.equal(news.status, 400);
     assert.match(news.body.details.categories, /ใช้กับวิดีโอเท่านั้น/);

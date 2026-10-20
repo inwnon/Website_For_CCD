@@ -163,7 +163,7 @@ describe('digests: the studio', () => {
 
 describe('email notifications', () => {
   const NEWS = {
-    type: 'news', title: 'ทดสอบอีเมลแจ้งเตือน', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+    type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ทดสอบอีเมลแจ้งเตือน', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
     contentMode: 'own', body: 'ก'.repeat(160), audience: ['public'], consent: true,
   };
   let ref;
@@ -183,7 +183,7 @@ describe('email notifications', () => {
     assert.equal(m.to_email, 'user@sru.ac.th');
     assert.match(m.body, /ขอภาพเพิ่ม 2 ภาพ/);
     assert.match(m.body, new RegExp(`submit\\.html\\?edit=${ref}`));
-    assert.match(m.subject, /^\[ข่าว มรส\.\]/);
+    assert.match(m.subject, /^\[คลังข่าว มรส\.\]/);
   });
   test('a PR message → the sender; a sender message → the PR team', async () => {
     await pr.call('POST', `/api/pr/submissions/${ref}/messages`, { text: 'ส่งได้ภายในวันศุกร์' });

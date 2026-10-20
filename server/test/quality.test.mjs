@@ -13,7 +13,7 @@ import { BASE, ID_STAFF, anon, form, img, login, request } from './helpers.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
 const NEWS = {
-  type: 'news', title: 'ทดสอบคุณภาพ', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
+  type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ทดสอบคุณภาพ', lead: 'สรุป', eventDate: '2026-10-10', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
   contentMode: 'own', body: 'ก'.repeat(160), audience: ['public'], consent: true,
 };
 let staff, pr, snap, publicId, internalId;
