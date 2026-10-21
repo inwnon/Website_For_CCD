@@ -1,13 +1,12 @@
 // Sample data for development — npm run db:seed   (npm run db:seed -- --remove deletes it)
 // Stories (slug "seed-…", generated images), imported stories, 60 days of reads, and a few submissions in the queue
-// (refs "…-S…"), and digests for the last two weeks (the older one published). Running again replaces them.
+// (refs "…-S…"). Running again replaces them.
 import { randomUUID } from 'node:crypto';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { pool, query, registerEnumArrays } from './db.mjs';
 import { abs } from './files.mjs';
-import { autoGroups, ensureUpcoming, pool as digestPool } from './digests.mjs';
 
 if (process.env.NODE_ENV === 'production') {
   console.error('db:seed ใช้กับฐานข้อมูลพัฒนาเท่านั้น');
@@ -68,29 +67,7 @@ async function remove() {
   await query("delete from submissions where ref like '%-S%'");
   const { rows } = await query("delete from news where slug like 'seed-%' returning id");
   await Promise.all(rows.map((r) => rm(abs(join('media', r.id)), { recursive: true, force: true })));
-  // Digests are made from the stories, so they go too (dev database only)
-  await query('delete from digests');
-  await rm(abs('digests'), { recursive: true, force: true });
   return rows.length;
-}
-
-// Weekly digests of the last two finished weeks, in order (numbering counts earlier issues); the older one published
-async function seedDigests() {
-  const today = new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date()) + 'T00:00:00Z');
-  const lastMonday = new Date(today); lastMonday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
-  const mondays = [new Date(lastMonday.getTime() - 7 * 864e5), lastMonday].map((m) => m.toISOString().slice(0, 10));
-  for (const m of mondays) {
-    await query('select create_digest_drafts($1)', [m]);
-    await query(`update digests set drafted_at = ($1::date + time '06:00') at time zone 'Asia/Bangkok' where kind = 'weekly' and range_end = $1::date - 1`, [m]);
-  }
-  await query("delete from digests where kind = 'monthly'"); // no sample stories that far back
-  const first = (await query("select * from digests where kind = 'weekly' order by range_start limit 1")).rows[0];
-  if (first) {
-    const groups = autoGroups('weekly', await digestPool(first));
-    await query("update digests set status = 'published', published_at = drafted_at + interval '3 hours', groups = $2, edited = true where id = $1", [first.id, JSON.stringify(groups)]);
-  }
-  await ensureUpcoming();
-  return (await query('select count(*)::int n from digests')).rows[0].n;
 }
 
 // Reads per day since each story went live: busiest on day one, then tailing off (same numbers every run)
@@ -184,7 +161,6 @@ if (process.argv.includes('--remove')) {
   }
   await seedReads(ids);
   const queued = await seedQueue(ids);
-  const digests = await seedDigests();
-  console.log(`เพิ่มข่าวตัวอย่าง ${STORIES.length} ข่าว (นำเข้าย้อนหลัง ${STORIES.filter((x) => x.imported).length}) งานในคิว ${queued} งาน และเล่มสรุปข่าว ${digests} เล่ม${removed ? ` (แทนชุดเดิม)` : ''}`);
+  console.log(`เพิ่มข่าวตัวอย่าง ${STORIES.length} ข่าว (นำเข้าย้อนหลัง ${STORIES.filter((x) => x.imported).length}) งานในคิว ${queued} งาน${removed ? ` (แทนชุดเดิม)` : ''}`);
 }
 await pool.end();

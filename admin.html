@@ -25,10 +25,9 @@
     .sec-link::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: rgb(var(--surface-2)); opacity: 0; transition: opacity .2s var(--ease-out); }
     .sec-link:hover::before { opacity: 1; }
     .code-area { font-family: "Noto Sans Thai", ui-monospace, monospace; font-size: 14px; line-height: 1.75; tab-size: 2; }
-    .swatch { background: radial-gradient(90% 60% at 100% 0%, var(--glow), transparent 65%), radial-gradient(80% 50% at 0% 100%, rgb(122 60 226 / .6), transparent 70%), var(--bg-c); }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=cc0f23faf0">
+  <link rel="stylesheet" href="/assets/app.css?v=4d73a4ab1e">
 </head>
 <body class="app">
   <a href="#panel" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่การตั้งค่า</a>
@@ -54,10 +53,9 @@
     const $ = (s) => document.querySelector(s);
     const SECTIONS = [
       ['users', 'ผู้ใช้และบทบาท'], ['org', 'ผังหน่วยงาน'], ['categories', 'ประเภทข่าว'], ['media', 'ภาพและวิดีโอ'],
-      ['review', 'เวลาตรวจข่าว'], ['digest', 'แม่แบบเล่มสรุปข่าว'], ['messages', 'ข้อความแจ้งเตือน'], ['mail', 'อีเมลแจ้งเตือน'], ['requests', 'คำขอข้อมูลส่วนบุคคล'], ['retention', 'ระยะเวลาเก็บข้อมูล'], ['backups', 'สำรองข้อมูล'], ['audit', 'ประวัติการใช้งาน'],
+      ['review', 'เวลาตรวจข่าว'], ['messages', 'ข้อความแจ้งเตือน'], ['mail', 'อีเมลแจ้งเตือน'], ['requests', 'คำขอข้อมูลส่วนบุคคล'], ['retention', 'ระยะเวลาเก็บข้อมูล'], ['backups', 'สำรองข้อมูล'], ['audit', 'ประวัติการใช้งาน'],
     ];
     const PLATFORM = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
-    const SOFT = { 'bg-red-soft': 'ชมพู', 'bg-purple-soft': 'ม่วง', 'bg-sky-soft': 'ฟ้า', 'bg-royal-soft': 'น้ำเงิน', 'bg-gold-soft': 'ทอง' };
     const MSG = { published: 'เมื่อเผยแพร่แล้ว', revise: 'เมื่อขอให้แก้ไข', writing: 'เมื่อ PR รับไปเขียนข่าว' };
     let S = null; // { settings, defaults, fileOrg, ... }
     let me = null;
@@ -272,39 +270,6 @@
       $('#reviewSave').addEventListener('click', (e) => save('review', { days: Number($('#days').value) }, e.currentTarget));
     }
 
-    // ================= Digest template =================
-    function digest() {
-      const d = structuredClone(S.settings.digest);
-      $('#panel').innerHTML = head('แม่แบบเล่มสรุปข่าว', 'หัวเล่มและชุดสีปกของเล่มรายสัปดาห์และรายเดือน ระบบหมุนชุดสีไปทีละฉบับตอนสร้างร่างอัตโนมัติ') + `
-        <div class="grid gap-6 p-5 sm:px-6">
-          <div class="grid max-w-[720px] gap-3 sm:grid-cols-2">
-            <label class="grid gap-1"><span class="font-display text-[15px] font-semibold">หัวเล่มรายสัปดาห์</span><input id="mWeekly" maxlength="30" value="${esc(d.mastheads.weekly)}" class="field h-11 rounded-xl px-3 text-[15px]"></label>
-            <label class="grid gap-1"><span class="font-display text-[15px] font-semibold">หัวเล่มรายเดือน</span><input id="mMonthly" maxlength="30" value="${esc(d.mastheads.monthly)}" class="field h-11 rounded-xl px-3 text-[15px]"></label>
-          </div>
-          <div><h2 class="font-display text-[16px] font-semibold">ชุดสีปก</h2>
-            <div id="themes" class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"></div>
-            <button type="button" id="addTheme" class="press t-quick mt-3 h-10 rounded-full border border-dashed border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">เพิ่มชุดสี</button></div>
-        </div>` + saveBar('digestSave');
-      const hex = (v) => (/^#[0-9a-f]{6}/i.test(v) ? v.slice(0, 7) : '#7A3CE2');
-      const paint = () => {
-        $('#themes').innerHTML = d.themes.map((t, i) => `<div class="flex gap-3 rounded-2xl border border-line p-3" data-t="${i}">
-          <div class="swatch relative grid aspect-[1240/1754] w-[86px] shrink-0 overflow-hidden rounded-lg p-2 text-white shadow-raised" style="--bg-c:${esc(t.bg)}; --glow:${esc(t.glow)}">
-            <p class="font-display text-[7px] font-semibold tracking-[.12em]">${esc(d.mastheads.weekly)}</p><p class="mt-1 font-display text-[13px] font-bold leading-tight">1–7 ต.ค.</p></div>
-          <div class="grid min-w-0 flex-1 content-start gap-1.5 text-[13px]">
-            <label class="flex items-center justify-between gap-2 whitespace-nowrap">พื้นปก <input type="color" data-k="bg" value="${hex(t.bg)}" class="h-8 w-12 cursor-pointer rounded border border-line bg-transparent"></label>
-            <label class="flex items-center justify-between gap-2 whitespace-nowrap">แสงมุม <input data-k="glow" value="${esc(t.glow)}" class="field h-8 w-full min-w-0 max-w-[140px] rounded-lg px-2 text-[12px]"></label>
-            <label class="flex items-center justify-between gap-2 whitespace-nowrap">พื้นการ์ด <select data-k="soft" class="field sel h-8 rounded-lg pl-2 pr-8 text-[12px]">${S.softBg.map((s) => `<option value="${s}" ${s === t.soft ? 'selected' : ''}>${SOFT[s]}</option>`).join('')}</select></label>
-            <button type="button" data-del class="mt-1 justify-self-end rounded text-[12px] font-medium text-brand hover:underline" ${d.themes.length > 1 ? '' : 'hidden'}>ลบชุดนี้</button>
-          </div></div>`).join('');
-      };
-      paint();
-      $('#themes').addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k) return; d.themes[e.target.closest('[data-t]').dataset.t][k] = e.target.value; if (k !== 'soft') paint(); });
-      $('#themes').addEventListener('click', (e) => { if (e.target.closest('[data-del]')) { d.themes.splice(e.target.closest('[data-t]').dataset.t, 1); paint(); } });
-      $('#addTheme').addEventListener('click', () => { d.themes.push({ bg: '#2642C8', glow: 'rgb(255 206 96 / .5)', soft: 'bg-royal-soft' }); paint(); });
-      ['mWeekly', 'mMonthly'].forEach((id) => $('#' + id).addEventListener('input', () => { d.mastheads = { weekly: $('#mWeekly').value, monthly: $('#mMonthly').value }; paint(); }));
-      $('#digestSave').addEventListener('click', (e) => save('digest', d, e.currentTarget));
-    }
-
     // ================= Message templates =================
     function messages() {
       const m = S.settings.messages;
@@ -318,14 +283,14 @@
     // ================= Email notifications =================
     const MAIL_KIND = {
       'submission.status': 'สถานะงานถึงผู้ส่ง', 'submission.message': 'ข้อความ PR ถึงผู้ส่ง', 'pr.new': 'งานใหม่ถึงทีม PR', 'pr.resent': 'งานที่แก้ไขแล้ว',
-      'pr.message': 'ข้อความผู้ส่งถึงทีม PR', 'pr.daily': 'สรุปงานเช้า', 'digest.reminder': 'เตือนเล่มรออนุมัติ', 'privacy.request': 'คำขอลบข้อมูล', 'privacy.done': 'ผลคำขอลบข้อมูล', test: 'อีเมลทดสอบ',
+      'pr.message': 'ข้อความผู้ส่งถึงทีม PR', 'pr.daily': 'สรุปงานเช้า', 'digest.reminder': 'เตือนเล่มรออนุมัติ (ยกเลิกแล้ว)', 'privacy.request': 'คำขอลบข้อมูล', 'privacy.done': 'ผลคำขอลบข้อมูล', test: 'อีเมลทดสอบ',
     };
     const MAIL_TONE = { sent: ['ส่งแล้ว', 'bg-sky-soft text-sky'], queued: ['รอส่ง', 'bg-gold-soft text-gold'], failed: ['ส่งไม่สำเร็จ', 'bg-red-soft text-brand'], skipped: ['ไม่ได้ส่ง (ยังไม่ตั้ง SMTP)', 'bg-surface2 text-ink2'] };
     async function mail() {
       const r = await api('/admin/mail').catch((err) => { toast(err.message, true); return null; });
       if (!r) return;
       const c = r.counts || {};
-      $('#panel').innerHTML = head('อีเมลแจ้งเตือน', 'อีเมลที่ระบบส่งถึงผู้ส่งงานและทีม PR: สถานะงาน ข้อความ งานใหม่ สรุปงานทุกเช้า 08:00 น. และเตือนเล่มสรุปข่าวที่รออนุมัติ ผู้ใช้แต่ละคนปิดบางประเภทได้ที่หน้าข่าวของฉัน') + `
+      $('#panel').innerHTML = head('อีเมลแจ้งเตือน', 'อีเมลที่ระบบส่งถึงผู้ส่งงานและทีม PR: สถานะงาน ข้อความ งานใหม่ สรุปงานทุกเช้า 08:00 น. ผู้ใช้แต่ละคนปิดบางประเภทได้ที่หน้าข่าวของฉัน') + `
         <div class="grid gap-4 p-5 sm:px-6">
           <div class="flex flex-wrap items-center gap-3 rounded-card border p-4 ${r.smtp ? 'border-[rgb(var(--sky)/.3)] bg-sky-soft' : 'border-[rgb(var(--gold)/.35)] bg-gold-soft'}">
             <div class="min-w-0 flex-1">
@@ -507,7 +472,7 @@
     }
 
     // ================= Routing (#section) =================
-    const RENDER = { users, org, categories, media, review, digest, messages, mail, requests, retention, backups, audit };
+    const RENDER = { users, org, categories, media, review, messages, mail, requests, retention, backups, audit };
     function show() {
       const id = SECTIONS.some(([k]) => k === location.hash.slice(1)) ? location.hash.slice(1) : 'users';
       document.querySelectorAll('#secNav a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.sec === id)));

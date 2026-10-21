@@ -1,7 +1,7 @@
 // Email notifications (phase 9)
 // - enqueue(db, mail) inside the transaction of the change it reports → email_outbox row
 // - worker: sends queued rows every 30 s over SMTP (.env SMTP_*); without SMTP rows become 'skipped'
-// - daily(): the 08:00 Bangkok summary for the PR team + reminders for digests waiting for approval
+// - daily(): the 08:00 Bangkok summary for the PR team
 // - GET/PUT /api/me/notify   what the signed-in user wants by email
 // - GET /api/admin/mail · POST /api/admin/mail/test   outbox and a test email (admin.html)
 import { Router } from 'express';
@@ -105,34 +105,21 @@ export async function toPrTeam(db, kind, s, user, quote) {
 }
 
 // ---- Daily summary (08:00 Bangkok) ----
-const DIGEST_KIND = { weekly: 'รายสัปดาห์', monthly: 'รายเดือน' };
 export async function daily() {
   const days = get('review').days;
   const queue = (await query(`select s.ref, s.title, s.unit, s.status, s.sent_at,
       (select count(*)::int - 1 from generate_series(s.sent_at::date, now()::date, '1 day') d where extract(isodow from d) < 6) work_days
     from submissions s where s.status in ('review', 'writing') order by s.sent_at`)).rows;
   const late = queue.filter((r) => r.work_days > days);
-  const digests = (await query(`select id, kind, range_label, drafted_at from digests where status = 'review' and drafted_at <= now() order by drafted_at`)).rows;
   const team = await prTeam(null, 'prDaily');
-  if (queue.length || digests.length) {
+  if (queue.length) {
     const lines = [
       `งานรอตรวจ ${queue.filter((r) => r.status === 'review').length} งาน · PR กำลังเขียน ${queue.filter((r) => r.status === 'writing').length} งาน`,
       late.length ? `เกินเวลาตรวจ ${days} วันทำการ ${late.length} งาน: ${late.slice(0, 5).map((r) => r.ref).join(', ')}${late.length > 5 ? ' …' : ''}` : `ไม่มีงานที่เกินเวลาตรวจ ${days} วันทำการ`,
       ...(queue[0] ? [`งานที่รอนานที่สุด ${queue[0].ref} (${queue[0].work_days} วันทำการ)`] : []),
-      ...digests.map((d) => `เล่มสรุปข่าว${DIGEST_KIND[d.kind]} ฉบับ ${d.range_label} รออนุมัติ`),
     ];
     for (const to of team) {
       await enqueue(null, { kind: 'pr.daily', to, subject: late.length ? `งานเกินเวลาตรวจ ${late.length} งาน` : 'สรุปงานเช้านี้', title: 'สรุปงานของทีม PR เช้านี้', lines, button: { label: 'เปิดหน้างานที่ส่งเข้ามา', href: link('pr.html') } });
-    }
-  }
-  // One reminder per waiting digest, so the studio can say how many were sent
-  for (const d of digests) {
-    for (const to of team) {
-      await enqueue(null, {
-        kind: 'digest.reminder', ref: d.id, to, subject: `เล่มสรุปข่าว${DIGEST_KIND[d.kind]} ฉบับ ${d.range_label} รออนุมัติ`, title: 'เล่มสรุปข่าวรอทีม PR อนุมัติ',
-        lines: [`ฉบับ ${d.range_label} จัดเล่มเสร็จแล้ว และยังไม่ขึ้นชั้นหนังสือจนกว่าจะอนุมัติ`, 'อีเมลนี้ส่งทุกเช้า 08:00 น. จนกว่าเล่มจะได้รับอนุมัติ'],
-        button: { label: 'เปิดหน้าจัดทำเล่ม', href: link(`digest-studio.html?draft=${d.id}`) },
-      });
     }
   }
 }

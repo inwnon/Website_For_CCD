@@ -20,19 +20,19 @@ after(async () => {
 describe('ทางลัดของฉัน', () => {
   test('the PR team has a default set; others have none', async () => {
     await query("update users set shortcuts = null where email = 'pr@sru.ac.th'");
-    assert.deepEqual((await pr.call('GET', '/api/me')).body.shortcuts, ['review', 'add', 'news', 'digest']);
+    assert.deepEqual((await pr.call('GET', '/api/me')).body.shortcuts, ['review', 'add', 'news', 'collections']);
     assert.equal((await staff.call('GET', '/api/me')).body.shortcuts, undefined);
     assert.equal((await staff.call('PUT', '/api/me/shortcuts', { ids: ['news'] })).status, 403);
     assert.equal((await anon.call('PUT', '/api/me/shortcuts', { ids: ['news'] })).status, 401);
   });
 
   test('each person keeps their own, in their order; unknown ones and ตั้งค่าระบบ (admin only) are left out', async () => {
-    const r = await pr.call('PUT', '/api/me/shortcuts', { ids: ['digest', 'review', 'nope', 'admin', 'review'] });
+    const r = await pr.call('PUT', '/api/me/shortcuts', { ids: ['collections', 'review', 'nope', 'admin', 'review'] });
     assert.equal(r.status, 200, JSON.stringify(r.body));
-    assert.deepEqual(r.body.shortcuts, ['digest', 'review']);
-    assert.deepEqual((await pr.call('GET', '/api/me')).body.shortcuts, ['digest', 'review']);
+    assert.deepEqual(r.body.shortcuts, ['collections', 'review']);
+    assert.deepEqual((await pr.call('GET', '/api/me')).body.shortcuts, ['collections', 'review']);
     assert.deepEqual((await admin.call('PUT', '/api/me/shortcuts', { ids: ['admin', 'report'] })).body.shortcuts, ['admin', 'report']);
-    assert.deepEqual((await pr.call('GET', '/api/me')).body.shortcuts, ['digest', 'review'], 'not changed by another person');
+    assert.deepEqual((await pr.call('GET', '/api/me')).body.shortcuts, ['collections', 'review'], 'not changed by another person');
     assert.deepEqual((await pr.call('PUT', '/api/me/shortcuts', { ids: [] })).body.shortcuts, []);
     assert.equal((await pr.call('PUT', '/api/me/shortcuts', { ids: 'news' })).status, 400);
   });

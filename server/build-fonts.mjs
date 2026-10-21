@@ -23,7 +23,9 @@ for (const block of css.split('@font-face').slice(1)) {
   writeFileSync(join(OUT, `Kanit-${w}.woff2`), out);
   console.log(`Kanit-${w}.woff2 ${Math.round(out.length / 1024)} KB`);
 }
-const noto = await get('https://raw.githubusercontent.com/google/fonts/main/ofl/notosansthai/NotoSansThai%5Bwdth,wght%5D.ttf');
-const out = await subsetFont(noto, TEXT, { targetFormat: 'woff2', variationAxes: { wdth: 100, wght: { min: 400, max: 700 } } });
-writeFileSync(join(OUT, 'NotoSansThai.woff2'), out);
-console.log(`NotoSansThai.woff2 ${Math.round(out.length / 1024)} KB`);
+for (const [name, file] of [['NotoSansThai', 'notosansthai/NotoSansThai']]) {
+  const ttf = await get(`https://raw.githubusercontent.com/google/fonts/main/ofl/${file}%5Bwdth,wght%5D.ttf`);
+  const out = await subsetFont(ttf, TEXT, { targetFormat: 'woff2', variationAxes: { wdth: 100, wght: { min: 400, max: 700 } } });
+  writeFileSync(join(OUT, `${name}.woff2`), out);
+  console.log(`${name}.woff2 ${Math.round(out.length / 1024)} KB`);
+}

@@ -12,7 +12,7 @@ import { ACTIONS, audit } from './audit.mjs';
 import { query, tx } from './db.mjs';
 import { HttpError, str } from './http.mjs';
 import { FACULTIES, FILE_ORG, STAFF_UNITS } from './org.mjs';
-import { ALL_PLATFORMS, DEFAULTS, KEYS, LABELS, SOFT_BG, all, remember, save } from './settings.mjs';
+import { ALL_PLATFORMS, DEFAULTS, KEYS, LABELS, all, remember, save } from './settings.mjs';
 
 export const router = Router();
 router.use('/admin', requireAdmin);
@@ -22,7 +22,7 @@ const ROLE_TH = { default: 'ตามโดเมนอีเมล', intern: '�
 // ---- Settings ----
 router.get('/admin/settings', (req, res) => {
   // fileOrg: the chart in org-data.js, the starting point when settings.org is null
-  res.json({ settings: all(), defaults: DEFAULTS, fileOrg: FILE_ORG, labels: LABELS, platforms: ALL_PLATFORMS, softBg: SOFT_BG });
+  res.json({ settings: all(), defaults: DEFAULTS, fileOrg: FILE_ORG, labels: LABELS, platforms: ALL_PLATFORMS });
 });
 
 router.put('/admin/settings/:key', async (req, res) => {

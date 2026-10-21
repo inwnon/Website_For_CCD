@@ -180,15 +180,9 @@
       *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
       .js .reveal { opacity: 1; transform: none; }
     }
-    /* Digest covers (DigestBook.coverMini, same look as digest.html, laid flat) */
-    .book-cover { position: relative; display: block; aspect-ratio: 1240 / 1754; overflow: hidden; container-type: inline-size; }
-    .grain-abs {
-      position: absolute; inset: 0; pointer-events: none; opacity: .12; mix-blend-mode: overlay;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=cc0f23faf0">
+  <link rel="stylesheet" href="/assets/app.css?v=4d73a4ab1e">
 </head>
 
 <body class="min-h-screen">
@@ -254,9 +248,6 @@
       <a href="collection.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/></svg>อัลบั้มข่าว
       </a>
-      <a href="digest.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>เล่มสรุปข่าว
-      </a>
       <a href="contact.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>ติดต่อเรา
       </a>
@@ -318,30 +309,24 @@
       </div>
 
       <!-- Category tiles -->
-      <div class="reveal mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <a href="#latest" class="lift press t-spring group relative flex min-h-[104px] items-center gap-4 overflow-hidden rounded-card bg-red-soft p-5 hover:-translate-y-1">
+      <div class="reveal mt-6 grid grid-cols-3 gap-3 sm:gap-4">
+        <a href="#latest" class="lift press t-spring group relative flex min-h-[104px] items-center justify-center gap-4 overflow-hidden rounded-card bg-red-soft px-2 py-5 sm:justify-start sm:p-5 hover:-translate-y-1">
           <span class="t-spring hidden h-14 w-12 shrink-0 sm:grid place-items-center rounded-2xl bg-shell/75 text-brand shadow-[0_4px_0_rgb(255_255_255/.4),0_6px_14px_rgb(222_20_42/.08)] group-hover:-rotate-6 group-hover:scale-110">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
           </span>
-          <span class="min-w-0"><span class="block font-display text-[clamp(18px,2vw,24px)] font-bold text-brand">ข่าวล่าสุด</span><span class="hidden text-[13px] text-ink2 sm:block">อัปเดตทุกวัน</span></span>
+          <span class="min-w-0"><span class="block whitespace-nowrap font-display text-[clamp(17px,2vw,24px)] font-bold text-brand">ข่าวล่าสุด</span><span class="hidden text-[13px] text-ink2 sm:block">อัปเดตทุกวัน</span></span>
         </a>
-        <a href="#featured" class="lift press t-spring group relative flex min-h-[104px] items-center gap-4 overflow-hidden rounded-card bg-purple-soft p-5 hover:-translate-y-1">
+        <a href="#featured" class="lift press t-spring group relative flex min-h-[104px] items-center justify-center gap-4 overflow-hidden rounded-card bg-purple-soft px-2 py-5 sm:justify-start sm:p-5 hover:-translate-y-1">
           <span class="t-spring hidden h-14 w-12 shrink-0 sm:grid place-items-center rounded-2xl bg-shell/75 text-purple shadow-[0_4px_0_rgb(255_255_255/.4),0_6px_14px_rgb(122_60_226/.08)] group-hover:-rotate-6 group-hover:scale-110">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>
           </span>
-          <span class="min-w-0"><span class="block font-display text-[clamp(18px,2vw,24px)] font-bold text-purple">ข่าวเด่น</span><span class="hidden text-[13px] text-ink2 sm:block">ข่าวเด่นสัปดาห์นี้</span></span>
+          <span class="min-w-0"><span class="block whitespace-nowrap font-display text-[clamp(17px,2vw,24px)] font-bold text-purple">ข่าวเด่น</span><span class="hidden text-[13px] text-ink2 sm:block">ข่าวเด่นสัปดาห์นี้</span></span>
         </a>
-        <a href="#archive" class="lift press t-spring group relative flex min-h-[104px] items-center gap-4 overflow-hidden rounded-card bg-sky-soft p-5 hover:-translate-y-1">
+        <a href="#archive" class="lift press t-spring group relative flex min-h-[104px] items-center justify-center gap-4 overflow-hidden rounded-card bg-sky-soft px-2 py-5 sm:justify-start sm:p-5 hover:-translate-y-1">
           <span class="t-spring hidden h-14 w-12 shrink-0 sm:grid place-items-center rounded-2xl bg-shell/75 text-sky shadow-[0_4px_0_rgb(255_255_255/.4),0_6px_14px_rgb(0_150_215/.08)] group-hover:-rotate-6 group-hover:scale-110">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
           </span>
-          <span class="min-w-0"><span class="block font-display text-[clamp(18px,2vw,24px)] font-bold text-royal">คลังข่าว</span><span class="hidden text-[13px] text-ink2 sm:block">ตามปี เดือน วัน</span></span>
-        </a>
-        <a href="digest.html" class="lift press t-spring group relative flex min-h-[104px] items-center gap-4 overflow-hidden rounded-card bg-gold-soft p-5 hover:-translate-y-1">
-          <span class="t-spring hidden h-14 w-12 shrink-0 sm:grid place-items-center rounded-2xl bg-shell/75 text-gold shadow-[0_4px_0_rgb(255_255_255/.4),0_6px_14px_rgb(176_112_0/.08)] group-hover:-rotate-6 group-hover:scale-110">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>
-          </span>
-          <span class="min-w-0"><span class="block font-display text-[clamp(18px,2vw,24px)] font-bold text-gold">เล่มสรุปข่าว</span><span class="hidden text-[13px] text-ink2 sm:block">รายสัปดาห์ · รายเดือน</span></span>
+          <span class="min-w-0"><span class="block whitespace-nowrap font-display text-[clamp(17px,2vw,24px)] font-bold text-royal">คลังข่าว</span><span class="hidden text-[13px] text-ink2 sm:block">ตามปี เดือน วัน</span></span>
         </a>
       </div>
 
@@ -436,17 +421,6 @@
         </div>
       </section>
 
-      <!-- Shelf: digest -->
-      <section id="digest" class="cv-auto mt-shelf" aria-labelledby="digest-title">
-        <div class="reveal mb-6 flex items-end justify-between gap-4">
-          <div>
-            <p class="font-display text-[14px] font-medium text-brand">พลิกอ่านเหมือนนิตยสาร</p>
-            <h2 id="digest-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">เล่มสรุปข่าว</h2>
-          </div>
-          <a href="digest.html" class="press t-quick inline-flex shrink-0 items-center gap-1 rounded font-display text-[15px] font-semibold text-purple underline-offset-4 hover:underline">ดูทุกฉบับ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-        </div>
-        <div id="digestGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
-      </section>
     </div>
   </main>
 
@@ -471,7 +445,6 @@
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
   <script src="shortcuts.js" defer></script>
-  <script src="digest-book.js"></script>
   <script>
     // ---- Helpers ----
     const $ = (s) => document.querySelector(s);
@@ -793,50 +766,6 @@
     // ---- Search: the header forms go to search.html; old links with ?q= are sent there too ----
     const startQ = new URLSearchParams(location.search).get('q')?.trim();
     if (startQ) location.replace(`search.html?q=${encodeURIComponent(startQ)}`);
-
-    // ---- Digest: the two latest weekly issues, and the next issue being made ----
-    const digestCard = (d) => {
-      const label = DIGEST_KIND[d.kind].label;
-      return `
-      <article class="reveal lift group flex flex-col overflow-hidden rounded-card border border-line bg-surface">
-        <a href="digest.html?issue=${d.id}&view=flip" class="press block" aria-label="${esc(DigestBook.coverName(d, `พลิกอ่านเล่มสรุปข่าว${label}`))}">
-          <div class="relative grid aspect-[16/9] place-items-center overflow-hidden ${d.soft}">
-            <div class="t-spring relative h-[84%] w-auto translate-y-[14%] group-hover:translate-y-[8%] group-hover:-rotate-3 [&_.book-cover]:h-full [&_.book-cover]:rounded-lg [&_.book-cover]:shadow-float">${DigestBook.coverMini(d)}</div>
-          </div>
-        </a>
-        <div class="flex flex-1 flex-col p-[18px]">
-          <div class="mb-2 flex items-center justify-between gap-2 text-[12px] text-ink2">
-            <span>${d.count != null ? `${d.count} ข่าว · ` : ''}${d.pages} หน้า</span>
-            <span class="rounded-full ${d.kind === 'weekly' ? 'bg-gold-soft text-gold' : 'bg-purple-soft text-purple'} px-2.5 font-display text-[12px] font-semibold leading-6">${label}</span>
-          </div>
-          <h3 class="font-display text-[17px] font-semibold">ฉบับ ${esc(d.range)}</h3>
-          <div class="mt-auto flex gap-2 pt-3">
-            <a href="digest.html?issue=${d.id}&view=flip" class="bg-grad press t-spring inline-flex h-10 items-center rounded-xl px-4 font-display text-[14px] font-semibold text-white hover:-translate-y-0.5">พลิกอ่าน</a>
-            <a href="digest.html?issue=${d.id}&view=web" class="press t-spring inline-flex h-10 items-center rounded-xl border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">อ่านแบบหน้าเว็บ</a>
-          </div>
-        </div>
-      </article>`;
-    };
-    const comingCard = (d) => `
-      <article class="reveal flex flex-col overflow-hidden rounded-card border-2 border-dashed border-line bg-surface2/50">
-        <div class="grid aspect-[16/9] place-items-center">
-          <span class="grid h-14 w-14 place-items-center rounded-2xl bg-shell text-gold shadow-raised">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>
-          </span>
-        </div>
-        <div class="p-[18px]">
-          <div class="mb-2 flex justify-end"><span class="rounded-full ${d.kind === 'weekly' ? 'bg-gold-soft text-gold' : 'bg-purple-soft text-purple'} px-2.5 font-display text-[12px] font-semibold leading-6">${DIGEST_KIND[d.kind].label}</span></div>
-          <h3 class="font-display text-[17px] font-semibold">ฉบับ${d.kind === 'monthly' ? 'เดือน' : ''} ${esc(d.range)}</h3>
-          <p class="mt-1 text-[13px] text-ink2">${d.open ? 'จัดเล่มแล้ว รอทีม PR อนุมัติ' : `จัดเล่ม ${DigestBook.thaiDate(d.draftedAt)} หลังทีม PR ตรวจทาน`}</p>
-        </div>
-      </article>`;
-    heroShown.then(() => DigestBook.shelf()).then(({ published, waiting }) => {
-      const weekly = published.filter((d) => d.kind === 'weekly').slice(0, 2);
-      const next = waiting.find((d) => d.kind === 'monthly') || waiting[0];
-      const cards = [...weekly.map(digestCard), ...(next ? [comingCard(next)] : [])];
-      document.getElementById('digestGrid').innerHTML = cards.join('') || '<p class="col-span-full rounded-card border-2 border-dashed border-line p-6 text-center text-[15px] text-ink2">ยังไม่มีเล่มสรุปข่าวที่เผยแพร่</p>';
-      if (typeof reveal === 'function') reveal(); else document.querySelectorAll('#digestGrid .reveal').forEach((el) => el.classList.add('in'));
-    }).catch(() => { document.getElementById('digestGrid').innerHTML = ''; });
 
     // ---- Archive: year → month → day ----
     const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];

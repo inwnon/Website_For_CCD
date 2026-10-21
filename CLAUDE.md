@@ -14,7 +14,7 @@
 - แก้โค้ดใน `server/` แล้ว `npm run dev` จะรีสตาร์ตเอง ล็อกอินจำลองระหว่างพัฒนา: `POST /api/auth/dev` ส่ง `{"as":"staff"}` (staff, student, external, pr, admin, coordinator)
 
 ## ค่าเริ่มต้นสำหรับผลลัพธ์
-- โปรเจกต์นี้มีหลายหน้า (`index.html`, `news.html`, `pr.html` …) สคริปต์และสไตล์เฉพาะหน้าเขียนไว้ในไฟล์ HTML ของหน้านั้น ส่วนที่ใช้ร่วมกันอยู่ใน `auth.js`, `desk.js`, `desk.css`, `thai-date.js`, `digest-book.js`
+- โปรเจกต์นี้มีหลายหน้า (`index.html`, `news.html`, `pr.html` …) สคริปต์และสไตล์เฉพาะหน้าเขียนไว้ในไฟล์ HTML ของหน้านั้น ส่วนที่ใช้ร่วมกันอยู่ใน `auth.js`, `desk.js`, `desk.css`, `thai-date.js`
 - **Tailwind CSS ใช้แบบ build ไว้ก่อน (ห้ามใช้ CDN)**: หน้าเว็บโหลด `/assets/app.css` — แก้ class ของ Tailwind ในหน้าใดก็ตาม (หรือ `assets/src/app.css`, `tailwind.config.cjs`) ต้องรัน `npm run build:css` ทุกครั้ง ไม่อย่างนั้น class ใหม่จะไม่มีผล
 - ห้ามให้หน้าเว็บโหลดไฟล์จากเว็บภายนอก (CDN, Google Fonts, รูปจาก placehold.co ฯลฯ) — ฟอนต์อยู่ใน `assets/fonts/` (`npm run build:fonts`), รูปของแบรนด์อยู่ใน `assets/img/` (`npm run build:images`) เพื่อความเร็วและไม่ส่งข้อมูลผู้อ่านออกไปภายนอก
 - รูปภาพตัวอย่าง (placeholder) ใช้ได้เฉพาะในแบบร่างหรือภาพจำลองที่ไม่ได้อยู่ในหน้าเว็บจริง

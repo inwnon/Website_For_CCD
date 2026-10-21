@@ -85,7 +85,7 @@ describe('privacy', () => {
     const detail = await pr.call('GET', `/api/pr/submissions/${sent.body.submission.ref}`);
     assert.equal(detail.body.sender.phone, ID_STAFF.phone);
     const reader = await login('student');
-    for (const path of ['/api/news?limit=48', '/api/news/search?q=ข่าว', `/api/news/${publicId}`, '/api/digests', '/api/news/archive']) {
+    for (const path of ['/api/news?limit=48', '/api/news/search?q=ข่าว', `/api/news/${publicId}`, '/api/news/archive']) {
       for (const who of [anon, reader]) {
         const r = await who.call('GET', path);
         assert.ok(!JSON.stringify(r.body).includes(`"phone"`), `${path}: no phone field`);
@@ -163,7 +163,7 @@ describe('SEO', () => {
 
 describe('edit history of stories', () => {
   test('every change is kept with who made it, what changed and the version after it', async () => {
-    const before = (await query('select featured, (select count(*)::int from news_revisions where news_id = $1) revs from news where id = $1', [publicId])).rows[0];
+    const before = (await query('select featured, (select count(*)::int from news_revisions where news_id = $1) revs, (select coalesce(max(id), 0) from news_revisions) last from news where id = $1', [publicId])).rows[0];
     await pr.call('POST', `/api/pr/news/${publicId}/feature`, { featured: !before.featured });
     await pr.call('POST', `/api/pr/news/${publicId}/withdraw`, { reason: 'ทดสอบประวัติการแก้ไข' });
     await pr.call('POST', `/api/pr/news/${publicId}/restore`, {});
@@ -179,9 +179,10 @@ describe('edit history of stories', () => {
     await query('alter table news disable trigger news_revision');
     await query('update news set featured = $2, views = views - 1 where id = $1', [publicId, before.featured]);
     await query('alter table news enable trigger news_revision');
-    await query(`delete from news_revisions where news_id = $1 and at > now() - interval '10 minutes'`, [publicId]);
+    // Only the rows this test made (a story seeded minutes ago keeps its own)
+    await query('delete from news_revisions where news_id = $1 and id > $2', [publicId, before.last]);
   });
-  test('the back office history (audit log) has the new digest and mail actions', async () => {
+  test('the back office history (audit log) has the mail and privacy actions (and the old เล่มสรุปข่าว ones, for their history)', async () => {
     const { ACTIONS } = await import('../audit.mjs');
     for (const a of ['digest.reset', 'digest.file', 'mail.test', 'news.withdraw', 'privacy.erase']) assert.ok(ACTIONS[a], a);
   });

@@ -31,9 +31,10 @@ export const ACTIONS = {
   'role.remove': 'ยกเลิกบทบาท',
   'role.switch': 'สลับบทบาท (ผู้พัฒนาระบบ)',
   'settings.update': 'ตั้งค่าระบบ',
-  'digest.update': 'จัดเล่มสรุปข่าว',
-  'digest.publish': 'เผยแพร่เล่มสรุปข่าว',
-  'digest.unpublish': 'ถอนเล่มสรุปข่าว',
+  // เล่มสรุปข่าว (removed): kept for the history it left
+  'digest.update': 'จัดเล่มสรุปข่าว (ยกเลิกแล้ว)',
+  'digest.publish': 'เผยแพร่เล่มสรุปข่าว (ยกเลิกแล้ว)',
+  'digest.unpublish': 'ถอนเล่มสรุปข่าว (ยกเลิกแล้ว)',
   'digest.reset': 'ล้างการจัดเล่ม',
   'digest.file': 'ไฟล์ปก / PDF ของเล่ม',
   'mail.test': 'ส่งอีเมลทดสอบ',

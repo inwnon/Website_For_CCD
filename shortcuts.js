@@ -11,7 +11,6 @@
     news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
     scheduled: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     collections: '<path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/>',
-    digest: '<path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/>',
     report: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     admin: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
     bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
@@ -26,7 +25,6 @@
     news: ['ข่าวที่เผยแพร่', 'pr-news.html', 'var(--royal-soft)', 'var(--royal)'],
     scheduled: ['ข่าวที่ตั้งเวลาไว้', 'pr-news.html?show=scheduled', 'var(--gold-soft)', 'var(--gold)'],
     collections: ['อัลบั้มข่าว', 'pr-collections.html', 'var(--purple-soft)', 'var(--purple)'],
-    digest: ['จัดทำเล่มสรุปข่าว', 'digest-studio.html', 'var(--gold-soft)', 'var(--gold)'],
     report: ['รายงาน', 'report.html', 'var(--sky-soft)', 'var(--sky)'],
     admin: ['ตั้งค่าระบบ', 'admin.html', 'var(--surface-2)', 'var(--ink)'],
   };

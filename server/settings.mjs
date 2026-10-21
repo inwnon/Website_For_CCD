@@ -6,7 +6,6 @@ import { HttpError } from './http.mjs';
 import { applyOrg, FILE_ORG } from './org.mjs';
 
 export const ALL_PLATFORMS = ['youtube', 'facebook', 'tiktok', 'drive'];
-export const SOFT_BG = ['bg-red-soft', 'bg-purple-soft', 'bg-sky-soft', 'bg-royal-soft', 'bg-gold-soft'];
 const PHOTO_HARD_MAX = 100; // the upload parser's limit; the setting stays within it
 
 export const DEFAULTS = {
@@ -21,18 +20,6 @@ export const DEFAULTS = {
   review: { days: 2 },
   // ผังหน่วยงาน: same shape as window.ORG in org-data.js (null = use the file)
   org: null,
-  // แม่แบบเล่มสรุปข่าว: cover colours (rotating) and the masthead text
-  digest: {
-    themes: [
-      { bg: '#1B2560', glow: 'rgb(222 20 42 / .55)', soft: 'bg-red-soft' },
-      { bg: '#7A3CE2', glow: 'rgb(255 206 96 / .5)', soft: 'bg-purple-soft' },
-      { bg: '#B3218F', glow: 'rgb(0 174 239 / .45)', soft: 'bg-purple-soft' },
-      { bg: '#0A6A94', glow: 'rgb(222 20 42 / .5)', soft: 'bg-sky-soft' },
-      { bg: '#DE142A', glow: 'rgb(122 60 226 / .6)', soft: 'bg-red-soft' },
-      { bg: '#2A3B9C', glow: 'rgb(0 174 239 / .5)', soft: 'bg-royal-soft' },
-    ],
-    mastheads: { weekly: 'PR.SRU WEEKLY', monthly: 'PR.SRU MONTHLY' },
-  },
   // การเก็บข้อมูล (PDPA): files of work never published are removed after this many days without activity
   retention: { days: 180 },
   // ข้อความแจ้งเตือนถึงผู้ส่ง (PR can edit each one before sending)
@@ -46,7 +33,7 @@ export const DEFAULTS = {
 // Names shown in the history list
 export const LABELS = {
   categories: 'ประเภทข่าว', photos: 'จำนวนภาพ', platforms: 'แหล่งวิดีโอ', review: 'เวลาตรวจข่าว',
-  org: 'ผังหน่วยงาน', digest: 'แม่แบบเล่มสรุปข่าว', messages: 'ข้อความแจ้งเตือน', retention: 'ระยะเวลาเก็บข้อมูล',
+  org: 'ผังหน่วยงาน', messages: 'ข้อความแจ้งเตือน', retention: 'ระยะเวลาเก็บข้อมูล',
 };
 
 const bad = (msg) => { throw new HttpError(400, msg); };
@@ -67,7 +54,6 @@ const int = (v, lo, hi, label) => {
   if (!Number.isInteger(n) || n < lo || n > hi) bad(`${label}ต้องเป็นจำนวนเต็ม ${lo}–${hi}`);
   return n;
 };
-const COLOR = /^(#[0-9a-f]{6}([0-9a-f]{2})?|rgba?\([\d\s.,/%]+\))$/i;
 
 // Each validator returns the clean value or throws 400
 const VALIDATE = {
@@ -110,15 +96,6 @@ const VALIDATE = {
     if (!Object.keys(faculties).length) bad('ต้องมีคณะอย่างน้อย 1 คณะ');
     return { staffGroups, subUnits, faculties };
   },
-  digest: (v) => {
-    const themes = (Array.isArray(v?.themes) ? v.themes : bad('ต้องมีชุดสีปก')).map((t) => {
-      if (!COLOR.test(t?.bg || '') || !COLOR.test(t?.glow || '')) bad('สีปกไม่ถูกต้อง');
-      if (!SOFT_BG.includes(t?.soft)) bad('สีพื้นการ์ดไม่ถูกต้อง');
-      return { bg: t.bg, glow: t.glow, soft: t.soft };
-    });
-    if (!themes.length || themes.length > 12) bad('ชุดสีปกต้องมี 1–12 ชุด');
-    return { themes, mastheads: { weekly: text(v?.mastheads?.weekly, 30, 'หัวเล่มรายสัปดาห์'), monthly: text(v?.mastheads?.monthly, 30, 'หัวเล่มรายเดือน') } };
-  },
   messages: (v) => Object.fromEntries(Object.keys(DEFAULTS.messages).map((k) => [k, text(v?.[k], 500, 'ข้อความแจ้งเตือน')])),
 };
 export const KEYS = Object.keys(VALIDATE);
@@ -153,7 +130,6 @@ export const VIDEO_CATEGORIES = ['วิดีโอเสียงตามส�
 // window.SITE for the pages
 export const publicSite = () => ({
   categories: get('categories'), videoCategories: VIDEO_CATEGORIES, photos: get('photos'), platforms: get('platforms'), reviewDays: get('review').days,
-  digest: { mastheads: get('digest').mastheads },
   // Google Identity Services on login.html; null until GOOGLE_CLIENT_ID is set
   googleClientId: process.env.GOOGLE_CLIENT_ID || null,
   retentionDays: get('retention').days,

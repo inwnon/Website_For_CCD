@@ -22,7 +22,7 @@ const OG_DEFAULT = '/assets/img/og-default.jpg';
 
 // Pages that are not for search results (signed-in tools, sign-in, errors)
 export const PRIVATE_PAGES = new Set(['login.html', 'submit.html', 'inbox.html', 'pr.html', 'pr-news.html', 'pr-collections.html', 'pr-import.html', 'report.html',
-  'admin.html', 'digest-studio.html', 'status.html', '404.html', 'maintenance.html']);
+  'admin.html', 'status.html', '404.html', 'maintenance.html']);
 export function noindex(req, res, next) {
   const page = req.path.replace(/^\//, '');
   if (PRIVATE_PAGES.has(page)) res.set('X-Robots-Tag', 'noindex, nofollow');
@@ -200,7 +200,7 @@ router.get('/search.html', loadUser, async (req, res, next) => {
 });
 
 // The other reader pages: CSS in the page, nothing else changes
-for (const [route, rel] of [['/', 'index.html'], ['/index.html', 'index.html'], ['/digest.html', 'digest.html'], ['/privacy.html', 'privacy.html'], ['/contact.html', 'contact.html']]) {
+for (const [route, rel] of [['/', 'index.html'], ['/index.html', 'index.html'], ['/privacy.html', 'privacy.html'], ['/contact.html', 'contact.html']]) {
   router.get(route, async (req, res) => { res.set('Cache-Control', 'no-cache').type('html').send(await readerPage(rel)); });
 }
 
@@ -219,16 +219,13 @@ router.get('/sitemap.xml', async (req, res) => {
   const day = (d) => new Date(d).toISOString().slice(0, 10);
   const stories = (await query(`select n.id, coalesce(n.updated_at, n.published_at) at from news n where ${LIVE} and 'public' = any(n.audience)
     order by n.published_at desc limit 45000`)).rows;
-  const digests = (await query(`select id, published_at from digests where status = 'published' order by published_at desc limit 5000`).catch(() => ({ rows: [] }))).rows;
   const latest = stories[0]?.at || new Date();
   const urls = [
     { loc: `${ORIGIN}/`, lastmod: day(latest), freq: 'hourly' },
     { loc: `${ORIGIN}/search.html`, lastmod: day(latest), freq: 'daily' },
-    { loc: `${ORIGIN}/digest.html`, freq: 'weekly' },
     { loc: `${ORIGIN}/privacy.html`, freq: 'yearly' },
     { loc: `${ORIGIN}/contact.html`, freq: 'monthly' },
     ...stories.map((n) => ({ loc: `${ORIGIN}/news.html?id=${n.id}`, lastmod: day(n.at) })),
-    ...digests.map((d) => ({ loc: `${ORIGIN}/digest.html?id=${encodeURIComponent(d.id)}`, lastmod: d.published_at ? day(d.published_at) : null })),
   ];
   res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

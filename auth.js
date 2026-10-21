@@ -3,7 +3,7 @@
 // - window.ME: Promise of { user, unread, devLogin } from the server session (user is null when signed out)
 // - Header: an element with id="login" becomes the account menu (profile, inbox, PR tools, settings, theme, sign out)
 // - window.loginUrl(next), window.devLogin(as)
-// Pages not yet connected to the server (submit, inbox, login, digest) still use the prototype parts below:
+// Pages not yet connected to the server (submit, inbox, login) still use the prototype parts below:
 // - window.PROFILE: the profile saved in localStorage by login.html, or null
 // - window.SUBS: read/write the prototype's submissions in localStorage
 // Connected pages set window.SERVER_AUTH = true before this script so the header ignores the prototype profile.
@@ -214,7 +214,7 @@
     }
     const aff = affiliation(u);
     const prTools = u.role === 'pr' || u.role === 'admin'
-      ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr.html', 'desk', 'งานที่ส่งเข้ามา')}${item('pr-news.html', 'news', 'จัดการข่าว')}${item('pr-collections.html', 'book', 'อัลบั้มข่าว')}${item('digest-studio.html', 'book', 'เล่มสรุปข่าว')}${item('report.html', 'chart', 'รายงาน')}${u.role === 'admin' ? item('admin.html', 'gear', 'ตั้งค่าระบบ') : ''}</div>`
+      ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr.html', 'desk', 'งานที่ส่งเข้ามา')}${item('pr-news.html', 'news', 'จัดการข่าว')}${item('pr-collections.html', 'book', 'อัลบั้มข่าว')}${item('report.html', 'chart', 'รายงาน')}${u.role === 'admin' ? item('admin.html', 'gear', 'ตั้งค่าระบบ') : ''}</div>`
       : u.role === 'coordinator' ? `<div class="acct-grp">${item('report.html', 'chart', 'รายงานของหน่วยงาน')}</div>`
       : u.role === 'intern' ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr-import.html', 'news', 'นำเข้าข่าวย้อนหลัง')}</div>` : '';
     return `<div class="acct-id"><span class="acct-av">${avatar(u)}</span><div style="min-width:0"><p class="acct-name">${esc(u.name || u.email)}</p>${u.name ? `<p class="acct-mail">${esc(u.email)}</p>` : ''}<span class="acct-role">${esc(roleName(u))}${aff ? ` ${esc(aff)}` : ''}</span></div></div>

@@ -1,6 +1,6 @@
 // Removes what a test run created, so `npm test` leaves the dev database and uploads/ as it found them.
 // snapshot() before the tests, restore() after: everything the dev-login accounts created since the snapshot is deleted
-// (submissions, drafts, stories, their files, saved stories, read counts, history, emails) and the ref counters, digests and
+// (submissions, drafts, stories, their files, saved stories, read counts, history, emails) and the ref counters and
 // notification settings, profile photos, names and phones go back to their old values.
 import { readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -16,8 +16,6 @@ export async function snapshot() {
     at: (await query('select now() t')).rows[0].t,
     counters: (await query('select * from ref_counters')).rows,
     settings: (await tableExists('settings')) ? (await query('select key, value from settings')).rows : null,
-    digests: (await query('select * from digests')).rows,
-    digestPages: (await tableExists('digest_pages')) ? (await query('select * from digest_pages')).rows : [],
     notify: (await query('select email, notify, photo_path, name, first_name, last_name, phone from users where email = any($1)', [DEV_EMAILS])).rows,
   };
 }
@@ -60,23 +58,6 @@ export async function restore(snap) {
       await client.query('update users set notify = $2, photo_path = $3, name = $4, first_name = $5, last_name = $6, phone = $7 where email = $1',
         [u.email, JSON.stringify(u.notify), u.photo_path, u.name, u.first_name, u.last_name, u.phone]);
     }
-    // Digests: back to how they were (issues made during the run are removed; the app makes them again)
-    const keep = snap.digests.map((d) => d.id);
-    await client.query('delete from digests where not (id = any($1))', [keep]);
-    for (const d of snap.digests) {
-      await client.query(`update digests set status = $2, mode = $3, groups = $4, edited = $5, cover_path = $6, cover_meta = $7, pdf_path = $8,
-        pdf_meta = $9, shelf_path = $10, published_at = $11, approved_by = $12, drafted_at = $13, pages_sig = $14 where id = $1`,
-        [d.id, d.status, d.mode, JSON.stringify(d.groups), d.edited, d.cover_path, d.cover_meta && JSON.stringify(d.cover_meta), d.pdf_path,
-          d.pdf_meta && JSON.stringify(d.pdf_meta), d.shelf_path, d.published_at, d.approved_by, d.drafted_at, d.pages_sig ?? null]);
-    }
-    // Page pictures (digest_pages): as they were
-    if (snap.digestPages) {
-      await client.query('delete from digest_pages');
-      for (const p of snap.digestPages) {
-        await client.query('insert into digest_pages (digest_id, no, path, thumb, w, h, body, links) values ($1, $2, $3, $4, $5, $6, $7, $8)',
-          [p.digest_id, p.no, p.path, p.thumb, p.w, p.h, p.body, JSON.stringify(p.links)]);
-      }
-    }
     await client.query('commit');
   } catch (err) {
     await client.query('rollback');
@@ -89,14 +70,6 @@ export async function restore(snap) {
     ...drafts.map((id) => removeDraftDir(id)),
     ...news.map((id) => rm(abs(join('media', id)), { recursive: true, force: true })),
   ]);
-  // Digest files no row points to any more
-  const used = new Set([...snap.digests.flatMap((d) => [d.cover_path, d.pdf_path, d.shelf_path]), ...(snap.digestPages || []).flatMap((p) => [p.path, p.thumb])]
-    .filter(Boolean).map((p) => p.replaceAll('\\', '/')));
-  for (const dir of await readdir(abs('digests')).catch(() => [])) {
-    for (const f of await readdir(abs(join('digests', dir))).catch(() => [])) {
-      if (!used.has(`digests/${dir}/${f}`)) await rm(abs(join('digests', dir, f)), { force: true });
-    }
-  }
   // Profile photos no account points to any more
   const photos = new Set((await query('select photo_path from users where photo_path is not null')).rows.map((r) => r.photo_path));
   for (const f of await readdir(abs('avatars')).catch(() => [])) if (!photos.has(`avatars/${f}`)) await rm(abs(join('avatars', f)), { force: true });

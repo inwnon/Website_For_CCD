@@ -18,7 +18,6 @@ import { router as submissionsRouter } from './submissions.mjs';
 import { router as draftsRouter } from './drafts.mjs';
 import { router as contactRouter } from './contact.mjs';
 import { router as collectionsRouter } from './collections.mjs';
-import { media as digestMedia, ensureUpcoming, router as digestsRouter } from './digests.mjs';
 import { dailyIfDue, router as notifyRouter, sendQueued } from './notify.mjs';
 import { purge, router as privacyRouter } from './privacy.mjs';
 import { httpsOnly, productionProblems, headers as securityHeaders } from './security.mjs';
@@ -65,7 +64,6 @@ api.use(prRouter);
 api.use(newsdeskRouter);
 api.use(reportsRouter);
 api.use(adminRouter);
-api.use(digestsRouter);
 api.use(notifyRouter);
 api.use(privacyRouter);
 api.use(contactRouter);
@@ -77,7 +75,6 @@ app.use('/api', api);
 // server/, uploads/, node_modules/, .env etc. are never served.
 const PUBLIC_FILE = /^\/[\w.-]+\.(html|js|css|png|jpe?g|webp|svg|ico|woff2)$/;
 // Images of published stories (copied out of submissions when PR publishes); internal stories need sign-in
-app.use('/media/digests', loadUser, digestMedia);
 app.use('/media', loadUser, media);
 app.use('/brand_assets', express.static(join(ROOT, 'brand_assets')));
 // Built CSS and the self-hosted fonts (npm run build:css). app.css is linked with ?v=<hash>, so both cache for good.
@@ -110,16 +107,11 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // ---- Housekeeping ----
-// Digest drafts: the SQL function only acts on Mondays and the 1st, and skips issues that exist,
-// so checking every hour after 06:00 Bangkok time is safe.
 async function hourly() {
   try {
     await query('delete from sessions where expires_at < now()');
     // Single reads are kept 90 days; the daily totals (news_reads_daily) stay
     await query("delete from news_reads where at < now() - interval '90 days'");
-    const hour = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Bangkok' }).format(new Date()));
-    if (hour >= 6) await query('select create_digest_drafts()');
-    await ensureUpcoming();
     await dailyIfDue();
     // PDPA: files of work that was never published, after the retention period
     await purge();

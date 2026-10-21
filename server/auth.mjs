@@ -206,8 +206,8 @@ router.get('/me', async (req, res) => {
 
 // ---- ทางลัดของฉัน (index.html): the desk pages a PR team member keeps on the home page, in their order ----
 // The pages themselves (names, links, icons) are in index.html; here only which ones exist and who may have them.
-export const SHORTCUTS = ['review', 'inbox', 'add', 'import', 'news', 'scheduled', 'collections', 'digest', 'report', 'admin'];
-const SHORTCUT_DEFAULT = ['review', 'add', 'news', 'digest'];
+export const SHORTCUTS = ['review', 'inbox', 'add', 'import', 'news', 'scheduled', 'collections', 'report', 'admin'];
+const SHORTCUT_DEFAULT = ['review', 'add', 'news', 'collections'];
 const shortcutOk = (u) => (id) => SHORTCUTS.includes(id) && (id !== 'admin' || u.role === 'admin');
 const shortcutsOf = (u) => (u.shortcuts || SHORTCUT_DEFAULT).filter(shortcutOk(u));
 router.put('/me/shortcuts', requireUser, limit('shortcuts', { max: 60, windowMs: 10 * 60 * 1000 }), async (req, res) => {
