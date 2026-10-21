@@ -144,3 +144,26 @@ describe('ลบข่าว (withdrawn stories)', () => {
     assert.equal((await staff.call('GET', `/api/submissions/${ref}`)).status, 404, 'gone for the sender, as ลบข่าว');
   });
 });
+
+describe('ลิงก์ภาพเพิ่มเติม on the review page (pr.html)', () => {
+  test('PR changes and removes the sender\'s extra album links before publishing', async () => {
+    const A = 'https://www.facebook.com/media/set/?set=a.111', B = 'https://drive.google.com/drive/folders/bbb', C = 'https://drive.google.com/drive/folders/ccc';
+    const s = await staff.call('POST', '/api/submissions', form({ ...NEWS, title: 'ข่าวหลายอัลบั้ม', albumUrl: A, albumLinks: [B, C] },
+      { photo: [['a.jpg', await img('#468', 800, 600), 'image/jpeg']] }));
+    assert.equal(s.status, 201, JSON.stringify(s.body));
+    const r = s.body.submission.ref;
+    assert.deepEqual((await pr.call('GET', `/api/pr/submissions/${r}`)).body.submission.fields.albumLinks, [B, C]);
+    // แก้ไขข่าว: one link removed, kept in PR's version
+    const e = await pr.call('PUT', `/api/pr/submissions/${r}/edit`, { title: 'ข่าวหลายอัลบั้ม', body: 'ข'.repeat(80), albumUrl: A, albumLinks: [C], audience: ['public'] });
+    assert.equal(e.status, 200, JSON.stringify(e.body));
+    assert.deepEqual(e.body.prEdit.albumLinks, [C]);
+    assert.equal((await pr.call('PUT', `/api/pr/submissions/${r}/edit`, { title: 'x', albumUrl: A, albumLinks: ['http://insecure.example'] })).status, 400);
+    // Published with what is in the form
+    const files = (await pr.call('GET', `/api/pr/submissions/${r}`)).body.submission.files;
+    const p = await pr.call('POST', `/api/pr/submissions/${r}/publish`, { body: 'ข'.repeat(80), cover: files[0].id, albumUrl: A, albumLinks: [C] });
+    assert.equal(p.status, 201, JSON.stringify(p.body));
+    const story = (await anon.call('GET', `/api/news/${p.body.news.id}`)).body.story;
+    assert.equal(story.albumUrl, A);
+    assert.deepEqual(story.albumLinks.map((x) => x.url), [C]);
+  });
+});

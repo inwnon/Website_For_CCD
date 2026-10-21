@@ -68,6 +68,18 @@ describe('page pictures', () => {
     assert.equal((await anon.call('GET', '/api/digests?q=%25')).body.results.length, 0);
   });
 
+  test('a story in them edited: the pictures are no longer used; more reads change nothing', async () => {
+    const story = (await anon.call('GET', `/api/digests/${published.id}`)).body.stories[0];
+    await query('update news set views = views + 7 where id = $1', [story.id]);
+    assert.ok((await anon.call('GET', `/api/digests/${published.id}`)).body.pages, 'read counts are not printed');
+    const { title } = (await query('select title from news where id = $1', [story.id])).rows[0];
+    await query('update news set title = $2 where id = $1', [story.id, `${title} (แก้ไข)`]);
+    assert.equal((await anon.call('GET', `/api/digests/${published.id}`)).body.pages, null, 'the headline on the page changed');
+    assert.equal((await pr.call('GET', `/api/pr/digests/${published.id}`)).body.digest.pagesReady, false);
+    await query('update news set title = $2 where id = $1', [story.id, title]);
+    assert.ok((await anon.call('GET', `/api/digests/${published.id}`)).body.pages, 'as printed again');
+  });
+
   test('a different layout (the book edited) and the pictures are no longer used', async () => {
     assert.ok((await anon.call('GET', `/api/digests/${published.id}`)).body.pages);
     await pr.call('POST', `/api/pr/digests/${published.id}/unpublish`);

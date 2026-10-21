@@ -97,7 +97,7 @@ async function detail(s) {
   const [t, sender, news] = await Promise.all([
     loadThread([s.id]),
     one('select * from users where id = $1', [s.sender_id]),
-    s.news_id ? one(`select id, title, title_en, lead, body, body_en, categories, audience, video_url, album_url, featured, published_at,
+    s.news_id ? one(`select id, title, title_en, lead, body, body_en, categories, audience, video_url, album_url, album_links, featured, published_at,
       cover_path, withdrawn_at, body_size, body_leading from news where id = $1`, [s.news_id]) : null,
   ]);
   return { submission: submissionOut(s, t, 'pr'), sender: publicUser(sender), news, prEdit: s.pr_edit || null };
@@ -159,12 +159,15 @@ router.put('/pr/submissions/:ref/edit', async (req, res) => {
   else if (!soloOk(cats)) errors.categories = SOLO_MSG;
   let album = null;
   try { album = albumUrl(b.albumUrl); } catch (err) { errors.albumUrl = err.details?.albumUrl || err.message; }
+  // ลิงก์ภาพเพิ่มเติม after the first, as PR left them
+  const albums = albumSet([album || '', ...(Array.isArray(b.albumLinks) ? b.albumLinks : [])].filter(Boolean));
+  if (albums.error && !errors.albumUrl) errors.albumUrl = albums.error;
   if (Object.keys(errors).length) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', errors);
   const edit = {
     title: str(b.title, 200, 'หัวข้อข่าว'), lead: str(b.lead, 300, 'สรุปข่าว'), body: str(b.body, 50000, 'เนื้อหาข่าว') || '',
     bodySize: bodySize(b.bodySize), bodyLeading: bodyLeading(b.bodyLeading),
     titleEn: str(b.titleEn, 200, 'หัวข้อภาษาอังกฤษ'), bodyEn: str(b.bodyEn, 50000, 'เนื้อหาภาษาอังกฤษ'),
-    videoUrl: str(b.videoUrl, 500, 'ลิงก์วิดีโอ'), albumUrl: album, categories: cats,
+    videoUrl: str(b.videoUrl, 500, 'ลิงก์วิดีโอ'), albumUrl: albums.url, albumLinks: albums.links, categories: cats,
     audience: Array.isArray(b.audience) ? [...new Set(b.audience)].filter((a) => AUDIENCES.includes(a)) : [],
     cover: ids.has(b.cover) ? b.cover : null,
     gallery: (Array.isArray(b.gallery) ? b.gallery : []).filter((id) => ids.has(id)).slice(0, 30),

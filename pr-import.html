@@ -97,7 +97,7 @@
                 <span id="dateErr" class="err" hidden></span>
               </label>
               <label class="grid content-start gap-1.5">
-                <span class="font-display text-[15px] font-semibold">เวลา <span class="font-sans text-[12px] font-normal text-ink2">(24 ชม.)</span></span>
+                <span class="font-display text-[15px] font-semibold">เวลา <span id="timeStar" class="text-brand" hidden>*</span> <span class="font-sans text-[12px] font-normal text-ink2">(24 ชม.)</span></span>
                 <input id="time" type="text" inputmode="numeric" autocomplete="off" maxlength="5" value="12:00" placeholder="เช่น 14:30" class="field h-12 w-full min-w-0 rounded-2xl px-3 text-[15px] tabular-nums" aria-describedby="timeErr">
                 <span id="timeErr" class="err" hidden></span>
               </label>
@@ -475,6 +475,8 @@
       if (!d.date) errs.date = ADD || (editing && !editing.imported) ? 'เลือกวันที่เผยแพร่' : 'เลือกวันที่เผยแพร่เดิม';
       else if (d.date > isoDay() && !ADD && (!editing || editing.imported)) errs.date = 'วันที่เผยแพร่เดิมต้องไม่เกินวันนี้';
       if ($('#time').value.trim() && !time24($('#time').value)) errs.time = 'ใส่เวลาแบบ 24 ชั่วโมง เช่น 09:30 หรือ 14:00';
+      // A story of the day is published at the time set: no time is not "12:00" here (an import keeps 12:00 when the time is not known)
+      else if (!$('#time').value.trim() && (ADD || (editing && !editing.imported))) errs.time = 'ใส่เวลาเผยแพร่ เช่น 09:30 หรือ 14:00';
       if (!d.title.trim()) errs.title = 'กรอกหัวข้อข่าว';
       if (d.body.trim().length < (d.kind === 'news' ? 20 : 1)) errs.body = d.kind === 'news' ? 'ใส่เนื้อหาข่าว' : d.kind === 'video' ? 'ใส่คำอธิบายวิดีโอ' : 'ใส่ข้อความประกอบงาน';
       if (d.kind !== 'video' && !d.credit.trim()) errs.credit = d.creditKind === 'source' ? (d.kind === 'news' ? 'กรอกที่มาของภาพ' : 'กรอกที่มาของงาน') : d.kind === 'news' ? 'กรอกเครดิตภาพ' : 'กรอกชื่อผู้ออกแบบ';
@@ -573,6 +575,7 @@
       $('#cancelEdit').href = BACK;
       $('#cancelEdit').textContent = BACK.startsWith('pr.html') ? 'กลับไปหน้างาน' : 'กลับไปหน้าข่าวที่เผยแพร่';
       $('#dateLabel').textContent = s.imported ? 'วันที่เผยแพร่เดิม' : 'วันที่เผยแพร่';
+      $('#timeStar').hidden = s.imported;
       if (!s.imported) $('#date').removeAttribute('max');
       document.querySelector(`input[name=kind][value=${s.kind}]`).checked = true;
       const at = new Date(s.publishedAt);
@@ -643,6 +646,7 @@
       $('#pageTitle').textContent = 'เพิ่มข่าว';
       $('#pageLead').textContent = 'ข่าวที่ทีม PR เขียนเอง เผยแพร่ทันทีตามวันและเวลาที่ตั้ง ไม่ผ่านคิวตรวจ ตั้งเวลาล่วงหน้าได้ ถ้าข่าวมาจากโพสต์ Facebook วางลิงก์เพื่อดึงข้อความและภาพได้';
       $('#dateLabel').textContent = 'วันที่เผยแพร่';
+      $('#timeStar').hidden = false;
       $('#doneTitle').textContent = 'เพิ่มในรอบนี้';
       $('#allImported').textContent = 'ดูข่าวที่เผยแพร่ทั้งหมด';
       $('#allImported').href = 'pr-news.html';

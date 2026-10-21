@@ -494,7 +494,9 @@
           <div data-for="news banner">
             <label for="pAlbum" class="block font-display text-[14px] font-medium">ลิงก์ภาพเพิ่มเติม <span class="font-normal text-ink2">(ไม่บังคับ)</span></label>
             <input id="pAlbum" type="url" inputmode="url" placeholder="https://www.facebook.com/media/set/... หรือ https://drive.google.com/..." class="field mt-1.5 h-11 w-full rounded-2xl px-4 text-[15px]" aria-describedby="hint-album err-albumUrl">
-            <p id="hint-album" class="mt-1 text-[13px] text-ink2">อัลบั้ม Facebook หรือโฟลเดอร์ Google Drive ผู้อ่านจะเห็นปุ่ม "ดูรูปภาพเพิ่มเติม" ในหน้าข่าว</p>
+            <p id="hint-album" class="mt-1 text-[13px] text-ink2">อัลบั้ม Facebook หรือโฟลเดอร์ Google Drive ผู้อ่านจะเห็นปุ่ม "ดูรูปภาพเพิ่มเติม" ในหน้าข่าว ภาพอยู่หลายอัลบั้ม เพิ่มลิงก์ได้อีกไม่เกิน 5 ลิงก์</p>
+            <!-- The other albums (the sender's, or added here) -->
+            <div id="pAlbumMore" class="mt-2" role="group" aria-label="ลิงก์ภาพเพิ่มเติมอื่น"></div>
             <p id="err-albumUrl" data-err="albumUrl" class="mt-1 text-[14px] font-medium text-brand" hidden></p>
           </div>
           <details id="pEnBox" class="group rounded-2xl border border-line" data-for="news">
@@ -597,6 +599,7 @@
   <script src="arrivals.js"></script>
   <script src="text-tools.js"></script>
   <script src="sortable.js"></script>
+  <script src="video-links.js"></script>
   <script>
     const $ = (s, r = document) => r.querySelector(s);
     const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1195,6 +1198,9 @@
       });
     }
     let pubMode = 'publish'; // or 'edit': แก้ไขข่าว, saved without publishing
+    // ลิงก์ภาพเพิ่มเติม after the first one (video-links.js), made when the form first opens
+    let albumBox = null;
+    const pubAlbums = () => albumBox || (albumBox = VideoLinks($('#pAlbumMore'), { max: 5, placeholder: 'อัลบั้มอื่น หรือโฟลเดอร์ Google Drive', label: 'ลิงก์ภาพเพิ่มเติม', add: 'เพิ่มลิงก์ภาพ' }));
     let pubTools = null;
     function openPublish(mode = 'publish') {
       pubMode = mode;
@@ -1203,9 +1209,9 @@
       const pe = detailData.prEdit;
       const again = !!(n && s.status !== 'published');
       // Where the text starts: what PR edited (แก้ไขข่าว), else what was on the site (published before), else what the sender sent
-      const f = pe ? { ...s.fields, lead: pe.lead, body: pe.body, desc: pe.body, titleEn: pe.titleEn, bodyEn: pe.bodyEn, albumUrl: pe.albumUrl, categories: pe.categories,
+      const f = pe ? { ...s.fields, lead: pe.lead, body: pe.body, desc: pe.body, titleEn: pe.titleEn, bodyEn: pe.bodyEn, albumUrl: pe.albumUrl, albumLinks: pe.albumLinks || s.fields.albumLinks, categories: pe.categories,
           videoMode: pe.videoUrl ? 'link' : s.fields.videoMode, videoLink: pe.videoUrl || s.fields.videoLink, bodySize: pe.bodySize, bodyLeading: pe.bodyLeading }
-        : again ? { ...s.fields, lead: n.lead, body: n.body, desc: n.body, titleEn: n.title_en, bodyEn: n.body_en, albumUrl: n.album_url, categories: n.categories,
+        : again ? { ...s.fields, lead: n.lead, body: n.body, desc: n.body, titleEn: n.title_en, bodyEn: n.body_en, albumUrl: n.album_url, albumLinks: n.album_links || [], categories: n.categories,
           videoMode: n.video_url ? 'link' : s.fields.videoMode, videoLink: n.video_url || s.fields.videoLink, bodySize: n.body_size, bodyLeading: n.body_leading } : s.fields;
       const editing = mode === 'edit';
       $('#pubTitle').textContent = editing ? 'แก้ไขข่าว' : again ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่ขึ้นเว็บไซต์';
@@ -1224,6 +1230,7 @@
       $('#pTitleEn').value = f.titleEn || '';
       $('#pBodyEn').value = f.bodyEn || '';
       $('#pAlbum').value = f.albumUrl || '';
+      pubAlbums().set(f.albumLinks || []);
       $('#pEnBox').open = !!(f.titleEn || f.bodyEn);
       const imgs = s.files.filter((x) => x.thumb);
       $('#pImages').hidden = !imgs.length;
@@ -1271,7 +1278,7 @@
       if (later && !$('#pAt').value) { const el = $('[data-err=publishAt]'); el.textContent = 'เลือกวันและเวลาเผยแพร่'; el.hidden = false; $('#pAt').focus(); return; }
       const body = {
         title: $('#pTitle').value, lead: $('#pLead').value, body: $('#pBody').value,
-        titleEn: $('#pTitleEn').value, bodyEn: $('#pBodyEn').value, videoUrl: $('#pVideo').value, albumUrl: $('#pAlbum').value.trim(),
+        titleEn: $('#pTitleEn').value, bodyEn: $('#pBodyEn').value, videoUrl: $('#pVideo').value, albumUrl: $('#pAlbum').value.trim(), albumLinks: pubAlbums().get(),
         cover: $('input[name=cover]:checked')?.value, gallery: $$('input[name=gallery]:checked').map((x) => x.value),
         categories: $$('input[name=pcat]:checked').map((x) => x.value), audience: $$('input[name=paud]:checked').map((x) => x.value),
         featured: $('#pFeatured').checked, publishAt: later ? new Date($('#pAt').value).toISOString() : undefined, message: $('#pMsg').value,

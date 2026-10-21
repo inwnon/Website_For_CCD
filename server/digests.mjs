@@ -90,9 +90,15 @@ function layout(d, stories, user) {
 
 const fileUrl = (d, rel) => (rel ? `/media/digests/${d.id}/${basename(rel)}` : null);
 // The layout the page pictures were made from: they are used only while the issue still looks like that
-const sigOf = (d, groups) => createHash('sha1').update(JSON.stringify([d.mode, d.mode === 'pdf' ? [] : groups, d.cover_path, d.pdf_path, d.pdf_meta?.pages])).digest('hex');
-async function pagesOf(d, groups) {
-  if (!d.pages_sig || d.pages_sig !== sigOf(d, groups)) return null;
+// (what is printed on them: the layout, each story's words and picture, the cover, the masthead; not the read counts)
+function sigOf(d, groups, stories = []) {
+  const used = new Set(groups.flatMap((g) => g.ids));
+  const content = d.mode === 'pdf' ? [] : stories.filter((s) => used.has(s.id)).map((s) => [s.id, s.title, s.lead, s.unit, s.img, s.cat]).sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  return createHash('sha1').update(JSON.stringify([d.mode, d.mode === 'pdf' ? [] : groups, d.cover_path, d.pdf_path, d.pdf_meta?.pages,
+    content, d.no, d.range_label, get('digest').mastheads?.[d.kind]])).digest('hex');
+}
+async function pagesOf(d, groups, stories) {
+  if (!d.pages_sig || d.pages_sig !== sigOf(d, groups, stories)) return null;
   const rows = (await query('select no, path, thumb, w, h, body, links from digest_pages where digest_id = $1 order by no', [d.id])).rows;
   return rows.length ? rows.map((p) => ({ no: p.no, src: fileUrl(d, p.path), thumb: fileUrl(d, p.thumb), w: p.w, h: p.h, text: p.body, links: p.links })) : null;
 }
@@ -164,8 +170,9 @@ router.get('/digests', async (req, res) => {
     for (const d of rows.filter((x) => x.status === 'published')) {
       const mine = hits.filter((h) => h.digest_id === d.id);
       if (!mine.length) continue;
-      const { groups } = layout(d, d.mode === 'pdf' ? [] : await pool(d), req.user);
-      if (d.pages_sig !== sigOf(d, groups)) continue;
+      const stories = d.mode === 'pdf' ? [] : await pool(d);
+      const { groups } = layout(d, stories, req.user);
+      if (d.pages_sig !== sigOf(d, groups, stories)) continue;
       results.push({ ...out(d, measure(d, groups)), hits: mine.map((h) => ({ page: h.no, snippet: snippet(h.body, words[0]) })) });
     }
     return res.json({ results, mastheads: get('digest').mastheads });
@@ -189,7 +196,7 @@ router.get('/digests/:id', async (req, res) => {
   const stories = d.mode === 'pdf' ? [] : await pool(d);
   const { groups } = layout(d, stories, req.user);
   const used = new Set(groups.flatMap((g) => g.ids));
-  res.json({ digest: out(d, measure(d, groups)), groups, stories: stories.filter((s) => used.has(s.id)).map(storyOut), pages: await pagesOf(d, groups), mastheads: get('digest').mastheads });
+  res.json({ digest: out(d, measure(d, groups)), groups, stories: stories.filter((s) => used.has(s.id)).map(storyOut), pages: await pagesOf(d, groups, stories), mastheads: get('digest').mastheads });
 });
 // A few words of the page text around the first word searched
 function snippet(body, word) {
@@ -219,7 +226,7 @@ async function studio(req, d) {
   const stories = await pool(d);
   const { groups, excluded } = layout(d, stories, req.user);
   const reminders = (await one(`select count(*)::int n, max(created_at) last from email_outbox where kind = 'digest.reminder' and ref = $1`, [d.id]));
-  const pagesReady = !!(await pagesOf(d, groups));
+  const pagesReady = !!(await pagesOf(d, groups, stories));
   return { digest: out(d, { ...measure(d, groups), news: stories.length, reminders: reminders.n, lastReminder: reminders.last, pagesReady }), groups, excluded, stories: stories.map(storyOut), mastheads: get('digest').mastheads };
 }
 router.get('/pr/digests/:id', async (req, res) => res.json(await studio(req, await load(req.params.id))));
@@ -373,7 +380,8 @@ router.put('/pr/digests/:id/pages', fileLimit, (req, res, next) => pageUpload(re
   const made = [];
   try {
     const d = await load(req.params.id);
-    const { groups } = layout(d, d.mode === 'pdf' ? [] : await pool(d), req.user);
+    const stories = d.mode === 'pdf' ? [] : await pool(d);
+    const { groups } = layout(d, stories, req.user);
     const total = measure(d, groups).pages;
     if (files.length !== total) throw new HttpError(400, `ภาพหน้าไม่ครบ: เล่มนี้มี ${total} หน้า ได้รับ ${files.length} ภาพ`);
     let meta;
@@ -401,7 +409,7 @@ router.put('/pr/digests/:id/pages', fileLimit, (req, res, next) => pageUpload(re
         await c.query('insert into digest_pages (digest_id, no, path, thumb, w, h, body, links) values ($1, $2, $3, $4, $5, $6, $7, $8)',
           [d.id, r.no, r.path, r.thumb, r.w, r.h, r.body, JSON.stringify(r.links)]);
       }
-      await c.query('update digests set pages_sig = $2 where id = $1', [d.id, sigOf(d, groups)]);
+      await c.query('update digests set pages_sig = $2 where id = $1', [d.id, sigOf(d, groups, stories)]);
     });
     made.length = 0;
     await Promise.all(old.flatMap((o) => [removeRel(o.path), removeRel(o.thumb)]));
