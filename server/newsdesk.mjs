@@ -401,7 +401,7 @@ function checkImport(d, photoCount, opts = { imported: true }) {
   need('kind', TYPES.includes(row.kind), 'เลือกประเภทเนื้อหา');
   need('title', row.title, 'กรอกหัวข้อข่าว');
   need('unit', row.unit && allUnits().includes(row.unit), 'เลือกหน่วยงานจากรายการ');
-  need('categories', row.kind === 'banner' || row.categories.length > 0, 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท');
+  need('categories', row.categories.length > 0, 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท');
   need('categories', row.categories.length <= MAX_CATS && row.categories.every((c) => categories().includes(c)), 'ประเภทข่าวไม่ถูกต้อง');
   need('categories', soloOk(row.categories), SOLO_MSG);
   need('audience', row.audience.length && row.audience.every((a) => AUDIENCES.includes(a)), 'เลือกว่าใครเห็นข่าวนี้ได้');

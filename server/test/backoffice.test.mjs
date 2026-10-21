@@ -115,7 +115,7 @@ describe('import (นำเข้าข่าวย้อนหลัง)', () =
 
   test('every kind needs its text; a banner needs ผู้ออกแบบ or ที่มา, which the story keeps', async () => {
     const pic = { photo: [['a.jpg', await img('#468'), 'image/jpeg']] };
-    const banner = { ...IMPORT, kind: 'banner', title: 'อินโฟกราฟิกทดสอบที่มา', categories: [] };
+    const banner = { ...IMPORT, kind: 'banner', title: 'อินโฟกราฟิกทดสอบที่มา', categories: ['ข่าวการศึกษา'] };
     const noText = await pr.call('POST', '/api/pr/import', form({ ...banner, body: '', credit: 'กระทรวง อว.' }, pic));
     assert.equal(noText.status, 400);
     assert.ok(noText.body.details.body);

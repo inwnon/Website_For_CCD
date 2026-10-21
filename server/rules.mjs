@@ -148,7 +148,7 @@ export function checkSubmission(user, d, fileCounts) {
     event_date: hasDate ? d.eventDate || null : null,
     place: isNews ? str(d.place, 120, 'สถานที่') : null,
     unit: str(d.unit, 200, 'หน่วยงาน'),
-    categories: type === 'banner' ? [] : d.categories,
+    categories: d.categories,
     content_mode: isNews ? d.contentMode || null : null,
     people: {},
     credit: isNews ? str(d.credit, 80, d.creditKind === 'source' ? 'ที่มาของภาพ' : 'เครดิตภาพ') : null,
@@ -183,7 +183,8 @@ export function checkSubmission(user, d, fileCounts) {
   if (type === 'banner') need('designer', row.designer, creditMissing(type, row.credit_kind));
   if (isNews) need('credit', row.credit, creditMissing(type, row.credit_kind));
 
-  if (type !== 'banner') {
+  {
+    // ประเภทข่าว: every kind, banners and infographics too
     const cats = Array.isArray(row.categories) ? [...new Set(row.categories)] : [];
     need('categories', cats.length > 0, 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท');
     need('categories', cats.length <= MAX_CATS, `เลือกประเภทข่าวได้ไม่เกิน ${MAX_CATS} ประเภท`);

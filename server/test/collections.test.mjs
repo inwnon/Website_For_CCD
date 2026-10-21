@@ -20,7 +20,7 @@ before(async () => {
   ids = [
     await make({ kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ชุดทดสอบ ข่าวพิธีเปิด', body: 'ก'.repeat(40), date: day(3) }),
     await make({ kind: 'video', title: 'ชุดทดสอบ วิดีโอบรรยากาศ', date: day(3), videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }),
-    await make({ kind: 'banner', title: 'ชุดทดสอบ อินโฟกราฟิกสรุปงาน', date: day(2) }),
+    await make({ kind: 'banner', categories: ['ข่าวการศึกษา'], title: 'ชุดทดสอบ อินโฟกราฟิกสรุปงาน', date: day(2) }),
     await make({ kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ชุดทดสอบ ข่าวภายใน', body: 'ก'.repeat(40), date: day(2), audience: ['staff'] }),
   ];
 });

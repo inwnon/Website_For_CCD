@@ -91,7 +91,7 @@ describe('ข่าวที่เกี่ยวข้อง', () => {
 describe('banner คำโปรย', () => {
   test('kept on banners and in drafts', async () => {
     const art = [['art.jpg', await img('#fa0', 800, 600), 'image/jpeg']];
-    const s = await staff.call('POST', '/api/submissions', form({ type: 'banner', designer: 'ทีมกราฟิกทดสอบ', title: 'แบนเนอร์มีคำโปรย', lead: 'คำโปรยแบนเนอร์', desc: 'ข้อความ', unit: 'กองกลาง', audience: ['public'], consent: true }, { art }));
+    const s = await staff.call('POST', '/api/submissions', form({ type: 'banner', categories: ['ข่าวการศึกษา'], designer: 'ทีมกราฟิกทดสอบ', title: 'แบนเนอร์มีคำโปรย', lead: 'คำโปรยแบนเนอร์', desc: 'ข้อความ', unit: 'กองกลาง', audience: ['public'], consent: true }, { art }));
     assert.equal(s.status, 201, JSON.stringify(s.body));
     assert.equal((await pr.call('GET', `/api/submissions/${s.body.submission.ref}`)).body.submission.fields.lead, 'คำโปรยแบนเนอร์');
     const d = await staff.call('POST', '/api/drafts', form({ type: 'banner', title: 'ร่าง', lead: 'โปรยในร่าง' }));

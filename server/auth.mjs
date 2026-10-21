@@ -201,7 +201,22 @@ router.post('/auth/logout', async (req, res) => {
 // unread: items in the user's inbox with something new (header badge)
 router.get('/me', async (req, res) => {
   const unread = req.user ? (await one("select count(*)::int n from submissions where sender_id = $1 and sender_unread and status <> 'rejected'", [req.user.id])).n : 0;
-  res.json({ user: publicUser(req.user), unread, ...(DEV_LOGIN ? { devLogin: true } : {}) });
+  res.json({ user: publicUser(req.user), unread, ...(isPr(req.user) ? { shortcuts: shortcutsOf(req.user) } : {}), ...(DEV_LOGIN ? { devLogin: true } : {}) });
+});
+
+// ---- ทางลัดของฉัน (index.html): the desk pages a PR team member keeps on the home page, in their order ----
+// The pages themselves (names, links, icons) are in index.html; here only which ones exist and who may have them.
+export const SHORTCUTS = ['review', 'inbox', 'add', 'import', 'news', 'scheduled', 'collections', 'digest', 'report', 'admin'];
+const SHORTCUT_DEFAULT = ['review', 'add', 'news', 'digest'];
+const shortcutOk = (u) => (id) => SHORTCUTS.includes(id) && (id !== 'admin' || u.role === 'admin');
+const shortcutsOf = (u) => (u.shortcuts || SHORTCUT_DEFAULT).filter(shortcutOk(u));
+router.put('/me/shortcuts', requireUser, limit('shortcuts', { max: 60, windowMs: 10 * 60 * 1000 }), async (req, res) => {
+  if (!isPr(req.user)) throw new HttpError(403, 'ทางลัดมีเฉพาะทีม PR');
+  const ids = req.body?.ids;
+  if (!Array.isArray(ids) || ids.length > SHORTCUTS.length || !ids.every((x) => typeof x === 'string')) throw new HttpError(400, 'รายการทางลัดไม่ถูกต้อง');
+  const clean = [...new Set(ids)].filter(shortcutOk(req.user));
+  await query('update users set shortcuts = $2 where id = $1', [req.user.id, clean]);
+  res.json({ shortcuts: clean });
 });
 
 // Mirrors the checks in login.html step 2 (name, phone, affiliation) and step 3 (consent)

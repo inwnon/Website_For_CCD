@@ -302,7 +302,7 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=f4b8427248">
+  <link rel="stylesheet" href="/assets/app.css?v=cc0f23faf0">
 </head>
 
 <body class="min-h-screen">
@@ -622,7 +622,7 @@
                 <input id="producer" name="producer" type="text" maxlength="120" autocomplete="off" placeholder="ชื่อผู้ผลิต หรือทีม / บริษัทที่ผลิตวิดีโอ" class="field h-14 w-full rounded-2xl px-4 text-[16px]">
               </div>
 
-              <fieldset id="catSet" data-for="news video" aria-describedby="catError">
+              <fieldset id="catSet" data-for="news video banner" aria-describedby="catError">
                 <legend class="mb-2 font-display text-[15px] font-semibold">ประเภทข่าว <span class="text-brand">*</span> <span class="font-sans text-[13px] font-normal text-ink2">เลือกได้สูงสุด 5 ประเภท (<span id="catCount">0</span>/5)</span></legend>
                 <div id="catList" class="flex flex-wrap gap-2">
                   <!-- filled from CATEGORIES in the script -->
@@ -1062,6 +1062,7 @@
   <script src="org-data.js"></script>
   <script src="name-prefixes.js"></script>
   <script src="auth.js"></script>
+  <script src="shortcuts.js" defer></script>
   <script src="site-config.js"></script>
   <script src="text-tools.js"></script>
   <script src="video-links.js"></script>
@@ -1526,7 +1527,7 @@
       { key: 'desc', for: 'video banner', label: () => TYPES[type].descLabel, ok: descOk, focus: '#desc' },
       { key: 'designer', for: 'banner', label: () => (radio('creditKind') === 'source' ? 'ที่มาของงาน' : 'ผู้ออกแบบ'), ok: () => !!val('designer'), focus: '#designer' },
       { key: 'unit', for: 'banner', label: () => 'หน่วยงาน', ok: () => !!val('unit'), focus: '#unit' },
-      { key: 'cat', for: 'news video', label: () => 'ประเภทข่าว', ok: () => cats().length > 0, focus: 'input[name=category]' },
+      { key: 'cat', for: 'news video banner', label: () => 'ประเภทข่าว', ok: () => cats().length > 0, focus: 'input[name=category]' },
       { key: 'content', for: 'news', label: () => prWrites() ? 'เอกสารให้ PR เขียนข่าว' : radio('contentMode') === 'own' ? `เนื้อหาอย่างน้อย ${MIN_BODY} ตัวอักษร` : 'เนื้อหาข่าว', ok: contentOk,
         focus: () => !radio('contentMode') ? 'input[name=contentMode]' : prWrites() ? '#attachInput' : '#body' },
       { key: 'photo', for: 'news', label: () => `ภาพข่าวอย่างน้อย ${PHOTOS.min} ภาพ`, ok: () => up.photo.items.length >= PHOTOS.min, focus: '#photoInput' },
@@ -1713,7 +1714,7 @@
       $('#pvTitle').classList.toggle('text-ink2', !t);
       $('#pvDate').textContent = type === 'banner' ? 'แบนเนอร์ / อินโฟกราฟิก' : thDate(val('eventDate'));
       $('#pvUnit').textContent = val('unit');
-      const cl = type === 'banner' ? [] : cats();
+      const cl = cats();
       const cat = cl.length ? cl[0] + (cl.length > 1 ? ` +${cl.length - 1}` : '') : '';
       $('#pvCat').hidden = !cat;
       $('#pvCat').textContent = cat;
@@ -1777,7 +1778,7 @@
         ['banner', '#designerError', !val('designer'), $('#designer'), null, radio('creditKind') === 'source' ? 'กรอกที่มาของงาน' : 'กรอกชื่อผู้ออกแบบ'],
         ['news video', '#dateError', !val('eventDate'), $('#eventDate')],
         ['news video banner', '#unitError', !val('unit'), $('#unit')],
-        ['news video', '#catError', !cats().length, $('#catSet'), 'input[name=category]'],
+        ['news video banner', '#catError', !cats().length, $('#catSet'), 'input[name=category]'],
         ['news', '#modeError', !mode, $('#modeSet'), 'input[name=contentMode]'],
         ['news', '#bodyError', mode === 'own' && val('body').length < MIN_BODY, $('#body')],
         ['news', '#attachError', mode === 'pr' && !up.attach.items.length, $('#attachDrop'), '#attachInput'],
@@ -2075,7 +2076,7 @@
           ['ประเภทข่าว', cats().join(', ')], ['วิดีโอ', `${videoText()}${moreVideos.get().length ? ` และลิงก์เพิ่มเติม ${moreVideos.get().length} ลิงก์` : ''}`], ['ใครเห็นได้', aud],
         ],
         banner: [
-          ['ชื่องาน', sub.title], ['หน่วยงาน', sub.unit], [radio('creditKind') === 'source' ? 'ที่มา' : 'ผู้ออกแบบ', val('designer')], ['ไฟล์งาน', `${n('art')} ไฟล์`], ['ใครเห็นได้', aud],
+          ['ชื่องาน', sub.title], ['หน่วยงาน', sub.unit], [radio('creditKind') === 'source' ? 'ที่มา' : 'ผู้ออกแบบ', val('designer')], ['ประเภทข่าว', cats().join(', ')], ['ไฟล์งาน', `${n('art')} ไฟล์`], ['ใครเห็นได้', aud],
         ],
       }[type];
       $('#doneSummary').innerHTML = rows.map(([k, v]) => `<div><dt class="text-[13px] text-ink2">${k}</dt><dd class="font-display text-[16px] font-medium">${esc(v)}</dd></div>`).join('');

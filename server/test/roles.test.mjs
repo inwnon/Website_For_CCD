@@ -57,7 +57,7 @@ describe('developer role switch', () => {
 
 describe('banner designer', () => {
   test('ผู้ออกแบบ or ที่มา must be filled; ที่มา goes on to the story; a video needs its description', async () => {
-    const base = { type: 'banner', title: 'แบนเนอร์จากที่อื่น', desc: 'ข้อความ', unit: 'กองกลาง', audience: ['public'], consent: true };
+    const base = { type: 'banner', categories: ['ข่าวการศึกษา'], title: 'แบนเนอร์จากที่อื่น', desc: 'ข้อความ', unit: 'กองกลาง', audience: ['public'], consent: true };
     const art = { art: [['art.jpg', await img('#a55'), 'image/jpeg']] };
     const none = await staff.call('POST', '/api/submissions', form({ ...base, creditKind: 'source' }, art));
     assert.equal(none.status, 400);
@@ -79,10 +79,10 @@ describe('banner designer', () => {
   test('ผู้ออกแบบ is kept on banners and shown to PR; other types ignore it', async () => {
     await staff.call('PUT', '/api/me/profile', { ...ID_STAFF, unit: 'สำนักงานอธิการบดี', subUnit: 'กองกลาง', position: 'นักประชาสัมพันธ์', consent: true });
     const art = [['art.jpg', await img('#fa0', 800, 600), 'image/jpeg']];
-    const s = await staff.call('POST', '/api/submissions', form({ type: 'banner', title: 'แบนเนอร์ทดสอบ', desc: 'ข้อความ', unit: 'กองกลาง', designer: 'ทีมกราฟิก กองกลาง', audience: ['public'], consent: true }, { art }));
+    const s = await staff.call('POST', '/api/submissions', form({ type: 'banner', categories: ['ข่าวการศึกษา'], title: 'แบนเนอร์ทดสอบ', desc: 'ข้อความ', unit: 'กองกลาง', designer: 'ทีมกราฟิก กองกลาง', audience: ['public'], consent: true }, { art }));
     assert.equal(s.status, 201, JSON.stringify(s.body));
     assert.equal((await pr.call('GET', `/api/submissions/${s.body.submission.ref}`)).body.submission.fields.designer, 'ทีมกราฟิก กองกลาง');
-    const long = await staff.call('POST', '/api/submissions', form({ type: 'banner', title: 'ยาว', desc: 'ข้อความ', unit: 'กองกลาง', designer: 'ก'.repeat(121), audience: ['public'], consent: true }, { art }));
+    const long = await staff.call('POST', '/api/submissions', form({ type: 'banner', categories: ['ข่าวการศึกษา'], title: 'ยาว', desc: 'ข้อความ', unit: 'กองกลาง', designer: 'ก'.repeat(121), audience: ['public'], consent: true }, { art }));
     assert.equal(long.status, 400);
     // A draft keeps it too
     const d = await staff.call('POST', '/api/drafts', form({ type: 'banner', title: 'ร่างแบนเนอร์', designer: 'สมศรี' }));

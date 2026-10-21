@@ -83,7 +83,8 @@ router.get('/news', async (req, res) => {
   const where = [LIVE];
   const params = [];
   if (featured === '1') where.push('n.featured');
-  if (TYPES.includes(kind)) { params.push(kind); where.push(`n.kind = $${params.length}`); }
+  // kind is applied last, so counts=1 can count every kind under the same other filters
+  const kindAt = TYPES.includes(kind) ? (params.push(kind), params.length) : 0;
   if (req.query.skipShelf === '1') where.push(`n.id not in (select f.id from news f where f.featured and f.published_at <= now() and f.withdrawn_at is null
     order by f.published_at desc, f.id limit ${SHELF})`);
   if (range === 'today') where.push(`${LOCAL_DAY} = ${TODAY}`);
@@ -91,11 +92,16 @@ router.get('/news', async (req, res) => {
   if (range === 'week') where.push(`${LOCAL_DAY} between ${TODAY} - extract(dow from ${TODAY})::int and ${TODAY} - extract(dow from ${TODAY})::int + 6`);
   if (range === 'month') where.push(`date_trunc('month', ${LOCAL_DAY}) = date_trunc('month', ${TODAY})`);
   if (typeof date === 'string' && DAY.test(date)) { params.push(date); where.push(`${LOCAL_DAY} = $${params.length}::date`); }
+  // counts=1: how many of each kind under these filters (the kind buttons of ข่าวล่าสุด on index.html)
+  const kinds = req.query.counts === '1'
+    ? Object.fromEntries(TYPES.map((t) => [t, 0]).concat((await query(
+      `select n.kind, count(*)::int n from news n where ${where.join(' and ')}${kindAt ? ` and $${kindAt}::text is not null` : ''} group by n.kind`, params)).rows.map((r) => [r.kind, r.n])))
+    : undefined;
   const rows = (await query(
-    `select n.*, count(*) over ()::int total from news n where ${where.join(' and ')}
+    `select n.*, count(*) over ()::int total from news n where ${[...where, ...(kindAt ? [`n.kind = $${kindAt}`] : [])].join(' and ')}
      order by n.published_at desc, n.id limit ${limit} offset ${offset}`, params)).rows;
   const total = rows[0]?.total ?? 0;
-  res.json({ total, hasMore: offset + rows.length < total, items: rows.map((n) => cardOut(n, req.user)) });
+  res.json({ total, hasMore: offset + rows.length < total, items: rows.map((n) => cardOut(n, req.user)), ...(kinds ? { kinds } : {}) });
 });
 
 // ---- Search ----

@@ -38,7 +38,7 @@
     .err { color: rgb(var(--red)); font-size: 13px; font-weight: 500; margin-top: 4px; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=f4b8427248">
+  <link rel="stylesheet" href="/assets/app.css?v=cc0f23faf0">
 </head>
 <body class="app">
   <a href="#importForm" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่ฟอร์ม</a>
@@ -153,12 +153,12 @@
 
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="grid content-start gap-1.5">
-                <span class="font-display text-[15px] font-semibold">ลิงก์วิดีโอ <span id="videoStar" class="text-brand" hidden>*</span></span>
+                <span class="flex min-h-[44px] items-center font-display text-[15px] font-semibold"><span>ลิงก์วิดีโอ <span id="videoStar" class="text-brand" hidden>*</span></span></span>
                 <input id="videoUrl" type="url" inputmode="url" placeholder="YouTube, Facebook, TikTok หรือ Google Drive" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="videoUrlErr">
                 <span id="videoUrlErr" class="err" hidden></span>
               </label>
               <div class="grid content-start gap-1.5">
-                <div class="flex min-h-[24px] flex-wrap items-center justify-between gap-2">
+                <div class="flex min-h-[44px] flex-wrap items-center justify-between gap-2">
                   <label for="credit" class="font-display text-[15px] font-semibold"><span id="creditLabel">เครดิตภาพ</span> <span id="creditStar" class="text-brand" hidden>*</span></label>
                   <div id="creditKindBox" class="seg-switch" role="radiogroup" aria-label="เครดิตของงานนี้ระบุเป็น" hidden>
                     <label><input type="radio" name="creditKind" value="designer" checked><span id="creditFirst">ผู้ออกแบบ</span></label>
@@ -175,10 +175,6 @@
               <div id="videoLinksBox" role="group" aria-labelledby="videoLinksTitle" aria-describedby="videoLinksErr"></div>
               <span id="videoLinksErr" class="err" hidden></span>
             </div>
-            <label class="grid content-start gap-1.5">
-              <span class="font-display text-[15px] font-semibold">ลิงก์ต้นฉบับ</span>
-              <input id="sourceUrl" type="url" inputmode="url" placeholder="ลิงก์โพสต์เดิมบน Facebook" class="field h-12 rounded-2xl px-4 text-[15px]">
-            </label>
             <!-- ลิงก์ภาพเพิ่มเติม: one or more albums (Facebook, Google Drive); each is a "ดูรูปภาพเพิ่มเติม" button on the story -->
             <div class="grid gap-1.5">
               <label for="albumUrl" class="font-display text-[15px] font-semibold">ลิงก์ภาพเพิ่มเติม</label>
@@ -261,6 +257,8 @@
     // Where แก้ไขข่าว goes back to: the list of published stories (as it was) or the work on the PR desk; only those pages
     const BACK = (() => { const b = new URLSearchParams(location.search).get('back') || ''; return /^(pr-news|pr)\.html(\?[^#]*)?$/.test(b) ? b : 'pr-news.html'; })();
     let editing = null; // the story as loaded
+    // The Facebook post a story was fetched from (no field for it: it is nearly always the same as ลิงก์ภาพเพิ่มเติม)
+    let sourceUrl = null;
     // วิดีโอเสียงตามสาย: a category used alone (server/rules.mjs soloOk)
     const SOLO = (SITE.videoCategories || []).filter((c) => !SITE.categories.includes(c));
     // The credit line names who made it, by kind of content
@@ -305,7 +303,6 @@
     function syncKind() {
       const k = radio('kind');
       $('#bodyLabel').textContent = BODY[k] || BODY.news;
-      $('#catStar').hidden = k === 'banner';
       $('#photoStar').hidden = k === 'video';
       $('#videoStar').hidden = k !== 'video';
       const banner = k === 'banner', two = k !== 'video';
@@ -424,7 +421,7 @@
         if (r.title) $('#title').value = r.title;
         if (r.body) $('#body').value = r.body;
         if (r.date) $('#date').value = r.date;
-        $('#sourceUrl').value = r.sourceUrl;
+        sourceUrl = r.sourceUrl;
         photos = photos.filter((p) => p.kind === 'file');
         photos.unshift(...r.images.map((u) => ({ id: pid(), kind: 'remote', url: u, on: true })));
         paintPhotos();
@@ -458,7 +455,7 @@
         unit: $('#unit').value.trim(), date: $('#date').value, time: time24($('#time').value) || '12:00',
         categories: cats(), audience: AUD[radio('aud')], videoUrl: $('#videoUrl').value.trim() || null, videoLinks: moreVideos.get(),
         credit: $('#credit').value, creditKind: radio('kind') === 'video' ? null : radio('creditKind'),
-        sourceUrl: $('#sourceUrl').value.trim() || null, albumUrl: $('#albumUrl').value.trim() || null, albumLinks: moreAlbums.get(),
+        sourceUrl: sourceUrl || null, albumUrl: $('#albumUrl').value.trim() || null, albumLinks: moreAlbums.get(),
         titleEn: $('#titleEn').value, bodyEn: $('#bodyEn').value,
         bodySize: null, bodyLeading: tools?.get().leading, fresh: ADD || undefined,
         remoteImages: photos.filter((p) => p.on && p.kind === 'remote').map((p) => p.url),
@@ -484,7 +481,7 @@
       if (d.albumUrl && !https(d.albumUrl)) errs.albumUrl = 'ใส่ลิงก์ที่ขึ้นต้นด้วย https://';
       const badAlbum = d.albumLinks.findIndex((u) => !https(u));
       if (badAlbum >= 0) errs.albumLinks = `ลิงก์ภาพเพิ่มเติมที่ ${badAlbum + 2} ต้องขึ้นต้นด้วย https://`;
-      if (d.kind !== 'banner' && !d.categories.length) errs.categories = 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท';
+      if (!d.categories.length) errs.categories = 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท';
       if (d.kind !== 'video' && !on) errs.photos = 'เลือกหรือแนบภาพอย่างน้อย 1 ภาพ';
       if (d.kind === 'video' && !d.videoUrl) errs.videoUrl = 'ใส่ลิงก์วิดีโอ';
       const bad = d.videoLinks.findIndex((u) => !VIDEO_RE.some((r) => r.test(u)));
@@ -536,6 +533,7 @@
       paintPhotos();
       clearErrs();
       $('#fbUrl').value = '';
+      sourceUrl = null;
       $('#fetchNotes').hidden = true;
       $('#time').value = '12:00';
       if (ADD) setNow();
@@ -593,7 +591,7 @@
       moreVideos.set(s.videoLinks || []);
       $('#credit').value = s.credit || '';
       document.querySelector(`input[name=creditKind][value=${s.creditKind === 'source' ? 'source' : 'designer'}]`).checked = true;
-      $('#sourceUrl').value = s.sourceUrl || '';
+      sourceUrl = s.sourceUrl || null;
       $('#albumUrl').value = s.albumUrl || '';
       moreAlbums.set(s.albumLinks || []);
       $('#titleEn').value = s.titleEn || '';

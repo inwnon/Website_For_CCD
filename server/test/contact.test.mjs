@@ -77,7 +77,7 @@ describe('video producer', () => {
     assert.equal(s.status, 201, JSON.stringify(s.body));
     assert.equal((await pr.call('GET', `/api/submissions/${s.body.submission.ref}`)).body.submission.fields.producer, 'ทีมวิดีโอ กองกลาง');
     assert.equal((await staff.call('POST', '/api/submissions', form({ ...v, producer: 'ก'.repeat(121) }))).status, 400);
-    const b = await staff.call('POST', '/api/submissions', form({ type: 'banner', designer: 'ทีมกราฟิกทดสอบ', title: 'แบนเนอร์', desc: 'x', unit: 'กองกลาง', producer: 'ไม่ใช่วิดีโอ', audience: ['public'], consent: true },
+    const b = await staff.call('POST', '/api/submissions', form({ type: 'banner', categories: ['ข่าวการศึกษา'], designer: 'ทีมกราฟิกทดสอบ', title: 'แบนเนอร์', desc: 'x', unit: 'กองกลาง', producer: 'ไม่ใช่วิดีโอ', audience: ['public'], consent: true },
       { art: [['a.png', Buffer.from('89504e470d0a1a0a', 'hex'), 'image/png']] }));
     if (b.status === 201) assert.equal((await pr.call('GET', `/api/submissions/${b.body.submission.ref}`)).body.submission.fields.producer, null);
     const d = await staff.call('POST', '/api/drafts', form({ type: 'video', title: 'ร่างวิดีโอ', producer: 'สมศักดิ์' }));

@@ -230,7 +230,8 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
   if (more.error) errors.videoLinks = more.error;
   if (s.type === 'news' && story.body.length < 50) errors.body = 'ใส่เนื้อหาข่าวก่อนเผยแพร่';
   if (s.type === 'video' && !story.video_url) errors.videoUrl = 'ใส่ลิงก์วิดีโอที่เผยแพร่แล้ว (เช่น YouTube ของมหาวิทยาลัย)';
-  if (!story.categories.every((c) => categories().includes(c)) || story.categories.length > MAX_CATS) errors.categories = 'ประเภทข่าวไม่ถูกต้อง';
+  if (!story.categories.length) errors.categories = 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท';
+  else if (!story.categories.every((c) => categories().includes(c)) || story.categories.length > MAX_CATS) errors.categories = 'ประเภทข่าวไม่ถูกต้อง';
   else if (!soloOk(story.categories)) errors.categories = SOLO_MSG;
   if (!story.audience.length || !story.audience.every((a) => AUDIENCES.includes(a))) errors.audience = 'เลือกว่าใครเห็นข่าวนี้ได้';
   if (Number.isNaN(story.published_at.getTime())) errors.publishAt = 'วันเวลาเผยแพร่ไม่ถูกต้อง';

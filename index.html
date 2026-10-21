@@ -139,6 +139,10 @@
     /* Chosen: the same gradient, white text and glow as the time range chips (วันนี้อยากอ่านข่าวช่วงไหน?) */
     .kind-chip[aria-pressed="true"] { border-color: transparent; background: var(--grad); color: #fff; box-shadow: var(--shadow-glow); }
     .kind-chip[aria-pressed="true"] .kind-ic { color: inherit; }
+    /* How many stories of the kind, under the time chosen above */
+    .kind-n { min-width: 26px; border-radius: 9999px; padding: 0 8px; background: rgb(var(--surface-2)); color: rgb(var(--ink-2)); font-size: 13px; font-weight: 600; line-height: 24px; text-align: center; font-variant-numeric: tabular-nums; transition: opacity .2s var(--ease-out); }
+    .kind-chip[aria-pressed="true"] .kind-n { background: rgb(255 255 255 / .22); color: #fff; }
+    .kind-n.is-stale { opacity: .45; }
     /* SVG grain for banner depth */
     .grain::after {
       content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .08; mix-blend-mode: overlay; border-radius: inherit;
@@ -184,7 +188,7 @@
     }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=f4b8427248">
+  <link rel="stylesheet" href="/assets/app.css?v=cc0f23faf0">
 </head>
 
 <body class="min-h-screen">
@@ -358,7 +362,7 @@
             <p id="latestEyebrow" class="font-display text-[14px] font-medium text-brand">อัปเดตจาก 42 หน่วยงาน</p>
             <h2 id="latest-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวล่าสุด</h2>
           </div>
-          <a id="latestAll" href="search.html" class="press t-spring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2 font-display text-[15px] font-medium text-purple hover:translate-x-0.5">ดูทั้งหมด
+          <a id="latestAll" href="search.html" class="press t-spring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2 font-display text-[15px] font-medium text-purple hover:translate-x-0.5">ดูทั้งหมด<span id="latestAllNote" class="sr-only"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
         </div>
@@ -466,6 +470,7 @@
 
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
+  <script src="shortcuts.js" defer></script>
   <script src="digest-book.js"></script>
   <script>
     // ---- Helpers ----
@@ -697,7 +702,8 @@
       }
       if (from) { p.set('range', 'custom'); p.set('from', from); p.set('to', to); }
       $('#latestAll').href = `search.html${p.size ? `?${p}` : ''}`;
-      $('#latestAll').setAttribute('aria-label', p.size ? 'ดูทั้งหมดตามตัวกรองที่เลือก' : 'ดูทั้งหมด');
+      // Said after the words shown (a name that starts with them, as WCAG 2.5.3 asks)
+      $('#latestAllNote').textContent = p.size ? ' ตามตัวกรองที่เลือก' : '';
     }
     function paintHeading(total) {
       const title = $('#latest-title'), eyebrow = $('#latestEyebrow');
@@ -716,6 +722,7 @@
       if (latest.kind) p.set('kind', latest.kind);
       // The stories on the ข่าวเด่น shelf are not shown again here; once no longer featured they are back by date
       if (!latest.date) { p.set('feed', '1'); p.set('skipShelf', '1'); }
+      if (!append) { p.set('counts', '1'); paintKindCounts(null); }
       moreBtn.disabled = true;
       try {
         const r = await api('/news?' + p);
@@ -723,6 +730,7 @@
         const html = r.items.map(card).join('');
         if (append) grid.insertAdjacentHTML('beforeend', html); else grid.innerHTML = html;
         latest.offset += r.items.length;
+        if (r.kinds) paintKindCounts(r.kinds);
         applySaved(grid);
         reveal(grid);
         paintHeading(r.total);
@@ -756,7 +764,18 @@
     const kindBar = $('#kindChips');
     kindBar.innerHTML = [['', 'ทั้งหมด'], ...Object.entries(KIND).map(([k, [l]]) => [k, l])].map(([k, l]) => `
       <button type="button" data-kind="${k}" aria-pressed="${latest.kind === k}" class="kind-chip press t-spring inline-flex h-11 items-center gap-2 rounded-full border px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">
-        <svg class="kind-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KIND_ICON[k]}</svg>${l}</button>`).join('');
+        <svg class="kind-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KIND_ICON[k]}</svg>${l}<span class="kind-n" data-kind-n="${k}" hidden></span></button>`).join('');
+    // The numbers come with the stories (api /news?counts=1), for the time chosen; while the next ones load the old ones fade
+    function paintKindCounts(kinds) {
+      if (!kinds) { kindBar.querySelectorAll('[data-kind-n]').forEach((x) => x.classList.add('is-stale')); return; }
+      const all = Object.values(kinds).reduce((a, n) => a + n, 0);
+      kindBar.querySelectorAll('[data-kind-n]').forEach((x) => {
+        const n = x.dataset.kindN ? kinds[x.dataset.kindN] || 0 : all;
+        x.innerHTML = `${n.toLocaleString('th-TH')}<span class="sr-only"> ข่าว</span>`;
+        x.hidden = false;
+        x.classList.remove('is-stale');
+      });
+    }
     kindBar.addEventListener('click', (e) => {
       const b = e.target.closest('[data-kind]');
       if (!b || b.dataset.kind === latest.kind) return;

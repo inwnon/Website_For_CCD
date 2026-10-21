@@ -89,7 +89,7 @@
 .seg-switch { display: inline-flex; padding: 3px; border-radius: 9999px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
 .seg-switch label { position: relative; cursor: pointer; }
 .seg-switch input { position: absolute; opacity: 0; pointer-events: none; }
-.seg-switch span { display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 9999px; font: 500 14px/1 Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), color .2s ease-out; }
+.seg-switch span { display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 9999px; font: 500 14px/1 Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), color .2s ease-out; }
 .seg-switch label:hover span { color: rgb(var(--ink)); }
 .seg-switch label:active span { transform: scale(.95); }
 .seg-switch input:focus-visible + span { outline: 3px solid rgb(var(--focus)); outline-offset: 2px; }
@@ -111,3 +111,12 @@
 .toc-row:focus-visible { outline: 2px solid #6C3BD6; outline-offset: 1px; }
 /* Section tab on the outer edge of a digest category page (digest-book.js secTab) */
 .sec-tab { position: absolute; z-index: 1; display: grid; place-items: center; width: 3.4cqw; height: 7cqw; font: 600 2.2cqw/1 Kanit, sans-serif; color: #fff; }
+
+/* A soft fill behind a menu link on hover (each page used to define it; some did not, so their menus had no hover) */
+.hover-fill { position: relative; isolation: isolate; }
+.hover-fill::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: rgb(var(--surface-2)); opacity: 0; transform: scale(.9);
+  transition: opacity .2s cubic-bezier(.22, 1, .36, 1), transform .35s cubic-bezier(.34, 1.56, .64, 1);
+}
+.hover-fill:hover::before { opacity: 1; transform: none; }
