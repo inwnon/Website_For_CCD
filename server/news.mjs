@@ -77,7 +77,7 @@ export const router = Router();
 // ---- Home page lists and the archive day view ----
 export const SHELF = 4;
 router.get('/news', async (req, res) => {
-  const { featured, range, date, kind } = req.query;
+  const { featured, range, date, kind } = /** @type {Record<string, any>} */ (req.query);
   const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 48);
   const offset = Math.max(Number(req.query.offset) || 0, 0);
   const where = [LIVE];

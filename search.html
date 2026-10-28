@@ -380,7 +380,7 @@
         </article></li>`;
     }
     function item(n, i = 99) {
-      const [kl, kc] = KIND[n.kind] || KIND.news;
+      const [kl] = KIND[n.kind] || KIND.news;
       return `<li${i >= 2 ? ' class="cv-card"' : ''}>
         <article class="kcard kcard-${['video', 'banner'].includes(n.kind) ? n.kind : 'news'} kside group relative grid gap-4 rounded-card border bg-surface p-3 shadow-raised sm:grid-cols-[220px_minmax(0,1fr)]">
           <div class="relative aspect-[16/9] overflow-hidden rounded-2xl bg-surface2">

@@ -50,7 +50,7 @@ router.get('/pr/arrivals', async (req, res) => {
 });
 
 router.get('/pr/submissions', async (req, res) => {
-  const { status, type, q, unread } = req.query;
+  const { status, type, q, unread } = /** @type {Record<string, any>} */ (req.query);
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
   const offset = Math.max(Number(req.query.offset) || 0, 0);
   const where = [];

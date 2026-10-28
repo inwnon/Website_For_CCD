@@ -1187,12 +1187,10 @@
     const platformErr = (name) => `ลิงก์ไม่ตรงกับ ${PLATFORMS[radio(name)].label} ตรวจลิงก์อีกครั้งหรือเปลี่ยนประเภทลิงก์`;
 
     // ---- Sender: the signed-in account (null while signed out: the form can be filled, sending needs sign-in) ----
-    let profile = null;
     let guest = true;
     let editing = null; // the submission being fixed after "ขอให้แก้ไข" (submit.html?edit=REF)
     const editRef = new URLSearchParams(location.search).get('edit');
     function setupSender(p) {
-      profile = p;
       guest = !p;
       $('#guestNote').hidden = !guest;
       $('#guestLogin').href = window.loginUrl();
@@ -1535,7 +1533,6 @@
       { key: 'consent', for: 'news video banner', label: () => 'ยืนยันข้อมูลและสิทธิ์', ok: () => $('#consent').checked, focus: '#consent' },
     ];
     const activeChecks = () => CHECKS.filter((c) => c.for.split(' ').includes(type));
-    const focusSel = (c) => typeof c.focus === 'function' ? c.focus() : c.focus;
 
     // ---- Switch type: show matching sections, renumber, reword ----
     function setType(t, opts = {}) {
@@ -1722,7 +1719,7 @@
 
       // Preview placeholders drawn here (no image service): background, text colour, label
       const ph = (bg, fg, t) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="${bg}"/><text x="320" y="196" font-family="Kanit,sans-serif" font-size="44" font-weight="600" fill="${fg}" text-anchor="middle">${esc(t)}</text></svg>`);
-      let img = ph('#2A3B9C', '#C8A6FF', 'Cover'), badge = '', play = false;
+      let img = ph('#2A3B9C', '#C8A6FF', 'Cover'), badge, play = false;
       if (type === 'news') {
         const c = up.photo.coverItem; if (c) img = c.url;
         badge = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg>${up.photo.items.length} ภาพ`;

@@ -17,6 +17,7 @@
     setTimeout(() => { live.textContent = t; }, 30);
   };
 
+  /** @param {HTMLElement} list */
   window.Sortable = function (list, { item, ids, move, noun = 'ภาพ', first = '' }) {
     if (getComputedStyle(list).position === 'static') list.style.position = 'relative';
     const items = () => [...list.querySelectorAll(item)];
@@ -50,8 +51,8 @@
 
     // ---- Keyboard: on the item itself, or on a checkbox in it (radios keep their own arrow keys) ----
     list.addEventListener('keydown', (e) => {
-      const el = e.target.closest(item);
-      if (!el || (e.target !== el && !e.target.matches('input[type=checkbox]'))) return;
+      const el = /** @type {HTMLElement} */ ((/** @type {Element} */ (e.target)).closest(item));
+      if (!el || (e.target !== el && !(/** @type {Element} */ (e.target)).matches('input[type=checkbox]'))) return;
       const id = el.dataset.id, i = ids().indexOf(id);
       const to = { ArrowLeft: i - 1, ArrowUp: i - 1, ArrowRight: i + 1, ArrowDown: i + 1, Home: 0, End: ids().length - 1 }[e.key];
       if (to == null) return;
@@ -80,8 +81,8 @@
       const el = list.querySelector(`[data-id="${CSS.escape(drag.id)}"]`);
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const ghost = el.cloneNode(true);
-      ghost.querySelectorAll('input, [tabindex], [id]').forEach((x) => { x.removeAttribute('id'); x.removeAttribute('name'); x.tabIndex = -1; });
+      const ghost = /** @type {HTMLElement} */ (el.cloneNode(true));
+      /** @type {NodeListOf<HTMLElement>} */ (ghost.querySelectorAll('input, [tabindex], [id]')).forEach((x) => { x.removeAttribute('id'); x.removeAttribute('name'); x.tabIndex = -1; });
       ghost.removeAttribute('data-id');
       ghost.setAttribute('aria-hidden', 'true');
       ghost.classList.add('drag-ghost');
@@ -96,8 +97,8 @@
     };
     list.addEventListener('pointerdown', (e) => {
       // The controls on a picture (ปก, ✓) are pressed, not dragged
-      if (e.button > 0 || e.target.closest('button, .pick')) return;
-      const el = e.target.closest(item);
+      if (e.button > 0 || (/** @type {Element} */ (e.target)).closest('button, .pick')) return;
+      const el = /** @type {HTMLElement} */ ((/** @type {Element} */ (e.target)).closest(item));
       if (!el || ids().length < 2) return;
       drag = { id: el.dataset.id, x: e.clientX, y: e.clientY, mouse: e.pointerType === 'mouse', on: false, pointer: e.pointerId };
       if (!drag.mouse) drag.timer = setTimeout(() => drag && start(), 260);

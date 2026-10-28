@@ -8,6 +8,11 @@ node_modules
 uploads
 backups
 server/test
+eslint.config.mjs
+tsconfig.json
+globals.d.ts
+server/tsconfig.json
+server/types.d.ts
 screenshots
 *.log
 Dockerfile

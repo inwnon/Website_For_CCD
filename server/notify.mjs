@@ -35,6 +35,7 @@ export const link = (path) => `${ORIGIN}/${path.replace(/^\//, '')}`;
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // One layout for every email: heading, paragraphs, an optional quote, one button
+/** @param {{ title?: string, lines?: string[], quote?: string, button?: { label: string, href: string } }} content */
 function render({ title, lines = [], quote, button }) {
   const text = [title, '', ...lines, ...(quote ? ['', `“${quote}”`] : []), ...(button ? ['', `${button.label}: ${button.href}`] : []),
     '', '—', 'คลังข่าว มรส. งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี', `ตั้งค่าการแจ้งเตือน: ${link('inbox.html#notify')}`].join('\n');

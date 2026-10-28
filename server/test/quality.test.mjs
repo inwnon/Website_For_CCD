@@ -9,7 +9,7 @@ import sharp from 'sharp';
 import { query } from '../db.mjs';
 import { thaiWords, searchTerms } from '../thai.mjs';
 import { restore, snapshot } from './cleanup.mjs';
-import { BASE, ID_STAFF, anon, form, img, login, request } from './helpers.mjs';
+import { ID_STAFF, anon, form, img, login, request } from './helpers.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
 const NEWS = {

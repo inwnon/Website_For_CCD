@@ -8,6 +8,7 @@
   const BIN = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
   const PLUS = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 
+  /** @param {HTMLElement} box */
   window.VideoLinks = function (box, { max = 5, placeholder = 'https://', onChange = () => {}, label = 'ลิงก์วิดีโอเพิ่มเติม', add: addText = 'เพิ่มลิงก์วิดีโอ' } = {}) {
     box.innerHTML = `
       <ol class="grid gap-2" data-vl-list></ol>
@@ -15,13 +16,13 @@
         <button type="button" data-vl-add class="press t-spring inline-flex h-11 items-center gap-2 rounded-2xl border border-dashed border-line bg-surface px-4 font-display text-[15px] font-medium text-purple hover:-translate-y-0.5 hover:border-[rgb(var(--purple)/.5)]">${PLUS}${addText}</button>
         <span data-vl-count class="text-[13px] text-ink2"></span>
       </div>`;
-    const list = box.querySelector('[data-vl-list]'), add = box.querySelector('[data-vl-add]'), count = box.querySelector('[data-vl-count]');
+    const list = box.querySelector('[data-vl-list]'), add = /** @type {HTMLButtonElement} */ (box.querySelector('[data-vl-add]')), count = box.querySelector('[data-vl-count]');
     const rows = () => [...list.children];
     const inputs = () => rows().map((li) => li.querySelector('input'));
 
     function paint() {
       rows().forEach((li, i) => {
-        li.querySelector('[data-vl-no]').textContent = i + 1;
+        li.querySelector('[data-vl-no]').textContent = String(i + 1);
         li.querySelector('input').setAttribute('aria-label', `${label}ที่ ${i + 1}`);
         li.querySelector('[data-vl-remove]').setAttribute('aria-label', `ลบ${label}ที่ ${i + 1}`);
       });
@@ -49,7 +50,7 @@
       onChange();
     });
     list.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-vl-remove]');
+      const b = (/** @type {Element} */ (e.target)).closest('[data-vl-remove]');
       if (!b) return;
       const li = b.closest('li'), i = rows().indexOf(li);
       li.remove();

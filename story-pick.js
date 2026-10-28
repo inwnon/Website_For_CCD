@@ -26,7 +26,7 @@
     }
     async function load(append) {
       const my = ++seq;
-      const p = new URLSearchParams({ show: 'live', limit: PAGE, offset: append ? items.length : 0 });
+      const p = new URLSearchParams({ show: 'live', limit: String(PAGE), offset: String(append ? items.length : 0) });
       const q = input.value.trim();
       if (q) p.set('q', q);
       more.disabled = true;

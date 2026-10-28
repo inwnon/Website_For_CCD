@@ -72,6 +72,7 @@ async function roleFor(email) {
   return pr?.role ?? domainRole(email);
 }
 
+/** @param {import('express').Request} req @param {import('express').Response} res @param {{ email: string, name: string, avatarUrl?: string, sub?: string }} profile */
 async function startSession(req, res, { email, name, avatarUrl, sub }) {
   email = email.toLowerCase();
   const role = await roleFor(email);

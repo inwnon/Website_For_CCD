@@ -614,15 +614,6 @@
     const thDate = (iso) => { if (!iso) return '–'; const [y, m, d] = iso.split('-').map(Number); return `${d} ${TH_MONTHS[m - 1]} ${y + 543}`; };
     const fmtSize = (b) => b >= 1024 ** 3 ? (b / 1024 ** 3).toFixed(1) + ' GB' : b >= 1024 ** 2 ? (b / 1024 ** 2).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 
-    // ---- API ----
-    async function api(path, opts = {}) {
-      const init = { method: opts.method || 'GET', headers: {} };
-      if (opts.body !== undefined) { init.body = JSON.stringify(opts.body); init.headers['Content-Type'] = 'application/json'; }
-      const res = await fetch('/api' + path, init);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw Object.assign(new Error(data.error || 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่'), { status: res.status, details: data.details });
-      return data;
-    }
     function toast(msg, bad = false) {
       $('#toast').innerHTML = `<div class="toast-box flex items-center gap-3 rounded-2xl ${bad ? 'bg-red-soft text-brand' : 'bg-ink text-shell'} px-5 py-3 font-display text-[15px] font-medium shadow-float">${esc(msg)}</div>`;
       clearTimeout(toast.t);

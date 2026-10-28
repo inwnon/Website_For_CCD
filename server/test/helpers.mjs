@@ -15,6 +15,7 @@ export async function login(as) {
   return { cookie, call };
 }
 
+/** @returns {Promise<{ status: number, headers: Headers, body: any }>} */
 export async function request(method, path, body, headers = {}) {
   const opts = { method, headers: { ...headers } };
   if (body instanceof FormData) opts.body = body;

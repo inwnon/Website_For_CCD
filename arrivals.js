@@ -71,8 +71,8 @@
 
   // ---- Count: the badge in the menu and, while the tab is in the background, the tab title ----
   function paintCount() {
-    document.querySelectorAll('[data-arrivals-badge]').forEach((b) => {
-      b.textContent = unseen;
+    /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('[data-arrivals-badge]')).forEach((b) => {
+      b.textContent = String(unseen);
       b.hidden = !unseen;
       b.setAttribute('aria-label', `งานใหม่ ${unseen} งาน`);
     });

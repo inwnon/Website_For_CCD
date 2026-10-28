@@ -46,7 +46,7 @@ router.get('/admin/users', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
   const offset = Math.max(Number(req.query.offset) || 0, 0);
   const q = str(req.query.q, 100, 'คำค้น');
-  const role = ['staff', 'student', 'external', 'intern', 'coordinator', 'pr', 'admin'].includes(req.query.role) ? req.query.role : null;
+  const role = ['staff', 'student', 'external', 'intern', 'coordinator', 'pr', 'admin'].includes(/** @type {string} */ (req.query.role)) ? req.query.role : null;
   // Everyone who signed in, plus roles given to addresses that have not signed in yet
   const rows = (await query(
     `with people as (
@@ -121,8 +121,8 @@ router.get('/admin/audit', async (req, res) => {
   if (ACTIONS[req.query.action]) where.push(`a.action = ${p(req.query.action)}`);
   const q = str(req.query.q, 100, 'คำค้น');
   if (q) where.push(`(a.summary ilike ${p(`%${q.replace(/[\\%_]/g, '\\$&')}%`)} or a.actor_email ilike $${params.length} or a.target ilike $${params.length})`);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(req.query.from || '')) where.push(`(a.at at time zone 'Asia/Bangkok')::date >= ${p(req.query.from)}::date`);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(req.query.to || '')) where.push(`(a.at at time zone 'Asia/Bangkok')::date <= ${p(req.query.to)}::date`);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(req.query.from || ''))) where.push(`(a.at at time zone 'Asia/Bangkok')::date >= ${p(req.query.from)}::date`);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(req.query.to || ''))) where.push(`(a.at at time zone 'Asia/Bangkok')::date <= ${p(req.query.to)}::date`);
   const rows = (await query(
     `select a.*, u.name actor_name, count(*) over ()::int total from audit_log a left join users u on u.id = a.actor_id
      ${where.length ? `where ${where.join(' and ')}` : ''} order by a.at desc, a.id desc limit ${limit} offset ${offset}`, params)).rows;

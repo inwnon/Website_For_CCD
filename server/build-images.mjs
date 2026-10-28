@@ -11,6 +11,7 @@ const ROOT = resolve(import.meta.dirname, '..');
 const SRC = join(ROOT, 'brand_assets');
 const OUT = join(ROOT, 'assets', 'img');
 mkdirSync(OUT, { recursive: true });
+/** @type {[string, string, number, (s: import('sharp').Sharp) => import('sharp').Sharp][]} */
 const jobs = [
   ['Logo-CCD.png', 'logo-96.webp', 96, (s) => s.webp({ quality: 86 })],
   ['Logo-CCD.png', 'logo-192.webp', 192, (s) => s.webp({ quality: 86 })],

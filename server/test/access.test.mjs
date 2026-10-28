@@ -73,6 +73,7 @@ describe('no secrets in the code', () => {
   })(ROOT);
 
   test('no private keys, API keys or passwords written in the files', () => {
+    /** @type {[RegExp, string][]} */
     const PATTERNS = [
       [/-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----/, 'private key'],
       [/AKIA[0-9A-Z]{16}/, 'AWS key'],

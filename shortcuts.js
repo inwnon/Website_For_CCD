@@ -149,7 +149,7 @@
   }
   document.addEventListener('click', (e) => {
     if (!panel) return;
-    if (e.target.closest('[data-scx-edit]')) { close(); openEditor(); return; }
+    if ((/** @type {Element} */ (e.target)).closest('[data-scx-edit]')) { close(); openEditor(); return; }
     if (!panel.contains(e.target) && !trigger.contains(e.target)) close();
   });
   document.addEventListener('keydown', (e) => {

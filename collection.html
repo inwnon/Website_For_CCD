@@ -185,7 +185,7 @@
             <p class="mt-auto pt-3 text-[13px] text-ink2">${signedIn ? 'บัญชีของคุณไม่อยู่ในกลุ่มผู้อ่านข่าวนี้' : 'ข่าวภายใน ใช้บัญชีอีเมลของมหาวิทยาลัย'}</p>
           </div></article></li>`;
       }
-      const [kl, kc] = KIND[n.kind] || KIND.news;
+      const [kl] = KIND[n.kind] || KIND.news;
       return `<li>
         <article class="kcard kcard-${['video', 'banner'].includes(n.kind) ? n.kind : 'news'} lift group relative flex h-full flex-col overflow-hidden rounded-card border bg-surface shadow-raised">
           <div class="relative aspect-[16/10] overflow-hidden bg-surface2">

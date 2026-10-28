@@ -164,12 +164,12 @@
         const s = getSelection();
         if (!s.rangeCount || !within(s.anchorNode)) return;
         saved = s.getRangeAt(0).cloneRange();
-        const el = s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement;
-        select.value = String(el.closest('[data-size]') && ed.contains(el.closest('[data-size]')) ? sizeOf(el.closest('[data-size]').dataset.size) || BASE : BASE);
+        const el = /** @type {HTMLElement} */ (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement);
+        select.value = String(el.closest('[data-size]') && ed.contains(el.closest('[data-size]')) ? sizeOf(/** @type {HTMLElement} */ (el.closest('[data-size]')).dataset.size) || BASE : BASE);
         boldBtn.setAttribute('aria-pressed', String(document.queryCommandState('bold')));
-        const p = el.closest('p, div:not(.tt-editor)');
+        const p = /** @type {HTMLElement} */ (el.closest('p, div:not(.tt-editor)'));
         const lh = (p && ed.contains(p) && p.dataset.leading) || 'normal';
-        bar.querySelectorAll('input[type=radio]').forEach((r) => { r.checked = r.value === lh; });
+        /** @type {NodeListOf<HTMLInputElement>} */ (bar.querySelectorAll('input[type=radio]')).forEach((r) => { r.checked = r.value === lh; });
       });
       const restore = () => {
         ed.focus({ preventScroll: true });
@@ -203,7 +203,7 @@
       boldBtn.addEventListener('mousedown', (e) => e.preventDefault()); // keep the selection
       boldBtn.addEventListener('click', () => {
         if (!restore()) { say('เลือกข้อความที่ต้องการทำตัวหนาก่อน'); return; }
-        document.execCommand('styleWithCSS', false, false);
+        document.execCommand('styleWithCSS', false, 'false');
         document.execCommand('bold');
         sync();
         boldBtn.setAttribute('aria-pressed', String(document.queryCommandState('bold')));
@@ -213,7 +213,7 @@
         const size = Number(select.value);
         if (!restore()) { say('เลือกข้อความที่ต้องการเปลี่ยนขนาดก่อน'); select.value = String(BASE); return; }
         // The browser marks the selection with <font size="7">; each becomes a span with the size chosen
-        document.execCommand('styleWithCSS', false, false);
+        document.execCommand('styleWithCSS', false, 'false');
         document.execCommand('fontSize', false, '7');
         ed.querySelectorAll('font[size="7"]').forEach((f) => {
           const sp = document.createElement('span');
@@ -226,15 +226,16 @@
         say(`ขนาด ${size} px`);
       });
       bar.addEventListener('change', (e) => {
-        if (e.target.type !== 'radio') return;
+        const target = /** @type {HTMLInputElement} */ (e.target);
+        if (target.type !== 'radio') return;
         restore();
         if (!saved) { say('วางเคอร์เซอร์หรือเลือกข้อความในย่อหน้าที่ต้องการก่อน'); return; }
         // Text typed straight into an empty box is not in a paragraph yet
         if (![...ed.children].some((p) => saved.intersectsNode(p))) { document.execCommand('formatBlock', false, 'p'); saved = getSelection().getRangeAt(0).cloneRange(); }
-        const chosen = [...ed.children].filter((p) => saved.intersectsNode(p));
-        chosen.forEach((p) => { if (e.target.value === 'normal') delete p.dataset.leading; else p.dataset.leading = e.target.value; });
+        const chosen = [.../** @type {HTMLCollectionOf<HTMLElement>} */ (ed.children)].filter((p) => saved.intersectsNode(p));
+        chosen.forEach((p) => { if (target.value === 'normal') delete p.dataset.leading; else p.dataset.leading = target.value; });
         sync();
-        say(`ระยะบรรทัด${LEADINGS.find(([k]) => k === e.target.value)[1]} ${chosen.length} ย่อหน้า`);
+        say(`ระยะบรรทัด${LEADINGS.find(([k]) => k === target.value)[1]} ${chosen.length} ย่อหน้า`);
         if (opts.onChange) opts.onChange({ size: null, leading: null });
       });
       editors.push({ ed, bar });

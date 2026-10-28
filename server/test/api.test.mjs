@@ -253,7 +253,7 @@ describe('reading news', () => {
   });
 
   test('internal story is a locked card for signed-out readers and students', async () => {
-    const anon = await (await fetch(`${BASE}/api/news?limit=48`)).json();
+    const anon = /** @type {any} */ (await (await fetch(`${BASE}/api/news?limit=48`)).json());
     const card = anon.items.find((n) => n.id === id);
     assert.deepEqual(Object.keys(card).sort(), ['audience', 'id', 'locked', 'publishedAt']);
     assert.ok((await student.call('GET', '/api/news?limit=48')).body.items.find((n) => n.id === id).locked);
@@ -262,7 +262,7 @@ describe('reading news', () => {
 
   test('search never finds internal stories the reader may not see', async () => {
     const q = encodeURIComponent('ประกาศภายในสำหรับบุคลากร');
-    assert.equal((await (await fetch(`${BASE}/api/news/search?q=${q}`)).json()).items.filter((n) => n.id === id).length, 0);
+    assert.equal((/** @type {any} */ (await (await fetch(`${BASE}/api/news/search?q=${q}`)).json())).items.filter((n) => n.id === id).length, 0);
     assert.equal((await student.call('GET', `/api/news/search?q=${q}`)).body.items.filter((n) => n.id === id).length, 0);
     assert.ok((await staff.call('GET', `/api/news/search?q=${q}`)).body.items.some((n) => n.id === id));
   });
@@ -270,7 +270,7 @@ describe('reading news', () => {
   test('the story itself: sign in (401), wrong group (403), staff reads it', async () => {
     const anon = await fetch(`${BASE}/api/news/${id}`);
     assert.equal(anon.status, 401);
-    assert.equal((await anon.json()).details.audience, 'เฉพาะบุคลากร');
+    assert.equal((/** @type {any} */ (await anon.json())).details.audience, 'เฉพาะบุคลากร');
     assert.equal((await student.call('GET', `/api/news/${id}`)).status, 403);
     const r = await staff.call('GET', `/api/news/${id}`);
     assert.equal(r.status, 200);
@@ -294,7 +294,7 @@ describe('reading news', () => {
   });
 
   test('public story images are cacheable by anyone', async () => {
-    const pub = (await (await fetch(`${BASE}/api/news?limit=48`)).json()).items.find((n) => !n.locked && n.cover);
+    const pub = (/** @type {any} */ (await (await fetch(`${BASE}/api/news?limit=48`)).json())).items.find((n) => !n.locked && n.cover);
     const r = await fetch(BASE + pub.cover);
     assert.equal(r.status, 200);
     assert.match(r.headers.get('cache-control'), /public/);
@@ -311,7 +311,7 @@ describe('reading news', () => {
   });
 
   test('archive counts by month and day', async () => {
-    const a = await (await fetch(`${BASE}/api/news/archive`)).json();
+    const a = /** @type {any} */ (await (await fetch(`${BASE}/api/news/archive`)).json());
     assert.ok(a.years.length >= 1);
     assert.ok(a.days[a.today] >= 1);
     assert.equal(Object.values(a.days).reduce((x, y) => x + y, 0), Object.values(a.months).reduce((x, y) => x + y, 0));
