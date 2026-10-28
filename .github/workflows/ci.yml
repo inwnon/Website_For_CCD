@@ -60,4 +60,12 @@ jobs:
           [ -f test.log ] && echo "::error title=Failing tests::$(grep -E -A14 '✖|not ok' test.log | head -400 | enc)"
           echo "::error title=App log::$(tail -n 40 app.log | enc)"
       - name: Security audit (production packages)
-        run: npm audit --omit=dev --audit-level=high
+        shell: bash
+        run: |
+          set -o pipefail
+          npm audit --omit=dev --audit-level=high 2>&1 | tee audit.log
+      - name: Audit details as annotation
+        if: failure()
+        shell: bash
+        run: |
+          [ -f audit.log ] && echo "::error title=npm audit::$(head -n 120 audit.log | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
