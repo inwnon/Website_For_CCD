@@ -27,7 +27,7 @@ import { unitFamily } from './org.mjs';
 import { PLATFORMS, TYPES, albumHost, audienceLabel, plainText } from './rules.mjs';
 import { limit } from './security.mjs';
 import { searchTerms } from './thai.mjs';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import sharp from 'sharp';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -394,7 +394,7 @@ media.get('/:newsId/photos.zip', async (req, res) => {
   const name = `ข่าว-มรส-${day}-${n.title.replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 60)}.zip`;
   res.set('Cache-Control', n.live && n.audience.includes('public') ? 'public, max-age=3600' : 'private, no-cache');
   res.attachment(name);
-  const zip = archiver('zip', { store: true });
+  const zip = new ZipArchive({ store: true });
   zip.on('error', () => res.destroy());
   zip.pipe(res);
   const pad = String(paths.length).length < 2 ? 2 : String(paths.length).length;
