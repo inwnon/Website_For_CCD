@@ -254,7 +254,8 @@ export async function storyPayload(req, id) {
       albumLinks: (n.album_links || []).map((url) => ({ url, host: albumHost(url) })),
       credit: n.credit, creditKind: n.credit_kind, eventDate: n.event_date, place: n.place, featured: n.featured, views: n.views,
       publishedAt: n.published_at, saved, imported: n.imported,
-      submittedBy: n.submitted_by || null, reviewedBy: n.reviewed_by_name || null, bodySize: n.body_size, bodyLeading: n.body_leading,
+      // byPr: written or imported by the PR team (no work sent), so submittedBy is who published it
+      byPr: !n.submission_id, submittedBy: n.submitted_by || null, reviewedBy: n.reviewed_by_name || null, bodySize: n.body_size, bodyLeading: n.body_leading,
     },
     linked: linkedCards,
     linkedFromAlbum: linkedCards.length - linked.length,

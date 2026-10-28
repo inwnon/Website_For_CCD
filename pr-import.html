@@ -140,8 +140,9 @@
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="grid content-start gap-1.5">
                 <span class="flex min-h-[44px] items-center font-display text-[15px] font-semibold"><span>ลิงก์วิดีโอ <span id="videoStar" class="text-brand" hidden>*</span></span></span>
-                <input id="videoUrl" type="url" inputmode="url" placeholder="YouTube, Facebook, TikTok หรือ Google Drive" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="videoUrlErr">
+                <input id="videoUrl" type="url" inputmode="url" placeholder="YouTube, Facebook, TikTok หรือ Google Drive" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="videoUrlErr videoCoverNote">
                 <span id="videoUrlErr" class="err" hidden></span>
+                <span id="videoCoverNote" class="text-[13px] text-gold" aria-live="polite" hidden>ลิงก์นี้ไม่มีภาพตัวอย่างอัตโนมัติ (มีเฉพาะ YouTube) ใส่ภาพปกในช่องภาพด้านบน ไม่อย่างนั้นการ์ดข่าวจะไม่มีภาพ</span>
               </label>
               <div class="grid content-start gap-1.5">
                 <div class="flex min-h-[44px] flex-wrap items-center justify-between gap-2">
@@ -197,7 +198,7 @@
           <p id="importHint" class="basis-full text-right text-[13px] text-ink2 sm:basis-auto">"นำเข้าแล้วเพิ่มข่าวถัดไป" เก็บหน่วยงาน วันที่ เวลา และประเภทเนื้อหาไว้ให้ข่าวถัดไป</p>
           <button type="submit" data-next="0" data-mode="import" data-label-add="เผยแพร่" class="press t-spring h-11 rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5 disabled:opacity-60">นำเข้า</button>
           <button type="submit" data-next="1" data-mode="import" data-label-add="เผยแพร่แล้วเพิ่มข่าวถัดไป" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">นำเข้าแล้วเพิ่มข่าวถัดไป</button>
-          <a id="cancelEdit" href="pr-news.html" data-mode="edit" class="press t-quick mr-auto inline-flex h-11 items-center rounded-2xl px-4 font-display text-[15px] font-medium text-ink2 hover:-translate-y-0.5 hover:text-ink" hidden>กลับไปหน้าข่าวที่เผยแพร่</a>
+          <a id="cancelEdit" href="pr-news.html" data-mode="edit" class="press t-quick mr-auto inline-flex h-11 items-center rounded-2xl px-4 font-display text-[15px] font-medium text-ink2 hover:-translate-y-0.5 hover:text-ink" hidden>กลับไปหน้าจัดการข่าว</a>
           <button type="submit" data-mode="edit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60" hidden>บันทึกการแก้ไข</button>
         </div>
       </form>
@@ -298,7 +299,14 @@
       const [label, ph] = banner ? BANNER_CREDIT[radio('creditKind')] : two ? PHOTO_CREDIT[radio('creditKind')] : CREDIT.video;
       $('#creditLabel').textContent = label;
       $('#credit').placeholder = ph;
+      syncCoverNote();
     }
+    // Only a YouTube link gives the card a picture by itself (news.mjs videoThumb); any other video needs a cover
+    function syncCoverNote() {
+      const url = $('#videoUrl').value.trim();
+      $('#videoCoverNote').hidden = !(radio('kind') === 'video' && url && !VIDEO_RE[0].test(url) && !photos.some((p) => p.on));
+    }
+    $('#videoUrl').addEventListener('input', syncCoverNote);
     document.querySelectorAll('input[name=kind], input[name=creditKind]').forEach((r) => r.addEventListener('change', () => { syncKind(); setErr('credit'); }));
     // At most 5 categories
     $('#cats').addEventListener('change', (e) => {
@@ -356,6 +364,7 @@
         </label>
         <button type="button" data-remove="${p.id}" aria-label="ลบภาพที่ ${i + 1}" title="ลบภาพนี้" class="rm-btn absolute bottom-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-full bg-shell text-brand shadow-raised"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
         </div>`).join('');
+      syncCoverNote();
     }
     $('#photoGrid').addEventListener('change', (e) => {
       const i = e.target.dataset.i;
@@ -509,7 +518,7 @@
       let s;
       try { ({ story: s } = await api('/pr/news/' + encodeURIComponent(id))); } catch (err) {
         $('#pageTitle').textContent = 'แก้ไขข่าว';
-        $('#savedNote').innerHTML = `<span class="text-brand">${esc(err.message)}</span> <a href="pr-news.html" class="font-medium text-purple underline underline-offset-4">กลับไปหน้าข่าวที่เผยแพร่</a>`;
+        $('#savedNote').innerHTML = `<span class="text-brand">${esc(err.message)}</span> <a href="pr-news.html" class="font-medium text-purple underline underline-offset-4">กลับไปหน้าจัดการข่าว</a>`;
         $('#savedNote').hidden = false;
         return;
       }
@@ -518,14 +527,14 @@
       $('#pageTitle').textContent = 'แก้ไขข่าว';
       $('#pageLead').textContent = s.withdrawn
         ? 'ข่าวนี้ถอนอยู่ ผู้อ่านยังไม่เห็นการแก้ไขจนกว่าจะคืนข่าว'
-        : 'การแก้ไขขึ้นเว็บไซต์ทันทีเมื่อบันทึก ลิงก์ข่าวและยอดอ่านเดิมยังอยู่ ประวัติการแก้ไขดูได้ที่หน้าข่าวที่เผยแพร่';
+        : 'การแก้ไขขึ้นเว็บไซต์ทันทีเมื่อบันทึก ลิงก์ข่าวและยอดอ่านเดิมยังอยู่ ประวัติการแก้ไขดูได้ที่หน้าจัดการข่าว';
       $('#sidePanel').hidden = true;
       $('#resetBtn').hidden = true;
       $('#importHint').hidden = true;
       document.querySelectorAll('#importForm [data-mode]').forEach((el) => { el.hidden = el.dataset.mode !== 'edit'; });
       $('#enNote').textContent = 'กรอกเมื่อมีฉบับภาษาอังกฤษ ผู้อ่านสลับอ่านได้ในหน้าข่าว เว้นว่างไว้ได้ถ้าไม่มี';
       $('#cancelEdit').href = BACK;
-      $('#cancelEdit').textContent = BACK.startsWith('pr.html') ? 'กลับไปหน้างาน' : 'กลับไปหน้าข่าวที่เผยแพร่';
+      $('#cancelEdit').textContent = BACK.startsWith('pr.html') ? 'กลับไปหน้างาน' : 'กลับไปหน้าจัดการข่าว';
       $('#dateLabel').textContent = s.imported ? 'วันที่เผยแพร่เดิม' : 'วันที่เผยแพร่';
       $('#timeStar').hidden = s.imported;
       if (!s.imported) $('#date').removeAttribute('max');
@@ -600,7 +609,7 @@
       $('#dateLabel').textContent = 'วันที่เผยแพร่';
       $('#timeStar').hidden = false;
       $('#doneTitle').textContent = 'เพิ่มในรอบนี้';
-      $('#allImported').textContent = 'ดูข่าวที่เผยแพร่ทั้งหมด';
+      $('#allImported').textContent = 'ไปหน้าจัดการข่าว';
       $('#allImported').href = 'pr-news.html';
       $('#importHint').textContent = '"เผยแพร่แล้วเพิ่มข่าวถัดไป" เก็บหน่วยงาน วันที่ เวลา และประเภทเนื้อหาไว้ให้ข่าวถัดไป';
       document.querySelectorAll('[data-label-add]').forEach((b) => { b.textContent = b.dataset.labelAdd; });
