@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: prsru
+          POSTGRES_USER: prsru
+          POSTGRES_PASSWORD: prsru-dev
+          TZ: Asia/Bangkok
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U prsru -d prsru"
+          --health-interval 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Test settings only (dev login on, no real keys); never real secrets
+      - run: cp .env.example .env
+      - run: npm run db:migrate
+      # Sample news the search/report tests expect (server/README.md)
+      - run: npm run db:seed
+      - name: Start app
+        run: |
+          node --env-file=.env server/index.mjs > app.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:3000/ && exit 0; sleep 1; done
+          cat app.log; exit 1
+      - name: npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee test.log
+      - name: Failure details as annotations
+        if: failure()
+        shell: bash
+        run: |
+          enc() { sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}'; }
+          [ -f test.log ] && echo "::error title=Failing tests::$(grep -E -A14 '✖|not ok' test.log | head -400 | enc)"
+          echo "::error title=App log::$(tail -n 40 app.log | enc)"
+      - name: Security audit (production packages)
+        shell: bash
+        run: |
+          set -o pipefail
+          npm audit --omit=dev --audit-level=high 2>&1 | tee audit.log
+      - name: Audit details as annotation
+        if: failure()
+        shell: bash
+        run: |
+          [ -f audit.log ] && echo "::error title=npm audit::$(head -n 120 audit.log | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"

@@ -10,6 +10,8 @@ let snap, dev, admin, pr, staff;
 before(async () => {
   snap = await snapshot();
   [dev, admin, pr, staff] = await Promise.all([login('developer'), login('admin'), login('pr'), login('staff')]);
+  // Submitting needs a complete profile; set it here so this file passes on a fresh database too
+  await staff.call('PUT', '/api/me/profile', { ...ID_STAFF, unit: 'สำนักงานอธิการบดี', subUnit: 'กองกลาง', position: 'นักประชาสัมพันธ์', consent: true });
 });
 after(async () => { await restore(snap); });
 
