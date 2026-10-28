@@ -8,7 +8,7 @@
   "scripts": {
     "db:up": "docker compose up -d db",
     "db:migrate": "node --env-file=.env server/migrate.mjs",
-    "dev": "node --env-file=.env --watch-path=server server/index.mjs",
+    "dev": "node --watch-path=server server/dev.mjs",
     "start": "node --env-file-if-exists=.env server/index.mjs",
     "test": "node --env-file=.env --test --test-concurrency=1 \"server/test/*.test.mjs\"",
     "lint": "eslint .",
