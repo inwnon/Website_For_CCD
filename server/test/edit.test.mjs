@@ -73,6 +73,7 @@ describe('the story page', () => {
   test('ส่งข่าวโดย the sender, ตรวจทานโดย who published it; bold and text settings in the page', async () => {
     const s = (await anon.call('GET', `/api/news/${newsId}`)).body.story;
     assert.equal(s.submittedBy, `${ID_STAFF.firstName} ${ID_STAFF.lastName}`);
+    assert.equal(s.byPr, false);
     const reviewer = (await query(`select coalesce(nullif(trim(concat_ws(' ', u.first_name, u.last_name)), ''), u.name) n from news n join users u on u.id = n.reviewed_by where n.id = $1`, [newsId])).rows[0].n;
     assert.ok(reviewer);
     assert.equal(s.reviewedBy, reviewer);
@@ -124,6 +125,7 @@ describe('pictures in the order dragged', () => {
     const importer = (await query(`select coalesce(nullif(trim(concat_ws(' ', first_name, last_name)), ''), name) n from users u join news n on n.created_by = u.id where n.id = $1`, [r.body.news.id])).rows[0].n;
     assert.ok(importer);
     assert.equal(imp.submittedBy, importer);
+    assert.equal(imp.byPr, true); // news.html: เผยแพร่โดย, not ส่งข่าวโดย
     const n = (await query('select cover_path, gallery from news where id = $1', [r.body.news.id])).rows[0];
     const colour = async (p) => { const { channels } = await sharp(abs(`media/${p}`)).stats(); return channels[2].mean > channels[0].mean ? 'blue' : 'red'; };
     assert.equal(await colour(n.cover_path), 'blue', 'the second file, dragged first, is the cover');

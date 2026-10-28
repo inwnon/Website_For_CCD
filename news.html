@@ -541,20 +541,20 @@
         caption: `ภาพข่าว · ${n} ภาพ`, credit: `${creditOf(s, 0)}: ${s.credit || 'งานประชาสัมพันธ์ มรส.'}`,
         tagFeatured: 'ข่าวเด่น', tagUnit: s.unit, tagInternal: s.audience, tagVideo: 'มีวิดีโอ',
         title: s.title, dek: s.lead || '', lblDate: 'วันที่เผยแพร่', date, lblUnit: 'หน่วยงาน', unit: s.unit,
-        lblLang: 'ภาษา', lblSender: 'ส่งข่าวโดย', sender: s.submittedBy || s.unit,
+        lblLang: 'ภาษา', lblSender: s.byPr ? 'เผยแพร่โดย' : 'ส่งข่าวโดย', sender: s.submittedBy || s.unit,
         btnGallery: `ดูภาพทั้งหมด ${n} ภาพ`, btnShare: 'แชร์',
         videoTitle: 'วิดีโอประกอบข่าว', galleryTitle: 'ภาพข่าว', galleryNote: n > 1 ? 'แตะภาพเพื่อขยาย และดาวน์โหลดขนาดต้นฉบับ' : 'ภาพทั้งหมดของกิจกรรมนี้อยู่ที่ลิงก์ภายนอก',
         btnZip: `ดาวน์โหลดภาพทั้งหมด (${n} ภาพ)`, btnAlbum: ALBUM[s.albumHost] ? `ดูรูปภาพเพิ่มเติมบน ${ALBUM[s.albumHost]}` : 'ดูรูปภาพเพิ่มเติม',
-        submitted: `ส่งข่าวโดย ${s.submittedBy || s.unit}`, reviewed: `ตรวจทานโดย งานสื่อสารองค์กร${s.reviewedBy ? ` (${s.reviewedBy})` : ''}`, body: paragraphs(s.body),
+        submitted: `${s.byPr ? 'เผยแพร่โดย' : 'ส่งข่าวโดย'} ${s.submittedBy || s.unit}`, reviewed: `ตรวจทานโดย งานสื่อสารองค์กร${s.reviewedBy ? ` (${s.reviewedBy})` : ''}`, body: paragraphs(s.body),
       } : {
         caption: `News photos · ${n} photo${n === 1 ? '' : 's'}`, credit: `${creditOf(s, 1)}: ${s.credit || 'SRU Public Relations'}`,
         tagFeatured: 'Featured', tagUnit: s.unit, tagInternal: 'Internal', tagVideo: 'Video',
         title: s.titleEn || s.title, dek: s.titleEn ? '' : s.lead || '', lblDate: 'Published', date, lblUnit: 'Unit', unit: s.unit,
-        lblLang: 'Language', lblSender: 'Submitted by', sender: s.submittedBy || s.unit,
+        lblLang: 'Language', lblSender: s.byPr ? 'Published by' : 'Submitted by', sender: s.submittedBy || s.unit,
         btnGallery: `View all ${n} photos`, btnShare: 'Share',
         videoTitle: 'Video', galleryTitle: 'Photos', galleryNote: n > 1 ? 'Tap a photo to enlarge and download the original' : 'All photos of this event are on the linked album',
         btnZip: `Download all ${n} photos`, btnAlbum: ALBUM[s.albumHost] ? `More photos on ${ALBUM[s.albumHost]}` : 'More photos',
-        submitted: `Submitted by ${s.submittedBy || s.unit}`, reviewed: `Reviewed by Corporate Communications${s.reviewedBy ? ` (${s.reviewedBy})` : ''}`, body: paragraphs(s.bodyEn || s.body),
+        submitted: `${s.byPr ? 'Published by' : 'Submitted by'} ${s.submittedBy || s.unit}`, reviewed: `Reviewed by Corporate Communications${s.reviewedBy ? ` (${s.reviewedBy})` : ''}`, body: paragraphs(s.bodyEn || s.body),
       };
     }
     const hasEn = () => !!(story.titleEn || story.bodyEn);
