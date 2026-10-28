@@ -295,15 +295,21 @@ export function parsePost(html) {
   };
 }
 
+// Facebook sends Reels and some videos back to the same address again and again instead of a page we can read
+const FB_NOT_READABLE = 'Facebook ไม่เปิดให้ระบบอ่านลิงก์นี้ (มักเป็นคลิป Reels หรือวิดีโอ) กรอกข้อมูลเองด้านล่าง ถ้าเป็นวิดีโอ เลือกประเภท "วิดีโอ" แล้ววางลิงก์นี้ในช่องลิงก์วิดีโอ';
+
 // fetch that follows redirects only within Facebook
 async function fbFetch(url) {
   let current = url;
+  const seen = new Set();
   for (let hop = 0; hop < 5; hop++) {
     const res = await fetch(current, { redirect: 'manual', headers: { 'User-Agent': FB_UA, 'Accept-Language': 'th,en;q=0.8' }, signal: AbortSignal.timeout(12000) });
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+      seen.add(current);
       const next = new URL(res.headers.get('location'), current);
       if (!FB_HOST.test(next.hostname)) throw new HttpError(422, 'ลิงก์นี้พาไปนอก Facebook ระบบจึงไม่ดึงข้อมูลให้');
       current = next.toString();
+      if (seen.has(current)) throw new HttpError(422, FB_NOT_READABLE);
       continue;
     }
     if (!res.ok) throw new HttpError(422, `Facebook ไม่เปิดโพสต์นี้ให้ระบบอ่าน (รหัส ${res.status}) ตรวจว่าโพสต์เป็นสาธารณะ หรือกรอกเอง`);
@@ -318,7 +324,7 @@ async function fbFetch(url) {
     reader.cancel().catch(() => {});
     return html;
   }
-  throw new HttpError(422, 'ลิงก์เปลี่ยนเส้นทางหลายครั้งเกินไป');
+  throw new HttpError(422, FB_NOT_READABLE);
 }
 
 // Each fetch is a request to Facebook from our server
