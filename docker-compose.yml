@@ -24,6 +24,9 @@ services:
     image: prsru-app
     restart: unless-stopped
     init: true
+    read_only: true       # code cannot be changed at runtime; only the volumes below and /tmp are writable
+    tmpfs:
+      - /tmp
     security_opt:
       - no-new-privileges:true
     cap_drop:
