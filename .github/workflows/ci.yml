@@ -40,6 +40,8 @@ jobs:
       # Test settings only (dev login on, no real keys); never real secrets
       - run: cp .env.example .env
       - run: npm run db:migrate
+      # Sample news the search/report tests expect (server/README.md)
+      - run: npm run db:seed
       - name: Start app
         run: |
           node --env-file=.env server/index.mjs > app.log 2>&1 &
@@ -55,7 +57,7 @@ jobs:
         shell: bash
         run: |
           enc() { sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}'; }
-          [ -f test.log ] && echo "::error title=Failing tests::$(grep -E -A6 '✖|not ok' test.log | head -80 | enc)"
+          [ -f test.log ] && echo "::error title=Failing tests::$(grep -E -A14 '✖|not ok' test.log | head -200 | enc)"
           echo "::error title=App log::$(tail -n 40 app.log | enc)"
       - name: Security audit (production packages)
         run: npm audit --omit=dev --audit-level=high
