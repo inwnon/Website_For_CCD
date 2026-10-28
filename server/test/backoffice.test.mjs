@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import ExcelJS from 'exceljs';
-import { parsePost, fbUrl } from '../newsdesk.mjs';
+import { fbUrl } from '../newsdesk.mjs';
 import { restore, snapshot } from './cleanup.mjs';
 import { BASE, BROWSER_UA, ID_STAFF, anon, form, img, login } from './helpers.mjs';
 
@@ -33,24 +33,12 @@ after(async () => {
 describe('import (นำเข้าข่าวย้อนหลัง)', () => {
   let id;
 
-  test('Facebook links are normalised; other sites are refused', async () => {
+  test('Facebook links are normalised; other sites are refused; posts are not fetched any more', async () => {
     assert.equal(fbUrl('https://m.facebook.com/sru.pr/posts/123?__cft__=x&ref=y'), 'https://www.facebook.com/sru.pr/posts/123');
     assert.equal(fbUrl('https://www.facebook.com/permalink.php?story_fbid=9&id=7&x=1'), 'https://www.facebook.com/permalink.php?story_fbid=9&id=7');
     assert.equal(fbUrl('https://evil.example/facebook.com/x'), null);
-    assert.equal((await pr.call('POST', '/api/pr/import/fetch', { url: 'http://127.0.0.1/admin' })).status, 400);
-  });
-
-  test('reads text, photos and date from a post page', () => {
-    const post = parsePost(`<html><head>
-      <meta property="og:title" content="งานประชาสัมพันธ์ มรส." />
-      <meta property="og:description" content="หัวข้อข่าว &amp; กิจกรรม&#10;รายละเอียดบรรทัดสอง..." />
-      <meta property="og:image" content="https://scontent.fbkk1-1.fna.fbcdn.net/v/a.jpg?x=1" />
-      <meta property="og:image" content="https://scontent.fbkk1-1.fna.fbcdn.net/v/b.jpg" />
-      </head><body><script>{"publish_time":1759980000}</script></body></html>`);
-    assert.equal(post.text, 'หัวข้อข่าว & กิจกรรม\nรายละเอียดบรรทัดสอง...');
-    assert.ok(post.truncated);
-    assert.equal(post.images.length, 2);
-    assert.equal(post.date, '2025-10-09');
+    // The server no longer reads Facebook posts (removed with the box on pr-import.html)
+    assert.equal((await pr.call('POST', '/api/pr/import/fetch', { url: 'https://www.facebook.com/sru.pr/posts/1' })).status, 404);
   });
 
   test('only PR may import; fields are checked', async () => {

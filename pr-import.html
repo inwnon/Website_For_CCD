@@ -58,20 +58,6 @@
             <p id="pageLead" class="mt-1 max-w-[70ch] text-[14px] text-ink2">ข่าวที่นำเข้าจะเผยแพร่ทันทีตามวันที่เดิม ไม่ผ่านคิวตรวจและไม่แจ้งผู้ส่ง และอยู่ในรายการข่าวตามวันที่เดิม ทั้งหน้าแรก คลังข่าว ผลค้นหา หน้าหน่วยงาน และรายงาน</p>
             <!-- แก้ไขข่าว (?edit=id): what was saved -->
             <div id="savedNote" class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-sky-soft px-4 py-3 text-[14px]" role="status" hidden></div>
-
-            <!-- Facebook -->
-            <div id="fbBox" class="mt-5 rounded-card border border-line bg-surface2/60 p-4 sm:p-5">
-              <label for="fbUrl" class="font-display text-[16px] font-semibold">วางลิงก์โพสต์จากเพจ Facebook ของมหาวิทยาลัย</label>
-              <p class="text-[13px] text-ink2">ระบบจะดึงข้อความ ภาพ และวันที่มาใส่ฟอร์มให้ ตรวจแล้วแก้ได้ก่อนนำเข้า ถ้าไม่มีลิงก์ กรอกเองด้านล่างได้เลย</p>
-              <div class="mt-3 flex flex-col gap-2 sm:flex-row">
-                <input id="fbUrl" type="url" inputmode="url" placeholder="https://www.facebook.com/…/posts/…" class="field h-12 min-w-0 flex-1 rounded-2xl px-4 text-[15px]">
-                <button id="fetchBtn" type="button" class="press t-spring inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-royal px-5 font-display text-[15px] font-semibold text-white dark:text-bg shadow-raised hover:-translate-y-0.5 disabled:opacity-60">
-                  <svg id="fetchIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-                  ดึงข้อมูลจากโพสต์
-                </button>
-              </div>
-              <ul id="fetchNotes" class="mt-3 grid gap-1 text-[13px] text-gold" hidden></ul>
-            </div>
           </div>
 
           <div class="grid gap-6 p-4 sm:p-6">
@@ -246,7 +232,7 @@
     const UNITS = [...new Set([...ORG.staffGroups.flatMap((g) => g.units), ...Object.values(ORG.subUnits).flatMap((s) => s.units), ...Object.keys(ORG.faculties)])];
     const AUD = { public: ['public'], uni: ['student', 'staff'], staff: ['staff'], student: ['student'] };
     const MAX_CATS = 5;
-    // Photos in order: [{ kind: 'remote', url } | { kind: 'file', file, url } | { kind: 'kept', path, url }], each with on = include
+    // Photos in order: [{ kind: 'file', file, url } | { kind: 'kept', path, url }], each with on = include
     let photos = [];
     let photoSeq = 0;
     const pid = () => `p${++photoSeq}`;
@@ -258,7 +244,7 @@
     // Where แก้ไขข่าว goes back to: the list of published stories (as it was) or the work on the PR desk; only those pages
     const BACK = (() => { const b = new URLSearchParams(location.search).get('back') || ''; return /^(pr-news|pr)\.html(\?[^#]*)?$/.test(b) ? b : 'pr-news.html'; })();
     let editing = null; // the story as loaded
-    // The Facebook post a story was fetched from (no field for it: it is nearly always the same as ลิงก์ภาพเพิ่มเติม)
+    // The Facebook post an older imported story came from: kept when it is edited (no field for it)
     let sourceUrl = null;
     // วิดีโอเสียงตามสาย: a category used alone (server/rules.mjs soloOk)
     const SOLO = (SITE.videoCategories || []).filter((c) => !SITE.categories.includes(c));
@@ -364,7 +350,7 @@
     function paintPhotos() {
       const on = photos.filter((p) => p.on);
       $('#photoCount').textContent = photos.length ? `เลือก ${on.length} จาก ${photos.length} ภาพ` : '';
-      const SOURCE = { remote: 'Facebook', file: 'จากเครื่อง', kept: 'ภาพเดิม' };
+      const SOURCE = { file: 'จากเครื่อง', kept: 'ภาพเดิม' };
       $('#photoGrid').innerHTML = photos.map((p, i) => `
         <div class="pick-item relative" data-id="${p.id}">
         <label class="img-pick block">
@@ -418,34 +404,6 @@
     drop.addEventListener('dragleave', () => drop.classList.remove('is-over'));
     drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('is-over'); addFiles(e.dataTransfer.files); });
 
-    // ---- Fetch from Facebook ----
-    $('#fetchBtn').addEventListener('click', async () => {
-      const url = $('#fbUrl').value.trim();
-      if (!url) { $('#fbUrl').focus(); return; }
-      const btn = $('#fetchBtn');
-      btn.disabled = true;
-      $('#fetchIcon').classList.add('spin');
-      try {
-        const r = await api('/pr/import/fetch', { method: 'POST', body: { url } });
-        if (r.title) $('#title').value = r.title;
-        if (r.body) $('#body').value = r.body;
-        if (r.date) $('#date').value = r.date;
-        sourceUrl = r.sourceUrl;
-        photos = photos.filter((p) => p.kind === 'file');
-        photos.unshift(...r.images.map((u) => ({ id: pid(), kind: 'remote', url: u, on: true })));
-        paintPhotos();
-        $('#fetchNotes').innerHTML = ['ดึงข้อมูลแล้ว เลือกหน่วยงานและประเภทข่าวเอง แล้วตรวจข้อความก่อนนำเข้า', ...r.notes].map((n) => `<li>${esc(n)}</li>`).join('');
-        $('#fetchNotes').hidden = false;
-        (!$('#unit').value ? $('#unit') : $('#title')).focus();
-      } catch (err) {
-        $('#fetchNotes').innerHTML = `<li class="text-brand">${esc(err.message)}</li>`;
-        $('#fetchNotes').hidden = false;
-      } finally {
-        btn.disabled = false;
-        $('#fetchIcon').classList.remove('spin');
-      }
-    });
-
     // ---- Submit ----
     let nextAfter = false;
     $('#importForm').addEventListener('click', (e) => { const b = e.target.closest('[data-next]'); if (b) nextAfter = b.dataset.next === '1'; });
@@ -467,9 +425,8 @@
         sourceUrl: sourceUrl || null, albumUrl: $('#albumUrl').value.trim() || null, albumLinks: moreAlbums.get(),
         titleEn: $('#titleEn').value, bodyEn: $('#bodyEn').value,
         bodySize: null, bodyLeading: tools?.get().leading, fresh: ADD || undefined,
-        remoteImages: photos.filter((p) => p.on && p.kind === 'remote').map((p) => p.url),
-        // The pictures in the order arranged: r:<n> = the n-th of remoteImages, u:<n> = the n-th file sent
-        photoOrder: (() => { let r = 0, u = 0; return photos.filter((p) => p.on && p.kind !== 'kept').map((p) => (p.kind === 'remote' ? `r:${r++}` : `u:${u++}`)); })(),
+        // The pictures in the order arranged: u:<n> = the n-th file sent
+        photoOrder: photos.filter((p) => p.on && p.kind === 'file').map((p, i) => `u:${i}`),
       };
     }
     // Client-side checks mirror the server's (newsdesk.mjs checkImport)
@@ -530,7 +487,7 @@
       const keep = nextAfter ? { unit: $('#unit').value, date: $('#date').value, time: $('#time').value } : null;
       reset();
       if (keep) Object.entries(keep).forEach(([k, v]) => { $('#' + k).value = v; });
-      $(nextAfter ? '#fbUrl' : '#fbUrl').focus();
+      $('#title').focus();
     }
     function reset() {
       const kind = radio('kind');
@@ -541,9 +498,7 @@
       thumbQueue.length = 0;
       paintPhotos();
       clearErrs();
-      $('#fbUrl').value = '';
       sourceUrl = null;
-      $('#fetchNotes').hidden = true;
       $('#time').value = '12:00';
       if (ADD) setNow();
       $('#leadCount').textContent = '0';
@@ -573,7 +528,6 @@
       $('#pageLead').textContent = s.withdrawn
         ? 'ข่าวนี้ถอนอยู่ ผู้อ่านยังไม่เห็นการแก้ไขจนกว่าจะคืนข่าว'
         : 'การแก้ไขขึ้นเว็บไซต์ทันทีเมื่อบันทึก ลิงก์ข่าวและยอดอ่านเดิมยังอยู่ ประวัติการแก้ไขดูได้ที่หน้าจัดการข่าว';
-      $('#fbBox').hidden = true;
       $('#sidePanel').hidden = true;
       $('#resetBtn').hidden = true;
       $('#importHint').hidden = true;
@@ -620,7 +574,7 @@
         if (p.kind === 'kept') order.push('p:' + p.path);
         else if (p.kind === 'file') { order.push('u:' + u++); fd.append('photo', p.file, p.file.name); }
       }
-      fd.append('data', JSON.stringify({ ...data(), remoteImages: undefined, fresh: undefined, photos: order }));
+      fd.append('data', JSON.stringify({ ...data(), fresh: undefined, photos: order }));
       const btn = document.querySelector('#importForm [type=submit][data-mode=edit]');
       btn.disabled = true;
       try {
@@ -651,7 +605,7 @@
     function addMode() {
       document.title = 'เพิ่มข่าว | หลังบ้าน คลังข่าว มรส.';
       $('#pageTitle').textContent = 'เพิ่มข่าว';
-      $('#pageLead').textContent = 'ข่าวที่ทีม PR เขียนเอง เผยแพร่ทันทีตามวันและเวลาที่ตั้ง ไม่ผ่านคิวตรวจ ตั้งเวลาล่วงหน้าได้ ถ้าข่าวมาจากโพสต์ Facebook วางลิงก์เพื่อดึงข้อความและภาพได้';
+      $('#pageLead').textContent = 'ข่าวที่ทีม PR เขียนเอง เผยแพร่ทันทีตามวันและเวลาที่ตั้ง ไม่ผ่านคิวตรวจ ตั้งเวลาล่วงหน้าได้';
       $('#dateLabel').textContent = 'วันที่เผยแพร่';
       $('#timeStar').hidden = false;
       $('#doneTitle').textContent = 'เพิ่มในรอบนี้';
