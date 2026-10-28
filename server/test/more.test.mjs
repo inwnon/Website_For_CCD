@@ -111,7 +111,7 @@ describe('ข่าวล่าสุด on the home page', () => {
   });
 });
 
-describe('ข่าวที่เผยแพร่ (pr-news.html)', () => {
+describe('จัดการข่าว (pr-news.html)', () => {
   test('a page past the end still says how many stories there are, so the page can go to the last one', async () => {
     for (const show of ['all', 'live', 'imported', 'withdrawn']) {
       const r = (await pr.call('GET', `/api/pr/news?show=${show}&limit=20&offset=100000`)).body;
