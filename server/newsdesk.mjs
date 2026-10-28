@@ -10,23 +10,19 @@
 // - PUT  /api/pr/news/:id            multipart: data (JSON, as for import, + photos: ['p:<kept path>' | 'u:<n-th upload>'] in order) + photo files
 // - DELETE /api/pr/news/:id          ลบข่าว: only a withdrawn story; gone for good with its pictures, reads and history.
 //        Its work (if any) moves to ลบแล้ว on pr.html unless it is back in the queue (ยกเลิกการเผยแพร่)
-// - POST /api/pr/import/fetch       { url }         reads a public Facebook post: text, photos, date (best effort)
-// - POST /api/pr/import             multipart: data (JSON) + photo files; data.remoteImages = photo URLs from /fetch;
-//        data.photoOrder = ['r:<n>' | 'u:<n>'] the pictures in the order arranged (default: Facebook ones first)
+// - POST /api/pr/import             multipart: data (JSON) + photo files;
+//        data.photoOrder = ['u:<n>'] the pictures in the order arranged (default: as sent)
 //        Imported stories go live at once with their original date, skip the queue and the inbox,
 //        and take their place by date in every list, the home page too.
 //        data.fresh = true: เพิ่มข่าว (the PR team's own story of the day, not an import): imported stays false and the
 //        time may be later today or after (scheduled). Not for interns, who import past stories only.
-import { createWriteStream } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 import { Router } from 'express';
 import { requireImport, requirePr } from './auth.mjs';
 import { audit } from './audit.mjs';
 import { one, query, tx } from './db.mjs';
-import { abs, acceptUpload, publishFile, removeMedia, removeTemp, tempPath } from './files.mjs';
+import { abs, acceptUpload, publishFile, removeMedia, removeTemp } from './files.mjs';
 import { HttpError, str } from './http.mjs';
 import { allUnits } from './org.mjs';
 import { AUDIENCES, CREDIT_KINDS, MAX_CATS, PLATFORMS, SOLO_MSG, TYPES, albumSet, albumUrl, audienceLabel, bodyLeading, bodySize, categories, creditKindOf, creditMissing, soloOk, videoLinks } from './rules.mjs';
@@ -34,7 +30,6 @@ import { get } from './settings.mjs';
 import { limit } from './security.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MB = 1024 * 1024;
 export const router = Router();
 router.use('/pr/news', requirePr);
 router.use('/pr/import', requireImport);
@@ -247,8 +242,6 @@ router.post('/pr/news/:id/restore', async (req, res) => {
 
 // ---- Facebook ----
 const FB_HOST = /^(www\.|m\.|web\.|mbasic\.)?(facebook\.com|fb\.com|fb\.watch)$/i;
-const FB_IMAGE_HOST = /(^|\.)(fbcdn\.net|fbsbx\.com)$/i;
-const FB_UA = 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)';
 
 export function fbUrl(raw) {
   let u;
@@ -264,114 +257,7 @@ export function fbUrl(raw) {
   return u.toString().replace(/\/$/, '');
 }
 
-const decode = (s) => s.replace(/&(#x?[0-9a-f]+|amp|lt|gt|quot|apos|#39);/gi, (m, e) => {
-  const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" }[e.toLowerCase()];
-  if (named) return named;
-  const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
-  return Number.isFinite(code) ? String.fromCodePoint(code) : m;
-});
-
-// Reads the Open Graph tags (and a publish time if the page has one) from a post's HTML
-export function parsePost(html) {
-  const metas = [...html.matchAll(/<meta\s+[^>]*>/gi)].map((m) => m[0]);
-  const attr = (tag, name) => tag.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i'))?.[1] ?? tag.match(new RegExp(`${name}\\s*=\\s*'([^']*)'`, 'i'))?.[1];
-  const values = (prop) => metas.filter((t) => (attr(t, 'property') || attr(t, 'name') || '').toLowerCase() === prop).map((t) => decode(attr(t, 'content') || '')).filter(Boolean);
-  const text = (values('og:description')[0] || values('description')[0] || '').trim();
-  const images = [...new Set(values('og:image').concat(values('og:image:url')).concat(values('og:image:secure_url')))];
-  let time = values('article:published_time')[0] || values('og:updated_time')[0];
-  if (!time) {
-    const unix = html.match(/"(?:publish_time|creation_time)"\s*:\s*(\d{10})/)?.[1] || html.match(/data-utime="(\d{10})"/)?.[1];
-    if (unix) time = new Date(Number(unix) * 1000).toISOString();
-  }
-  const date = time && !Number.isNaN(Date.parse(time))
-    ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(time)) : null;
-  return {
-    pageName: values('og:title')[0] || null,
-    text,
-    truncated: /(\.\.\.|…)$/.test(text),
-    images,
-    date,
-    url: values('og:url')[0] || null,
-  };
-}
-
-// Facebook sends Reels and some videos back to the same address again and again instead of a page we can read
-const FB_NOT_READABLE = 'Facebook ไม่เปิดให้ระบบอ่านลิงก์นี้ (มักเป็นคลิป Reels หรือวิดีโอ) กรอกข้อมูลเองด้านล่าง ถ้าเป็นวิดีโอ เลือกประเภท "วิดีโอ" แล้ววางลิงก์นี้ในช่องลิงก์วิดีโอ';
-
-// fetch that follows redirects only within Facebook
-async function fbFetch(url) {
-  let current = url;
-  const seen = new Set();
-  for (let hop = 0; hop < 5; hop++) {
-    const res = await fetch(current, { redirect: 'manual', headers: { 'User-Agent': FB_UA, 'Accept-Language': 'th,en;q=0.8' }, signal: AbortSignal.timeout(12000) });
-    if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
-      seen.add(current);
-      const next = new URL(res.headers.get('location'), current);
-      if (!FB_HOST.test(next.hostname)) throw new HttpError(422, 'ลิงก์นี้พาไปนอก Facebook ระบบจึงไม่ดึงข้อมูลให้');
-      current = next.toString();
-      if (seen.has(current)) throw new HttpError(422, FB_NOT_READABLE);
-      continue;
-    }
-    if (!res.ok) throw new HttpError(422, `Facebook ไม่เปิดโพสต์นี้ให้ระบบอ่าน (รหัส ${res.status}) ตรวจว่าโพสต์เป็นสาธารณะ หรือกรอกเอง`);
-    const reader = res.body.getReader();
-    let html = '';
-    const dec = new TextDecoder();
-    while (html.length < 2 * MB) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      html += dec.decode(value, { stream: true });
-    }
-    reader.cancel().catch(() => {});
-    return html;
-  }
-  throw new HttpError(422, FB_NOT_READABLE);
-}
-
-// Each fetch is a request to Facebook from our server
-router.post('/pr/import/fetch', limit('fbFetch', { max: 60, windowMs: 10 * 60 * 1000 }), async (req, res) => {
-  const url = fbUrl(req.body?.url);
-  if (!url) throw new HttpError(400, 'วางลิงก์โพสต์จาก Facebook (facebook.com หรือ fb.watch)');
-  let post;
-  try {
-    post = parsePost(await fbFetch(url));
-  } catch (err) {
-    if (err instanceof HttpError) throw err;
-    throw new HttpError(422, 'ดึงข้อมูลจาก Facebook ไม่สำเร็จ ลองใหม่ หรือกรอกเอง');
-  }
-  if (!post.text && !post.images.length) {
-    throw new HttpError(422, 'ไม่พบข้อความหรือภาพในโพสต์นี้ Facebook อาจขอให้เข้าสู่ระบบก่อน กรอกเองแทนได้');
-  }
-  const lines = post.text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-  res.json({
-    sourceUrl: url,
-    title: (lines[0] || '').slice(0, 200),
-    body: lines.slice(1).join('\n\n') || post.text,
-    images: post.images.filter((i) => { try { return FB_IMAGE_HOST.test(new URL(i).hostname); } catch { return false; } }).slice(0, 10),
-    date: post.date,
-    pageName: post.pageName,
-    notes: [
-      ...(post.truncated ? ['Facebook ให้ข้อความมาไม่ครบทั้งโพสต์ คัดลอกส่วนที่เหลือจากโพสต์มาวางเพิ่ม'] : []),
-      ...(!post.date ? ['ไม่พบวันที่ในโพสต์ เลือกวันที่เผยแพร่เดิมเอง'] : []),
-      ...(post.images.length <= 1 ? ['Facebook ให้ภาพมาเพียงภาพเดียว ถ้าโพสต์มีหลายภาพ บันทึกภาพจากโพสต์แล้วแนบเพิ่ม'] : []),
-    ],
-  });
-});
-
 // ---- Import ----
-async function download(url) {
-  let u;
-  try { u = new URL(url); } catch { throw new HttpError(400, 'ลิงก์ภาพไม่ถูกต้อง'); }
-  if (u.protocol !== 'https:' || !FB_IMAGE_HOST.test(u.hostname)) throw new HttpError(400, 'รับภาพจาก Facebook เท่านั้น');
-  const res = await fetch(u, { redirect: 'error', signal: AbortSignal.timeout(20000) }).catch(() => null);
-  if (!res?.ok) throw new HttpError(422, 'ดาวน์โหลดภาพจาก Facebook ไม่สำเร็จ ลิงก์ภาพอาจหมดอายุ ดึงข้อมูลใหม่อีกครั้ง');
-  if (Number(res.headers.get('content-length')) > 15 * MB) throw new HttpError(413, 'ภาพจาก Facebook ใหญ่เกิน 15 MB');
-  const path = tempPath('.img');
-  let size = 0;
-  const limit = new TransformStream({ transform(chunk, ctl) { size += chunk.length; if (size > 15 * MB) ctl.error(new HttpError(413, 'ภาพใหญ่เกิน 15 MB')); else ctl.enqueue(chunk); } });
-  await pipeline(Readable.fromWeb(res.body.pipeThrough(limit)), createWriteStream(path));
-  return path;
-}
-
 // Pictures are made ready a few at a time (each is resized and saved twice by sharp), in the order given
 const PARALLEL = 3;
 async function inTurns(list, n, fn) {
@@ -437,18 +323,16 @@ router.post('/pr/import', limit('import', { max: 120, windowMs: 10 * 60 * 1000 }
   let newsId = null;
   try {
     const d = req.data;
-    const remote = (Array.isArray(d?.remoteImages) ? d.remoteImages : []).slice(0, 10);
     const photos = req.uploads.filter((f) => f.kind === 'photo');
     if (req.uploads.some((f) => f.kind !== 'photo')) throw new HttpError(400, 'แนบได้เฉพาะไฟล์ภาพ');
     const max = get('photos').max;
-    if (photos.length + remote.length > max) throw new HttpError(400, `แนบภาพได้ไม่เกิน ${max} ภาพ`);
+    if (photos.length > max) throw new HttpError(400, `แนบภาพได้ไม่เกิน ${max} ภาพ`);
     const fresh = d?.fresh === true;
     if (fresh && req.user.role === 'intern') throw new HttpError(403, 'นักศึกษาฝึกงานนำเข้าได้เฉพาะข่าวย้อนหลัง');
-    const row = checkImport(d, photos.length + remote.length, { imported: !fresh });
-    // Photos in the order arranged on the page (photoOrder), else Facebook ones first (as on the post), then uploads
-    for (const url of remote) temps.push(await download(url));
+    const row = checkImport(d, photos.length, { imported: !fresh });
+    // Photos in the order arranged on the page (photoOrder), else as sent
     newsId = (await one('select gen_random_uuid() id')).id;
-    const all = [...temps.map((t, i) => ({ key: `r:${i}`, path: t, name: `ภาพจาก Facebook ภาพที่ ${i + 1}` })), ...photos.map((f, i) => ({ key: `u:${i}`, path: f.path, name: f.originalname }))];
+    const all = [...photos.map((f, i) => ({ key: `u:${i}`, path: f.path, name: f.originalname }))];
     const want = Array.isArray(d.photoOrder) ? d.photoOrder.filter((k) => typeof k === 'string') : [];
     const ordered = [...want.map((k) => all.find((x) => x.key === k)).filter(Boolean), ...all.filter((x) => !want.includes(x.key))];
     const paths = await inTurns([...new Set(ordered)], PARALLEL, (x) => publishFile(newsId, x.path, x.name));
