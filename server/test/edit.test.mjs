@@ -93,7 +93,7 @@ describe('แก้ไขข่าว on the site (pr-import.html?edit=id)', () 
     const { story } = (await pr.call('GET', `/api/pr/news/${newsId}`)).body;
     assert.equal(story.photos.length, 2);
     const at = new Date(story.publishedAt);
-    const data = { kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'หัวข้อหลังแก้ไขบนเว็บไซต์', lead: 'โปรยใหม่', body: 'เนื้อหาใหม่หลังแก้ไข ยาวพอสำหรับข่าว', unit: story.unit,
+    const data = { kind: 'news', title: 'หัวข้อหลังแก้ไขบนเว็บไซต์', lead: 'โปรยใหม่', body: 'เนื้อหาใหม่หลังแก้ไข ยาวพอสำหรับข่าว', unit: story.unit,
       categories: story.categories, audience: ['public'], date: BKK_DAY.format(at), time: '10:15', credit: 'ช่างภาพทดสอบ', bodySize: 17, bodyLeading: 'normal',
       photos: [`p:${story.photos[1].path}`, 'u:0'] };
     const r = await pr.call('PUT', `/api/pr/news/${newsId}`, form(data, { photo: [['c.jpg', await img('#2a6', 800, 600), 'image/jpeg']] }));

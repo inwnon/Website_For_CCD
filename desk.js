@@ -105,7 +105,7 @@
       </div>` : ''}`;
     g.hidden = false;
     g.addEventListener('click', async (e) => {
-      const b = e.target.closest('[data-dev]');
+      const b = /** @type {HTMLElement} */ ((/** @type {Element} */ (e.target)).closest('[data-dev]'));
       if (!b) return;
       try { await api('/auth/dev', { method: 'POST', body: { as: b.dataset.dev } }); location.reload(); } catch (err) { toast(err.message, true); }
     });
@@ -127,10 +127,10 @@
 
     // Theme
     const sw = document.getElementById('themeToggle');
-    sw.setAttribute('aria-checked', document.documentElement.classList.contains('dark'));
+    sw.setAttribute('aria-checked', String(document.documentElement.classList.contains('dark')));
     sw.addEventListener('click', () => {
       const dark = document.documentElement.classList.toggle('dark');
-      sw.setAttribute('aria-checked', dark);
+      sw.setAttribute('aria-checked', String(dark));
       try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
     });
     // Mobile drawer

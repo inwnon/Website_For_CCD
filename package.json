@@ -11,6 +11,9 @@
     "dev": "node --env-file=.env --watch-path=server server/index.mjs",
     "start": "node --env-file-if-exists=.env server/index.mjs",
     "test": "node --env-file=.env --test --test-concurrency=1 \"server/test/*.test.mjs\"",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json && tsc -p server/tsconfig.json",
+    "check": "npm run lint && npm run typecheck",
     "db:seed": "node --env-file=.env server/seed.mjs",
     "build:css": "node server/build-css.mjs",
     "build:images": "node server/build-images.mjs",
@@ -30,7 +33,17 @@
     "sharp": "^0.35.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^22.20.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "eslint": "^10.13.0",
+    "eslint-plugin-html": "^8.2.1",
+    "globals": "^17.13.0",
     "subset-font": "^2.4.0",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "typescript": "^7.0.2"
   }
 }

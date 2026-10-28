@@ -16,10 +16,10 @@ const IMPORT = {
   sourceUrl: 'https://m.facebook.com/sru.pr/posts/pfbid0TEST123?__cft__=abc&ref=share',
 };
 
-let staff, student, pr, admin, coord, snap, originals;
+let staff, pr, admin, coord, snap, originals;
 before(async () => {
   snap = await snapshot();
-  [staff, student, pr, admin, coord] = await Promise.all(['staff', 'student', 'pr', 'admin', 'coordinator'].map(login));
+  [staff, , pr, admin, coord] = await Promise.all(['staff', 'student', 'pr', 'admin', 'coordinator'].map(login));
   originals = (await admin.call('GET', '/api/admin/settings')).body.settings;
   await staff.call('PUT', '/api/me/profile', { ...ID_STAFF, unit: 'สำนักงานอธิการบดี', subUnit: 'กองกลาง', position: 'นักประชาสัมพันธ์', consent: true });
 });

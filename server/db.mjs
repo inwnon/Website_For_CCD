@@ -11,11 +11,13 @@ export const pool = new pg.Pool({ max: 10 });
 export async function registerEnumArrays() {
   const { rows } = await pool.query(`select typarray from pg_type t join pg_namespace n on n.oid = t.typnamespace
     where t.typtype = 'e' and n.nspname = 'public'`);
-  const parseTextArray = pg.types.getTypeParser(1009); // text[]
+  const parseTextArray = pg.types.getTypeParser(/** @type {any} */ (1009)); // text[]
   for (const r of rows) pg.types.setTypeParser(r.typarray, parseTextArray);
 }
 
+/** @type {(text: string, params?: unknown[]) => Promise<pg.QueryResult<any>>} */
 export const query = (text, params) => pool.query(text, params);
+/** @type {(text: string, params?: unknown[]) => Promise<any>} */
 export const one = async (text, params) => (await pool.query(text, params)).rows[0] ?? null;
 
 // Runs fn(client) inside a transaction; rolls back if it throws

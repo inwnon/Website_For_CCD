@@ -45,6 +45,7 @@ const bodyEn = (s) => [
 ].join('\n\n');
 
 // A gradient "photo" in the story's colours (no text: the server's fonts may not cover Thai)
+/** @param {string} dir @param {string} name @param {string[]} colors @param {number} i */
 async function photo(dir, name, [a, b], i) {
   const w = 1600, h = 1067;
   const cx = 20 + ((i * 37) % 60), cy = 25 + ((i * 53) % 50);
@@ -74,12 +75,14 @@ async function remove() {
 async function seedReads(ids) {
   let r = 7;
   const rand = () => ((r = (r * 16807) % 2147483647) / 2147483647);
+  /** @type {[string, number][]} */
   const SOURCES = [['facebook', 0.42], ['direct', 0.2], ['search', 0.16], ['line', 0.12], ['internal', 0.07], ['other', 0.03]];
+  /** @type {[string, number][]} */
   const DEVICES = [['mobile', 0.71], ['desktop', 0.24], ['tablet', 0.05]];
   const today = new Date();
   for (const { id, at, s } of ids) {
     let total = 0;
-    const days = Math.min(60, Math.floor((today - at) / 86400000));
+    const days = Math.min(60, Math.floor((today.getTime() - at.getTime()) / 86400000));
     for (let d = 0; d <= days; d++) {
       const base = (s.featured ? 420 : 160) * Math.exp(-d / 3.5) + 3;
       const n = Math.round(base * (0.7 + rand() * 0.6));
@@ -102,6 +105,7 @@ async function seedQueue(ids) {
     values ('user@sru.ac.th', 'ผู้ใช้ตัวอย่าง', 'staff', 'สำนักงานอธิการบดี', 'กองกลาง', 'นักประชาสัมพันธ์', now())
     on conflict (email) do update set email = excluded.email returning id`)).rows[0].id;
   const hours = (h) => new Date(Date.now() - h * 3600000);
+  /** @type {any[]} */
   const items = [
     { ref: 'NW-2569-S001', title: 'โครงการอบรมภาษาอังกฤษเพื่อการสื่อสารสำหรับบุคลากร', unit: 'กองการเจ้าหน้าที่', status: 'review', sent: 100 },
     { ref: 'NW-2569-S002', title: 'พิธีมอบเกียรติบัตรนักศึกษาจิตอาสา', unit: 'คณะครุศาสตร์', status: 'review', sent: 20 },

@@ -153,11 +153,11 @@ function searchQuery(P) {
     from: P.get('from') || '', to: P.get('to') || '', sort: P.get('sort') || 'relevance' };
   const now = new Date();
   const day = (d) => BKK_DAY.format(d);
-  const d = st.range === '7' ? { from: day(new Date(now - 6 * 86400000)), to: day(now) }
-    : st.range === '30' ? { from: day(new Date(now - 29 * 86400000)), to: day(now) }
+  const d = st.range === '7' ? { from: day(new Date(now.getTime() - 6 * 86400000)), to: day(now) }
+    : st.range === '30' ? { from: day(new Date(now.getTime() - 29 * 86400000)), to: day(now) }
       : st.range === 'year' ? { from: `${day(now).slice(0, 4)}-01-01`, to: day(now) }
         : st.range === 'custom' ? { from: st.from, to: st.to } : {};
-  const p = new URLSearchParams({ limit: 12, offset: 0 });
+  const p = new URLSearchParams({ limit: '12', offset: '0' });
   if (st.q) p.set('q', st.q);
   if (st.kind) p.set('kind', st.kind);
   st.cats.forEach((c) => p.append('cat', c));
@@ -220,6 +220,7 @@ router.get('/sitemap.xml', async (req, res) => {
   const stories = (await query(`select n.id, coalesce(n.updated_at, n.published_at) at from news n where ${LIVE} and 'public' = any(n.audience)
     order by n.published_at desc limit 45000`)).rows;
   const latest = stories[0]?.at || new Date();
+  /** @type {{ loc: string, lastmod?: string, freq?: string }[]} */
   const urls = [
     { loc: `${ORIGIN}/`, lastmod: day(latest), freq: 'hourly' },
     { loc: `${ORIGIN}/search.html`, lastmod: day(latest), freq: 'daily' },

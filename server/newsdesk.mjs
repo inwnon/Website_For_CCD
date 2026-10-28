@@ -59,7 +59,7 @@ router.get('/pr/news', async (req, res) => {
   const counts = (await query(`select ${Object.entries(SHOW).map(([k, w]) => `count(*) filter (where ${w})::int ${k}`).join(', ')}, count(*)::int "all"
     from news n ${base.length ? `where ${base.join(' and ')}` : ''}`, params)).rows[0];
   const where = [...base];
-  if (SHOW[req.query.show]) where.push(SHOW[req.query.show]);
+  if (SHOW[/** @type {string} */ (req.query.show)]) where.push(SHOW[/** @type {string} */ (req.query.show)]);
   const rows = (await query(
     `select n.*, s.ref, s.status submission_status, u.name creator_name, w.name withdrawn_by_name, count(*) over ()::int total
      from news n left join submissions s on s.id = n.submission_id left join users u on u.id = n.created_by left join users w on w.id = n.withdrawn_by
@@ -72,7 +72,7 @@ router.get('/pr/news', async (req, res) => {
   // อัลบั้มข่าว each story is in: their other stories are ข่าวที่เกี่ยวข้อง on their own (news.mjs)
   const albums = rows.length ? (await query('select id, title, items from collections where items && $1::uuid[]', [rows.map((n) => n.id)])).rows : [];
   res.json({
-    counts, total: SHOW[req.query.show] ? counts[req.query.show] : counts.all,
+    counts, total: SHOW[/** @type {string} */ (req.query.show)] ? counts[/** @type {string} */ (req.query.show)] : counts.all,
     items: rows.map((n) => ({
       id: n.id, title: n.title, unit: n.unit, kind: n.kind, categories: n.categories, audience: audienceLabel(n.audience),
       cover: n.cover_path ? `/media/${n.cover_path}` : null, photos: (n.cover_path ? 1 : 0) + n.gallery.length,

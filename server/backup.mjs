@@ -10,7 +10,7 @@
 // or PG_DUMP_VIA=local (pg_dump on PATH, using PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE).
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { createReadStream, createWriteStream, existsSync } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { copyFile, link, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
@@ -25,6 +25,7 @@ const stamp = (d = new Date()) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${p
 const dayName = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 // Runs a program; stdout to a file or collected. Rejects with stderr on a non-zero exit.
+/** @param {string} cmd @param {string[]} args @param {{ out?: NodeJS.WritableStream, input?: string, env?: NodeJS.ProcessEnv, shell?: boolean }} [opts] */
 export function run(cmd, args, { out, input, env, shell } = {}) {
   return new Promise((done, fail) => {
     const p = spawn(cmd, args, { cwd: ROOT, env: { ...process.env, ...env }, shell, stdio: [input ? 'pipe' : 'ignore', 'pipe', 'pipe'] });
@@ -130,13 +131,13 @@ export async function backup() {
   await mkdir(BACKUP_DIR, { recursive: true });
   const started = new Date();
   const result = { at: started.toISOString(), ok: true, errors: [] };
-  for (const [key, step] of [['db', backupDatabase], ['media', backupMedia]]) {
+  for (const [key, step] of /** @type {[string, () => Promise<any>][]} */ ([['db', backupDatabase], ['media', backupMedia]])) {
     try { result[key] = await step(); } catch (err) { result.ok = false; result.errors.push(`${key}: ${err.message}`); }
   }
   try { result.pruned = await prune(); } catch (err) { result.errors.push(`prune: ${err.message}`); }
   // Off site only after a good local backup
   if (result.ok) { try { result.offsite = await offsite(); } catch (err) { result.offsite = { ok: false, error: err.message }; result.ok = false; result.errors.push(`offsite: ${err.message}`); } }
-  result.seconds = Math.round((Date.now() - started) / 1000);
+  result.seconds = Math.round((Date.now() - started.getTime()) / 1000);
   await writeStatus({ backup: result });
   return result;
 }

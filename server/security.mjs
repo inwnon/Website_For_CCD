@@ -83,6 +83,7 @@ setInterval(() => {
 }, 60 * 1000).unref();
 
 // by: 'ip' (sign-in) or 'user' (signed-in actions; falls back to the IP)
+/** @param {string} name @param {{ max: number, windowMs: number, by?: 'ip' | 'user', message?: string }} opts */
 export function limit(name, { max, windowMs, by = 'user', message }) {
   return (req, res, next) => {
     if (DEV_ON && by === 'user' && req.user && !req.user.google_sub && DEV_SET.has(req.user.email)) return next();

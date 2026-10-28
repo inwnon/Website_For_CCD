@@ -517,7 +517,7 @@
     // Same labels and colours as the archive cards (search.html)
     const KIND = { news: ['ข่าวพร้อมภาพ', 'bg-royal-soft text-royal'], video: ['วิดีโอ', 'bg-red-soft text-brand'], banner: ['อินโฟกราฟิก', 'bg-gold-soft text-gold'] };
     const kindChips = (n) => {
-      const [kl, kc] = KIND[n.kind] || KIND.news;
+      const [kl] = KIND[n.kind] || KIND.news;
       return `<div class="absolute left-3 top-3 flex flex-wrap gap-1.5 text-[12px]"><span class="kchip rounded-full px-2.5 font-display font-semibold leading-6 shadow-raised">${kl}</span>${n.internal ? `<span class="rounded-full bg-purple-soft px-2.5 font-display font-semibold leading-6 text-purple">${esc(n.audience)}</span>` : ''}</div>`;
     };
     const card = (n) => n.locked ? lockedCard(n) : `

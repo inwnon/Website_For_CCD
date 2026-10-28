@@ -9,6 +9,7 @@
 // Connected pages set window.SERVER_AUTH = true before this script so the header ignores the prototype profile.
 (function () {
   async function api(path, opts = {}) {
+    /** @type {RequestInit & { headers: Record<string, string> }} */
     const init = { method: opts.method || 'GET', credentials: 'same-origin', headers: {} };
     if (opts.body !== undefined) { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(opts.body); }
     let res;
@@ -92,6 +93,7 @@
     try { await api('/me/role', { method: 'POST', body: { role } }); afterSwitch(role); } catch (err) { buttons.forEach((b) => { b.disabled = false; }); alert(err.message); }
   }
   // The two buttons in a back-office side bar (#roleSwitch); shown for developer accounts only
+  /** @param {HTMLElement} box */
   window.mountRoleSwitch = (box, u) => {
     if (!box || !u?.developer) return;
     box.hidden = false;
@@ -100,7 +102,7 @@
       return `<button type="button" data-switch-role="${k}" aria-pressed="${on}" class="press t-quick min-h-10 rounded-xl px-2 py-1.5 font-display text-[12px] leading-tight ${on ? 'bg-shell font-semibold text-purple shadow-raised' : 'font-medium text-ink2 hover:text-ink'}">${l}</button>`;
     }).join('');
     box.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-switch-role]');
+      const b = /** @type {HTMLButtonElement} */ ((/** @type {Element} */ (e.target)).closest('[data-switch-role]'));
       if (b && b.getAttribute('aria-pressed') !== 'true' && !b.disabled) switchRole(b.dataset.switchRole, [...box.querySelectorAll('button')]);
     });
   };
@@ -181,7 +183,7 @@
     try { if (t === 'system') localStorage.removeItem('theme'); else localStorage.setItem('theme', t); } catch (e) {}
     const dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.toggle('dark', dark);
-    document.getElementById('themeToggle')?.setAttribute('aria-checked', dark);
+    document.getElementById('themeToggle')?.setAttribute('aria-checked', String(dark));
   }
 
   const here = location.pathname.replace(/^\//, '') || 'index.html';
@@ -194,7 +196,7 @@
   const isDesk = (u) => u?.role === 'pr' || u?.role === 'admin';
   function addNewsButtons(u) {
     if (!isDesk(u)) return;
-    document.querySelectorAll('header a[href="submit.html"], nav a[href="submit.html"]').forEach((a) => {
+    /** @type {NodeListOf<HTMLAnchorElement>} */ (document.querySelectorAll('header a[href="submit.html"], nav a[href="submit.html"]')).forEach((a) => {
       a.href = ADD_NEWS;
       a.removeAttribute('aria-current');
       const w = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
@@ -240,8 +242,8 @@
       wrap.innerHTML = '<button type="button" id="login" class="acct-btn" aria-expanded="false" aria-controls="acctPanel"></button><div id="acctPanel" class="acct-panel" role="dialog" aria-label="เมนูบัญชี"></div>';
       old.replaceWith(wrap);
     }
-    const btn = wrap.querySelector('#login');
-    const panel = wrap.querySelector('#acctPanel');
+    const btn = /** @type {HTMLElement} */ (wrap.querySelector('#login'));
+    const panel = /** @type {HTMLElement} */ (wrap.querySelector('#acctPanel'));
     addNewsButtons(u);
     btn.innerHTML = (u ? `<span class="acct-av">${avatar(u)}</span>` : svg(IC.person, 20)) + (u && me.unread ? `<span class="acct-dot" aria-hidden="true">${me.unread}</span>` : '');
     btn.setAttribute('aria-label', u ? `บัญชีของ ${u.name || u.email}${me.unread ? ` มีข้อความใหม่ ${me.unread} รายการ` : ''}` : 'เมนูบัญชี ยังไม่ได้เข้าสู่ระบบ');
@@ -249,39 +251,39 @@
     if (wired) return;
     wired = true;
 
-    const focusables = () => [...panel.querySelectorAll('a, button')];
+    const focusables = () => [.../** @type {NodeListOf<HTMLElement>} */ (panel.querySelectorAll('a, button'))];
     const isOpen = () => panel.classList.contains('open');
     const open = (focusFirst) => { panel.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); if (focusFirst) focusables()[0]?.focus(); };
     const close = (back) => { if (!isOpen()) return; panel.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); if (back) btn.focus(); };
     btn.addEventListener('click', () => (isOpen() ? close() : open(false)));
     btn.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown') { e.preventDefault(); open(true); } });
-    document.addEventListener('pointerdown', (e) => { if (!wrap.contains(e.target)) close(); });
-    wrap.addEventListener('focusout', (e) => { if (e.relatedTarget && !wrap.contains(e.relatedTarget)) close(); });
+    document.addEventListener('pointerdown', (e) => { if (!wrap.contains(/** @type {Node} */ (e.target))) close(); });
+    wrap.addEventListener('focusout', (e) => { if (e.relatedTarget && !wrap.contains(/** @type {Node} */ (e.relatedTarget))) close(); });
     wrap.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && isOpen()) { e.stopPropagation(); close(true); return; }
-      if (!panel.contains(e.target) || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+      if (!panel.contains(/** @type {Node} */ (e.target)) || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
       e.preventDefault();
       const l = focusables();
-      const i = l.indexOf(document.activeElement);
+      const i = l.indexOf(/** @type {HTMLElement} */ (document.activeElement));
       l[e.key === 'Home' ? 0 : e.key === 'End' ? l.length - 1 : (i + (e.key === 'ArrowDown' ? 1 : -1) + l.length) % l.length].focus();
     });
     panel.addEventListener('click', async (e) => {
-      const t = e.target.closest('[data-theme]');
-      if (t) { setTheme(t.dataset.theme); panel.querySelectorAll('[data-theme]').forEach((b) => b.setAttribute('aria-pressed', b === t)); return; }
-      const sw = e.target.closest('[data-switch-role]');
+      const t = /** @type {HTMLElement} */ ((/** @type {Element} */ (e.target)).closest('[data-theme]'));
+      if (t) { setTheme(t.dataset.theme); panel.querySelectorAll('[data-theme]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); return; }
+      const sw = /** @type {HTMLElement} */ ((/** @type {Element} */ (e.target)).closest('[data-switch-role]'));
       if (sw) {
         if (sw.getAttribute('aria-pressed') !== 'true') switchRole(sw.dataset.switchRole, [...panel.querySelectorAll('[data-switch-role]')]);
         return;
       }
-      if (e.target.closest('[data-signout]')) {
+      if ((/** @type {Element} */ (e.target)).closest('[data-signout]')) {
         await api('/auth/logout', { method: 'POST' }).catch(() => {});
         location.href = 'index.html';
         return;
       }
-      if (e.target.closest('a')) close();
+      if ((/** @type {Element} */ (e.target)).closest('a')) close();
     });
     // The header switch changes the theme too: keep the menu's choice in step
-    document.getElementById('themeToggle')?.addEventListener('click', () => setTimeout(() => panel.querySelectorAll('[data-theme]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.theme === themeNow())), 0));
+    document.getElementById('themeToggle')?.addEventListener('click', () => setTimeout(() => /** @type {NodeListOf<HTMLElement>} */ (panel.querySelectorAll('[data-theme]')).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.theme === themeNow()))), 0));
   }
   window.renderAccountButton = renderAccountButton;
   renderAccountButton();

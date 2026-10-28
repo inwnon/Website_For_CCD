@@ -5,7 +5,7 @@
 //   3. the newest media snapshot: every file in its manifest is there with its size; a sample is checked by SHA-256;
 //      every photo / file / story image the restored database points to exists in the snapshot
 //   4. the result goes to BACKUP_DIR/status.json (admin.html → สำรองข้อมูล). Exit code 1 when anything failed.
-import { createReadStream, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { BACKUP_DIR, run, sha256, writeStatus } from './backup.mjs';
@@ -89,7 +89,7 @@ export async function restoreTest() {
   } finally {
     if (db) await db.drop();
   }
-  result.seconds = Math.round((Date.now() - started) / 1000);
+  result.seconds = Math.round((Date.now() - started.getTime()) / 1000);
   await writeStatus({ restoreTest: result });
   return result;
 }

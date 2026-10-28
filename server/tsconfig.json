@@ -1,0 +1,16 @@
+{
+  // Server type check (npm run typecheck): plain JavaScript checked from its JSDoc; nothing is compiled or emitted.
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "target": "es2023",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["es2023"],
+    "types": ["node"],
+    "strict": false,
+    "skipLibCheck": true
+  },
+  "include": ["**/*.mjs", "types.d.ts"]
+}
