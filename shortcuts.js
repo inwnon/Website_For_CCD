@@ -22,7 +22,7 @@
     inbox: ['งานที่ส่งเข้ามาทั้งหมด', 'pr.html', 'var(--royal-soft)', 'var(--royal)'],
     add: ['เพิ่มข่าว', 'pr-import.html?mode=add', 'var(--purple-soft)', 'var(--purple)'],
     import: ['นำเข้าข่าวย้อนหลัง', 'pr-import.html', 'var(--sky-soft)', 'var(--sky)'],
-    news: ['ข่าวที่เผยแพร่', 'pr-news.html', 'var(--royal-soft)', 'var(--royal)'],
+    news: ['จัดการข่าว', 'pr-news.html', 'var(--royal-soft)', 'var(--royal)'],
     scheduled: ['ข่าวที่ตั้งเวลาไว้', 'pr-news.html?show=scheduled', 'var(--gold-soft)', 'var(--gold)'],
     collections: ['อัลบั้มข่าว', 'pr-collections.html', 'var(--purple-soft)', 'var(--purple)'],
     report: ['รายงาน', 'report.html', 'var(--sky-soft)', 'var(--sky)'],
