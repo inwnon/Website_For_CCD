@@ -1,0 +1,12 @@
+.git
+.github
+.claude
+node_modules
+.env
+.env.*
+uploads
+backups
+server/test
+*.log
+Dockerfile
+docker-compose.yml

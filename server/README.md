@@ -108,7 +108,11 @@ npm run db:seed         # (ไม่บังคับ) ข้อมูลตั
 ต้องการ: Linux + Docker, โดเมน (เช่น `news.sru.ac.th`) และ HTTPS ผ่าน reverse proxy (nginx) ของมหาวิทยาลัย
 1. คัดลอกโปรเจกต์ไปที่เซิร์ฟเวอร์ แล้วสร้าง `.env` จาก `.env.example`
    - ตั้ง `PGPASSWORD` ใหม่ที่เดายาก, `APP_ORIGIN=https://news.sru.ac.th`, `ALLOW_DEV_LOGIN=0`, ใส่ `GOOGLE_CLIENT_ID`
-2. `docker compose --profile app up -d` — รันฐานข้อมูล + แอป และรัน migration ให้อัตโนมัติ
+2. `docker compose --profile app up -d --build` — build image ของแอป (ติดตั้งแพ็กเกจตอน build) แล้วรันฐานข้อมูล + แอป และรัน migration ให้อัตโนมัติ
+   - แอปรันด้วยผู้ใช้ `node` (uid 1000) ไม่ใช่ root เขียนได้เฉพาะ `uploads/` และอ่าน `backups/` ได้อย่างเดียว
+   - ถ้าตั้ง `BACKUP_DIR` นอกโฟลเดอร์โปรเจกต์ ให้แก้ volume `./backups` ใน `docker-compose.yml` ให้ชี้ไปที่เดียวกัน
+   - **อัปเดตเวอร์ชัน:** `git pull` แล้ว `docker compose --profile app up -d --build`
+   - **ครั้งแรกที่ย้ายจากแบบเดิม** (container รันด้วย root): `sudo chown -R 1000:1000 uploads` ก่อน `up` ไม่อย่างนั้นแอปเขียนไฟล์ใหม่ไม่ได้
 3. เพิ่มผู้ดูแลคนแรก:
    ```sh
    docker compose exec db psql -U prsru -d prsru -c "insert into pr_team (email, role) values ('ชื่อ@sru.ac.th', 'admin')"
