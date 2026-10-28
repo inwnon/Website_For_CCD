@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: prsru
+          POSTGRES_USER: prsru
+          POSTGRES_PASSWORD: prsru-dev
+          TZ: Asia/Bangkok
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U prsru -d prsru"
+          --health-interval 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Test settings only (dev login on, no real keys); never real secrets
+      - run: cp .env.example .env
+      - run: npm run db:migrate
+      - name: Start app
+        run: |
+          node --env-file=.env server/index.mjs > app.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:3000/ && exit 0; sleep 1; done
+          cat app.log; exit 1
+      - run: npm test
+      - name: App log on failure
+        if: failure()
+        run: tail -n 100 app.log
+      - name: Security audit (production packages)
+        run: npm audit --omit=dev --audit-level=high
