@@ -339,8 +339,8 @@
                 </dd>
               </div>
               <div>
-                <dt class="inline-flex items-center gap-1.5 text-[13px] text-ink2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span data-i18n="lblViews">อ่านแล้ว</span></dt>
-                <dd class="mt-1 font-display text-[16px] font-medium" data-i18n="views"></dd>
+                <dt class="inline-flex items-center gap-1.5 text-[13px] text-ink2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span data-i18n="lblSender">ส่งข่าวโดย</span></dt>
+                <dd class="mt-1 font-display text-[16px] font-medium" data-i18n="sender"></dd>
               </div>
             </dl>
 
@@ -541,7 +541,7 @@
         caption: `ภาพข่าว · ${n} ภาพ`, credit: `${creditOf(s, 0)}: ${s.credit || 'งานประชาสัมพันธ์ มรส.'}`,
         tagFeatured: 'ข่าวเด่น', tagUnit: s.unit, tagInternal: s.audience, tagVideo: 'มีวิดีโอ',
         title: s.title, dek: s.lead || '', lblDate: 'วันที่เผยแพร่', date, lblUnit: 'หน่วยงาน', unit: s.unit,
-        lblLang: 'ภาษา', lblViews: 'อ่านแล้ว', views: `${s.views.toLocaleString('th-TH')} ครั้ง`,
+        lblLang: 'ภาษา', lblSender: 'ส่งข่าวโดย', sender: s.submittedBy || s.unit,
         btnGallery: `ดูภาพทั้งหมด ${n} ภาพ`, btnShare: 'แชร์',
         videoTitle: 'วิดีโอประกอบข่าว', galleryTitle: 'ภาพข่าว', galleryNote: n > 1 ? 'แตะภาพเพื่อขยาย และดาวน์โหลดขนาดต้นฉบับ' : 'ภาพทั้งหมดของกิจกรรมนี้อยู่ที่ลิงก์ภายนอก',
         btnZip: `ดาวน์โหลดภาพทั้งหมด (${n} ภาพ)`, btnAlbum: ALBUM[s.albumHost] ? `ดูรูปภาพเพิ่มเติมบน ${ALBUM[s.albumHost]}` : 'ดูรูปภาพเพิ่มเติม',
@@ -550,7 +550,7 @@
         caption: `News photos · ${n} photo${n === 1 ? '' : 's'}`, credit: `${creditOf(s, 1)}: ${s.credit || 'SRU Public Relations'}`,
         tagFeatured: 'Featured', tagUnit: s.unit, tagInternal: 'Internal', tagVideo: 'Video',
         title: s.titleEn || s.title, dek: s.titleEn ? '' : s.lead || '', lblDate: 'Published', date, lblUnit: 'Unit', unit: s.unit,
-        lblLang: 'Language', lblViews: 'Views', views: s.views.toLocaleString('en-US'),
+        lblLang: 'Language', lblSender: 'Submitted by', sender: s.submittedBy || s.unit,
         btnGallery: `View all ${n} photos`, btnShare: 'Share',
         videoTitle: 'Video', galleryTitle: 'Photos', galleryNote: n > 1 ? 'Tap a photo to enlarge and download the original' : 'All photos of this event are on the linked album',
         btnZip: `Download all ${n} photos`, btnAlbum: ALBUM[s.albumHost] ? `More photos on ${ALBUM[s.albumHost]}` : 'More photos',
