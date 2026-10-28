@@ -7,7 +7,7 @@ import sharp from 'sharp';
 import { query } from '../db.mjs';
 import { abs } from '../files.mjs';
 import { restore, snapshot } from './cleanup.mjs';
-import { anon, form, img, login } from './helpers.mjs';
+import { ID_STAFF, anon, form, img, login } from './helpers.mjs';
 
 const T = 'contact-test-';
 const add = (email, f) => query(
@@ -20,6 +20,8 @@ let snap, staff, pr, facPr, central, teacher;
 before(async () => {
   snap = await snapshot();
   [staff, pr] = await Promise.all([login('staff'), login('pr')]);
+  // Submitting needs a complete profile; set it here so this file passes on a fresh database too
+  await staff.call('PUT', '/api/me/profile', { ...ID_STAFF, unit: 'สำนักงานอธิการบดี', subUnit: 'กองกลาง', position: 'นักประชาสัมพันธ์', consent: true });
   await query('delete from users where email like $1', [T + '%']);
   await mkdir(abs('avatars'), { recursive: true });
   await writeFile(abs('avatars/contact-test.webp'), await sharp({ create: { width: 64, height: 64, channels: 3, background: '#468' } }).webp().toBuffer());
