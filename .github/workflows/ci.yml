@@ -69,3 +69,12 @@ jobs:
         shell: bash
         run: |
           [ -f audit.log ] && echo "::error title=npm audit::$(head -n 120 audit.log | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+
+  # The production image still builds, and sharp (native) loads inside it; nothing is pushed
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -t prsru-app .
+      - run: docker run --rm prsru-app node -e "require('sharp'); require('pg'); console.log('ok')"

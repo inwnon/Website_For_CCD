@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: ${PGDATABASE:-prsru}
       POSTGRES_USER: ${PGUSER:-prsru}
-      POSTGRES_PASSWORD: ${PGPASSWORD:-prsru-dev}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?Set PGPASSWORD in .env (copy .env.example first)}
       TZ: Asia/Bangkok
     ports:
       - "127.0.0.1:${PGPORT:-5433}:5432"
@@ -20,10 +20,17 @@ services:
 
   app:
     profiles: ["app"]
-    image: node:22-alpine
+    build: .              # Dockerfile: packages installed at build time, runs as the non-root user "node"
+    image: prsru-app
     restart: unless-stopped
-    working_dir: /app
-    command: sh -c "npm ci --omit=dev && node server/migrate.mjs && node server/index.mjs"
+    init: true
+    read_only: true       # code cannot be changed at runtime; only the volumes below and /tmp are writable
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     env_file: .env
     environment:
       NODE_ENV: production
@@ -34,9 +41,8 @@ services:
     ports:
       - "127.0.0.1:${PORT:-3000}:3000"   # reached through the reverse proxy (HTTPS), not from other machines
     volumes:
-      - ./:/app
-      - /app/node_modules   # the container installs its own (Linux) packages
       - ./uploads:/app/uploads   # a folder on this machine, so the nightly backup (ops/BACKUP.md) can read it
+      - ./backups:/app/backups:ro   # read-only: admin page shows the latest backup status
     depends_on:
       db:
         condition: service_healthy
