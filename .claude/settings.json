@@ -49,5 +49,20 @@
       "Bash(git diff:*)",
       "Bash(git log:*)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/lint-file.mjs\"",
+            "timeout": 30,
+            "statusMessage": "ESLint"
+          }
+        ]
+      }
+    ]
   }
 }

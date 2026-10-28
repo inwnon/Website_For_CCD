@@ -21,7 +21,7 @@ export default [
       'no-new-func': 'error',
     },
   },
-  { files: ['server/**/*.mjs'], languageOptions: { globals: globals.node } },
+  { files: ['server/**/*.mjs', '.claude/hooks/*.mjs', '*.mjs'], languageOptions: { globals: globals.node } },
   { files: ['*.cjs'], languageOptions: { sourceType: 'commonjs', globals: globals.node } },
   { files: ['*.js'], languageOptions: { sourceType: 'script', globals: { ...globals.browser, ...shared } } },
   { files: ['*.html'], plugins: { html }, languageOptions: { sourceType: 'script', globals: { ...globals.browser, ...shared } } },

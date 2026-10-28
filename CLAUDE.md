@@ -10,6 +10,7 @@ New-module requirements: @SPEC.md (read only when working on those modules). Ser
 - DB: `npm run db:up` (PostgreSQL in Docker, port 5433) then `npm run db:migrate`
 - Dev: `npm run dev` → http://localhost:3000 (pages + `/api`); restarts on `server/` changes
 - Test: `npm test` (needs `npm run dev` running) — run after every change
+- Check: `npm run check` (ESLint + JSDoc type check). A hook lints each file Claude edits (`.claude/hooks/lint-file.mjs`): fix what it reports right away
 - CSS: `npm run build:css` after any Tailwind class change; fonts `npm run build:fonts`; brand images `npm run build:images`
 - Audit: `npm audit --omit=dev`
 - Dev login (`ALLOW_DEV_LOGIN=1`): `POST /api/auth/dev` `{"as":"pr"}` — staff, student, external, pr, admin, coordinator
