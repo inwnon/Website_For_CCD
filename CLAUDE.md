@@ -1,50 +1,54 @@
-# CLAUDE.md กฎสำหรับการพัฒนาเว็บไซต์ส่วนหน้า (Frontend)
+# CLAUDE.md
 
-## สิ่งที่ต้องทำเป็นอันดับแรก
-- **เรียกใช้ทักษะ `frontend-design`** ก่อนเริ่มเขียนโค้ดส่วนหน้า (Frontend) ทุกครั้ง โดยไม่มีข้อยกเว้น
+## Project
+คลังข่าว มรส. (university PR newsroom), being extended with back-office modules for the Corporate Communication office: calendar, service requests, documents, equipment, phone book, student team.
+Stack (fixed): Node.js 22 + Express 5 (ESM `.mjs`) + PostgreSQL 16 via `pg` + plain SQL migrations + static HTML pages with locally built Tailwind. Do not add or swap libraries without asking.
+Runs unchanged on Hostinger VPS (dev) and the university server (prod); only `.env` differs. No paid services or per-call APIs.
+New-module requirements: @SPEC.md (read only when working on those modules). Server details: `server/README.md`.
 
-## การใช้ภาพอ้างอิง
-- หากมีภาพอ้างอิง: ให้จัดวางเลย์เอาต์ ระยะห่าง รูปแบบตัวอักษร และสีให้ตรงกับภาพต้นฉบับทุกประการ โดยใช้เนื้อหาจำลองแทน (เช่น ใช้ `https://placehold.co/` สำหรับรูปภาพ และใช้ข้อความทั่วไปแทนเนื้อหาจริง) ห้ามปรับปรุงหรือเพิ่มเติมดีไซน์จากต้นฉบับ
-- หากไม่มีภาพอ้างอิง: ให้สร้างดีไซน์ขึ้นใหม่ด้วยความประณีตและใส่ใจในรายละเอียด (โปรดดูแนวทางปฏิบัติที่ระบุด้านล่าง)
+## Commands
+- DB: `npm run db:up` (PostgreSQL in Docker, port 5433) then `npm run db:migrate`
+- Dev: `npm run dev` → http://localhost:3000 (pages + `/api`); restarts on `server/` changes
+- Test: `npm test` (needs `npm run dev` running) — run after every change
+- CSS: `npm run build:css` after any Tailwind class change; fonts `npm run build:fonts`; brand images `npm run build:images`
+- Audit: `npm audit --omit=dev`
+- Dev login (`ALLOW_DEV_LOGIN=1`): `POST /api/auth/dev` `{"as":"pr"}` — staff, student, external, pr, admin, coordinator
 
-## การใช้งาน Local Server
-- **ต้องรันบน localhost เท่านั้น** — ห้ามบันทึกภาพหน้าจอจาก URL ในรูปแบบ `file:///` โดยเด็ดขาด
-- เริ่มฐานข้อมูลด้วย `npm run db:up` (PostgreSQL ใน Docker พอร์ต 5433) แล้วเริ่มเซิร์ฟเวอร์สำหรับพัฒนา (Dev Server) ด้วย `npm run dev` ที่ `http://localhost:3000` (หน้าเว็บ + `/api` + หน้าที่ server เติมเนื้อหาให้) — รายละเอียดใน `server/README.md`
-- ให้รันคำสั่งนี้ทิ้งไว้ในเบื้องหลังก่อนทำการบันทึกภาพหน้าจอทุกครั้ง หากเซิร์ฟเวอร์กำลังทำงานอยู่แล้ว ไม่จำเป็นต้องรันซ้ำอีก
-- แก้โค้ดใน `server/` แล้ว `npm run dev` จะรีสตาร์ตเอง ล็อกอินจำลองระหว่างพัฒนา: `POST /api/auth/dev` ส่ง `{"as":"staff"}` (staff, student, external, pr, admin, coordinator)
+## Structure
+- `server/<module>.mjs` one file per module · `server/migrations/NNN_name.sql` next free number · `server/test/<module>.test.mjs` cleans up its own data
+- `<page>.html` page-specific script/style inline; shared: `auth.js`, `desk.js`, `desk.css`, `thai-date.js`
+- `uploads/` user files, never served directly
 
-## ค่าเริ่มต้นสำหรับผลลัพธ์
-- โปรเจกต์นี้มีหลายหน้า (`index.html`, `news.html`, `pr.html` …) สคริปต์และสไตล์เฉพาะหน้าเขียนไว้ในไฟล์ HTML ของหน้านั้น ส่วนที่ใช้ร่วมกันอยู่ใน `auth.js`, `desk.js`, `desk.css`, `thai-date.js`
-- **Tailwind CSS ใช้แบบ build ไว้ก่อน (ห้ามใช้ CDN)**: หน้าเว็บโหลด `/assets/app.css` — แก้ class ของ Tailwind ในหน้าใดก็ตาม (หรือ `assets/src/app.css`, `tailwind.config.cjs`) ต้องรัน `npm run build:css` ทุกครั้ง ไม่อย่างนั้น class ใหม่จะไม่มีผล
-- ห้ามให้หน้าเว็บโหลดไฟล์จากเว็บภายนอก (CDN, Google Fonts, รูปจาก placehold.co ฯลฯ) — ฟอนต์อยู่ใน `assets/fonts/` (`npm run build:fonts`), รูปของแบรนด์อยู่ใน `assets/img/` (`npm run build:images`) เพื่อความเร็วและไม่ส่งข้อมูลผู้อ่านออกไปภายนอก
-- รูปภาพตัวอย่าง (placeholder) ใช้ได้เฉพาะในแบบร่างหรือภาพจำลองที่ไม่ได้อยู่ในหน้าเว็บจริง
-- ออกแบบโดยคำนึงถึงอุปกรณ์ที่ใช้งาน
-- เกณฑ์คุณภาพที่ต้องรักษา: WCAG 2.1 AA (axe ไม่พบปัญหา ใช้คีย์บอร์ดได้ทุกจุด), ความสูงบรรทัดภาษาไทย ≥ 1.6, วันที่เป็น พ.ศ., LCP บนมือถือ ≤ 2.5 วินาที, CLS < 0.1, ไม่มีการเลื่อนด้านข้างบนจอ 390px — ก่อนส่งงานรัน `npm test` (ต้องเปิด `npm run dev` อยู่)
+## Reuse before writing
+Auth/session `auth.mjs` · roles `rules.mjs` · errors/CSRF/validation `http.mjs` · headers/rate limit/file sniffing `security.mjs` · uploads `files.mjs` · audit `audit.mjs` · email `notify.mjs` · Thai search `thai.mjs` · retention `privacy.mjs` · reports/Excel `reports.mjs`.
 
-## ทรัพยากรของแบรนด์ (Brand Assets)
-- ตรวจสอบโฟลเดอร์ `brand_assets/` ก่อนเริ่มออกแบบเสมอ ซึ่งอาจมีโลโก้ คู่มือการใช้สี คู่มือสไตล์ (style guide) หรือรูปภาพต่างๆ รวมอยู่ด้วย
-- หากมีทรัพยากรเหล่านี้อยู่ ให้เลือกใช้แทนการใช้รูปภาพตัวอย่าง (placeholder)
-- หากมีโลโก้ ให้ใช้โลโก้นั้น และหากมีการกำหนดชุดสี (color palette) ไว้แล้ว ให้ใช้ค่าสีเหล่านั้น
+## Security (non-negotiable)
+- Never read, print, or commit `.env*` or credentials (also blocked in `.claude/settings.json`); use `.env.example` for names.
+- Local/test database only; never production data. Never read `uploads/` (personal data).
+- SQL only with parameters (`$1`). Validate all input server-side.
+- Check authorization on the server for every route and record ID; in new modules follow SPEC §2 and always deny role `external`.
+- Escape user content on output; no `innerHTML` with user data. Do not log secrets or personal data.
+- Ask before: installing packages, deleting files, changing login/session or existing newsroom behavior.
 
-## แนวทางป้องกันผลลัพธ์ที่ดูทั่วไปเกินไป (Anti-Generic Guardrails)
-- **สี:** ห้ามใช้ชุดสีมาตรฐานของ Tailwind (เช่น indigo-500, blue-600 ฯลฯ) ให้เลือกใช้สีเฉพาะของแบรนด์แล้วนำไปต่อยอด
-- **เงา (Shadows):** ห้ามใช้เงาแบบ `shadow-md` ทั่วไป ให้ใช้เงาที่ซ้อนทับกันหลายชั้น มีการปรับโทนสี และตั้งค่าความโปร่งใส (opacity) ไว้ต่ำๆ
-- **ตัวอักษร (Typography):** ห้ามใช้ฟอนต์เดียวกันทั้งในส่วนหัวข้อและเนื้อหา ให้จับคู่ฟอนต์ประเภท Display หรือ Serif เข้ากับฟอนต์ Sans-serif ที่ดูสะอาดตา สำหรับหัวข้อขนาดใหญ่ให้ปรับระยะห่างตัวอักษร (tracking) ให้ชิดขึ้น (`-0.03em`) และสำหรับเนื้อหาให้ปรับความสูงบรรทัด (line-height) ให้กว้างขึ้น (`1.7`)
-- **การไล่เฉดสี (Gradients):** ให้ซ้อนทับ Radial Gradient หลายชั้นเข้าด้วยกัน และเพิ่มเอฟเฟกต์เม็ดสี (grain/texture) ผ่าน SVG noise filter เพื่อสร้างมิติความลึก
-- **แอนิเมชัน:** ให้ทำแอนิเมชันเฉพาะคุณสมบัติ `transform` และ `opacity` เท่านั้น ห้ามใช้ `transition-all` และควรใช้รูปแบบการเคลื่อนไหวแบบ Spring-style easing
-- **สถานะการโต้ตอบ (Interactive states):** องค์ประกอบทุกอย่างที่คลิกได้จะต้องมีสถานะรองรับทั้ง hover, focus-visible และ active โดยไม่มีข้อยกเว้น - **รูปภาพ:** เพิ่มเลเยอร์ไล่เฉดสี (gradient overlay) ด้วยคลาส `bg-gradient-to-t from-black/60` พร้อมเลเยอร์ปรับโทนสีโดยใช้ `mix-blend-multiply`
-- **ระยะห่าง (Spacing):** กำหนดระยะห่างอย่างตั้งใจและสม่ำเสมอ โดยใช้ค่ามาตรฐาน (tokens) ที่ชัดเจน ไม่ใช่การสุ่มเลือกค่าจาก Tailwind
-- **มิติความลึก (Depth):** จัดลำดับชั้นของพื้นผิว (เช่น พื้นฐาน → ยกสูงขึ้น → ลอยตัว) โดยไม่วางทุกองค์ประกอบไว้ในระนาบเดียวกัน (z-plane เดียวกัน)
+## Frontend (always)
+- No external requests from pages: no CDN, Google Fonts, or remote images; Tailwind is prebuilt (`/assets/app.css`).
+- Quality bar: WCAG 2.1 AA (axe clean, keyboard everywhere), Thai line-height ≥ 1.6, Buddhist-era dates (`thai-date.js`), mobile LCP ≤ 2.5 s, CLS < 0.1, no horizontal scroll at 390px.
+- Never `transition-all`; animate only `transform`/`opacity`; every clickable element has hover, focus-visible, active.
+- Designing a new page or changing a page's look → load skill `ccd-ui` first. Not needed for API work, bug fixes, or copy edits.
+- Screenshots only from localhost, never `file:///`.
 
-## กฎเหล็ก
-- ห้ามเพิ่มส่วนประกอบ ฟีเจอร์ หรือเนื้อหาใดๆ ที่ไม่มีอยู่ในแบบอ้างอิง
-- ห้ามพยายาม "ปรับปรุง" ดีไซน์ต้นฉบับ — ให้ทำตามแบบอ้างอิงอย่างเคร่งครัด
-- ห้ามใช้ `transition-all`
+## Token rules
+- One small task per session. Say what you will change before changing it.
+- Grep before opening; read only needed files; never dump directories or large logs.
+- Targeted edits, no whole-file rewrites. No repeating code back; short replies.
+- Reuse helpers; no speculative features. Ask one question only when a wrong guess is costly.
 
 ## Workflow
-ก่อนแก้โค้ดให้ทำตามนี้:
-1. อ่านไฟล์ที่เกี่ยวข้องก่อน
-2. อธิบายแผนแก้แบบสั้นๆ
-3. แก้เฉพาะไฟล์ที่จำเป็น
-4. ตรวจว่าโค้ดไม่กระทบส่วนอื่น
-5. สรุปสิ่งที่แก้หลังทำเสร็จเป็นภาษาไทย
+1. Read the relevant files.
+2. Plan in 3–5 bullets; wait for OK if it touches auth, data, or newsroom behavior, or 3+ files.
+3. Failing API test first for new logic when practical; smallest change that works.
+4. `npm test` — all existing tests must pass.
+5. Summarize in Thai: what changed, which files, what to verify.
+
+## Done means
+Tests pass · no new high/critical `npm audit` findings · no secrets, debug code, or commented-out blocks · changes in new modules logged in `audit_log`.
