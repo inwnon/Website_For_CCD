@@ -20,8 +20,9 @@ jobs:
       - name: Update packages
         shell: bash
         run: |
-          npm install nodemailer@latest
-          npm audit fix --omit=dev
+          enc() { sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}'; }
+          npm install nodemailer@latest > step.txt 2>&1 || { echo "::error title=npm install::$(tail -n 40 step.txt | enc)"; exit 1; }
+          npm audit fix --omit=dev > fix.txt 2>&1 || echo "::warning title=audit fix::$(tail -n 40 fix.txt | enc)"
           echo "::notice title=versions::$(node -p "['express','body-parser','compression','multer','nodemailer'].map(n=>n+'@'+require('./node_modules/'+n+'/package.json').version).join(', ')")"
           npm audit --omit=dev --audit-level=high > audit.txt 2>&1 && echo "::notice title=audit::clean" || echo "::warning title=audit::$(head -n 40 audit.txt | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
       - name: Commit lockfile and remove this workflow
