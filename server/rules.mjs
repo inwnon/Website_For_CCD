@@ -10,7 +10,9 @@ const DOMAINS = { 'sru.ac.th': 'staff', 'student.sru.ac.th': 'student' };
 export const domainRole = (email) => DOMAINS[email.split('@')[1]] ?? 'external';
 // นักศึกษาฝึกงาน สสอ. (intern) imports past stories and nothing else of the PR desk. Everywhere else (profile form,
 // what they may read and send) they are what their email makes them, a student usually.
-export const baseRole = (u) => (u?.role === 'intern' ? domainRole(u.email) : u?.role);
+// เลขานุการผู้บริหาร and ผู้บริหาร have roles for the back-office modules (access.mjs) only; the same goes for them.
+const BY_DOMAIN = ['intern', 'secretary', 'executive'];
+export const baseRole = (u) => (BY_DOMAIN.includes(u?.role) ? domainRole(u.email) : u?.role);
 export const AUDIENCES = ['public', 'student', 'staff'];
 export const MAX_CATS = 5;
 export const MAX_GUESTS = 5;

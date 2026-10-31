@@ -71,6 +71,7 @@ export function productionProblems(env) {
 export const DEV_ACCOUNTS = {
   staff: 'user@sru.ac.th', student: 'user@student.sru.ac.th', external: 'user@gmail.com',
   pr: 'pr@sru.ac.th', admin: 'admin@sru.ac.th', coordinator: 'coord@sru.ac.th', intern: 'intern@student.sru.ac.th',
+  secretary: 'secretary@sru.ac.th', executive: 'executive@sru.ac.th',
   developer: 'satearnpong.nis@sru.ac.th', // DEVELOPERS in auth.mjs: switches between PR and ผู้พัฒนาระบบ
 };
 const DEV_ON = process.env.NODE_ENV !== 'production' && process.env.ALLOW_DEV_LOGIN === '1';

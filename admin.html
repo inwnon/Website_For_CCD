@@ -74,11 +74,11 @@
     }
 
     // ================= Users and roles =================
-    const ROLE_OPTS = [['default', 'ตามโดเมนอีเมล'], ['intern', 'นักศึกษาฝึกงาน สสอ.'], ['coordinator', 'ผู้ประสานงานหน่วยงาน'], ['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ']];
+    const ROLE_OPTS = [['default', 'ตามโดเมนอีเมล'], ['intern', 'นักศึกษาฝึกงาน สสอ.'], ['coordinator', 'ผู้ประสานงานหน่วยงาน'], ['secretary', 'เลขานุการผู้บริหาร'], ['executive', 'ผู้บริหาร'], ['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ']];
     const UNITS = () => { const o = S.settings.org || S.fileOrg; return [...o.staffGroups.flatMap((g) => g.units), ...Object.keys(o.faculties)]; };
     const usersState = { q: '', role: '', offset: 0 };
     function roleSelect(u) {
-      const v = ['intern', 'coordinator', 'pr', 'admin'].includes(u.role) ? u.role : 'default';
+      const v = ['intern', 'coordinator', 'secretary', 'executive', 'pr', 'admin'].includes(u.role) ? u.role : 'default';
       return `<select data-role class="field sel h-10 rounded-xl pl-3 pr-9 text-[14px]" aria-label="บทบาทของ ${esc(u.email)}">${ROLE_OPTS.map(([k, l]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
     }
     async function users() {
@@ -119,7 +119,7 @@
       const r = await api('/admin/users?' + p).catch((err) => { toast(err.message, true); return null; });
       if (!r) return;
       const chip = (k, l) => `<button type="button" data-rolef="${k}" aria-pressed="${usersState.role === k}" class="press t-quick h-9 rounded-full px-3 font-display text-[13px] font-semibold ${usersState.role === k ? 'bg-grad text-white shadow-glow' : 'border border-line'}">${l}${k ? ` ${num(r.counts[k] || 0)}` : ''}</button>`;
-      $('#roleChips').innerHTML = chip('', 'ทั้งหมด') + ['admin', 'pr', 'coordinator', 'intern', 'staff', 'student', 'external'].map((k) => chip(k, ROLE_TH[k])).join('');
+      $('#roleChips').innerHTML = chip('', 'ทั้งหมด') + ['admin', 'pr', 'coordinator', 'intern', 'secretary', 'executive', 'staff', 'student', 'external'].map((k) => chip(k, ROLE_TH[k])).join('');
       $('#userList').innerHTML = r.items.length ? r.items.map((u) => `
         <div class="grid items-center gap-2 rounded-2xl border border-line p-3 sm:grid-cols-[minmax(0,1fr)_200px_minmax(0,220px)_auto]" data-email="${esc(u.email)}">
           <div class="min-w-0"><p class="truncate font-display text-[15px] font-semibold">${esc(u.name || u.email)}</p>

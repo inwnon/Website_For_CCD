@@ -8,7 +8,7 @@ import { pool, query } from '../db.mjs';
 import { abs, removeDraftDir, removeSubmissionDir } from '../files.mjs';
 
 // Same addresses as DEV in auth.mjs
-const DEV_EMAILS = ['user@sru.ac.th', 'user@student.sru.ac.th', 'user@gmail.com', 'pr@sru.ac.th', 'admin@sru.ac.th', 'coord@sru.ac.th', 'intern@student.sru.ac.th', 'satearnpong.nis@sru.ac.th'];
+const DEV_EMAILS = ['user@sru.ac.th', 'user@student.sru.ac.th', 'user@gmail.com', 'pr@sru.ac.th', 'admin@sru.ac.th', 'coord@sru.ac.th', 'intern@student.sru.ac.th', 'secretary@sru.ac.th', 'executive@sru.ac.th', 'satearnpong.nis@sru.ac.th'];
 const tableExists = async (t) => (await query('select to_regclass($1) t', [t])).rows[0].t !== null;
 
 export async function snapshot() {

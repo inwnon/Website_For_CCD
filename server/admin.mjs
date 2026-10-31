@@ -17,7 +17,7 @@ import { ALL_PLATFORMS, DEFAULTS, KEYS, LABELS, all, remember, save } from './se
 export const router = Router();
 router.use('/admin', requireAdmin);
 
-const ROLE_TH = { default: 'ตามโดเมนอีเมล', intern: 'นักศึกษาฝึกงาน สสอ.', coordinator: 'ผู้ประสานงานหน่วยงาน', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ' };
+const ROLE_TH = { default: 'ตามโดเมนอีเมล', intern: 'นักศึกษาฝึกงาน สสอ.', coordinator: 'ผู้ประสานงานหน่วยงาน', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ' };
 
 // ---- Settings ----
 router.get('/admin/settings', (req, res) => {
@@ -46,7 +46,7 @@ router.get('/admin/users', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
   const offset = Math.max(Number(req.query.offset) || 0, 0);
   const q = str(req.query.q, 100, 'คำค้น');
-  const role = ['staff', 'student', 'external', 'intern', 'coordinator', 'pr', 'admin'].includes(/** @type {string} */ (req.query.role)) ? req.query.role : null;
+  const role = ['staff', 'student', 'external', 'intern', 'coordinator', 'secretary', 'executive', 'pr', 'admin'].includes(/** @type {string} */ (req.query.role)) ? req.query.role : null;
   // Everyone who signed in, plus roles given to addresses that have not signed in yet
   const rows = (await query(
     `with people as (
@@ -55,7 +55,7 @@ router.get('/admin/users', async (req, res) => {
        from users u full join pr_team t on t.email = u.email)
      select *, count(*) over ()::int total from people
      where ($1::text is null or email ilike $1 or name ilike $1 or affiliation ilike $1) and ($2::text is null or role::text = $2)
-     order by (role in ('admin', 'pr', 'coordinator', 'intern')) desc, role, last_login_at desc nulls last, email
+     order by (role in ('admin', 'pr', 'coordinator', 'intern', 'secretary', 'executive')) desc, role, last_login_at desc nulls last, email
      limit ${limit} offset ${offset}`,
     [q ? `%${q.replace(/[\\%_]/g, '\\$&')}%` : null, role])).rows;
   const counts = (await query(`select coalesce(t.role, u.role)::text role, count(*)::int n from users u full join pr_team t on t.email = u.email group by 1`)).rows;
