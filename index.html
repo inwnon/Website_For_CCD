@@ -181,8 +181,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=5d7888ff65">
+  <link rel="stylesheet" href="/assets/app.css?v=5db496c71a">
 </head>
 
 <body class="min-h-screen">
@@ -397,21 +396,19 @@
           <p class="font-display text-[14px] font-medium text-brand">เก็บถาวร สืบค้นย้อนหลังได้</p>
           <h2 id="archive-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">คลังข่าว</h2>
         </div>
-        <div class="grid gap-5 lg:grid-cols-[1fr_1.1fr]">
-          <div class="reveal rounded-card border border-line bg-surface p-6 shadow-raised">
-            <p class="mb-3 font-display text-[15px] font-semibold">ปี พ.ศ.</p>
-            <div id="yearGroup" class="flex flex-wrap gap-2" role="group" aria-label="เลือกปี"></div>
-            <p class="mb-3 mt-6 font-display text-[15px] font-semibold">เดือน</p>
-            <div id="monthGrid" class="grid grid-cols-4 gap-2 sm:grid-cols-6"></div>
-            <label for="pickDate" class="mb-3 mt-6 block font-display text-[15px] font-semibold">ไปยังวันที่</label>
-            <input id="pickDate" type="date" class="h-11 w-full max-w-xs rounded-2xl border border-line bg-surface2 px-4 text-[16px] text-ink hover:border-[rgb(var(--purple)/.45)]">
-            <p id="archiveSince" class="mt-6 text-[13px] text-ink2"></p>
-          </div>
-
-          <div class="reveal rounded-card border border-line bg-surface p-6 shadow-raised">
-            <div class="mb-4 flex items-baseline justify-between">
-              <h3 id="calTitle" class="font-display text-[20px] font-semibold"></h3>
-              <p class="text-[14px] text-ink2"><span id="monthTotal" class="font-semibold text-ink">0</span> ข่าว<span id="monthEventsBox" hidden> · <span id="monthEvents" class="font-semibold text-ink">0</span> กิจกรรม</span></p>
+        <div>
+          <div class="reveal rounded-card border border-line bg-surface p-4 shadow-raised sm:p-6">
+            <div class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <div class="flex items-center gap-1">
+                <button id="calPrev" type="button" aria-label="เดือนก่อนหน้า" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-full disabled:opacity-40 disabled:hover:before:opacity-0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+                </button>
+                <button id="calNext" type="button" aria-label="เดือนถัดไป" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-full disabled:opacity-40 disabled:hover:before:opacity-0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                </button>
+              </div>
+              <h3 id="calTitle" class="font-display text-[20px] font-semibold" aria-live="polite"></h3>
+              <p class="text-[14px] text-ink2 sm:ml-auto"><span id="monthTotal" class="font-semibold text-ink">0</span> ข่าว<span id="monthEventsBox" hidden> · <span id="monthEvents" class="font-semibold text-ink">0</span> กิจกรรม</span></p>
             </div>
             <div class="grid grid-cols-7 gap-1 text-center font-display text-[13px] font-medium text-ink2" aria-hidden="true">
               <span>อา</span><span>จ</span><span>อ</span><span>พ</span><span>พฤ</span><span>ศ</span><span>ส</span>
@@ -773,10 +770,9 @@
     const startQ = new URLSearchParams(location.search).get('q')?.trim();
     if (startQ) location.replace(`search.html?q=${encodeURIComponent(startQ)}`);
 
-    // ---- Archive: year → month → day ----
-    const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    // ---- Archive: one calendar, month by month ----
     const MONTHS_LONG = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-    const archive = { data: null, month: null, events: {}, nextYear: null };
+    const archive = { data: null, month: null, events: {}, earliest: null, latest: null, lookedAhead: false };
     // Events on the same calendar: the public feed for everyone, and for people with the calendar module their work too
     // (the server decides which). Nobody else calls that route, so nothing internal reaches their browser. If this fails, the news still works.
     const bkkDay = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(d));
@@ -806,18 +802,32 @@
       const prefix = `${archive.data.year}-${mm}`;
       return new Set(Object.keys(archive.events).filter((d) => d.startsWith(prefix)).flatMap((d) => archive.events[d])).size;
     }
-    function paintYears() {
-      const a = archive.data, ty = Number(a.today.slice(0, 4));
-      const years = [...new Set([...a.years, a.year, ty, ...(archive.nextYear ? [ty + 1] : [])])].sort((x, y) => y - x);
-      $('#yearGroup').innerHTML = years.map((y) => y === a.year
-        ? `<button type="button" aria-pressed="true" class="bg-grad press t-spring h-11 rounded-full px-6 font-display text-[15px] font-medium text-white shadow-glow hover:-translate-y-0.5">${y + 543}</button>`
-        : `<button type="button" data-year="${y}" aria-pressed="false" class="press t-spring h-11 rounded-full border border-line bg-surface px-6 font-display text-[15px] font-medium text-ink hover:-translate-y-0.5">${y + 543}</button>`).join('');
+    // The arrows stop at the first story or event, and at this month or the last event after it
+    function noteDays(days) {
+      const keys = Object.keys(days).sort();
+      if (!keys.length) return;
+      if (!archive.earliest || keys[0] < archive.earliest) archive.earliest = keys[0];
+      if (!archive.latest || keys.at(-1) > archive.latest) archive.latest = keys.at(-1);
     }
-    async function loadArchive(year) {
+    function paintArrows() {
+      const a = archive.data, now = `${a.year}-${String(archive.month).padStart(2, '0')}`;
+      const first = [a.first, archive.earliest, a.today].filter(Boolean).sort()[0].slice(0, 7);
+      const last = [archive.latest, a.today].filter(Boolean).sort().at(-1).slice(0, 7);
+      $('#calPrev').disabled = now <= first;
+      $('#calNext').disabled = now >= last;
+    }
+    async function stepMonth(n) {
+      const d = new Date(Date.UTC(archive.data.year, archive.month - 1 + n, 1));
+      const y = d.getUTCFullYear(), m = d.getUTCMonth() + 1;
+      closeDay();
+      if (y !== archive.data.year) await loadArchive(y, m);
+      else { archive.month = m; paintCalendar(); }
+    }
+    async function loadArchive(year, month) {
       try {
         archive.data = await api('/news/archive' + (year ? `?year=${year}` : ''));
       } catch (err) {
-        $('#archiveSince').textContent = `โหลดคลังข่าวไม่สำเร็จ: ${err.message}`;
+        $('#calTitle').textContent = `โหลดคลังข่าวไม่สำเร็จ: ${err.message}`;
         return;
       }
       const a = archive.data;
@@ -826,35 +836,14 @@
       const [ty, tm] = a.today.split('-').map(Number);
       // Open on this month when it is in the chosen year, else the year's last month with news
       const withNews = Object.keys(a.months).map(Number);
-      archive.month = a.year === ty ? tm : withNews.length ? Math.max(...withNews) : 1;
-      const pick = $('#pickDate');
-      if (a.first) { pick.min = a.first; pick.max = a.today; pick.value = a.today; }
-      const f = a.first && a.first.split('-').map(Number);
-      $('#archiveSince').textContent = f ? `คลังข่าวเริ่มเก็บตั้งแต่ ${f[2]} ${MONTHS_LONG[f[1] - 1]} ${f[0] + 543}` : 'ยังไม่มีข่าวในคลัง';
-      paintYears();
-      paintMonths();
+      archive.month = month || (a.year === ty ? tm : withNews.length ? Math.max(...withNews) : 1);
       paintCalendar();
-      const [list, next] = await Promise.all([eventsOf(a.year), archive.nextYear === null ? eventsOf(ty + 1) : null]);
+      const [list, next] = await Promise.all([eventsOf(a.year), archive.lookedAhead ? null : eventsOf(ty + 1)]);
       if (archive.data !== a) return;
       archive.events = eventDays(list);
-      if (next) archive.nextYear = next.length > 0;
-      // A year with events and no news yet opens on its first event
-      if (a.year !== ty && !withNews.length && list.length) archive.month = Number(Object.keys(archive.events).filter((d) => d.startsWith(String(a.year))).sort()[0]?.slice(5, 7)) || 1;
-      paintYears();
-      paintMonths();
+      noteDays(archive.events);
+      if (next) { noteDays(eventDays(next)); archive.lookedAhead = true; }
       paintCalendar();
-    }
-    function paintMonths() {
-      const a = archive.data;
-      $('#monthGrid').innerHTML = MONTHS.map((m, i) => {
-        const mm = String(i + 1).padStart(2, '0');
-        const n = a.months[mm] || 0, k = eventsInMonth(mm);
-        const note = n ? `${n} ข่าว` : k ? `${k} กิจกรรม` : '';
-        const more = n && k ? `<span class="sr-only">, ${k} กิจกรรม</span><span class="ml-1 inline-block h-1.5 w-1.5 rounded-[2px] bg-royal align-middle" aria-hidden="true"></span>` : '';
-        if (i + 1 === archive.month) return `<button type="button" aria-pressed="true" class="press t-spring flex h-14 flex-col items-center justify-center rounded-2xl bg-red-soft font-display text-[15px] font-semibold leading-tight text-brand ring-2 ring-[rgb(var(--red)/.5)] hover:-translate-y-0.5">${m}<span class="text-[11px] font-medium">${note || '0 ข่าว'}${more}</span></button>`;
-        if (!n && !k) return `<button type="button" disabled class="flex h-14 flex-col items-center justify-center rounded-2xl font-display text-[15px] leading-tight text-ink2/60">${m}<span class="text-[11px]">—</span></button>`;
-        return `<button type="button" data-month="${i + 1}" aria-pressed="false" class="hover-fill press t-spring flex h-14 flex-col items-center justify-center rounded-2xl font-display text-[15px] font-medium leading-tight hover:-translate-y-0.5">${m}<span class="text-[11px] text-ink2">${note}${more}</span></button>`;
-      }).join('');
     }
     function paintCalendar() {
       const a = archive.data, y = a.year, m = archive.month;
@@ -878,17 +867,18 @@
         const work = list.filter(isWork).length, open = list.length - work;
         if (!list.length && key(d) > a.today) {
           // Days still to come: struck through (readable contrast, clearly not a day to open)
-          cells += `<li><span class="grid aspect-square place-items-center rounded-xl text-[14px] text-ink2 line-through decoration-[rgb(var(--ink-2)/.5)]" aria-label="${d} ${MONTHS_LONG[m - 1]} ยังไม่ถึงวันนี้">${d}</span></li>`;
+          cells += `<li><span class="grid h-14 place-items-center rounded-xl text-[14px] text-ink2 line-through decoration-[rgb(var(--ink-2)/.5)] sm:h-16 lg:h-20" aria-label="${d} ${MONTHS_LONG[m - 1]} ยังไม่ถึงวันนี้">${d}</span></li>`;
         } else if (!n && !list.length) {
-          cells += `<li><span class="grid aspect-square place-items-center rounded-xl text-[14px] text-ink2" aria-label="${d} ${MONTHS_LONG[m - 1]} ไม่มีข่าว">${d}</span></li>`;
+          cells += `<li><span class="grid h-14 place-items-center rounded-xl text-[14px] text-ink2 sm:h-16 lg:h-20" aria-label="${d} ${MONTHS_LONG[m - 1]} ไม่มีข่าว">${d}</span></li>`;
         } else {
           const today = key(d) === a.today;
           const says = [n ? `${n} ข่าว` : '', open ? `${open} กิจกรรม` : '', work ? `${work} งานภายใน` : ''].filter(Boolean).join(', ');
-          cells += `<li><button type="button" data-day="${key(d)}" aria-label="${d} ${label}, ${says}" class="${today ? 'bg-grad text-white shadow-glow' : 'hover-fill'} press t-spring relative grid aspect-square w-full place-items-center rounded-xl text-[14px] font-semibold hover:-translate-y-0.5">
+          cells += `<li><button type="button" data-day="${key(d)}" aria-label="${d} ${label}, ${says}" class="${today ? 'bg-grad text-white shadow-glow' : 'hover-fill'} press t-spring relative grid h-14 w-full place-items-center rounded-xl text-[14px] font-semibold hover:-translate-y-0.5 sm:h-16 lg:h-20">
             ${d}<span class="absolute bottom-1.5 flex items-center gap-0.5" aria-hidden="true">${n ? `<span class="h-1.5 w-1.5 rounded-full ${today ? 'bg-white' : 'bg-brand'}" style="opacity:${0.35 + Math.min(n, 7) / 10}"></span>` : ''}${open ? `<span class="h-1.5 w-1.5 rounded-[2px] ${today ? 'bg-white' : 'bg-royal'}"></span>` : ''}${work ? `<svg class="${today ? 'text-white' : 'text-purple'}" width="7" height="7" viewBox="0 0 8 8" fill="currentColor"><path d="M4 0l4 8H0z"/></svg>` : ''}</span></button></li>`;
         }
       }
       $('#calendar').innerHTML = cells;
+      paintArrows();
     }
     // A day with events: the list under the calendar, as text nodes. Work opens on calendar.html; the news stays one click away.
     function closeDay() { $('#dayEvents').hidden = true; }
@@ -917,10 +907,9 @@
       $('#dayEvents').replaceChildren(...parts);
       $('#dayEvents').hidden = false;
     }
-    $('#yearGroup').addEventListener('click', (e) => { const b = e.target.closest('[data-year]'); if (b) loadArchive(Number(b.dataset.year)); });
-    $('#monthGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-month]'); if (b) { archive.month = Number(b.dataset.month); closeDay(); paintMonths(); paintCalendar(); } });
+    $('#calPrev').addEventListener('click', () => stepMonth(-1));
+    $('#calNext').addEventListener('click', () => stepMonth(1));
     $('#calendar').addEventListener('click', (e) => { const b = e.target.closest('[data-day]'); if (!b) return; if (archive.events[b.dataset.day]) openDay(b.dataset.day); else { closeDay(); showDay(b.dataset.day); } });
-    $('#pickDate').addEventListener('change', (e) => { if (e.target.value) showDay(e.target.value); });
 
     // ---- Theme toggle ----
     const themeSwitch = document.getElementById('themeToggle');
