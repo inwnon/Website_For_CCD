@@ -181,8 +181,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=d2cb9c99a9">
+  <link rel="stylesheet" href="/assets/app.css?v=d095fc99fb">
 </head>
 
 <body class="min-h-screen">
@@ -395,28 +394,32 @@
       <section id="archive" class="cv-auto mt-shelf" aria-labelledby="archive-title">
         <div class="reveal mb-6">
           <p class="font-display text-[14px] font-medium text-brand">เก็บถาวร สืบค้นย้อนหลังได้</p>
-          <h2 id="archive-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">คลังข่าว</h2>
+          <h2 id="archive-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ปฏิทินกิจกรรมข่าว มรส.</h2>
         </div>
-        <div class="grid gap-5 lg:grid-cols-[1fr_1.1fr]">
-          <div class="reveal rounded-card border border-line bg-surface p-6 shadow-raised">
-            <p class="mb-3 font-display text-[15px] font-semibold">ปี พ.ศ.</p>
-            <div id="yearGroup" class="flex flex-wrap gap-2" role="group" aria-label="เลือกปี"></div>
-            <p class="mb-3 mt-6 font-display text-[15px] font-semibold">เดือน</p>
-            <div id="monthGrid" class="grid grid-cols-4 gap-2 sm:grid-cols-6"></div>
-            <label for="pickDate" class="mb-3 mt-6 block font-display text-[15px] font-semibold">ไปยังวันที่</label>
-            <input id="pickDate" type="date" class="h-11 w-full max-w-xs rounded-2xl border border-line bg-surface2 px-4 text-[16px] text-ink hover:border-[rgb(var(--purple)/.45)]">
-            <p id="archiveSince" class="mt-6 text-[13px] text-ink2"></p>
-          </div>
-
-          <div class="reveal rounded-card border border-line bg-surface p-6 shadow-raised">
-            <div class="mb-4 flex items-baseline justify-between">
-              <h3 id="calTitle" class="font-display text-[20px] font-semibold"></h3>
-              <p class="text-[14px] text-ink2"><span id="monthTotal" class="font-semibold text-ink">0</span> ข่าว</p>
+        <div>
+          <div class="reveal overflow-hidden rounded-card border border-line bg-surface shadow-raised">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2 p-3 sm:px-5 sm:py-4">
+              <div class="flex items-center gap-1">
+                <button id="calPrev" type="button" aria-label="เดือนก่อนหน้า" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-full disabled:opacity-40 disabled:hover:before:opacity-0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+                </button>
+                <button id="calNext" type="button" aria-label="เดือนถัดไป" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-full disabled:opacity-40 disabled:hover:before:opacity-0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                </button>
+              </div>
+              <h3 id="calTitle" class="font-display text-[20px] font-semibold" aria-live="polite"></h3>
+              <p class="text-[14px] text-ink2 sm:ml-auto"><span id="monthTotal" class="font-semibold text-ink">0</span> ข่าว<span id="monthEventsBox" hidden> · <span id="monthEvents" class="font-semibold text-ink">0</span> กิจกรรม</span></p>
             </div>
-            <div class="grid grid-cols-7 gap-1 text-center font-display text-[13px] font-medium text-ink2" aria-hidden="true">
-              <span>อา</span><span>จ</span><span>อ</span><span>พ</span><span>พฤ</span><span>ศ</span><span>ส</span>
+            <div class="grid grid-cols-7 border-y border-line font-display text-[13px] font-medium text-ink2 [&>span]:px-2 [&>span]:py-2 sm:[&>span]:px-3" aria-hidden="true">
+              <span>อา.</span><span>จ.</span><span>อ.</span><span>พ.</span><span>พฤ.</span><span>ศ.</span><span>ส.</span>
             </div>
-            <ol id="calendar" class="mt-2 grid grid-cols-7 gap-1"></ol>
+            <ol id="calendar" class="grid grid-cols-7 [&>li:nth-child(7n)]:border-r-0"></ol>
+            <ul id="calLegend" class="flex flex-wrap gap-x-5 gap-y-1 px-4 py-3 text-[13px] text-ink2 sm:px-5" hidden>
+              <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden="true"></span>มีข่าว</li>
+              <li class="flex items-center gap-2"><span class="h-2 w-2 rounded-[2px] bg-royal" aria-hidden="true"></span>กิจกรรมสาธารณะ</li>
+              <li id="calLegendWork" class="flex items-center gap-2" hidden><span class="h-2 w-2 rotate-45 bg-purple" aria-hidden="true"></span>งานภายใน</li>
+            </ul>
+            <div id="dayEvents" class="grid gap-2 px-4 pb-4 sm:px-5" aria-live="polite" hidden></div>
           </div>
         </div>
       </section>
@@ -767,40 +770,82 @@
     const startQ = new URLSearchParams(location.search).get('q')?.trim();
     if (startQ) location.replace(`search.html?q=${encodeURIComponent(startQ)}`);
 
-    // ---- Archive: year → month → day ----
-    const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    // ---- Archive: one calendar, month by month ----
     const MONTHS_LONG = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-    const archive = { data: null, month: null };
-    async function loadArchive(year) {
+    const archive = { data: null, month: null, events: {}, earliest: null, latest: null, lookedAhead: false };
+    // Events on the same calendar: the public feed for everyone, and for people with the calendar module their work too
+    // (the server decides which). Nobody else calls that route, so nothing internal reaches their browser. If this fails, the news still works.
+    const bkkDay = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(d));
+    const bkkTime = (d) => new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(d));
+    const nextDay = (d) => new Date(Date.parse(`${d}T00:00:00Z`) + 864e5).toISOString().slice(0, 10);
+    const isWork = (e) => !!e.id && e.visibility !== 'public';
+    const MAX_CHIPS = 3;
+    const make = (tag, cls, text) => { const x = document.createElement(tag); x.className = cls; if (text != null) x.textContent = text; return x; };
+    async function eventsOf(year) {
+      const q = `from=${year}-01-01&to=${year}-12-31`;
+      const same = (a, b) => a.title === b.title && a.startAt === b.startAt;
+      try {
+        const open = (await api(`/calendar/public?${q}`)).items;
+        if (!me.modules?.includes('calendar')) return open;
+        const work = (await api(`/calendar/events?${q}`)).items.filter((e) => e.status !== 'cancelled');
+        return [...work, ...open.filter((e) => !work.some((w) => same(e, w)))];
+      } catch (e) { return []; }
+    }
+    function eventDays(list) {
+      const days = {};
+      for (const e of list) {
+        const last = bkkDay(e.endAt);
+        for (let d = bkkDay(e.startAt); d <= last; d = nextDay(d)) (days[d] ||= []).push(e);
+      }
+      return days;
+    }
+    // How many events touch a month of the shown year ('11'), each counted once
+    function eventsInMonth(mm) {
+      const prefix = `${archive.data.year}-${mm}`;
+      return new Set(Object.keys(archive.events).filter((d) => d.startsWith(prefix)).flatMap((d) => archive.events[d])).size;
+    }
+    // The arrows stop at the first story or event, and at this month or the last event after it
+    function noteDays(days) {
+      const keys = Object.keys(days).sort();
+      if (!keys.length) return;
+      if (!archive.earliest || keys[0] < archive.earliest) archive.earliest = keys[0];
+      if (!archive.latest || keys.at(-1) > archive.latest) archive.latest = keys.at(-1);
+    }
+    function paintArrows() {
+      const a = archive.data, now = `${a.year}-${String(archive.month).padStart(2, '0')}`;
+      const first = [a.first, archive.earliest, a.today].filter(Boolean).sort()[0].slice(0, 7);
+      const last = [archive.latest, a.today].filter(Boolean).sort().at(-1).slice(0, 7);
+      $('#calPrev').disabled = now <= first;
+      $('#calNext').disabled = now >= last;
+    }
+    async function stepMonth(n) {
+      const d = new Date(Date.UTC(archive.data.year, archive.month - 1 + n, 1));
+      const y = d.getUTCFullYear(), m = d.getUTCMonth() + 1;
+      closeDay();
+      if (y !== archive.data.year) await loadArchive(y, m);
+      else { archive.month = m; paintCalendar(); }
+    }
+    async function loadArchive(year, month) {
       try {
         archive.data = await api('/news/archive' + (year ? `?year=${year}` : ''));
       } catch (err) {
-        $('#archiveSince').textContent = `โหลดคลังข่าวไม่สำเร็จ: ${err.message}`;
+        $('#calTitle').textContent = `โหลดคลังข่าวไม่สำเร็จ: ${err.message}`;
         return;
       }
       const a = archive.data;
+      archive.events = {};
+      closeDay();
       const [ty, tm] = a.today.split('-').map(Number);
       // Open on this month when it is in the chosen year, else the year's last month with news
       const withNews = Object.keys(a.months).map(Number);
-      archive.month = a.year === ty ? tm : withNews.length ? Math.max(...withNews) : 1;
-      $('#yearGroup').innerHTML = (a.years.length ? a.years : [a.year]).map((y) => y === a.year
-        ? `<button type="button" aria-pressed="true" class="bg-grad press t-spring h-11 rounded-full px-6 font-display text-[15px] font-medium text-white shadow-glow hover:-translate-y-0.5">${y + 543}</button>`
-        : `<button type="button" data-year="${y}" aria-pressed="false" class="press t-spring h-11 rounded-full border border-line bg-surface px-6 font-display text-[15px] font-medium text-ink hover:-translate-y-0.5">${y + 543}</button>`).join('');
-      const pick = $('#pickDate');
-      if (a.first) { pick.min = a.first; pick.max = a.today; pick.value = a.today; }
-      const f = a.first && a.first.split('-').map(Number);
-      $('#archiveSince').textContent = f ? `คลังข่าวเริ่มเก็บตั้งแต่ ${f[2]} ${MONTHS_LONG[f[1] - 1]} ${f[0] + 543}` : 'ยังไม่มีข่าวในคลัง';
-      paintMonths();
+      archive.month = month || (a.year === ty ? tm : withNews.length ? Math.max(...withNews) : 1);
       paintCalendar();
-    }
-    function paintMonths() {
-      const a = archive.data;
-      $('#monthGrid').innerHTML = MONTHS.map((m, i) => {
-        const n = a.months[String(i + 1).padStart(2, '0')] || 0;
-        if (i + 1 === archive.month) return `<button type="button" aria-pressed="true" class="press t-spring flex h-14 flex-col items-center justify-center rounded-2xl bg-red-soft font-display text-[15px] font-semibold leading-tight text-brand ring-2 ring-[rgb(var(--red)/.5)] hover:-translate-y-0.5">${m}<span class="text-[11px] font-medium">${n} ข่าว</span></button>`;
-        if (!n) return `<button type="button" disabled class="flex h-14 flex-col items-center justify-center rounded-2xl font-display text-[15px] leading-tight text-ink2/60">${m}<span class="text-[11px]">—</span></button>`;
-        return `<button type="button" data-month="${i + 1}" aria-pressed="false" class="hover-fill press t-spring flex h-14 flex-col items-center justify-center rounded-2xl font-display text-[15px] font-medium leading-tight hover:-translate-y-0.5">${m}<span class="text-[11px] text-ink2">${n} ข่าว</span></button>`;
-      }).join('');
+      const [list, next] = await Promise.all([eventsOf(a.year), archive.lookedAhead ? null : eventsOf(ty + 1)]);
+      if (archive.data !== a) return;
+      archive.events = eventDays(list);
+      noteDays(archive.events);
+      if (next) { noteDays(eventDays(next)); archive.lookedAhead = true; }
+      paintCalendar();
     }
     function paintCalendar() {
       const a = archive.data, y = a.year, m = archive.month;
@@ -808,29 +853,105 @@
       const key = (d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const days = new Date(y, m, 0).getDate();
       $('#calTitle').textContent = label;
-      $('#calendar').setAttribute('aria-label', `ข่าวรายวัน ${label}`);
+      $('#calendar').setAttribute('aria-label', `ข่าวและกิจกรรมรายวัน ${label}`);
       $('#monthTotal').textContent = a.months[String(m).padStart(2, '0')] || 0;
-      let cells = '';
-      for (let i = 0; i < new Date(y, m - 1, 1).getDay(); i++) cells += '<li aria-hidden="true"></li>';
+      const inMonth = eventsInMonth(String(m).padStart(2, '0'));
+      $('#monthEvents').textContent = inMonth;
+      $('#monthEventsBox').hidden = !inMonth;
+      const all = Object.values(archive.events).flat();
+      $('#calLegend').hidden = !all.length;
+      $('#calLegendWork').hidden = !all.some(isWork);
+      const CELL = 'min-h-[64px] min-w-0 border-b border-r border-line p-1 sm:min-h-[112px] sm:p-1.5';
+      const CHIP = 'press t-quick hidden w-full truncate rounded-lg px-2 py-[3px] text-left text-[12px] font-medium leading-[1.6] hover:ring-2 hover:ring-inset hover:ring-current aria-pressed:ring-2 aria-pressed:ring-inset aria-pressed:ring-current sm:block';
+      const NUM = 'grid h-7 w-7 place-items-center rounded-full text-[13px] font-semibold';
+      const faint = (num) => { const li = make('li', `${CELL} bg-surface2`); li.setAttribute('aria-hidden', 'true'); li.append(make('span', `${NUM} text-ink2`, num)); return li; };
+      const offset = new Date(y, m - 1, 1).getDay();
+      const lastBefore = new Date(y, m - 1, 0).getDate();
+      const cells = [];
+      for (let i = 0; i < offset; i++) cells.push(faint(lastBefore - offset + 1 + i));
       for (let d = 1; d <= days; d++) {
-        const n = a.days[key(d)] || 0;
-        if (key(d) > a.today) {
-          // Days still to come: struck through (readable contrast, clearly not a day to open)
-          cells += `<li><span class="grid aspect-square place-items-center rounded-xl text-[14px] text-ink2 line-through decoration-[rgb(var(--ink-2)/.5)]" aria-label="${d} ${MONTHS_LONG[m - 1]} ยังไม่ถึงวันนี้">${d}</span></li>`;
-        } else if (!n) {
-          cells += `<li><span class="grid aspect-square place-items-center rounded-xl text-[14px] text-ink2" aria-label="${d} ${MONTHS_LONG[m - 1]} ไม่มีข่าว">${d}</span></li>`;
-        } else {
-          const today = key(d) === a.today;
-          cells += `<li><button type="button" data-day="${key(d)}" aria-label="${d} ${label}, ${n} ข่าว" class="${today ? 'bg-grad text-white shadow-glow' : 'hover-fill'} press t-spring relative grid aspect-square w-full place-items-center rounded-xl text-[14px] font-semibold hover:-translate-y-0.5">
-            ${d}<span class="absolute bottom-1.5 h-1.5 w-1.5 rounded-full ${today ? 'bg-white' : 'bg-brand'}" style="opacity:${0.35 + Math.min(n, 7) / 10}"></span></button></li>`;
+        const day = key(d), n = a.days[day] || 0, list = archive.events[day] || [];
+        const work = list.filter(isWork).length, open = list.length - work;
+        const num = make('span', `${NUM} ${day === a.today ? 'bg-brand text-white dark:text-bg' : 'text-ink'}`, d);
+        const li = make('li', `${CELL} grid content-start gap-1`);
+        if (!n && !list.length) {
+          li.append(num);
+          cells.push(li);
+          continue;
         }
+        // The number opens the day. On a phone the cells are too narrow for labels: the marks stand in for them and the whole cell is the button.
+        const btn = make('button', 'hover-fill press t-quick flex w-full flex-col items-center gap-0.5 rounded-lg sm:w-fit sm:rounded-full');
+        btn.type = 'button';
+        btn.dataset.day = day;
+        btn.setAttribute('aria-label', `${d} ${label}, ${[n ? `${n} ข่าว` : '', open ? `${open} กิจกรรม` : '', work ? `${work} งานภายใน` : ''].filter(Boolean).join(', ')}`);
+        const marks = make('span', 'flex h-2 items-center gap-0.5 sm:hidden');
+        if (n) marks.append(make('span', 'h-1.5 w-1.5 rounded-full bg-brand'));
+        if (open) marks.append(make('span', 'h-1.5 w-1.5 rounded-[2px] bg-royal'));
+        if (work) marks.append(make('span', 'h-1.5 w-1.5 rotate-45 bg-purple'));
+        btn.append(num, marks);
+        btn.addEventListener('click', () => { if (list.length) openDay(day); else { closeDay(); showDay(day); } });
+        li.append(btn);
+        for (const e of list.slice(0, MAX_CHIPS)) {
+          const chip = make('button', `${CHIP} ${isWork(e) ? 'bg-purple-soft text-purple' : 'bg-royal-soft text-royal'}`, `${bkkTime(e.startAt)} ${e.title}`);
+          chip.type = 'button';
+          chip.title = e.title;
+          chip.setAttribute('aria-pressed', 'false');
+          chip.addEventListener('click', () => {
+            $('#calendar').querySelectorAll('[aria-pressed="true"]').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+            chip.setAttribute('aria-pressed', 'true');
+            openDay(day, e);
+          });
+          li.append(chip);
+        }
+        if (list.length > MAX_CHIPS) {
+          const more = make('button', `${CHIP} text-ink2 hover:text-ink`, `อีก ${list.length - MAX_CHIPS} รายการ`);
+          more.type = 'button';
+          more.addEventListener('click', () => openDay(day));
+          li.append(more);
+        }
+        if (n) {
+          const news = make('button', `${CHIP} bg-red-soft text-brand`, `${n} ข่าว`);
+          news.type = 'button';
+          news.addEventListener('click', () => { closeDay(); showDay(day); });
+          li.append(news);
+        }
+        cells.push(li);
       }
-      $('#calendar').innerHTML = cells;
+      const total = Math.ceil((offset + days) / 7) * 7;
+      for (let i = 1; offset + days + i <= total; i++) cells.push(faint(i));
+      $('#calendar').replaceChildren(...cells);
+      paintArrows();
     }
-    $('#yearGroup').addEventListener('click', (e) => { const b = e.target.closest('[data-year]'); if (b) loadArchive(Number(b.dataset.year)); });
-    $('#monthGrid').addEventListener('click', (e) => { const b = e.target.closest('[data-month]'); if (b) { archive.month = Number(b.dataset.month); paintMonths(); paintCalendar(); } });
-    $('#calendar').addEventListener('click', (e) => { const b = e.target.closest('[data-day]'); if (b) showDay(b.dataset.day); });
-    $('#pickDate').addEventListener('change', (e) => { if (e.target.value) showDay(e.target.value); });
+    // Under the calendar, as text nodes: one event, or all of a day's. Work opens on calendar.html; the news stays one click away.
+    function closeDay() { $('#dayEvents').hidden = true; }
+    function openDay(day, only) {
+      const [y, m, d] = day.split('-').map(Number);
+      const n = archive.data.days[day] || 0;
+      const list = make('ul', 'grid gap-2');
+      for (const e of only ? [only] : archive.events[day]) {
+        const row = make(e.id ? 'a' : 'div', `block rounded-2xl bg-surface2 px-4 py-3 ${e.id ? 'press t-quick hover:-translate-y-0.5' : ''}`);
+        if (e.id) row.href = `calendar.html?id=${encodeURIComponent(e.id)}`;
+        row.append(make('span', 'block font-display text-[16px] font-semibold leading-[1.5]', e.title));
+        row.append(make('span', 'block text-[14px] text-ink2', [`${bkkTime(e.startAt)}–${bkkTime(e.endAt)} น.`, e.location].filter(Boolean).join(' · ')));
+        if (e.description) row.append(make('span', 'mt-1 block whitespace-pre-line text-[14px]', e.description));
+        if (isWork(e)) row.append(make('span', 'mt-1 inline-block rounded-full bg-purple-soft px-2.5 text-[12px] font-semibold leading-[1.7] text-purple', 'งานภายใน'));
+        const li = make('li', '');
+        li.append(row);
+        list.append(li);
+      }
+      const parts = [make('h4', 'font-display text-[16px] font-semibold', `${d} ${MONTHS_LONG[m - 1]} ${y + 543}`), list];
+      if (n) {
+        const more = make('button', 'press t-quick h-11 justify-self-start rounded-2xl border border-line px-4 font-display text-[15px] font-medium hover:-translate-y-0.5', `ดูข่าววันนี้ ${n} ข่าว`);
+        more.type = 'button';
+        more.addEventListener('click', () => showDay(day));
+        parts.push(more);
+      }
+      $('#dayEvents').replaceChildren(...parts);
+      $('#dayEvents').hidden = false;
+      $('#dayEvents').scrollIntoView({ block: 'nearest' });
+    }
+    $('#calPrev').addEventListener('click', () => stepMonth(-1));
+    $('#calNext').addEventListener('click', () => stepMonth(1));
 
     // ---- Theme toggle ----
     const themeSwitch = document.getElementById('themeToggle');
