@@ -4,11 +4,13 @@
 // - daily(): the 08:00 Bangkok summary for the PR team
 // - GET/PUT /api/me/notify   what the signed-in user wants by email
 // - GET /api/admin/mail · POST /api/admin/mail/test   outbox and a test email (admin.html)
+// - GET /api/notifications · POST /api/notifications/:id/read · POST /api/notifications/read-all   in-app notices (calendar events)
 import { Router } from 'express';
 import nodemailer from 'nodemailer';
+import { requireBackOffice, rightOf } from './access.mjs';
 import { audit } from './audit.mjs';
 import { isPr, requireAdmin, requireUser } from './auth.mjs';
-import { one, pool, query } from './db.mjs';
+import { one, pool, query, tx } from './db.mjs';
 import { HttpError } from './http.mjs';
 import { get } from './settings.mjs';
 import { limit } from './security.mjs';
@@ -27,6 +29,7 @@ const transport = SMTP ? nodemailer.createTransport({
 export const PREFS = {
   status: 'เมื่องานที่ส่งเปลี่ยนสถานะ (ขอแก้ไข เผยแพร่)',
   message: 'เมื่อทีม PR ส่งข้อความถึงคุณ',
+  assign: 'เมื่อได้รับมอบหมายงานในปฏิทิน งานถูกยกเลิก และเตือนก่อนวันงาน 1 วัน',
   prNew: 'ทีม PR: เมื่อมีงานใหม่ งานที่แก้ไขแล้ว หรือข้อความจากผู้ส่ง',
   prDaily: 'ทีม PR: สรุปงานค้างตรวจและเล่มที่รออนุมัติทุกเช้า 08:00 น.',
 };
@@ -105,8 +108,38 @@ export async function toPrTeam(db, kind, s, user, quote) {
   }
 }
 
+// ---- Calendar (called from calendar.mjs inside its transactions): an in-app notice, and an email unless turned off ----
+const WHEN = new Intl.DateTimeFormat('th-TH', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Bangkok' });
+async function tell(db, u, kind, e, text, title, duty) {
+  await db.query('insert into notifications (user_id, kind, ref_id, text) values ($1, $2, $3, $4)', [u.id, kind, e.id, text]);
+  if (!wants(u.notify, 'assign')) return;
+  const lines = [e.title, `${WHEN.format(e.start_at)} น.`, ...(e.location ? [`สถานที่ ${e.location}`] : []), ...(duty ? [`หน้าที่ของคุณ ${duty}`] : [])];
+  await enqueue(db, { kind, ref: e.id, to: u.email, subject: text, title, lines, button: { label: 'เปิดปฏิทินงาน', href: link(`calendar.html?id=${e.id}`) } });
+}
+export async function eventAssigned(db, e, userIds) {
+  if (!userIds.length) return;
+  const rows = (await db.query(`select u.id, u.email, u.notify, a.duty from event_assignments a join users u on u.id = a.user_id
+    where a.event_id = $1 and a.user_id = any($2)`, [e.id, userIds])).rows;
+  for (const u of rows) await tell(db, u, 'event.assigned', e, `คุณได้รับมอบหมายงาน: ${e.title}`, 'คุณได้รับมอบหมายงานใหม่', u.duty);
+}
+export async function eventCancelled(db, e) {
+  const rows = (await db.query('select u.id, u.email, u.notify from event_assignments a join users u on u.id = a.user_id where a.event_id = $1', [e.id])).rows;
+  for (const u of rows) await tell(db, u, 'event.cancelled', e, `ยกเลิกงาน: ${e.title}`, 'งานที่คุณได้รับมอบหมายถูกยกเลิก');
+}
+// Events that start tomorrow (Bangkok), each person once; reminded_at is cleared when the event moves
+export async function eventReminders() {
+  await tx(async (c) => {
+    const rows = (await c.query(`update event_assignments a set reminded_at = now() from events e, users u
+      where e.id = a.event_id and u.id = a.user_id and a.reminded_at is null and e.status = 'scheduled'
+        and (e.start_at at time zone 'Asia/Bangkok')::date = (now() at time zone 'Asia/Bangkok')::date + 1
+      returning e.id, e.title, e.location, e.start_at, a.duty, u.id user_id, u.email, u.notify`)).rows;
+    for (const r of rows) await tell(c, { id: r.user_id, email: r.email, notify: r.notify }, 'event.reminder', r, `พรุ่งนี้มีงาน: ${r.title}`, 'พรุ่งนี้คุณมีงาน', r.duty);
+  });
+}
+
 // ---- Daily summary (08:00 Bangkok) ----
 export async function daily() {
+  await eventReminders();
   const days = get('review').days;
   const queue = (await query(`select s.ref, s.title, s.unit, s.status, s.sent_at,
       (select count(*)::int - 1 from generate_series(s.sent_at::date, now()::date, '1 day') d where extract(isodow from d) < 6) work_days
@@ -163,7 +196,7 @@ export const router = Router();
 const mailTest = limit('mailTest', { max: 10, windowMs: 10 * 60 * 1000 });
 
 router.get('/me/notify', requireUser, (req, res) => {
-  const keys = isPr(req.user) ? Object.keys(PREFS) : ['status', 'message'];
+  const keys = isPr(req.user) ? Object.keys(PREFS) : ['status', 'message', ...(rightOf(req.user, 'calendar') === 'own' ? ['assign'] : [])];
   res.json({ email: req.user.email, smtp: SMTP, prefs: keys.map((k) => ({ key: k, label: PREFS[k], on: wants(req.user.notify, k) })) });
 });
 router.put('/me/notify', requireUser, async (req, res) => {
@@ -172,6 +205,22 @@ router.put('/me/notify', requireUser, async (req, res) => {
   for (const k of Object.keys(PREFS)) if (typeof b[k] === 'boolean') next[k] = b[k];
   await query('update users set notify = $2 where id = $1', [req.user.id, JSON.stringify(next)]);
   res.json({ ok: true, notify: next });
+});
+
+router.get('/notifications', requireBackOffice, async (req, res) => {
+  const rows = (await query('select id, kind, ref_id, text, read_at, created_at from notifications where user_id = $1 order by id desc limit 50', [req.user.id])).rows;
+  const { n } = await one('select count(*)::int n from notifications where user_id = $1 and read_at is null', [req.user.id]);
+  res.json({ unread: n, items: rows.map((r) => ({ id: r.id, kind: r.kind, refId: r.ref_id, text: r.text, readAt: r.read_at, createdAt: r.created_at })) });
+});
+router.post('/notifications/read-all', requireBackOffice, async (req, res) => {
+  await query('update notifications set read_at = now() where user_id = $1 and read_at is null', [req.user.id]);
+  res.json({ ok: true });
+});
+router.post('/notifications/:id/read', requireBackOffice, async (req, res) => {
+  if (!/^\d{1,18}$/.test(req.params.id)) throw new HttpError(404, 'ไม่พบการแจ้งเตือนนี้');
+  const r = await one('update notifications set read_at = coalesce(read_at, now()) where id = $1 and user_id = $2 returning id', [req.params.id, req.user.id]);
+  if (!r) throw new HttpError(404, 'ไม่พบการแจ้งเตือนนี้');
+  res.json({ ok: true });
 });
 
 router.get('/admin/mail', requireAdmin, async (req, res) => {

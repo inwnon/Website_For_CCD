@@ -26,6 +26,13 @@ export const rightOf = (u, module) => (u ? MATRIX[module]?.[moduleRole(u)] ?? nu
 // The modules this user may open (GET /api/me, for the menus)
 export const modulesOf = (u) => Object.keys(MATRIX).filter((m) => rightOf(u, m));
 
+// Anyone with at least one module (notifications): external accounts have none
+export const requireBackOffice = (req, res, next) => {
+  if (!req.user) throw new HttpError(401, 'กรุณาเข้าสู่ระบบ');
+  if (!modulesOf(req.user).length) throw new HttpError(403, 'บัญชีนี้ไม่มีสิทธิ์ใช้งานส่วนนี้');
+  next();
+};
+
 // requireModule('calendar') for any right; requireModule('calendar', 'all', 'edit') for those rights only
 export const requireModule = (module, ...rights) => (req, res, next) => {
   if (!req.user) throw new HttpError(401, 'กรุณาเข้าสู่ระบบ');
