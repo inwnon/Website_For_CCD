@@ -1,4 +1,4 @@
-// ปฏิทินงาน (SPEC.md Phase 1, rights in access.mjs): events on calendar.html, the people assigned to them, and the public feed.
+// ปฏิทินงาน (SPEC.md Phase 1, rights in access.mjs): events on calendar.html and index.html, the people assigned to them, and the public feed.
 // - GET  /api/calendar/public?from=&to=        public events: title, startAt, endAt, location and nothing else (index.html)
 // - GET  /api/calendar/events?from=&to=        the events the user may see; dates are YYYY-MM-DD, Bangkok days, both included
 // - GET  /api/calendar/events/:id
@@ -7,6 +7,7 @@
 // - POST /api/calendar/events/:id/cancel       the row stays, marked cancelled
 // - GET  /api/calendar/people?q=               who can be assigned
 // A student sees only the events they are on. internal_note is for PR and admin; cancelled events too, in the list.
+// PR and admin change every event, a secretary only those they created.
 import { Router } from 'express';
 import { requireModule, rightOf } from './access.mjs';
 import { audit } from './audit.mjs';
@@ -22,8 +23,10 @@ const MAX_RANGE_DAYS = 400;
 const MAX_ASSIGNEES = 30;
 
 const edits = (right) => right === 'all' || right === 'edit';
+// A secretary adds events and changes only those they made; internal notes stay with PR and admin
+const manages = (right, e, userId) => edits(right) || (right === 'create' && e.created_by === userId);
 const assignable = (u) => ['all', 'edit', 'own'].includes(rightOf(u, 'calendar'));
-const editor = requireModule('calendar', 'all', 'edit');
+const writer = requireModule('calendar', 'all', 'edit', 'create');
 
 export const router = Router();
 
@@ -50,10 +53,11 @@ async function assigneesOf(ids) {
 }
 function eventOut(e, right, people, userId) {
   const mine = people.find((p) => p.event_id === e.id && p.user_id === userId);
+  const canEdit = manages(right, e, userId);
   return {
     id: e.id, title: e.title, type: e.type, location: e.location, startAt: e.start_at, endAt: e.end_at, status: e.status,
-    visibility: e.visibility, description: e.description, myDuty: mine?.duty ?? null,
-    assignees: people.filter((p) => p.event_id === e.id).map((p) => ({ ...(edits(right) ? { id: p.user_id } : {}), name: p.name, duty: p.duty })),
+    visibility: e.visibility, description: e.description, myDuty: mine?.duty ?? null, canEdit,
+    assignees: people.filter((p) => p.event_id === e.id).map((p) => ({ ...(canEdit ? { id: p.user_id } : {}), name: p.name, duty: p.duty })),
     ...(edits(right) ? { internalNote: e.internal_note, createdAt: e.created_at, updatedAt: e.updated_at } : {}),
   };
 }
@@ -109,13 +113,15 @@ router.get('/calendar/public', async (req, res) => {
   res.json({ items: rows.map((e) => ({ title: e.title, startAt: e.start_at, endAt: e.end_at, location: e.location })) });
 });
 
-router.get('/calendar/people', editor, async (req, res) => {
+// Email addresses are for PR and admin: a secretary finds people by name
+router.get('/calendar/people', writer, async (req, res) => {
+  const full = edits(rightOf(req.user, 'calendar'));
   const q = str(req.query.q, 100, 'คำค้น');
   const rows = (await query(`select id, name, email, role from users
     where erased_at is null and (role in ('pr', 'admin') or email like '%@student.sru.ac.th')
-      and ($1::text is null or name ilike $1 or email ilike $1)
-    order by name, email limit 100`, [q ? `%${q.replace(/[\\%_]/g, '\\$&')}%` : null])).rows;
-  res.json({ items: rows.filter(assignable).map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role })) });
+      and ($1::text is null or name ilike $1 or ($2::boolean and email ilike $1))
+    order by name, email limit 100`, [q ? `%${q.replace(/[\\%_]/g, '\\$&')}%` : null, full])).rows;
+  res.json({ items: rows.filter(assignable).map((u) => ({ id: u.id, name: u.name, role: u.role, ...(full ? { email: u.email } : {}) })) });
 });
 
 router.get('/calendar/events', requireModule('calendar'), async (req, res) => {
@@ -139,8 +145,9 @@ router.get('/calendar/events/:id', requireModule('calendar'), async (req, res) =
   await respond(res, req, e);
 });
 
-router.post('/calendar/events', editor, async (req, res) => {
+router.post('/calendar/events', writer, async (req, res) => {
   const d = await checkEvent(req.body);
+  if (!edits(rightOf(req.user, 'calendar'))) d.note = null;
   const e = await tx(async (c) => {
     const row = (await c.query(`insert into events (title, type, location, start_at, end_at, visibility, description, internal_note, created_by)
       values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`, [d.title, d.type, d.location, d.start, d.end, d.visibility, d.description, d.note, req.user.id])).rows[0];
@@ -151,13 +158,16 @@ router.post('/calendar/events', editor, async (req, res) => {
   await respond(res, req, e, 201);
 });
 
-router.put('/calendar/events/:id', editor, async (req, res) => {
+router.put('/calendar/events/:id', writer, async (req, res) => {
   if (!UUID.test(req.params.id)) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+  const right = rightOf(req.user, 'calendar');
   const d = await checkEvent(req.body);
   const e = await tx(async (c) => {
     const was = (await c.query('select * from events where id = $1 for update', [req.params.id])).rows[0];
     if (!was) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+    if (!manages(right, was, req.user.id)) throw new HttpError(403, 'แก้ไขได้เฉพาะกิจกรรมที่คุณสร้าง');
     if (was.status === 'cancelled') throw new HttpError(409, 'กิจกรรมนี้ยกเลิกแล้ว แก้ไขไม่ได้');
+    if (!edits(right)) d.note = was.internal_note; // never seen by a secretary, so never cleared by one
     const row = (await c.query(`update events set title = $2, type = $3, location = $4, start_at = $5, end_at = $6, visibility = $7, description = $8,
       internal_note = $9, updated_at = now() where id = $1 returning *`, [was.id, d.title, d.type, d.location, d.start, d.end, d.visibility, d.description, d.note])).rows[0];
     const added = await saveAssignees(c, row.id, d.assignees);
@@ -169,11 +179,13 @@ router.put('/calendar/events/:id', editor, async (req, res) => {
   await respond(res, req, e);
 });
 
-router.post('/calendar/events/:id/cancel', editor, async (req, res) => {
+router.post('/calendar/events/:id/cancel', writer, async (req, res) => {
   if (!UUID.test(req.params.id)) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+  const right = rightOf(req.user, 'calendar');
   const e = await tx(async (c) => {
     const was = (await c.query('select * from events where id = $1 for update', [req.params.id])).rows[0];
     if (!was) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+    if (!manages(right, was, req.user.id)) throw new HttpError(403, 'ยกเลิกได้เฉพาะกิจกรรมที่คุณสร้าง');
     if (was.status === 'cancelled') throw new HttpError(409, 'กิจกรรมนี้ยกเลิกแล้ว');
     const row = (await c.query(`update events set status = 'cancelled', updated_at = now() where id = $1 returning *`, [was.id])).rows[0];
     await eventCancelled(c, row);

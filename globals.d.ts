@@ -16,6 +16,7 @@ interface Window {
   arrivalsRepaint: () => void;
   onArrivals?: (items: any[]) => void;
   DESK: any;
+  EventForm: any;
   NAME_PREFIXES: string[];
   ORG: any;
   Sortable: (list: Element, opts: any) => any;
@@ -29,4 +30,5 @@ interface Window {
 }
 declare var api: Window['api'];
 declare var DESK: Window['DESK'];
+declare var EventForm: Window['EventForm'];
 declare var ORG: Window['ORG'];

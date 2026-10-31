@@ -5,7 +5,7 @@ import { domainRole } from './rules.mjs';
 
 // module → role → right. A role not listed has no right to the module.
 const MATRIX = {
-  calendar: { admin: 'all', pr: 'edit', student: 'own', secretary: 'request', executive: 'view' },
+  calendar: { admin: 'all', pr: 'edit', student: 'own', secretary: 'create', executive: 'view' },
   requests: { admin: 'all', pr: 'approve', secretary: 'own', executive: 'view' },
   documents: { admin: 'all', pr: 'all' },
   equipment: { admin: 'all', pr: 'all', student: 'request' },

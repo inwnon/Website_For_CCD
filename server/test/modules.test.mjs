@@ -38,7 +38,7 @@ describe('module rights (SPEC §2)', () => {
   });
   test('the right in a module, not only the module', () => {
     assert.equal(rightOf(at('pr'), 'calendar'), 'edit');
-    assert.equal(rightOf(at('secretary'), 'calendar'), 'request');
+    assert.equal(rightOf(at('secretary'), 'calendar'), 'create');
     assert.equal(rightOf(at('executive'), 'calendar'), 'view');
     assert.equal(rightOf(at('student', 'x@student.sru.ac.th'), 'equipment'), 'request');
     assert.equal(rightOf(at('executive'), 'students'), 'summary');

@@ -24,7 +24,7 @@ Base role comes from the Google email domain (existing `rules.mjs`): `sru.ac.th`
 ### Permission matrix (new modules)
 | Module | admin | pr | student | secretary | executive | staff | external / public |
 |---|---|---|---|---|---|---|---|
-| Calendar | all | create/edit/assign | own + team | view + request | view | — | public events only |
+| Calendar | all | create/edit/assign | own + team | view + create, edit and assign own (no internal notes) | view | — | public events only |
 | Service requests | all | approve/reject | — | create + track own | view | — | — |
 | Documents | all | all | — | — | — | — | — |
 | Equipment | all | all | view + request loan | — | — | — | — |
