@@ -337,7 +337,7 @@
             : el('p', { class: 'text-[14px] text-ink2' }, 'ยังไม่ได้มอบหมาย')),
         e.internalNote ? el('p', { class: 'rounded-xl bg-surface2 px-3 py-2.5 text-[13px]' }, el('strong', { class: 'font-semibold' }, 'โน้ตภายใน '), '(เห็นเฉพาะทีม PR)', el('br'), e.internalNote) : null,
         state.canEdit && !off ? el('div', { class: 'grid gap-2' },
-          el('button', { type: 'button', class: 'press t-quick h-11 rounded-2xl border border-line font-display text-[15px] font-medium hover:-translate-y-0.5', onclick: () => openForm(e) }, 'แก้ไขกิจกรรม'),
+          el('button', { type: 'button', class: 'bg-grad press t-spring h-11 rounded-2xl font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5', onclick: () => openForm(e) }, 'แก้ไขกิจกรรม'),
           el('button', { type: 'button', class: 'press t-quick h-11 rounded-2xl font-display text-[15px] font-medium text-brand hover:-translate-y-0.5', onclick: () => { $('#offName').textContent = e.title; $('#offDlg').showModal(); } }, 'ยกเลิกกิจกรรม')) : null));
     }
     async function openEvent(id) {
