@@ -87,81 +87,6 @@
     </main>
   </div>
 
-  <!-- Create or edit an event -->
-  <dialog id="evDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(640px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="evTitle">
-    <form id="evForm" class="grid gap-4 p-5 sm:p-6" novalidate>
-      <h2 id="evTitle" class="font-display text-[21px] font-semibold">สร้างกิจกรรม</h2>
-      <label class="grid gap-1.5">
-        <span class="font-display text-[15px] font-semibold">ชื่อกิจกรรม <span class="text-brand">*</span></span>
-        <input id="fTitle" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="titleErr">
-        <span id="titleErr" data-err="title" class="text-[14px] font-medium text-brand" hidden></span>
-      </label>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <label class="grid gap-1.5">
-          <span class="font-display text-[15px] font-semibold">ประเภท <span class="text-brand">*</span></span>
-          <select id="fType" class="field sel h-12 rounded-2xl pl-4 pr-10 text-[15px]" aria-describedby="typeErr"></select>
-          <span id="typeErr" data-err="type" class="text-[14px] font-medium text-brand" hidden></span>
-        </label>
-        <label class="grid gap-1.5">
-          <span class="font-display text-[15px] font-semibold">สถานที่</span>
-          <input id="fLocation" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]">
-        </label>
-      </div>
-      <div class="grid gap-4">
-        <label class="grid min-w-0 gap-1.5">
-          <span class="font-display text-[15px] font-semibold">เริ่ม <span class="text-brand">*</span></span>
-          <input id="fStart" type="datetime-local" class="field h-12 w-full rounded-2xl px-4 text-[15px]" aria-describedby="startErr">
-          <span id="startErr" data-err="startAt" class="text-[14px] font-medium text-brand" hidden></span>
-        </label>
-        <label class="grid min-w-0 gap-1.5">
-          <span class="font-display text-[15px] font-semibold">สิ้นสุด <span class="text-brand">*</span></span>
-          <input id="fEnd" type="datetime-local" class="field h-12 w-full rounded-2xl px-4 text-[15px]" aria-describedby="endErr">
-          <span id="endErr" data-err="endAt" class="text-[14px] font-medium text-brand" hidden></span>
-        </label>
-      </div>
-      <fieldset class="grid gap-1.5">
-        <legend class="font-display text-[15px] font-semibold">ใครเห็นกิจกรรมนี้</legend>
-        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="visibility" value="internal" class="h-5 w-5" checked>ภายในทีมเท่านั้น</label>
-        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="visibility" value="public" class="h-5 w-5">สาธารณะ แสดงชื่อ เวลา และสถานที่บนหน้าแรก</label>
-        <span data-err="visibility" class="text-[14px] font-medium text-brand" hidden></span>
-      </fieldset>
-      <label class="grid gap-1.5">
-        <span class="font-display text-[15px] font-semibold">รายละเอียด</span>
-        <textarea id="fDescription" rows="3" maxlength="2000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
-      </label>
-      <label class="grid gap-1.5">
-        <span class="font-display text-[15px] font-semibold">โน้ตภายใน <span class="font-sans text-[13px] font-normal text-ink2">(เห็นเฉพาะทีม PR)</span></span>
-        <textarea id="fNote" rows="2" maxlength="2000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
-      </label>
-      <section aria-labelledby="whoTitle" class="grid gap-2">
-        <label id="whoTitle" for="fWho" class="font-display text-[15px] font-semibold">มอบหมายคนรับผิดชอบ</label>
-        <ul id="chosen" class="grid gap-2"></ul>
-        <input id="fWho" type="search" autocomplete="off" placeholder="ค้นหาชื่อทีม PR หรือนักศึกษา" class="field h-12 rounded-2xl px-4 text-[15px]">
-        <ul id="whoList" class="grid gap-1" aria-label="คนที่มอบหมายได้"></ul>
-        <span data-err="assignees" class="text-[14px] font-medium text-brand" hidden></span>
-      </section>
-      <div class="flex flex-wrap justify-end gap-2">
-        <button id="evClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
-        <button id="evSave" type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">บันทึก</button>
-      </div>
-    </form>
-  </dialog>
-
-  <!-- Cancel an event -->
-  <dialog id="offDlg" class="desk-dlg w-[min(480px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="offTitle">
-    <div class="grid gap-4 p-6">
-      <div>
-        <h2 id="offTitle" class="font-display text-[21px] font-semibold">ยกเลิกกิจกรรมนี้?</h2>
-        <p id="offName" class="mt-1 text-[14px] font-medium"></p>
-        <p class="mt-2 text-[14px] text-ink2">คนที่ได้รับมอบหมายจะได้รับแจ้งเตือน กิจกรรมยังอยู่ในประวัติ แต่นำกลับมาใช้ไม่ได้</p>
-      </div>
-      <div class="flex justify-end gap-2">
-        <button id="offClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ไม่ยกเลิก</button>
-        <button id="offGo" type="button" class="press t-spring h-11 rounded-2xl bg-brand px-5 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">ยกเลิกกิจกรรม</button>
-      </div>
-    </div>
-  </dialog>
-
   <!-- Notifications -->
   <dialog id="noteDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(480px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="noteTitle">
     <div class="grid gap-3 p-5 sm:p-6">
@@ -178,15 +103,16 @@
   <script src="auth.js"></script>
   <script src="arrivals.js"></script>
   <script src="desk.js"></script>
+  <script src="event-form.js"></script>
   <script>
     const { dayTime, isoDay, toast } = DESK;
     const $ = (s) => document.querySelector(s);
     const TZ = 'Asia/Bangkok';
-    const TYPES = { meeting: 'ประชุม', activity: 'กิจกรรม', media: 'ถ่ายภาพ/วิดีโอ', other: 'อื่น ๆ' };
+    const { TYPES } = EventForm;
     const WEEK = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
     const MAX_CHIPS = 3;
     const small = matchMedia('(max-width: 639px)');
-    const state = { view: small.matches ? 'day' : 'month', cursor: isoDay(), events: [], picked: null, canEdit: false, own: false, loading: 0 };
+    const state = { view: small.matches ? 'day' : 'month', cursor: isoDay(), events: [], picked: null, showNote: false, own: false, loading: 0 };
 
     // Everything from the server goes in as text nodes, never as HTML
     function el(tag, props = {}, ...kids) {
@@ -209,7 +135,6 @@
     const longDay = (iso) => fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }, midDay(iso));
     const shortDay = (iso) => fmt({ day: 'numeric', month: 'short', year: 'numeric' }, midDay(iso));
     const dayNum = (iso) => Number(iso.slice(8));
-    const local = (d) => `${isoDay(d)}T${new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: TZ }).format(new Date(d))}`;
     const span = (e) => `${clock(e.startAt)}–${clock(e.endAt)} น.`;
 
     function range() {
@@ -336,10 +261,16 @@
             el('span', { class: 'min-w-0 leading-[1.5]' }, el('span', { class: 'block font-medium' }, a.name || 'ไม่ระบุชื่อ'), el('span', { class: 'block text-[13px] text-ink2' }, a.duty)))))
             : el('p', { class: 'text-[14px] text-ink2' }, 'ยังไม่ได้มอบหมาย')),
         e.internalNote ? el('p', { class: 'rounded-xl bg-surface2 px-3 py-2.5 text-[13px]' }, el('strong', { class: 'font-semibold' }, 'โน้ตภายใน '), '(เห็นเฉพาะทีม PR)', el('br'), e.internalNote) : null,
-        state.canEdit && !off ? el('div', { class: 'grid gap-2' },
-          el('button', { type: 'button', class: 'bg-grad press t-spring h-11 rounded-2xl font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5', onclick: () => openForm(e) }, 'แก้ไขกิจกรรม'),
-          el('button', { type: 'button', class: 'press t-quick h-11 rounded-2xl font-display text-[15px] font-medium text-brand hover:-translate-y-0.5', onclick: () => { $('#offName').textContent = e.title; $('#offDlg').showModal(); } }, 'ยกเลิกกิจกรรม')) : null));
+        e.canEdit && !off ? el('div', { class: 'grid gap-2' },
+          el('button', { type: 'button', class: 'press t-spring h-9 rounded-xl bg-brand font-display text-[14px] font-semibold text-white dark:text-bg hover:-translate-y-0.5', onclick: () => openForm(e) }, 'แก้ไขกิจกรรม'),
+          el('button', { type: 'button', class: 'press t-quick h-9 rounded-xl font-display text-[14px] font-medium text-brand hover:-translate-y-0.5', onclick: () => EventForm.cancel({ event: e, notify: toast, onDone: show }) }, 'ยกเลิกกิจกรรม')) : null));
     }
+    async function show(event) {
+      state.cursor = isoDay(event.startAt);
+      state.picked = event;
+      await load();
+    }
+    const openForm = (event) => EventForm.open({ event, day: state.cursor, showNote: state.showNote, notify: toast, onSaved: show });
     async function openEvent(id) {
       try {
         const { event } = await api(`/calendar/events/${encodeURIComponent(id)}`);
@@ -347,93 +278,6 @@
         state.picked = event;
         await load();
       } catch (err) { toast(err.message, true); }
-    }
-
-    // ---- The form ----
-    let chosen = [];
-    let timer = null;
-    function clearErrors() {
-      document.querySelectorAll('[data-err]').forEach((x) => { x.hidden = true; });
-      document.querySelectorAll('#evForm [aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
-    }
-    function paintChosen() {
-      $('#chosen').replaceChildren(...chosen.map((a) => el('li', { class: 'grid gap-2 rounded-2xl bg-surface2 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:items-center' },
-        el('span', { class: 'text-[14px] font-medium' }, a.name || a.email || 'ไม่ระบุชื่อ'),
-        el('input', { maxlength: '120', value: a.duty, placeholder: 'หน้าที่ เช่น ช่างภาพ', 'aria-label': `หน้าที่ของ ${a.name || a.email || ''}`, 'data-duty': a.id, class: 'field h-11 min-w-0 rounded-xl px-3 text-[14px]', oninput: (e) => { a.duty = e.target.value; } }),
-        el('button', { type: 'button', class: 'press t-quick h-11 rounded-xl px-3 text-[14px] font-medium text-brand', 'aria-label': `เอา ${a.name || a.email || ''} ออก`, onclick: () => { chosen = chosen.filter((x) => x !== a); paintChosen(); findPeople(); } }, 'เอาออก'))));
-    }
-    async function findPeople() {
-      const q = $('#fWho').value.trim();
-      try {
-        const { items } = await api(`/calendar/people?q=${encodeURIComponent(q)}`);
-        const left = items.filter((p) => !chosen.some((a) => a.id === p.id)).slice(0, 6);
-        $('#whoList').replaceChildren(...left.map((p) => el('li', {}, el('button', { type: 'button', class: 'hover-fill press t-quick flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-[14px]', onclick: () => {
-          chosen.push({ id: p.id, name: p.name, email: p.email, duty: '' });
-          paintChosen();
-          findPeople();
-          document.querySelector(`[data-duty="${p.id}"]`)?.focus();
-        } }, el('span', { class: 'min-w-0 truncate font-medium' }, p.name || p.email), el('span', { class: 'shrink-0 text-[13px] text-ink2' }, window.DESK.ROLE_TH[p.role] || 'นักศึกษา')))));
-      } catch (err) { toast(err.message, true); }
-    }
-    function openForm(e) {
-      clearErrors();
-      state.editing = e;
-      $('#evTitle').textContent = e ? 'แก้ไขกิจกรรม' : 'สร้างกิจกรรม';
-      $('#fTitle').value = e?.title || '';
-      $('#fType').value = e?.type || 'media';
-      $('#fLocation').value = e?.location || '';
-      $('#fStart').value = e ? local(e.startAt) : `${state.cursor}T09:00`;
-      $('#fEnd').value = e ? local(e.endAt) : `${state.cursor}T10:00`;
-      document.querySelector(`[name="visibility"][value="${e?.visibility || 'internal'}"]`).checked = true;
-      $('#fDescription').value = e?.description || '';
-      $('#fNote').value = e?.internalNote || '';
-      chosen = (e?.assignees || []).map((a) => ({ ...a }));
-      $('#fWho').value = '';
-      paintChosen();
-      findPeople();
-      $('#evDlg').showModal();
-    }
-    async function save(ev) {
-      ev.preventDefault();
-      clearErrors();
-      const when = (v) => (v ? `${v}:00+07:00` : null);
-      const body = {
-        title: $('#fTitle').value, type: $('#fType').value, location: $('#fLocation').value, startAt: when($('#fStart').value), endAt: when($('#fEnd').value),
-        visibility: document.querySelector('[name="visibility"]:checked').value, description: $('#fDescription').value, internalNote: $('#fNote').value,
-        assignees: chosen.map((a) => ({ userId: a.id, duty: a.duty })),
-      };
-      const btn = $('#evSave');
-      btn.disabled = true;
-      try {
-        const { event } = await api(state.editing ? `/calendar/events/${state.editing.id}` : '/calendar/events', { method: state.editing ? 'PUT' : 'POST', body });
-        $('#evDlg').close();
-        toast(state.editing ? 'บันทึกการแก้ไขแล้ว' : 'สร้างกิจกรรมแล้ว');
-        state.cursor = isoDay(event.startAt);
-        state.picked = event;
-        await load();
-      } catch (err) {
-        const d = err.details || {};
-        const fields = { title: '#fTitle', type: '#fType', startAt: '#fStart', endAt: '#fEnd' };
-        let first = null;
-        for (const [k, msg] of Object.entries(d)) {
-          const box = document.querySelector(`[data-err="${k}"]`);
-          if (box) { box.textContent = msg; box.hidden = false; }
-          if (fields[k]) { $(fields[k]).setAttribute('aria-invalid', 'true'); first ||= $(fields[k]); }
-        }
-        if (first) first.focus();
-        if (!Object.keys(d).length) toast(err.message, true);
-      } finally { btn.disabled = false; }
-    }
-    async function cancelEvent() {
-      const btn = $('#offGo');
-      btn.disabled = true;
-      try {
-        const { event } = await api(`/calendar/events/${state.picked.id}/cancel`, { method: 'POST', body: {} });
-        $('#offDlg').close();
-        toast('ยกเลิกกิจกรรมแล้ว');
-        state.picked = event;
-        await load();
-      } catch (err) { toast(err.message, true); } finally { btn.disabled = false; }
     }
 
     // ---- Notifications ----
@@ -465,11 +309,10 @@
       const me = await window.ME;
       const user = await DESK.start({ page: 'calendar', allow: me.modules?.includes('calendar') ? [me.user.role] : ['pr', 'admin'] });
       if (!user) return;
-      state.canEdit = user.role === 'pr' || user.role === 'admin';
-      state.own = !state.canEdit && user.role !== 'secretary' && user.role !== 'executive';
+      state.showNote = user.role === 'pr' || user.role === 'admin';
+      state.own = !state.showNote && user.role !== 'secretary' && user.role !== 'executive';
       if (state.own) $('#pageTitle').textContent = 'งานของฉัน';
-      $('#newEvent').hidden = !state.canEdit;
-      $('#fType').replaceChildren(...Object.entries(TYPES).map(([k, l]) => el('option', { value: k }, l)));
+      $('#newEvent').hidden = !state.showNote && user.role !== 'secretary';
       $('#app').hidden = false;
 
       document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => { state.view = b.dataset.view; load(); }));
@@ -481,11 +324,6 @@
       $('#next').addEventListener('click', () => step(1));
       $('#today').addEventListener('click', () => { state.cursor = isoDay(); load(); });
       $('#newEvent').addEventListener('click', () => openForm(null));
-      $('#evForm').addEventListener('submit', save);
-      $('#evClose').addEventListener('click', () => $('#evDlg').close());
-      $('#offClose').addEventListener('click', () => $('#offDlg').close());
-      $('#offGo').addEventListener('click', cancelEvent);
-      $('#fWho').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(findPeople, 250); });
       $('#bell').addEventListener('click', () => loadNotes(true));
       $('#noteClose').addEventListener('click', () => $('#noteDlg').close());
       $('#noteAll').addEventListener('click', async () => {

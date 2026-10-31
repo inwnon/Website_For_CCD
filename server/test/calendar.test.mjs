@@ -46,7 +46,7 @@ describe('creating and changing events', () => {
   });
   test('admin may too; everyone else may not', async () => {
     assert.equal((await admin.call('POST', '/api/calendar/events', event())).status, 201);
-    for (const who of [student, secretary, executive]) assert.equal((await who.call('POST', '/api/calendar/events', event())).status, 403);
+    for (const who of [student, executive]) assert.equal((await who.call('POST', '/api/calendar/events', event())).status, 403);
   });
   test('bad input is refused', async () => {
     const bad = [
@@ -133,8 +133,8 @@ describe('who sees what (SPEC §2)', () => {
       assert.equal((await external.call(m, path, body)).status, 403, `external ${m} ${path}`);
       assert.equal((await anon.call(m, path, body)).status, 401, `signed out ${m} ${path}`);
     }
-    assert.equal((await student.call('GET', '/api/calendar/people')).status, 403, 'the people list is for the team');
-    assert.equal((await secretary.call('GET', '/api/calendar/people')).status, 403);
+    assert.equal((await student.call('GET', '/api/calendar/people')).status, 403, 'the people list is for those who assign');
+    assert.equal((await executive.call('GET', '/api/calendar/people')).status, 403);
   });
   test('dates are checked on the list', async () => {
     assert.equal((await pr.call('GET', '/api/calendar/events')).status, 400);
@@ -142,6 +142,51 @@ describe('who sees what (SPEC §2)', () => {
     assert.equal((await pr.call('GET', '/api/calendar/events?from=2027-03-05&to=2027-03-01')).status, 400);
     assert.equal((await pr.call('GET', '/api/calendar/events?from=2020-01-01&to=2027-01-01')).status, 400, 'too long a range');
     assert.equal((await pr.call('GET', '/api/calendar/events/not-an-id')).status, 404);
+  });
+});
+
+describe('secretaries', () => {
+  const NOTE2 = 'โน้ตของทีม PR';
+  test('they create events, assign people, and the note they send is dropped', async () => {
+    const r = await secretary.call('POST', '/api/calendar/events', event({ internalNote: 'เลขาแอบใส่', assignees: [{ userId: ids.student, duty: 'ช่างภาพ' }] }));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    assert.equal(r.body.event.canEdit, true);
+    assert.ok(!('internalNote' in r.body.event));
+    assert.equal((await pr.call('GET', `/api/calendar/events/${r.body.event.id}`)).body.event.internalNote, null);
+    assert.equal((await notes(student, r.body.event.id)).length, 1);
+    assert.equal((await one(`select count(*)::int n from audit_log where action = 'event.create' and target = $1`, [r.body.event.id])).n, 1);
+  });
+  test('they edit and cancel their own events; a note PR added survives and stays hidden', async () => {
+    const { event: e } = (await secretary.call('POST', '/api/calendar/events', event())).body;
+    assert.deepEqual(e.assignees, []);
+    await pr.call('PUT', `/api/calendar/events/${e.id}`, event({ internalNote: NOTE2 }));
+    const r = await secretary.call('PUT', `/api/calendar/events/${e.id}`, event({ title: 'เลขาแก้ไข', internalNote: '', assignees: [{ userId: ids.student, duty: 'พิธีกร' }] }));
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.event.title, 'เลขาแก้ไข');
+    assert.equal(r.body.event.assignees[0].id, ids.student, 'the ids the form needs');
+    assert.ok(!JSON.stringify(r.body).includes(NOTE2));
+    assert.equal((await pr.call('GET', `/api/calendar/events/${e.id}`)).body.event.internalNote, NOTE2);
+    assert.equal((await secretary.call('POST', `/api/calendar/events/${e.id}/cancel`, {})).status, 200);
+  });
+  test('events made by others stay out of reach, and stay marked so', async () => {
+    const theirs = await create({ assignees: [{ userId: ids.student, duty: 'ช่างภาพ' }] });
+    assert.equal((await secretary.call('PUT', `/api/calendar/events/${theirs.id}`, event({ title: 'แอบแก้' }))).status, 403);
+    assert.equal((await secretary.call('POST', `/api/calendar/events/${theirs.id}/cancel`, {})).status, 403);
+    const seen = (await secretary.call('GET', `/api/calendar/events/${theirs.id}`)).body.event;
+    assert.equal(seen.canEdit, false);
+    assert.ok(!('id' in seen.assignees[0]), 'no user ids on events they cannot change');
+    assert.notEqual((await pr.call('GET', `/api/calendar/events/${theirs.id}`)).body.event.title, 'แอบแก้');
+    const mine = (await secretary.call('POST', '/api/calendar/events', event())).body.event;
+    assert.equal((await pr.call('GET', `/api/calendar/events/${mine.id}`)).body.event.canEdit, true, 'PR may change them too');
+    assert.equal((await executive.call('GET', `/api/calendar/events/${mine.id}`)).body.event.canEdit, false);
+  });
+  test('the people list has names, no email addresses, and is searched by name only', async () => {
+    const r = await secretary.call('GET', '/api/calendar/people');
+    assert.equal(r.status, 200);
+    assert.ok(r.body.items.some((p) => p.id === ids.student));
+    assert.ok(!JSON.stringify(r.body).includes('@'));
+    assert.equal((await secretary.call('GET', '/api/calendar/people?q=student.sru.ac.th')).body.items.length, 0);
+    assert.ok((await pr.call('GET', '/api/calendar/people?q=student.sru.ac.th')).body.items.length > 0);
   });
 });
 

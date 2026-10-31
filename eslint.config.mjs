@@ -4,7 +4,7 @@ import html from 'eslint-plugin-html';
 import globals from 'globals';
 
 // Set on window by the shared scripts (globals.d.ts has their types)
-const shared = Object.fromEntries(['api', 'DESK', 'ORG', 'ThaiDate', 'TextTools', 'Sortable', 'StoryPick', 'VideoLinks', 'NAME_PREFIXES']
+const shared = Object.fromEntries(['api', 'DESK', 'EventForm', 'ORG', 'ThaiDate', 'TextTools', 'Sortable', 'StoryPick', 'VideoLinks', 'NAME_PREFIXES']
   .map((name) => [name, 'readonly']));
 
 export default [
