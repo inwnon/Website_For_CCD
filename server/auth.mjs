@@ -20,6 +20,7 @@ import { HttpError, parseCookies, str } from './http.mjs';
 import { FACULTIES, ORG, STAFF_UNITS, majorsOf, tracksOf } from './org.mjs';
 import { audit } from './audit.mjs';
 import { DEV_ACCOUNTS, limit, matchesName } from './security.mjs';
+import { modulesOf } from './access.mjs';
 import { baseRole, domainRole } from './rules.mjs';
 
 export { baseRole, domainRole };
@@ -60,7 +61,7 @@ export function publicUser(u) {
     unit: u.unit, subUnit: u.sub_unit, position: u.position, major: u.major, track: u.track,
     year: u.year, org: u.org, consentAt: u.consent_at, onboarded: onboarded(u),
     ...(u.coord_unit ? { coordUnit: u.coord_unit } : {}),
-    ...(u.role === 'intern' ? { baseRole: domainRole(u.email) } : {}),
+    ...(baseRole(u) !== u.role ? { baseRole: baseRole(u) } : {}),
     ...(u.developer ? { developer: true } : {}),
   };
 }
@@ -172,7 +173,7 @@ if (DEV_LOGIN) {
     if (!LOCAL_HOSTS.has(req.hostname)) throw new HttpError(403, 'ล็อกอินจำลองใช้ได้เฉพาะบน localhost');
     const as = req.body?.as;
     if (!DEV[as]) throw new HttpError(400, `as ต้องเป็น ${Object.keys(DEV).join(', ')}`);
-    if (as === 'pr' || as === 'admin' || as === 'coordinator' || as === 'intern') {
+    if (['pr', 'admin', 'coordinator', 'intern', 'secretary', 'executive'].includes(as)) {
       const unit = as === 'coordinator' ? DEV_COORD_UNIT : null;
       await query('insert into pr_team (email, role, unit) values ($1, $2, $3) on conflict (email) do update set role = $2, unit = $3', [DEV[as], as, unit]);
     }
@@ -200,9 +201,10 @@ router.post('/auth/logout', async (req, res) => {
 
 // devLogin tells pages they may offer the development sign-in buttons
 // unread: items in the user's inbox with something new (header badge)
+// modules: the back-office modules for the menus (access.mjs; the routes check again)
 router.get('/me', async (req, res) => {
   const unread = req.user ? (await one("select count(*)::int n from submissions where sender_id = $1 and sender_unread and status <> 'rejected'", [req.user.id])).n : 0;
-  res.json({ user: publicUser(req.user), unread, ...(isPr(req.user) ? { shortcuts: shortcutsOf(req.user) } : {}), ...(DEV_LOGIN ? { devLogin: true } : {}) });
+  res.json({ user: publicUser(req.user), unread, ...(req.user ? { modules: modulesOf(req.user) } : {}), ...(isPr(req.user) ? { shortcuts: shortcutsOf(req.user) } : {}), ...(DEV_LOGIN ? { devLogin: true } : {}) });
 });
 
 // ---- ทางลัดของฉัน (index.html): the desk pages a PR team member keeps on the home page, in their order ----

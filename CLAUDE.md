@@ -13,7 +13,7 @@ New-module requirements: @SPEC.md (read only when working on those modules). Ser
 - Check: `npm run check` (ESLint + JSDoc type check). A hook lints each file Claude edits (`.claude/hooks/lint-file.mjs`): fix what it reports right away
 - CSS: `npm run build:css` after any Tailwind class change; fonts `npm run build:fonts`; brand images `npm run build:images`
 - Audit: `npm audit --omit=dev`
-- Dev login (`ALLOW_DEV_LOGIN=1`): `POST /api/auth/dev` `{"as":"pr"}` — staff, student, external, pr, admin, coordinator
+- Dev login (`ALLOW_DEV_LOGIN=1`): `POST /api/auth/dev` `{"as":"pr"}` — staff, student, external, pr, admin, coordinator, secretary, executive
 
 ## Structure
 - `server/<module>.mjs` one file per module · `server/migrations/NNN_name.sql` next free number · `server/test/<module>.test.mjs` cleans up its own data

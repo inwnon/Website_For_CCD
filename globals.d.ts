@@ -8,6 +8,7 @@ interface Window {
   PROFILE: any;
   SUBS: any;
   roleName: (u: any) => string;
+  MODULE_PAGES: { id: string; href: string; label: string; soon?: boolean; icon: string }[];
   baseRole: (u: any) => string;
   mountRoleSwitch: (box: Element, u: any) => void;
   renderAccountButton: (...args: any[]) => any;

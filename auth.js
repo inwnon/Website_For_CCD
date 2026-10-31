@@ -79,11 +79,21 @@
 
   // ---- Header account menu (re-run with window.renderAccountButton() after marking items read) ----
   // The page's <a id="login"> becomes a button that opens a menu: profile, inbox, PR tools, settings, theme, sign out.
-  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
+  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
   // Developer accounts switch between these two (POST /api/me/role); ผู้พัฒนาระบบ has the highest rights
   const SWITCH = [['pr', 'ทีม PR งานสื่อสารองค์กร'], ['admin', 'ผู้พัฒนาระบบ']];
   const roleName = (u) => (u.developer ? Object.fromEntries(SWITCH)[u.role] : ROLE_TH[u.role]) || '';
   window.roleName = roleName;
+  // Back-office modules (SPEC.md): the account menu here and the side menu in desk.js show those in me.modules (server/access.mjs).
+  // soon: the page is not built yet, so nobody sees the entry; remove the flag when it goes live (and add the page to pr.html's menu).
+  window.MODULE_PAGES = [
+    { id: 'calendar', href: 'calendar.html', label: 'ปฏิทินงาน', soon: true, icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>' },
+    { id: 'requests', href: 'requests.html', label: 'คำขอใช้บริการ', soon: true, icon: '<path d="M9 4h6v3H9z"/><path d="M9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3"/><path d="m9 14 2 2 4-4"/>' },
+    { id: 'documents', href: 'documents.html', label: 'คลังเอกสาร', soon: true, icon: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>' },
+    { id: 'equipment', href: 'equipment.html', label: 'อุปกรณ์', soon: true, icon: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>' },
+    { id: 'phonebook', href: 'phonebook.html', label: 'สมุดโทรศัพท์', soon: true, icon: '<path d="M21 16.5v3a1.5 1.5 0 0 1-1.6 1.5A17 17 0 0 1 3 4.6 1.5 1.5 0 0 1 4.5 3h3a1 1 0 0 1 1 .8l.8 3.4a1 1 0 0 1-.3 1L7.3 9.7a14 14 0 0 0 7 7l1.5-1.7a1 1 0 0 1 1-.3l3.4.8a1 1 0 0 1 .8 1z"/>' },
+    { id: 'students', href: 'students.html', label: 'ทีมนักศึกษา', soon: true, icon: '<circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.5a6 6 0 0 1 3 5.5"/>' },
+  ];
   // นักศึกษาฝึกงาน สสอ. are what their email makes them (a student, usually) everywhere but the import page
   window.baseRole = (u) => u?.baseRole || u?.role;
   // After switching: the PR team cannot open the settings page, so go to the PR desk instead of a "no access" page
@@ -215,6 +225,8 @@
         <div class="acct-grp">${themeRow}${item('privacy.html', 'shield', 'นโยบายความเป็นส่วนตัว')}</div>`;
     }
     const aff = affiliation(u);
+    const modules = window.MODULE_PAGES.filter((m) => !m.soon && me.modules?.includes(m.id));
+    const moduleTools = modules.length ? `<div class="acct-grp"><p class="acct-label">งานสื่อสารองค์กร</p>${modules.map((m) => `<a class="acct-item" href="${m.href}">${svg(m.icon)}<span>${m.label}</span></a>`).join('')}</div>` : '';
     const prTools = u.role === 'pr' || u.role === 'admin'
       ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr.html', 'desk', 'งานที่ส่งเข้ามา')}${item('pr-news.html', 'news', 'จัดการข่าว')}${item('pr-collections.html', 'book', 'อัลบั้มข่าว')}${item('report.html', 'chart', 'รายงาน')}${u.role === 'admin' ? item('admin.html', 'gear', 'ตั้งค่าระบบ') : ''}</div>`
       : u.role === 'coordinator' ? `<div class="acct-grp">${item('report.html', 'chart', 'รายงานของหน่วยงาน')}</div>`
@@ -223,6 +235,7 @@
       ${u.developer ? `<div class="acct-grp"><p class="acct-label" id="acctRoleLabel">สลับบทบาท</p><div class="acct-roles" role="group" aria-labelledby="acctRoleLabel">${SWITCH.map(([k, l]) => `<button type="button" data-switch-role="${k}" aria-pressed="${u.role === k}">${l}</button>`).join('')}</div></div>` : ''}
       <div class="acct-grp">${item('inbox.html', 'inbox', 'ข่าวของฉัน', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${isDesk(u) ? item(ADD_NEWS, 'send', 'เพิ่มข่าว') : window.baseRole(u) !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
       ${prTools}
+      ${moduleTools}
       <div class="acct-grp"><p class="acct-label">บัญชีและการตั้งค่า</p>${item('login.html?profile=1', 'edit', 'แก้ไขโปรไฟล์และสังกัด')}${item('inbox.html#notify', 'bell', 'การแจ้งเตือนทางอีเมล')}${item('privacy.html#rights', 'shield', 'ข้อมูลส่วนบุคคลของฉัน')}${themeRow}</div>
       <div class="acct-grp"><button type="button" class="acct-item danger" data-signout>${svg(IC.out)}<span>ออกจากระบบ</span></button></div>`;
   }

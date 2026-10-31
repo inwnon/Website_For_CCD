@@ -6,7 +6,7 @@ export const BASE = process.env.TEST_BASE || 'http://localhost:3000';
 export const BROWSER_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 export const img = (color, width = 2400, height = 1600) => sharp({ create: { width, height, channels: 3, background: color } }).jpeg().toBuffer();
 
-// as: staff, student, external, pr, admin, coordinator (see DEV in auth.mjs)
+// as: staff, student, external, pr, admin, coordinator, secretary, executive (see DEV in auth.mjs)
 export async function login(as) {
   const r = await fetch(`${BASE}/api/auth/dev`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ as }) });
   assert.equal(r.status, 200);

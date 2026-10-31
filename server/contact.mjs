@@ -25,7 +25,7 @@ const GOOGLE_PHOTO = /^https:\/\/lh\d\.googleusercontent\.com\//;
 // Who is on the page (the same rules for the list and for the photos)
 const NAMED = 'u.consent_at is not null and u.first_name is not null and u.last_name is not null';
 const onTeam = (devs) => `(u.role = 'pr' or u.email = any(${devs}::text[]))`;
-const onFaculty = (units, pos) => `(u.role in ('staff', 'coordinator') and u.unit = any(${units}::text[]) and u.position ~* ${pos})`;
+const onFaculty = (units, pos) => `(u.role in ('staff', 'coordinator', 'secretary', 'executive') and u.unit = any(${units}::text[]) and u.position ~* ${pos})`;
 
 // A version in the photo link, so a new photo is not hidden by the browser's cache
 const photoSource = (u) => u.photo_path || (GOOGLE_PHOTO.test(u.avatar_url || '') ? u.avatar_url : null);
