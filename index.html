@@ -962,10 +962,10 @@
         li.append(row);
         if (e.canEdit) {
           const tools = make('div', 'flex flex-wrap gap-2');
-          const edit = make('button', 'bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5', 'แก้ไขกิจกรรม');
+          const edit = make('button', 'press t-spring h-9 rounded-xl bg-brand px-4 font-display text-[14px] font-semibold text-white dark:text-bg hover:-translate-y-0.5', 'แก้ไขกิจกรรม');
           edit.type = 'button';
           edit.addEventListener('click', () => editEvent(e, day));
-          const drop = make('button', 'press t-quick h-11 rounded-2xl px-4 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5', 'ยกเลิกกิจกรรม');
+          const drop = make('button', 'press t-quick h-9 rounded-xl px-3 font-display text-[14px] font-medium text-brand hover:-translate-y-0.5', 'ยกเลิกกิจกรรม');
           drop.type = 'button';
           drop.addEventListener('click', () => cancelEvent(e));
           tools.append(edit, drop);
