@@ -87,7 +87,7 @@
   // Back-office modules (SPEC.md): the account menu here and the side menu in desk.js show those in me.modules (server/access.mjs).
   // soon: the page is not built yet, so nobody sees the entry; remove the flag when it goes live (and add the page to pr.html's menu).
   window.MODULE_PAGES = [
-    { id: 'calendar', href: 'calendar.html', label: 'ปฏิทินงาน', soon: true, icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>' },
+    { id: 'calendar', href: 'calendar.html', label: 'ปฏิทินงาน', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>' },
     { id: 'requests', href: 'requests.html', label: 'คำขอใช้บริการ', soon: true, icon: '<path d="M9 4h6v3H9z"/><path d="M9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3"/><path d="m9 14 2 2 4-4"/>' },
     { id: 'documents', href: 'documents.html', label: 'คลังเอกสาร', soon: true, icon: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>' },
     { id: 'equipment', href: 'equipment.html', label: 'อุปกรณ์', soon: true, icon: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>' },

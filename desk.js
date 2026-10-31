@@ -1,4 +1,4 @@
-// Back-office shell shared by pr-news.html, pr-collections.html, pr-import.html, report.html and admin.html (pr.html has its own copy of the menu).
+// Back-office shell shared by pr-news.html, pr-collections.html, pr-import.html, report.html, calendar.html and admin.html (pr.html has its own copy of the menu).
 // Needs auth.js (window.api, window.ME). The page provides:
 //   <aside id="side"></aside>  <header id="mbar"></header>  <main id="main"> … <section id="gate" hidden></section> … </main>
 // DESK.start({ page, allow }) fills the menu, checks the role and resolves to the signed-in user (or null: the gate is shown).
@@ -29,7 +29,7 @@
     ...window.MODULE_PAGES.map((m) => ({ ...m, module: true })), // who sees them: me.modules
     { id: 'admin', href: 'admin.html', label: 'ตั้งค่าระบบ', roles: ['admin'] },
     { sep: true },
-    { id: 'site', href: 'index.html', label: 'ไปหน้าเว็บไซต์', roles: ['pr', 'admin', 'coordinator', 'intern'] },
+    { id: 'site', href: 'index.html', label: 'ไปหน้าเว็บไซต์', roles: ['pr', 'admin', 'coordinator', 'intern', 'student', 'secretary', 'executive'] },
   ];
   const icon = (k, size = 19) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || MENU.find((m) => m.id === k)?.icon}</svg>`;
 
@@ -40,7 +40,7 @@
         <span class="logo-crop h-11 w-11 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
           <span class="block font-display text-[19px] font-semibold"><span class="text-brand">คลังข่าว</span> <span class="text-royal">มรส.</span></span>
-          <span class="block text-[12px] text-ink2">${role === 'coordinator' ? 'รายงานของหน่วยงาน' : 'หลังบ้านทีม PR'}</span>
+          <span class="block text-[12px] text-ink2">${role === 'coordinator' ? 'รายงานของหน่วยงาน' : ['student', 'secretary', 'executive'].includes(role) ? 'งานสื่อสารองค์กร' : 'หลังบ้านทีม PR'}</span>
         </span>
       </a>
       <nav class="mt-7 grid gap-1" aria-label="เมนูหลังบ้าน">

@@ -22,7 +22,7 @@ const OG_DEFAULT = '/assets/img/og-default.jpg';
 
 // Pages that are not for search results (signed-in tools, sign-in, errors)
 export const PRIVATE_PAGES = new Set(['login.html', 'submit.html', 'inbox.html', 'pr.html', 'pr-news.html', 'pr-collections.html', 'pr-import.html', 'report.html',
-  'admin.html', 'status.html', '404.html', 'maintenance.html']);
+  'calendar.html', 'admin.html', 'status.html', '404.html', 'maintenance.html']);
 export function noindex(req, res, next) {
   const page = req.path.replace(/^\//, '');
   if (PRIVATE_PAGES.has(page)) res.set('X-Robots-Tag', 'noindex, nofollow');

@@ -48,10 +48,11 @@ async function assigneesOf(ids) {
     where a.event_id = any($1) order by u.name`, [ids])).rows;
   return rows;
 }
-function eventOut(e, right, people) {
+function eventOut(e, right, people, userId) {
+  const mine = people.find((p) => p.event_id === e.id && p.user_id === userId);
   return {
     id: e.id, title: e.title, type: e.type, location: e.location, startAt: e.start_at, endAt: e.end_at, status: e.status,
-    visibility: e.visibility, description: e.description,
+    visibility: e.visibility, description: e.description, myDuty: mine?.duty ?? null,
     assignees: people.filter((p) => p.event_id === e.id).map((p) => ({ ...(edits(right) ? { id: p.user_id } : {}), name: p.name, duty: p.duty })),
     ...(edits(right) ? { internalNote: e.internal_note, createdAt: e.created_at, updatedAt: e.updated_at } : {}),
   };
@@ -98,7 +99,7 @@ async function saveAssignees(c, eventId, assignees) {
 }
 const respond = async (res, req, e, status = 200) => {
   const right = rightOf(req.user, 'calendar');
-  res.status(status).json({ event: eventOut(e, right, await assigneesOf([e.id])) });
+  res.status(status).json({ event: eventOut(e, right, await assigneesOf([e.id]), req.user.id) });
 };
 
 router.get('/calendar/public', async (req, res) => {
@@ -125,7 +126,7 @@ router.get('/calendar/events', requireModule('calendar'), async (req, res) => {
       and ($4::uuid is null or exists (select 1 from event_assignments a where a.event_id = e.id and a.user_id = $4))
     order by e.start_at limit 500`, [from, to, edits(right), right === 'own' ? req.user.id : null])).rows;
   const people = rows.length ? await assigneesOf(rows.map((e) => e.id)) : [];
-  res.json({ items: rows.map((e) => eventOut(e, right, people)) });
+  res.json({ items: rows.map((e) => eventOut(e, right, people, req.user.id)) });
 });
 
 router.get('/calendar/events/:id', requireModule('calendar'), async (req, res) => {

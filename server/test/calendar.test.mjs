@@ -119,6 +119,7 @@ describe('who sees what (SPEC §2)', () => {
     assert.ok(ids2.includes(mine.id) && !ids2.includes(other.id));
     const r = await student.call('GET', `/api/calendar/events/${mine.id}`);
     assert.equal(r.body.event.assignees.length, 2);
+    assert.equal(r.body.event.myDuty, 'ช่างภาพ');
     assert.ok(!JSON.stringify(r.body).includes(NOTE));
     assert.ok(!JSON.stringify(r.body).includes('@'), 'no email addresses');
     assert.equal((await student.call('GET', `/api/calendar/events/${other.id}`)).status, 403, 'an edited URL');
@@ -141,6 +142,20 @@ describe('who sees what (SPEC §2)', () => {
     assert.equal((await pr.call('GET', '/api/calendar/events?from=2027-03-05&to=2027-03-01')).status, 400);
     assert.equal((await pr.call('GET', '/api/calendar/events?from=2020-01-01&to=2027-01-01')).status, 400, 'too long a range');
     assert.equal((await pr.call('GET', '/api/calendar/events/not-an-id')).status, 404);
+  });
+});
+
+describe('calendar.html', () => {
+  test('the page is served, not for search engines, and holds no data of its own', async () => {
+    const r = await anon.call('GET', '/calendar.html');
+    assert.equal(r.status, 200);
+    assert.match(r.headers.get('x-robots-tag') || '', /noindex/);
+  });
+  test('the menu opens the calendar and only the calendar', async () => {
+    const js = String((await anon.call('GET', '/auth.js')).body);
+    const entries = [...js.matchAll(/\{ id: '(\w+)', href: '\w+\.html', label: '[^']+',( soon: true,)? icon:/g)];
+    assert.deepEqual(entries.filter((m) => !m[2]).map((m) => m[1]), ['calendar']);
+    assert.equal(entries.length, 6);
   });
 });
 

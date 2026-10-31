@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ปฏิทินงาน | หลังบ้าน คลังข่าว มรส.</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="desk.css">
+  <style>
+    /* One colour per event type, always with its name in words */
+    .ev-media { background: rgb(var(--royal-soft)); color: rgb(var(--royal)); }
+    .ev-meeting { background: rgb(var(--purple-soft)); color: rgb(var(--purple)); }
+    .ev-activity { background: rgb(var(--gold-soft)); color: rgb(var(--gold)); }
+    .ev-other { background: rgb(var(--sky-soft)); color: rgb(var(--sky)); }
+    .cal-chip { display: block; width: 100%; border-radius: 8px; padding: 3px 8px; text-align: left; font-size: 12px; font-weight: 500; line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cal-chip.is-wrap { white-space: normal; overflow-wrap: anywhere; }
+    .cal-chip:hover { box-shadow: inset 0 0 0 2px currentColor; }
+    .cal-chip:active { transform: scale(.98); }
+    .cal-chip[aria-pressed="true"] { box-shadow: inset 0 0 0 2px currentColor; }
+    .cal-chip.is-off, .cal-card.is-off .cal-title { text-decoration: line-through; }
+    .cal-today { background: rgb(var(--red)); color: #fff; }
+    .dark .cal-today { color: rgb(var(--bg)); }
+    .cal-card { display: grid; gap: 4px; width: 100%; text-align: left; }
+    .seg[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
+    @media (prefers-reduced-motion: reduce) { .cal-chip:active { transform: none; } }
+  </style>
+  <link rel="stylesheet" href="/assets/app.css?v=d2cb9c99a9">
+  <script src="thai-date.js" defer></script>
+</head>
+<body class="app">
+  <a href="#board" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่ตารางงาน</a>
+  <div class="flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
+    <header id="mbar" class="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-shell/95 px-4 py-2.5 shadow-raised backdrop-blur-xl lg:hidden"></header>
+    <div id="scrim" class="fixed inset-0 z-40 bg-[rgb(10_11_32/.45)] lg:hidden" aria-hidden="true"></div>
+    <aside id="side" class="scroll-thin fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto bg-bg px-4 pb-4 pt-5 shadow-float lg:static lg:z-auto lg:w-[248px] lg:shrink-0 lg:bg-transparent lg:shadow-none" aria-label="เมนูหลังบ้าน"></aside>
+
+    <main id="main" class="scroll-thin flex min-h-0 min-w-0 flex-1 p-2 sm:p-3 lg:overflow-y-auto lg:pl-0">
+      <section id="gate" class="m-auto flex max-w-[520px] flex-col items-center gap-4 rounded-card border border-line bg-shell p-8 text-center shadow-float" hidden></section>
+
+      <div id="app" class="grid w-full content-start gap-3" hidden>
+        <header class="flex flex-wrap items-center gap-3 rounded-card bg-shell p-4 shadow-raised sm:p-5">
+          <div class="mr-auto min-w-[200px] max-sm:order-1">
+            <h1 id="pageTitle" class="font-display tight text-[26px] font-bold text-royal">ปฏิทินงาน</h1>
+            <p id="rangeLabel" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
+          </div>
+          <div class="flex gap-0.5 rounded-2xl bg-surface2 p-1 max-sm:order-3" role="group" aria-label="มุมมองปฏิทิน">
+            <button type="button" data-view="day" class="seg press t-quick h-11 rounded-xl px-4 font-display text-[15px] font-medium text-ink2">วัน</button>
+            <button type="button" data-view="week" class="seg press t-quick h-11 rounded-xl px-4 font-display text-[15px] font-medium text-ink2">สัปดาห์</button>
+            <button type="button" data-view="month" class="seg press t-quick h-11 rounded-xl px-4 font-display text-[15px] font-medium text-ink2 max-sm:hidden">เดือน</button>
+          </div>
+          <div class="flex gap-1 max-sm:order-4">
+            <button id="prev" type="button" aria-label="ช่วงก่อนหน้า" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-2xl border border-line">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+            </button>
+            <button id="today" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line px-4 font-display text-[15px] font-medium">วันนี้</button>
+            <button id="next" type="button" aria-label="ช่วงถัดไป" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-2xl border border-line">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+          </div>
+          <button id="bell" type="button" aria-label="การแจ้งเตือน" class="hover-fill press t-quick relative grid h-11 w-11 place-items-center rounded-2xl border border-line max-sm:order-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+            <span id="bellDot" class="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-brand" aria-hidden="true" hidden></span>
+          </button>
+          <button id="newEvent" type="button" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 max-sm:order-5 max-sm:w-full max-sm:justify-center" hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>สร้างกิจกรรม
+          </button>
+        </header>
+
+        <div class="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <section id="board" tabindex="-1" class="min-w-0 rounded-card bg-shell shadow-raised" aria-label="ตารางงาน"></section>
+          <aside id="detail" tabindex="-1" class="rounded-card bg-shell p-5 shadow-raised max-xl:hidden" aria-label="รายละเอียดกิจกรรม"></aside>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create or edit an event -->
+  <dialog id="evDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(640px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="evTitle">
+    <form id="evForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <h2 id="evTitle" class="font-display text-[21px] font-semibold">สร้างกิจกรรม</h2>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ชื่อกิจกรรม <span class="text-brand">*</span></span>
+        <input id="fTitle" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="titleErr">
+        <span id="titleErr" data-err="title" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="grid gap-1.5">
+          <span class="font-display text-[15px] font-semibold">ประเภท <span class="text-brand">*</span></span>
+          <select id="fType" class="field sel h-12 rounded-2xl pl-4 pr-10 text-[15px]" aria-describedby="typeErr"></select>
+          <span id="typeErr" data-err="type" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+        <label class="grid gap-1.5">
+          <span class="font-display text-[15px] font-semibold">สถานที่</span>
+          <input id="fLocation" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]">
+        </label>
+      </div>
+      <div class="grid gap-4">
+        <label class="grid min-w-0 gap-1.5">
+          <span class="font-display text-[15px] font-semibold">เริ่ม <span class="text-brand">*</span></span>
+          <input id="fStart" type="datetime-local" class="field h-12 w-full rounded-2xl px-4 text-[15px]" aria-describedby="startErr">
+          <span id="startErr" data-err="startAt" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+        <label class="grid min-w-0 gap-1.5">
+          <span class="font-display text-[15px] font-semibold">สิ้นสุด <span class="text-brand">*</span></span>
+          <input id="fEnd" type="datetime-local" class="field h-12 w-full rounded-2xl px-4 text-[15px]" aria-describedby="endErr">
+          <span id="endErr" data-err="endAt" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+      </div>
+      <fieldset class="grid gap-1.5">
+        <legend class="font-display text-[15px] font-semibold">ใครเห็นกิจกรรมนี้</legend>
+        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="visibility" value="internal" class="h-5 w-5" checked>ภายในทีมเท่านั้น</label>
+        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="visibility" value="public" class="h-5 w-5">สาธารณะ แสดงชื่อ เวลา และสถานที่บนหน้าแรก</label>
+        <span data-err="visibility" class="text-[14px] font-medium text-brand" hidden></span>
+      </fieldset>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">รายละเอียด</span>
+        <textarea id="fDescription" rows="3" maxlength="2000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
+      </label>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">โน้ตภายใน <span class="font-sans text-[13px] font-normal text-ink2">(เห็นเฉพาะทีม PR)</span></span>
+        <textarea id="fNote" rows="2" maxlength="2000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
+      </label>
+      <section aria-labelledby="whoTitle" class="grid gap-2">
+        <label id="whoTitle" for="fWho" class="font-display text-[15px] font-semibold">มอบหมายคนรับผิดชอบ</label>
+        <ul id="chosen" class="grid gap-2"></ul>
+        <input id="fWho" type="search" autocomplete="off" placeholder="ค้นหาชื่อทีม PR หรือนักศึกษา" class="field h-12 rounded-2xl px-4 text-[15px]">
+        <ul id="whoList" class="grid gap-1" aria-label="คนที่มอบหมายได้"></ul>
+        <span data-err="assignees" class="text-[14px] font-medium text-brand" hidden></span>
+      </section>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="evClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="evSave" type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Cancel an event -->
+  <dialog id="offDlg" class="desk-dlg w-[min(480px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="offTitle">
+    <div class="grid gap-4 p-6">
+      <div>
+        <h2 id="offTitle" class="font-display text-[21px] font-semibold">ยกเลิกกิจกรรมนี้?</h2>
+        <p id="offName" class="mt-1 text-[14px] font-medium"></p>
+        <p class="mt-2 text-[14px] text-ink2">คนที่ได้รับมอบหมายจะได้รับแจ้งเตือน กิจกรรมยังอยู่ในประวัติ แต่นำกลับมาใช้ไม่ได้</p>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button id="offClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ไม่ยกเลิก</button>
+        <button id="offGo" type="button" class="press t-spring h-11 rounded-2xl bg-brand px-5 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">ยกเลิกกิจกรรม</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Notifications -->
+  <dialog id="noteDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(480px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="noteTitle">
+    <div class="grid gap-3 p-5 sm:p-6">
+      <h2 id="noteTitle" class="font-display text-[21px] font-semibold">การแจ้งเตือน</h2>
+      <ul id="noteList" class="grid gap-2"></ul>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="noteAll" type="button" class="press t-quick h-11 rounded-2xl px-4 font-display text-[15px] font-medium hover:-translate-y-0.5">อ่านทั้งหมดแล้ว</button>
+        <button id="noteClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="auth.js"></script>
+  <script src="arrivals.js"></script>
+  <script src="desk.js"></script>
+  <script>
+    const { dayTime, isoDay, toast } = DESK;
+    const $ = (s) => document.querySelector(s);
+    const TZ = 'Asia/Bangkok';
+    const TYPES = { meeting: 'ประชุม', activity: 'กิจกรรม', media: 'ถ่ายภาพ/วิดีโอ', other: 'อื่น ๆ' };
+    const WEEK = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+    const MAX_CHIPS = 3;
+    const small = matchMedia('(max-width: 639px)');
+    const state = { view: small.matches ? 'day' : 'month', cursor: isoDay(), events: [], picked: null, canEdit: false, own: false, loading: 0 };
+
+    // Everything from the server goes in as text nodes, never as HTML
+    function el(tag, props = {}, ...kids) {
+      const n = document.createElement(tag);
+      for (const [k, v] of Object.entries(props)) {
+        if (k === 'class') n.className = v;
+        else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+        else if (v !== false && v != null) n.setAttribute(k, v === true ? '' : v);
+      }
+      n.append(...kids.flat().filter((x) => x != null && x !== false));
+      return n;
+    }
+
+    // ---- Dates: days are YYYY-MM-DD strings in Bangkok ----
+    const addDays = (iso, n) => { const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+    const weekday = (iso) => new Date(`${iso}T00:00:00Z`).getUTCDay();
+    const midDay = (iso) => `${iso}T12:00:00+07:00`;
+    const fmt = (opts, d) => new Intl.DateTimeFormat('th-TH', { ...opts, timeZone: TZ }).format(new Date(d));
+    const clock = (d) => fmt({ hour: '2-digit', minute: '2-digit' }, d);
+    const longDay = (iso) => fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }, midDay(iso));
+    const shortDay = (iso) => fmt({ day: 'numeric', month: 'short', year: 'numeric' }, midDay(iso));
+    const dayNum = (iso) => Number(iso.slice(8));
+    const local = (d) => `${isoDay(d)}T${new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: TZ }).format(new Date(d))}`;
+    const span = (e) => `${clock(e.startAt)}–${clock(e.endAt)} น.`;
+
+    function range() {
+      if (state.view === 'month') {
+        const first = `${state.cursor.slice(0, 8)}01`;
+        const [y, m] = first.split('-').map(Number);
+        const weeks = Math.ceil((weekday(first) + new Date(Date.UTC(y, m, 0)).getUTCDate()) / 7);
+        const from = addDays(first, -weekday(first));
+        return { from, to: addDays(from, weeks * 7 - 1) };
+      }
+      const from = addDays(state.cursor, -weekday(state.cursor));
+      return { from, to: addDays(from, 6) };
+    }
+    const eventsOn = (iso) => state.events.filter((e) => isoDay(e.startAt) <= iso && iso <= isoDay(e.endAt));
+
+    // ---- Loading ----
+    async function load() {
+      const { from, to } = range();
+      const turn = ++state.loading;
+      try {
+        const r = await api(`/calendar/events?from=${from}&to=${to}`);
+        if (turn !== state.loading) return;
+        state.events = r.items;
+        paint();
+      } catch (err) {
+        if (turn !== state.loading) return;
+        $('#board').replaceChildren(el('p', { class: 'p-6 text-[15px] text-ink2' }, `โหลดปฏิทินไม่สำเร็จ: ${err.message}`));
+      }
+    }
+    function paint() {
+      document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
+      const { from, to } = range();
+      $('#rangeLabel').textContent = state.view === 'month' ? fmt({ month: 'long', year: 'numeric' }, midDay(state.cursor))
+        : state.view === 'week' ? `${shortDay(from)} – ${shortDay(to)}` : longDay(state.cursor);
+      $('#board').replaceChildren(state.view === 'month' ? monthView() : state.view === 'week' ? weekView() : dayView());
+      paintDetail();
+    }
+
+    // ---- The three views ----
+    // Month cells are narrow: the title alone, in full on hover and for screen readers. The week view has room for the time.
+    const chip = (e, wrap) => {
+      const name = `${e.title}${e.status === 'cancelled' ? ' (ยกเลิก)' : ''}`;
+      const full = `${clock(e.startAt)} ${name}`;
+      return el('button', { type: 'button', class: `cal-chip ev-${e.type} press t-quick${wrap ? ' is-wrap' : ''}${e.status === 'cancelled' ? ' is-off' : ''}`, title: full, 'aria-label': full, 'aria-pressed': String(state.picked?.id === e.id), onclick: () => pick(e) }, wrap ? full : name);
+    };
+    const openDay = (iso) => { state.cursor = iso; state.view = 'day'; load(); };
+    const dayBtn = (iso, faint) => {
+      const today = iso === isoDay();
+      return el('button', { type: 'button', class: `press t-quick grid h-8 w-8 place-items-center rounded-full text-[13px] font-semibold ${today ? 'cal-today' : faint ? 'hover-fill text-ink2' : 'hover-fill'}`, 'aria-label': `${longDay(iso)} เปิดมุมมองวัน`, ...(today ? { 'aria-current': 'date' } : {}), onclick: () => openDay(iso) }, String(dayNum(iso)));
+    };
+    function monthView() {
+      const { from, to } = range();
+      const month = state.cursor.slice(0, 7);
+      const cells = [];
+      for (let d = from; d <= to; d = addDays(d, 1)) {
+        const list = eventsOn(d);
+        const out = d.slice(0, 7) !== month;
+        cells.push(el('li', { class: `grid min-h-[112px] content-start gap-1 border-b border-r border-line p-1.5 ${out ? 'bg-surface2' : ''}` },
+          dayBtn(d, out), list.slice(0, MAX_CHIPS).map((e) => chip(e)),
+          list.length > MAX_CHIPS ? el('button', { type: 'button', class: 'press t-quick rounded-lg px-2 text-left text-[12px] font-medium leading-[1.6] text-ink2 hover:text-ink', onclick: () => openDay(d) }, `อีก ${list.length - MAX_CHIPS} รายการ`) : null));
+      }
+      return el('div', {},
+        el('div', { class: 'grid grid-cols-7 border-b border-line', 'aria-hidden': 'true' }, WEEK.map((w) => el('span', { class: 'px-2.5 py-2 font-display text-[13px] font-medium text-ink2' }, w))),
+        el('ol', { class: 'grid grid-cols-7', 'aria-label': $('#rangeLabel').textContent }, cells));
+    }
+    function weekView() {
+      const { from } = range();
+      const days = Array.from({ length: 7 }, (_, i) => addDays(from, i));
+      return el('ol', { class: 'grid md:grid-cols-7' }, days.map((d) => {
+        const list = eventsOn(d);
+        return el('li', { class: 'grid min-h-[72px] content-start gap-1.5 border-b border-line p-2 md:min-h-[320px] md:border-r' },
+          el('div', { class: 'flex items-center gap-2' }, el('span', { class: 'font-display text-[13px] font-medium text-ink2', 'aria-hidden': 'true' }, WEEK[weekday(d)]), dayBtn(d)),
+          list.map((e) => chip(e, true)));
+      }));
+    }
+    function card(e) {
+      return el('li', {}, el('button', { type: 'button', class: `cal-card press t-quick hover-fill rounded-2xl border border-line p-4${e.status === 'cancelled' ? ' is-off' : ''}`, 'aria-pressed': String(state.picked?.id === e.id), onclick: () => pick(e) },
+        el('span', { class: `ev-${e.type} justify-self-start rounded-full px-2.5 text-[12px] font-semibold leading-[1.7]` }, e.status === 'cancelled' ? `${TYPES[e.type]} · ยกเลิกแล้ว` : TYPES[e.type]),
+        el('span', { class: 'cal-title font-display text-[18px] font-semibold leading-[1.45]' }, e.title),
+        el('span', { class: 'text-[14px] text-ink2' }, [span(e), e.location].filter(Boolean).join(' · ')),
+        e.myDuty ? el('span', { class: 'text-[14px]' }, 'หน้าที่ของคุณ: ', el('strong', { class: 'font-semibold' }, e.myDuty)) : null));
+    }
+    function dayView() {
+      const { from } = range();
+      const strip = Array.from({ length: 7 }, (_, i) => addDays(from, i)).map((d) => {
+        const on = d === state.cursor, busy = eventsOn(d).length > 0;
+        return el('li', {}, el('button', { type: 'button', class: `press t-quick grid h-14 w-full place-items-center rounded-2xl leading-tight ${on ? 'bg-royal text-white dark:text-bg' : 'hover-fill'}`, 'aria-current': on ? 'date' : false, 'aria-label': `${longDay(d)}${busy ? ` มี ${eventsOn(d).length} งาน` : ''}`, onclick: () => { state.cursor = d; paint(); } },
+          el('span', { class: 'text-[12px]' }, WEEK[weekday(d)]),
+          el('span', { class: `font-display text-[16px] font-semibold ${busy && !on ? 'underline decoration-brand decoration-2 underline-offset-4' : ''}` }, String(dayNum(d)))));
+      });
+      const list = eventsOn(state.cursor);
+      return el('div', { class: 'grid gap-3 p-3 sm:p-4' },
+        el('ol', { class: 'grid grid-cols-7 gap-1', 'aria-label': 'เลือกวันในสัปดาห์นี้' }, strip),
+        list.length ? el('ul', { class: 'grid gap-2' }, list.map(card))
+          : el('p', { class: 'rounded-2xl bg-surface2 p-5 text-center text-[15px] text-ink2' }, 'ไม่มีงานในวันนี้'));
+    }
+
+    // ---- One event ----
+    function pick(e) {
+      state.picked = e;
+      paint();
+      $('#detail').focus();
+    }
+    function row(label, value) {
+      return [el('dt', { class: 'text-ink2' }, label), el('dd', { class: 'm-0' }, value)];
+    }
+    function paintDetail() {
+      const box = $('#detail'), e = state.picked;
+      box.classList.toggle('max-xl:hidden', !e);
+      if (!e) { box.replaceChildren(el('p', { class: 'text-[15px] text-ink2' }, 'เลือกกิจกรรมเพื่อดูรายละเอียด')); return; }
+      const when = isoDay(e.startAt) === isoDay(e.endAt) ? shortDay(isoDay(e.startAt)) : `${shortDay(isoDay(e.startAt))} – ${shortDay(isoDay(e.endAt))}`;
+      const off = e.status === 'cancelled';
+      box.replaceChildren(el('div', { class: 'grid gap-3.5' },
+        el('div', {},
+          el('span', { class: `ev-${e.type} inline-block rounded-full px-2.5 text-[12px] font-semibold leading-[1.7]` }, off ? `${TYPES[e.type]} · ยกเลิกแล้ว` : TYPES[e.type]),
+          el('h2', { class: 'mt-2 font-display text-[20px] font-semibold leading-[1.4]' }, e.title)),
+        el('dl', { class: 'm-0 grid grid-cols-[64px_minmax(0,1fr)] gap-x-3 gap-y-1 text-[14px]' },
+          row('วันที่', when), row('เวลา', span(e)), e.location ? row('สถานที่', e.location) : null, row('แสดง', e.visibility === 'public' ? 'สาธารณะ (ขึ้นหน้าแรก)' : 'ภายในทีม')),
+        e.description ? el('p', { class: 'whitespace-pre-line text-[14px]' }, e.description) : null,
+        el('div', {},
+          el('h3', { class: 'mb-2 text-[14px] font-semibold' }, 'คนที่รับผิดชอบ'),
+          e.assignees.length ? el('ul', { class: 'grid gap-2' }, e.assignees.map((a) => el('li', { class: 'flex items-center gap-2.5 text-[14px]' },
+            el('span', { class: 'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-purple-soft font-display font-semibold text-purple', 'aria-hidden': 'true' }, (a.name || '?').trim().charAt(0)),
+            el('span', { class: 'min-w-0 leading-[1.5]' }, el('span', { class: 'block font-medium' }, a.name || 'ไม่ระบุชื่อ'), el('span', { class: 'block text-[13px] text-ink2' }, a.duty)))))
+            : el('p', { class: 'text-[14px] text-ink2' }, 'ยังไม่ได้มอบหมาย')),
+        e.internalNote ? el('p', { class: 'rounded-xl bg-surface2 px-3 py-2.5 text-[13px]' }, el('strong', { class: 'font-semibold' }, 'โน้ตภายใน '), '(เห็นเฉพาะทีม PR)', el('br'), e.internalNote) : null,
+        state.canEdit && !off ? el('div', { class: 'grid gap-2' },
+          el('button', { type: 'button', class: 'press t-quick h-11 rounded-2xl border border-line font-display text-[15px] font-medium hover:-translate-y-0.5', onclick: () => openForm(e) }, 'แก้ไขกิจกรรม'),
+          el('button', { type: 'button', class: 'press t-quick h-11 rounded-2xl font-display text-[15px] font-medium text-brand hover:-translate-y-0.5', onclick: () => { $('#offName').textContent = e.title; $('#offDlg').showModal(); } }, 'ยกเลิกกิจกรรม')) : null));
+    }
+    async function openEvent(id) {
+      try {
+        const { event } = await api(`/calendar/events/${encodeURIComponent(id)}`);
+        state.cursor = isoDay(event.startAt);
+        state.picked = event;
+        await load();
+      } catch (err) { toast(err.message, true); }
+    }
+
+    // ---- The form ----
+    let chosen = [];
+    let timer = null;
+    function clearErrors() {
+      document.querySelectorAll('[data-err]').forEach((x) => { x.hidden = true; });
+      document.querySelectorAll('#evForm [aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
+    }
+    function paintChosen() {
+      $('#chosen').replaceChildren(...chosen.map((a) => el('li', { class: 'grid gap-2 rounded-2xl bg-surface2 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:items-center' },
+        el('span', { class: 'text-[14px] font-medium' }, a.name || a.email || 'ไม่ระบุชื่อ'),
+        el('input', { maxlength: '120', value: a.duty, placeholder: 'หน้าที่ เช่น ช่างภาพ', 'aria-label': `หน้าที่ของ ${a.name || a.email || ''}`, 'data-duty': a.id, class: 'field h-11 min-w-0 rounded-xl px-3 text-[14px]', oninput: (e) => { a.duty = e.target.value; } }),
+        el('button', { type: 'button', class: 'press t-quick h-11 rounded-xl px-3 text-[14px] font-medium text-brand', 'aria-label': `เอา ${a.name || a.email || ''} ออก`, onclick: () => { chosen = chosen.filter((x) => x !== a); paintChosen(); findPeople(); } }, 'เอาออก'))));
+    }
+    async function findPeople() {
+      const q = $('#fWho').value.trim();
+      try {
+        const { items } = await api(`/calendar/people?q=${encodeURIComponent(q)}`);
+        const left = items.filter((p) => !chosen.some((a) => a.id === p.id)).slice(0, 6);
+        $('#whoList').replaceChildren(...left.map((p) => el('li', {}, el('button', { type: 'button', class: 'hover-fill press t-quick flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-[14px]', onclick: () => {
+          chosen.push({ id: p.id, name: p.name, email: p.email, duty: '' });
+          paintChosen();
+          findPeople();
+          document.querySelector(`[data-duty="${p.id}"]`)?.focus();
+        } }, el('span', { class: 'min-w-0 truncate font-medium' }, p.name || p.email), el('span', { class: 'shrink-0 text-[13px] text-ink2' }, window.DESK.ROLE_TH[p.role] || 'นักศึกษา')))));
+      } catch (err) { toast(err.message, true); }
+    }
+    function openForm(e) {
+      clearErrors();
+      state.editing = e;
+      $('#evTitle').textContent = e ? 'แก้ไขกิจกรรม' : 'สร้างกิจกรรม';
+      $('#fTitle').value = e?.title || '';
+      $('#fType').value = e?.type || 'media';
+      $('#fLocation').value = e?.location || '';
+      $('#fStart').value = e ? local(e.startAt) : `${state.cursor}T09:00`;
+      $('#fEnd').value = e ? local(e.endAt) : `${state.cursor}T10:00`;
+      document.querySelector(`[name="visibility"][value="${e?.visibility || 'internal'}"]`).checked = true;
+      $('#fDescription').value = e?.description || '';
+      $('#fNote').value = e?.internalNote || '';
+      chosen = (e?.assignees || []).map((a) => ({ ...a }));
+      $('#fWho').value = '';
+      paintChosen();
+      findPeople();
+      $('#evDlg').showModal();
+    }
+    async function save(ev) {
+      ev.preventDefault();
+      clearErrors();
+      const when = (v) => (v ? `${v}:00+07:00` : null);
+      const body = {
+        title: $('#fTitle').value, type: $('#fType').value, location: $('#fLocation').value, startAt: when($('#fStart').value), endAt: when($('#fEnd').value),
+        visibility: document.querySelector('[name="visibility"]:checked').value, description: $('#fDescription').value, internalNote: $('#fNote').value,
+        assignees: chosen.map((a) => ({ userId: a.id, duty: a.duty })),
+      };
+      const btn = $('#evSave');
+      btn.disabled = true;
+      try {
+        const { event } = await api(state.editing ? `/calendar/events/${state.editing.id}` : '/calendar/events', { method: state.editing ? 'PUT' : 'POST', body });
+        $('#evDlg').close();
+        toast(state.editing ? 'บันทึกการแก้ไขแล้ว' : 'สร้างกิจกรรมแล้ว');
+        state.cursor = isoDay(event.startAt);
+        state.picked = event;
+        await load();
+      } catch (err) {
+        const d = err.details || {};
+        const fields = { title: '#fTitle', type: '#fType', startAt: '#fStart', endAt: '#fEnd' };
+        let first = null;
+        for (const [k, msg] of Object.entries(d)) {
+          const box = document.querySelector(`[data-err="${k}"]`);
+          if (box) { box.textContent = msg; box.hidden = false; }
+          if (fields[k]) { $(fields[k]).setAttribute('aria-invalid', 'true'); first ||= $(fields[k]); }
+        }
+        if (first) first.focus();
+        if (!Object.keys(d).length) toast(err.message, true);
+      } finally { btn.disabled = false; }
+    }
+    async function cancelEvent() {
+      const btn = $('#offGo');
+      btn.disabled = true;
+      try {
+        const { event } = await api(`/calendar/events/${state.picked.id}/cancel`, { method: 'POST', body: {} });
+        $('#offDlg').close();
+        toast('ยกเลิกกิจกรรมแล้ว');
+        state.picked = event;
+        await load();
+      } catch (err) { toast(err.message, true); } finally { btn.disabled = false; }
+    }
+
+    // ---- Notifications ----
+    function paintBell(unread) {
+      $('#bellDot').hidden = !unread;
+      $('#bell').setAttribute('aria-label', unread ? `การแจ้งเตือน ${unread} รายการใหม่` : 'การแจ้งเตือน');
+    }
+    async function loadNotes(show) {
+      try {
+        const { items, unread } = await api('/notifications');
+        paintBell(unread);
+        if (!show) return;
+        $('#noteAll').hidden = !unread;
+        $('#noteList').replaceChildren(...(items.length ? items.map((n) => el('li', {}, el('button', { type: 'button', class: 'hover-fill press t-quick grid w-full gap-0.5 rounded-xl px-3 py-2 text-left', onclick: () => openNote(n) },
+          el('span', { class: `text-[14px] ${n.readAt ? '' : 'font-semibold'}` }, n.readAt ? n.text : `ใหม่: ${n.text}`),
+          el('span', { class: 'text-[13px] text-ink2' }, dayTime(n.createdAt))))) : [el('li', { class: 'text-[15px] text-ink2' }, 'ยังไม่มีการแจ้งเตือน')]));
+        if (!$('#noteDlg').open) $('#noteDlg').showModal();
+      } catch (err) { toast(err.message, true); }
+    }
+    async function openNote(n) {
+      $('#noteDlg').close();
+      if (!n.readAt) { try { await api(`/notifications/${n.id}/read`, { method: 'POST', body: {} }); } catch (e) {} }
+      loadNotes(false);
+      if (n.refId) openEvent(n.refId);
+    }
+
+    // ---- Start ----
+    (async () => {
+      const me = await window.ME;
+      const user = await DESK.start({ page: 'calendar', allow: me.modules?.includes('calendar') ? [me.user.role] : ['pr', 'admin'] });
+      if (!user) return;
+      state.canEdit = user.role === 'pr' || user.role === 'admin';
+      state.own = !state.canEdit && user.role !== 'secretary' && user.role !== 'executive';
+      if (state.own) $('#pageTitle').textContent = 'งานของฉัน';
+      $('#newEvent').hidden = !state.canEdit;
+      $('#fType').replaceChildren(...Object.entries(TYPES).map(([k, l]) => el('option', { value: k }, l)));
+      $('#app').hidden = false;
+
+      document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => { state.view = b.dataset.view; load(); }));
+      const step = (n) => {
+        if (state.view === 'month') { const [y, m] = state.cursor.split('-').map(Number); state.cursor = new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 10); } else state.cursor = addDays(state.cursor, state.view === 'week' ? 7 * n : n);
+        load();
+      };
+      $('#prev').addEventListener('click', () => step(-1));
+      $('#next').addEventListener('click', () => step(1));
+      $('#today').addEventListener('click', () => { state.cursor = isoDay(); load(); });
+      $('#newEvent').addEventListener('click', () => openForm(null));
+      $('#evForm').addEventListener('submit', save);
+      $('#evClose').addEventListener('click', () => $('#evDlg').close());
+      $('#offClose').addEventListener('click', () => $('#offDlg').close());
+      $('#offGo').addEventListener('click', cancelEvent);
+      $('#fWho').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(findPeople, 250); });
+      $('#bell').addEventListener('click', () => loadNotes(true));
+      $('#noteClose').addEventListener('click', () => $('#noteDlg').close());
+      $('#noteAll').addEventListener('click', async () => {
+        try { await api('/notifications/read-all', { method: 'POST', body: {} }); $('#noteDlg').close(); paintBell(0); } catch (err) { toast(err.message, true); }
+      });
+      small.addEventListener('change', () => { if (small.matches && state.view === 'month') { state.view = 'day'; load(); } });
+
+      loadNotes(false);
+      const id = new URLSearchParams(location.search).get('id');
+      if (id) await openEvent(id); else await load();
+    })();
+  </script>
+</body>
+</html>
