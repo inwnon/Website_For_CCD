@@ -9,10 +9,10 @@ import { join, resolve } from 'node:path';
 import { describe, test } from 'node:test';
 import { BASE, login, request } from './helpers.mjs';
 
-const MODULES = ['auth', 'news', 'submissions', 'pr', 'newsdesk', 'reports', 'admin', 'notify', 'privacy'];
+const MODULES = ['auth', 'news', 'submissions', 'pr', 'newsdesk', 'reports', 'admin', 'notify', 'privacy', 'calendar'];
 // Open without signing in (what a reader of the public site uses)
 const PUBLIC = new Set(['POST /auth/google', 'POST /auth/dev', 'POST /auth/logout', 'GET /me', 'GET /news', 'GET /news/search', 'GET /news/archive',
-  'GET /news/:id', 'POST /news/:id/read']);
+  'GET /news/:id', 'POST /news/:id/read', 'GET /calendar/public']);
 const ORIGIN = process.env.APP_ORIGIN || BASE;
 const UUID = '00000000-0000-4000-8000-000000000000';
 const fill = (path) => path.replace(/:(\w+)/g, (m, k) => (k === 'ref' ? 'NW-2569-0001' : k === 'email' ? 'x%40sru.ac.th' : k === 'file' ? `${UUID}.webp` : k === 'key' ? 'categories' : UUID));

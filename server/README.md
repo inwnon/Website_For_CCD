@@ -32,6 +32,8 @@ npm run db:seed         # (ไม่บังคับ) ข้อมูลตั
 | `org.mjs` | อ่านรายชื่อหน่วยงานจาก `org-data.js` ชุดเดียวกับหน้าเว็บ |
 | `http.mjs` | จัดการ error, กัน CSRF (ตรวจ Origin), ตัวช่วยตรวจข้อมูล |
 | `news.mjs` | ฝั่งผู้อ่าน (หน้า `index.html`, `news.html`): รายการข่าว, คลังข่าว, อ่านข่าว, บันทึกข่าวที่ชอบ, ภาพข่าว `/media` (ย่อหลายขนาด) |
+| `access.mjs` | ตารางสิทธิ์โมดูลหลังบ้าน (SPEC §2): `rightOf`, `requireModule` |
+| `calendar.mjs` | ปฏิทินงาน: กิจกรรม การมอบหมาย ปฏิทินสาธารณะ (แจ้งเตือนอยู่ใน `notify.mjs`) |
 | `pages.mjs` | ส่ง `news.html` / `search.html` พร้อมเนื้อหาจาก server (Open Graph, JSON-LD, ข่าวภายใน = noindex), `sitemap.xml`, `robots.txt` |
 | `thai.mjs` | ตัดคำภาษาไทย (`Intl.Segmenter`) สำหรับค้นหา |
 | `exif.mjs` | ลบตำแหน่ง GPS ออกจากรูปที่อัปโหลด (JPEG PNG WebP HEIC) โดยไม่บีบอัดซ้ำ — `scrub-gps.mjs` ลบจากไฟล์เก่าที่มีอยู่แล้ว |

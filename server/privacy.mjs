@@ -40,6 +40,9 @@ router.get('/me/data', requireUser, limit('export', { max: 10, windowMs: HOUR })
       from submission_drafts d where d.sender_id = $1 order by d.updated_at desc`, [u.id])).rows,
     savedNews: (await query('select n.id, n.title, s.created_at saved_at from saved_news s join news n on n.id = s.news_id where s.user_id = $1 order by s.created_at desc', [u.id])).rows,
     storiesRead: (await query(`select n.title, r.day from news_reads r join news n on n.id = r.news_id where r.reader = $1 order by r.day desc`, [`u:${u.id}`])).rows,
+    calendarAssignments: (await query(`select e.title, e.start_at, e.end_at, e.location, a.duty from event_assignments a join events e on e.id = a.event_id
+      where a.user_id = $1 order by e.start_at desc`, [u.id])).rows,
+    notifications: (await query('select created_at, kind, ref_id, text, read_at from notifications where user_id = $1 order by id desc', [u.id])).rows,
     emails: (await query('select created_at, kind, subject, status from email_outbox where to_email = $1 order by id desc', [u.email])).rows,
     actionsInBackOffice: (await query('select at, action, summary from audit_log where actor_id = $1 order by at desc', [u.id])).rows,
     requests: (await query('select created_at, kind, status, reason, handled_at, note from data_requests where user_id = $1 order by id desc', [u.id])).rows,
@@ -113,6 +116,8 @@ export async function erase(c, userId) {
   await c.query(`update messages set display_name = 'ผู้ส่ง (ลบข้อมูลแล้ว)' where author_id = $1 and side = 'sender'`, [userId]);
   await c.query('delete from sessions where user_id = $1', [userId]);
   await c.query('delete from saved_news where user_id = $1', [userId]);
+  await c.query('delete from event_assignments where user_id = $1', [userId]);
+  await c.query('delete from notifications where user_id = $1', [userId]);
   await c.query('delete from news_reads where reader = $1', [`u:${userId}`]);
   // Unsent emails to this address go, except the confirmation queued just before (privacy.done)
   await c.query(`delete from email_outbox where to_email = $1 and status = 'queued' and kind <> 'privacy.done'`, [u.email]);
