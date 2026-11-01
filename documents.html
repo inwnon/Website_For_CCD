@@ -20,10 +20,26 @@
   <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="desk.css">
   <style>
-    .seg[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
-    .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
+    /* Cards stand off the page; a preview lies on a tray in the colour of its file type, always with the type in words */
+    .doc-card { border: 1px solid rgb(var(--line)); box-shadow: 0 1px 2px rgb(38 66 200 / .1), 0 12px 24px -10px rgb(38 66 200 / .28); }
+    .doc-card:hover { border-color: rgb(var(--purple) / .45); box-shadow: 0 2px 4px rgb(38 66 200 / .12), 0 20px 32px -12px rgb(38 66 200 / .38); }
+    .dark .doc-card { box-shadow: 0 12px 24px -10px rgb(0 0 0 / .6); }
+    .dark .doc-card:hover { box-shadow: 0 20px 32px -12px rgb(0 0 0 / .75); }
+    .doc-tray { border-bottom: 1px solid rgb(var(--line)); }
+    .ft-pdf { background: rgb(var(--red-soft)); color: rgb(var(--red)); }
+    .ft-word { background: rgb(var(--royal-soft)); color: rgb(var(--royal)); }
+    .ft-excel { background: rgb(var(--sky-soft)); color: rgb(var(--sky)); }
+    .ft-powerpoint { background: rgb(var(--gold-soft)); color: rgb(var(--gold)); }
+    .ft-image { background: rgb(var(--purple-soft)); color: rgb(var(--purple)); }
+    .doc-shot { position: absolute; inset: 10px 10px 0; width: calc(100% - 20px); height: calc(100% - 10px); object-fit: cover; object-position: top; border-radius: 8px 8px 0 0; box-shadow: 0 2px 10px rgb(10 11 32 / .28); animation: shotIn .3s ease-out; }
+    .doc-mini .doc-shot { inset: 4px 4px 0; width: calc(100% - 8px); height: calc(100% - 4px); border-radius: 4px 4px 0 0; }
+    @keyframes shotIn { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .doc-shot { animation: none; } }
+    .page-btn[aria-current="page"] { background: rgb(var(--royal)); border-color: rgb(var(--royal)); color: rgb(var(--shell)); }
+    .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=030ab068e2">
+  <script src="thai-date.js" defer></script>
+  <link rel="stylesheet" href="/assets/app.css?v=e60b0b0cfa">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการเอกสาร</a>
@@ -42,61 +58,100 @@
             <p id="count" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
           </div>
           <button id="add" type="button" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 max-sm:w-full max-sm:justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มเอกสาร
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มงาน
           </button>
-          <div class="grid w-full gap-3 sm:grid-cols-[minmax(0,1fr)_200px_auto]">
+          <div class="grid w-full gap-3">
             <label class="min-w-0">
-              <span class="sr-only">ค้นหาเอกสาร</span>
-              <input id="search" type="search" maxlength="100" autocomplete="off" placeholder="ค้นหาชื่อ หมวด แท็ก หรือชื่อไฟล์" class="field h-11 w-full rounded-2xl px-4 text-[15px]">
+              <span class="sr-only">ค้นหางานหรือเอกสาร</span>
+              <input id="search" type="search" maxlength="100" autocomplete="off" placeholder="ค้นหางาน เอกสาร หรือผู้เกี่ยวข้อง" class="field h-11 w-full rounded-2xl px-4 text-[15px]">
             </label>
-            <label class="min-w-0">
-              <span class="sr-only">หมวดเอกสาร</span>
-              <select id="filter" class="field doc-sel h-11 w-full rounded-2xl pl-4 pr-10 text-[15px]"></select>
-            </label>
-            <div class="flex gap-0.5 rounded-2xl bg-surface2 p-1" role="group" aria-label="เลือกรายการ">
-              <button type="button" data-shelf="" class="seg press t-quick h-9 flex-auto whitespace-nowrap rounded-xl px-3 font-display text-[15px] font-medium text-ink2">ใช้งานอยู่</button>
-              <button type="button" data-shelf="1" class="seg press t-quick h-9 flex-auto whitespace-nowrap rounded-xl px-3 font-display text-[15px] font-medium text-ink2">เก็บเข้าคลังแล้ว</button>
+            <div class="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-[repeat(6,minmax(0,1fr))_auto]" role="group" aria-label="ตัวกรอง">
+              <label class="min-w-0"><span class="sr-only">หมวดเอกสาร</span><select id="filter" data-filter="category" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">ชนิดไฟล์</span><select id="filterType" data-filter="type" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">ผู้เกี่ยวข้อง</span><select id="filterPerson" data-filter="person" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">ปีของเอกสาร</span><select id="filterYear" data-filter="year" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">รอบประเมิน</span><select id="filterRound" data-filter="round" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">เอกสารของทีมหรือส่วนตัว</span><select id="filterLevel" data-filter="level" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <button id="clear" type="button" class="hover-fill press t-quick h-11 whitespace-nowrap rounded-2xl border border-line px-4 font-display text-[15px] font-medium" hidden>ล้างตัวกรอง</button>
             </div>
           </div>
         </header>
 
-        <section class="rounded-card bg-shell px-2 py-1 shadow-raised sm:px-3" aria-label="รายการเอกสาร">
-          <ul id="list" tabindex="-1"></ul>
-          <p id="empty" class="py-10 text-center text-[15px] text-ink2" hidden></p>
+        <section aria-label="รายการงาน">
+          <ul id="list" tabindex="-1" class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"></ul>
+          <p id="empty" class="rounded-card bg-shell py-10 text-center text-[15px] text-ink2 shadow-raised" hidden></p>
         </section>
+
+        <div id="pager" class="flex flex-wrap items-center justify-between gap-3 rounded-card bg-shell px-4 py-3 shadow-raised" hidden>
+          <label class="flex items-center gap-2 text-[14px] text-ink2">แสดงหน้าละ
+            <select id="perPage" class="field doc-sel h-11 rounded-2xl pl-3 pr-8 text-[14px]"><option value="20">20 งาน</option><option value="40">40 งาน</option><option value="60">60 งาน</option></select>
+          </label>
+          <p id="range" class="text-[14px] text-ink2 max-sm:order-3 max-sm:w-full"></p>
+          <nav id="pages" class="flex flex-wrap items-center gap-1" aria-label="เลือกหน้า"></nav>
+        </div>
       </div>
     </main>
   </div>
 
-  <dialog id="formDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(600px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="formTitle">
+  <dialog id="formDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(640px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="formTitle">
     <form id="docForm" class="grid gap-4 p-5 sm:p-6" novalidate>
-      <h2 id="formTitle" class="font-display text-[21px] font-semibold">เพิ่มเอกสาร</h2>
-      <label id="fileBox" class="grid gap-1.5">
-        <span class="font-display text-[15px] font-semibold">ไฟล์ <span class="text-brand">*</span></span>
-        <input id="fFile" type="file" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]" aria-describedby="fileHint fileErr">
-        <span id="fileHint" class="text-[14px] text-ink2">PDF, DOCX, XLSX, PPTX ไม่เกิน 20 MB หรือภาพ JPG, PNG ไม่เกิน 10 MB</span>
+      <div>
+        <h2 id="formTitle" class="font-display text-[21px] font-semibold">เพิ่มงาน</h2>
+        <p id="formWork" class="mt-1 text-[14px] font-medium [overflow-wrap:anywhere]" hidden></p>
+      </div>
+      <div id="workBox" class="grid gap-4">
+        <label class="grid gap-1.5">
+          <span class="font-display text-[15px] font-semibold">ชื่องาน <span class="text-brand">*</span></span>
+          <input id="fWork" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="workErr">
+          <span id="workErr" data-err="workTitle" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+        <section aria-labelledby="whoTitle" class="grid gap-2">
+          <label id="whoTitle" for="fWho" class="font-display text-[15px] font-semibold">ผู้เกี่ยวข้อง <span class="font-sans text-[13px] font-normal text-ink2">(ไม่เกิน 5 คน)</span></label>
+          <ul id="chosen" class="flex flex-wrap gap-2"></ul>
+          <input id="fWho" type="search" autocomplete="off" placeholder="ค้นหาชื่อทีม PR" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="peopleErr">
+          <ul id="whoList" class="grid gap-1" aria-label="คนที่เลือกได้"></ul>
+          <span id="peopleErr" data-err="people" class="text-[14px] font-medium text-brand" hidden></span>
+        </section>
+      </div>
+      <section id="fileBox" class="grid gap-2" aria-labelledby="filesTitle">
+        <label id="filesTitle" for="fFile" class="font-display text-[15px] font-semibold">ไฟล์เอกสาร <span class="text-brand">*</span></label>
+        <ul id="files" class="grid gap-2"></ul>
+        <input id="fFile" type="file" multiple accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]" aria-describedby="fileHint fileErr">
+        <span id="fileHint" class="text-[14px] text-ink2">เลือกได้ครั้งละหลายไฟล์ สูงสุด 10 ไฟล์ PDF, DOCX, XLSX, PPTX ไม่เกิน 20 MB ภาพ JPG, PNG ไม่เกิน 10 MB</span>
         <span id="fileErr" data-err="file" class="text-[14px] font-medium text-brand" hidden></span>
-      </label>
-      <label class="grid gap-1.5">
+      </section>
+      <label id="titleBox" class="grid gap-1.5">
         <span class="font-display text-[15px] font-semibold">ชื่อเอกสาร <span class="text-brand">*</span></span>
         <input id="fTitle" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="titleErr">
         <span id="titleErr" data-err="title" class="text-[14px] font-medium text-brand" hidden></span>
       </label>
       <label class="grid gap-1.5">
-        <span class="font-display text-[15px] font-semibold">หมวด <span class="text-brand">*</span></span>
+        <span class="font-display text-[15px] font-semibold">หมวดเอกสาร <span class="text-brand">*</span></span>
         <select id="fCategory" class="field doc-sel h-12 rounded-2xl pl-4 pr-10 text-[15px]" aria-describedby="categoryErr"></select>
         <span id="categoryErr" data-err="category" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <label class="grid min-w-0 gap-1.5">
+        <span class="font-display text-[15px] font-semibold">วันที่ของเอกสาร <span class="text-brand">*</span></span>
+        <input id="fDate" type="date" class="field h-12 w-full rounded-2xl px-4 text-[15px]" aria-describedby="dateHint dateErr">
+        <span id="dateHint" class="text-[14px] text-ink2">ใช้นับปีและรอบประเมิน รอบ 1 เม.ย.-ก.ย. รอบ 2 ต.ค.-มี.ค.</span>
+        <span id="dateErr" data-err="docDate" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <label id="unitBox" class="grid gap-1.5" hidden>
+        <span class="font-display text-[15px] font-semibold">ชื่อหน่วยงาน <span class="text-brand">*</span></span>
+        <input id="fUnit" maxlength="200" list="units" autocomplete="off" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="unitErr">
+        <datalist id="units"></datalist>
+        <span id="unitErr" data-err="unitName" class="text-[14px] font-medium text-brand" hidden></span>
       </label>
       <label class="grid gap-1.5">
         <span class="font-display text-[15px] font-semibold">แท็ก</span>
         <input id="fTags" maxlength="500" autocomplete="off" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="tagsHint tagsErr">
-        <span id="tagsHint" class="text-[14px] text-ink2">คั่นแต่ละคำด้วยเครื่องหมายจุลภาค เช่น งบประมาณ, 2569</span>
+        <span id="tagsHint" class="text-[14px] text-ink2">คั่นแต่ละคำด้วยเครื่องหมายจุลภาค เช่น รับปริญญา, 2569</span>
         <span id="tagsErr" data-err="tags" class="text-[14px] font-medium text-brand" hidden></span>
       </label>
-      <fieldset id="levelBox" class="grid gap-1" hidden>
-        <legend class="font-display text-[15px] font-semibold">ใครเปิดเอกสารนี้ได้</legend>
-        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="level" value="team" class="h-5 w-5" checked>ทีม PR และผู้ดูแลระบบ</label>
-        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="level" value="admin" class="h-5 w-5">เฉพาะผู้ดูแลระบบ</label>
+      <fieldset id="levelBox" class="grid gap-1">
+        <legend class="font-display text-[15px] font-semibold">เอกสารนี้เป็นของ</legend>
+        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="level" value="team" class="h-5 w-5" checked>ทีม PR เปิดได้ทุกคนในทีม</label>
+        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="level" value="private" class="h-5 w-5">ส่วนตัว เปิดได้เฉพาะผู้อัปโหลดและผู้ดูแลระบบ</label>
         <span data-err="accessLevel" class="text-[14px] font-medium text-brand" hidden></span>
       </fieldset>
       <p data-err="form" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
@@ -107,11 +162,48 @@
     </form>
   </dialog>
 
+  <dialog id="workDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(720px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="workTitle">
+    <div class="grid gap-4 p-5 sm:p-6">
+      <div>
+        <h2 id="workTitle" class="font-display text-[21px] font-semibold [overflow-wrap:anywhere]"></h2>
+        <p id="workMeta" class="mt-1 text-[14px] text-ink2"></p>
+        <div id="workPeople" class="mt-2 flex flex-wrap gap-1.5"></div>
+      </div>
+      <ul id="workDocs" class="grid gap-2" aria-label="เอกสารในงานนี้"></ul>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="workClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="workEdit" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line px-5 font-display text-[15px] font-medium">แก้ไขงาน</button>
+        <button id="workAdd" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">เพิ่มเอกสารในงานนี้</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="editDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(560px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="editTitle">
+    <form id="editForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <h2 id="editTitle" class="font-display text-[21px] font-semibold">แก้ไขงาน</h2>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ชื่องาน <span class="text-brand">*</span></span>
+        <input id="eWork" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]">
+      </label>
+      <section aria-labelledby="eWhoTitle" class="grid gap-2">
+        <label id="eWhoTitle" for="eWho" class="font-display text-[15px] font-semibold">ผู้เกี่ยวข้อง <span class="font-sans text-[13px] font-normal text-ink2">(ไม่เกิน 5 คน)</span></label>
+        <ul id="eChosen" class="flex flex-wrap gap-2"></ul>
+        <input id="eWho" type="search" autocomplete="off" placeholder="ค้นหาชื่อทีม PR" class="field h-12 rounded-2xl px-4 text-[15px]">
+        <ul id="eList" class="grid gap-1" aria-label="คนที่เลือกได้"></ul>
+      </section>
+      <p id="editErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="editClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="editSave" type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="viewDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(640px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="viewTitle">
     <div class="grid gap-4 p-5 sm:p-6">
       <div>
         <h2 id="viewTitle" class="font-display text-[21px] font-semibold [overflow-wrap:anywhere]"></h2>
-        <p id="viewMeta" class="mt-1 text-[14px] text-ink2"></p>
+        <p id="viewMeta" class="mt-1 text-[14px] text-ink2 [overflow-wrap:anywhere]"></p>
         <div id="viewTags" class="mt-2 flex flex-wrap gap-1.5"></div>
       </div>
       <section class="grid gap-1" aria-labelledby="versionsTitle">
@@ -119,8 +211,7 @@
         <ul id="viewVersions"></ul>
       </section>
       <div class="flex flex-wrap justify-end gap-2">
-        <button id="viewClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
-        <button id="viewArchive" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5" hidden>เก็บเข้าคลัง</button>
+        <button id="viewClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">กลับ</button>
         <button id="viewRestore" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line px-5 font-display text-[15px] font-medium disabled:opacity-60" hidden>นำออกจากคลัง</button>
         <button id="viewEdit" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line px-5 font-display text-[15px] font-medium" hidden>แก้ไขข้อมูล</button>
         <button id="viewVersion" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5" hidden>เพิ่มเวอร์ชันใหม่</button>
@@ -147,29 +238,25 @@
     </form>
   </dialog>
 
-  <dialog id="offDlg" class="desk-dlg w-[min(440px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="offTitle" aria-describedby="offName offText">
-    <div class="grid gap-3 p-5 sm:p-6">
-      <h2 id="offTitle" class="font-display text-[21px] font-semibold">เก็บเอกสารนี้เข้าคลัง?</h2>
-      <p id="offName" class="text-[15px] font-medium [overflow-wrap:anywhere]"></p>
-      <p id="offText" class="text-[14px] text-ink2">เอกสารจะหายจากรายการใช้งาน แต่ไฟล์ยังอยู่ครบและนำออกจากคลังได้ทุกเมื่อ</p>
-      <p id="offErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
-      <div class="flex flex-wrap justify-end gap-2">
-        <button id="offClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
-        <button id="offGo" type="button" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">เก็บเข้าคลัง</button>
-      </div>
-    </div>
-  </dialog>
-
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
   <script src="arrivals.js"></script>
   <script src="desk.js"></script>
+  <script src="org-data.js"></script>
   <script>
     const { toast, day, dayTime } = DESK;
     const $ = (s) => document.querySelector(s);
-    const CATEGORIES = { official: 'หนังสือราชการ', report: 'รายงาน', form: 'แบบฟอร์ม', media: 'สื่อประชาสัมพันธ์', other: 'อื่น ๆ' };
-    const FIELDS = { title: '#fTitle', category: '#fCategory', tags: '#fTags', file: '#fFile' };
-    const state = { items: [], shelf: '', asked: 0, open: null, editing: null, admin: false };
+    const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกข้อความขอความอนุเคราะห์', other: 'เอกสารอื่นๆ' };
+    const FIELDS = { workTitle: '#fWork', people: '#fWho', file: '#fFile', title: '#fTitle', category: '#fCategory', docDate: '#fDate', unitName: '#fUnit', tags: '#fTags' };
+    const MAX_FILES = 10;
+    const PER_PAGE = [20, 40, 60];
+    const MAX_PEOPLE = 5;
+    const PREVIEW_WIDTH = 480;
+    const FILE_TYPES = { pdf: 'PDF', word: 'Word', excel: 'Excel', powerpoint: 'PowerPoint', image: 'ภาพ' };
+    const FILE_KIND = { pdf: 'pdf', docx: 'word', xlsx: 'excel', pptx: 'powerpoint', jpg: 'image', jpeg: 'image', png: 'image' };
+    const FILE_ICON = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>';
+    const PDFJS = '/assets/pdfjs-6.4.299/';
+    const state = { works: [], files: [], total: 0, page: 1, perPage: 20, asked: 0, work: null, doc: null, mode: 'new', admin: false, me: null, who: null, editWho: null };
 
     // Everything from the server goes in as text nodes, never as HTML
     function el(tag, props = {}, ...kids) {
@@ -183,38 +270,148 @@
       return n;
     }
     const bytes = (n) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
-    const tag = (t) => el('span', { class: 'rounded-full bg-surface2 px-2.5 py-0.5 text-[13px] [overflow-wrap:anywhere]' }, t);
-    const adminOnly = () => el('span', { class: 'rounded-full bg-royal-soft px-2.5 py-0.5 font-display text-[13px] font-semibold text-royal' }, 'เฉพาะผู้ดูแลระบบ');
+    const chip = (t) => el('span', { class: 'rounded-full bg-surface2 px-2.5 py-0.5 text-[13px] [overflow-wrap:anywhere]' }, t);
+    const personal = () => el('span', { class: 'rounded-full bg-royal-soft px-2.5 py-0.5 font-display text-[13px] font-semibold text-royal' }, 'ส่วนตัว');
+    const shelved = () => el('span', { class: 'rounded-full bg-surface2 px-2.5 py-0.5 font-display text-[13px] font-semibold text-ink2' }, 'เก็บเข้าคลังแล้ว');
+    const categoryOf = (d) => (d.unitName ? `${CATEGORIES[d.category]} ${d.unitName}` : CATEGORIES[d.category]);
 
-    function row(d) {
-      return el('li', { class: 'border-b border-line last:border-b-0' },
-        el('button', { type: 'button', class: 'hover-fill press t-quick grid w-full gap-1 rounded-2xl px-2 py-3 text-left sm:px-3', onclick: () => openView(d.id) },
-          el('span', { class: 'font-display text-[16px] font-semibold [overflow-wrap:anywhere]' }, d.title),
-          el('span', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${CATEGORIES[d.category]} · ${d.fileName} · ${bytes(d.size)} · เวอร์ชัน ${d.version} · ${day(d.updatedAt)}`),
-          d.tags.length || d.accessLevel === 'admin' ? el('span', { class: 'flex flex-wrap gap-1.5 pt-0.5' }, d.accessLevel === 'admin' ? adminOnly() : null, d.tags.map(tag)) : null));
+    // ---- Previews: drawn in the browser, one at a time, only when a card comes into view ----
+    const previews = new Map();
+    let previewQueue = Promise.resolve(), pdfLibrary = null;
+    const canPreview = (d) => d.mime === 'application/pdf' || d.mime === 'image/jpeg' || d.mime === 'image/png';
+    const fileUrl = (d) => `/api/documents/${d.id}/file?version=${d.version}`;
+    async function loadPdfLibrary() {
+      if (!pdfLibrary) {
+        pdfLibrary = await import(`${PDFJS}pdf.min.mjs`);
+        pdfLibrary.GlobalWorkerOptions.workerSrc = `${PDFJS}pdf.worker.min.mjs`;
+      }
+      return pdfLibrary;
+    }
+    // Only the parts of the file that the first page needs are fetched
+    async function drawPdf(d) {
+      const lib = await loadPdfLibrary();
+      const task = lib.getDocument({ url: new URL(fileUrl(d), location.origin).href, isEvalSupported: false, disableAutoFetch: true, disableStream: true });
+      try {
+        const pdf = await task.promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: PREVIEW_WIDTH / page.getViewport({ scale: 1 }).width });
+        const canvas = el('canvas', { width: Math.round(viewport.width), height: Math.round(viewport.height) });
+        await page.render({ canvas, viewport }).promise;
+        return canvas;
+      } finally { await task.destroy(); }
+    }
+    async function drawImage(d) {
+      const res = await fetch(fileUrl(d), { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('preview');
+      const bitmap = await createImageBitmap(await res.blob(), { resizeWidth: PREVIEW_WIDTH, resizeQuality: 'medium' });
+      const canvas = el('canvas', { width: bitmap.width, height: bitmap.height });
+      canvas.getContext('2d').drawImage(bitmap, 0, 0);
+      bitmap.close();
+      return canvas;
+    }
+    async function draw(d) {
+      const canvas = await (d.mime === 'application/pdf' ? drawPdf(d) : drawImage(d));
+      const blob = await new Promise((done) => { canvas.toBlob(done, 'image/webp', 0.8); });
+      return URL.createObjectURL(blob);
+    }
+    function preview(d) {
+      const key = `${d.id}:${d.version}`;
+      if (!previews.has(key)) {
+        const job = previewQueue.then(() => draw(d)).catch(() => null); // A file that cannot be drawn keeps its file type label
+        previewQueue = job;
+        previews.set(key, job);
+      }
+      return previews.get(key);
+    }
+    const covers = new WeakMap();
+    const coverWatch = new IntersectionObserver((seen) => {
+      for (const e of seen.filter((x) => x.isIntersecting)) {
+        coverWatch.unobserve(e.target);
+        preview(covers.get(e.target)).then((url) => {
+          if (url) e.target.append(el('img', { src: url, alt: '', class: 'doc-shot absolute inset-0 h-full w-full object-cover object-top' }));
+        });
+      }
+    }, { rootMargin: '200px' });
+    function cover(d, size) {
+      const ext = d.fileName.split('.').pop().toLowerCase();
+      const label = el('span', { class: 'grid justify-items-center gap-1 font-display text-[14px] font-semibold' }, ext.toUpperCase());
+      if (size === 'tray') label.insertAdjacentHTML('afterbegin', FILE_ICON);
+      const box = el('span', { class: `relative grid place-items-center overflow-hidden ft-${FILE_KIND[ext] || 'word'} ${size === 'tray' ? 'doc-tray aspect-[4/3] w-full' : 'doc-mini h-[84px] w-[64px] shrink-0 rounded-xl'}` }, label);
+      if (canPreview(d)) {
+        covers.set(box, d);
+        coverWatch.observe(box);
+      }
+      return box;
     }
 
+    // ---- Cards ----
+    function card(w) {
+      const main = w.documents.find(canPreview) ?? w.documents[0];
+      const onlyMine = w.documents.every((d) => d.accessLevel === 'private');
+      return el('li', {},
+        el('button', { type: 'button', class: 'doc-card press t-spring grid h-full w-full content-start overflow-hidden rounded-card bg-shell text-left shadow-raised hover:-translate-y-0.5', onclick: () => openWork(w.id) },
+          cover(main, 'tray'),
+          el('span', { class: 'grid gap-0.5 p-3' },
+            el('span', { class: 'line-clamp-2 font-display text-[15px] font-semibold leading-[1.6] [overflow-wrap:anywhere]' }, w.title),
+            el('span', { class: 'line-clamp-1 text-[13px] leading-[1.6] text-ink2' }, `${w.documents.length} เอกสาร · ${[...new Set(w.documents.map((d) => CATEGORIES[d.category]))].join(', ')}`),
+            el('span', { class: 'text-[13px] leading-[1.6] text-ink2' }, day(w.updatedAt)),
+            w.people.length || onlyMine ? el('span', { class: 'flex flex-wrap gap-1 pt-1' }, onlyMine ? personal() : null, w.people.slice(0, 2).map((p) => chip(p.name)), w.people.length > 2 ? chip(`+${w.people.length - 2}`) : null) : null)));
+    }
     function paint(filtered) {
-      $('#list').replaceChildren(...state.items.map(row));
-      $('#count').textContent = `${filtered ? 'พบ' : 'ทั้งหมด'} ${state.items.length} เอกสาร`;
-      $('#empty').hidden = state.items.length > 0;
-      $('#empty').textContent = filtered ? 'ไม่พบเอกสารที่ตรงกับเงื่อนไข' : state.shelf ? 'ยังไม่มีเอกสารที่เก็บเข้าคลัง' : 'ยังไม่มีเอกสาร';
-      document.querySelectorAll('[data-shelf]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.shelf === state.shelf)));
+      $('#list').replaceChildren(...state.works.map(card));
+      $('#count').textContent = `${filtered ? 'พบ' : 'ทั้งหมด'} ${state.total} งาน`;
+      $('#empty').hidden = state.total > 0;
+      $('#empty').textContent = filtered ? 'ไม่พบงานที่ตรงกับเงื่อนไข' : 'ยังไม่มีงานในคลังเอกสาร';
+      $('#clear').hidden = !filtered;
+      paintPager();
     }
-
+    // The numbers near the current page, with the first and the last always there
+    function pageNumbers(last) {
+      const near = [...new Set([1, state.page - 1, state.page, state.page + 1, last])].filter((n) => n >= 1 && n <= last).sort((a, b) => a - b);
+      return near.flatMap((n, i) => (i && n - near[i - 1] > 1 ? [null, n] : [n]));
+    }
+    function paintPager() {
+      const last = Math.max(1, Math.ceil(state.total / state.perPage));
+      const button = (label, page, props = {}) => el('button', { type: 'button', class: 'page-btn hover-fill press t-quick h-11 min-w-11 rounded-2xl border border-line px-3 font-display text-[15px] font-medium disabled:opacity-40', onclick: () => goTo(page), ...props }, label);
+      $('#pager').hidden = state.total <= PER_PAGE[0];
+      $('#perPage').value = String(state.perPage);
+      $('#range').textContent = `${(state.page - 1) * state.perPage + 1}-${Math.min(state.page * state.perPage, state.total)} จาก ${state.total} งาน`;
+      $('#pages').replaceChildren(
+        button('ก่อนหน้า', state.page - 1, { disabled: state.page === 1 }),
+        ...pageNumbers(last).map((n) => (n ? button(String(n), n, { 'aria-label': `หน้า ${n}`, 'aria-current': n === state.page ? 'page' : null }) : el('span', { class: 'px-1 text-ink2', 'aria-hidden': 'true' }, '…'))),
+        button('ถัดไป', state.page + 1, { disabled: state.page === last }));
+    }
+    async function goTo(page) {
+      state.page = page;
+      await load();
+      $('#list').focus({ preventScroll: true });
+      $('#app').scrollIntoView({ block: 'start' });
+    }
+    // A new search or filter starts again from the first page
+    const fresh = () => { state.page = 1; return load(); };
+    function paintYears(years) {
+      const box = $('#filterYear'), now = box.value;
+      box.replaceChildren(el('option', { value: '' }, 'ทุกปี'), ...years.map((y) => el('option', { value: y }, `พ.ศ. ${y}`)));
+      box.value = now;
+    }
     // Only the latest search paints: an older, slower answer is dropped
     async function load() {
-      const q = $('#search').value.trim(), category = $('#filter').value;
+      const q = $('#search').value.trim();
       const asked = ++state.asked;
       const params = new URLSearchParams();
       if (q) params.set('q', q);
-      if (category) params.set('category', category);
-      if (state.shelf) params.set('archived', '1');
+      params.set('page', state.page);
+      params.set('perPage', state.perPage);
+      document.querySelectorAll('[data-filter]').forEach((f) => { if (f.value) params.set(f.dataset.filter, f.value); });
       try {
-        const r = await api(`/documents?${params}`);
+        const r = await api(`/document-works?${params}`);
         if (asked !== state.asked) return;
-        state.items = r.items;
-        paint(Boolean(q || category));
+        // The page can be gone after a change: fall back to the last one
+        if (!r.items.length && r.total && state.page > 1) { state.page = Math.ceil(r.total / state.perPage); await load(); return; }
+        state.works = r.items;
+        state.total = r.total;
+        paintYears(r.years);
+        paint(params.size > 2);
       } catch (err) { toast(err.message, true); }
     }
 
@@ -229,7 +426,32 @@
       return out;
     }
 
-    // ---- New document, or the details of one ----
+    // People named on a งาน: the two forms share this
+    function picker({ list, search, found, onError }) {
+      let chosen = [], timer = null;
+      function paintChosen() {
+        $(list).replaceChildren(...chosen.map((p) => el('li', {},
+          el('button', { type: 'button', 'aria-label': `เอา ${p.name} ออก`, class: 'hover-fill press t-quick inline-flex min-h-11 items-center gap-2 rounded-full border border-line px-3 text-[14px] font-medium', onclick: () => { chosen = chosen.filter((x) => x !== p); paintChosen(); find(); } }, p.name, el('span', { 'aria-hidden': 'true' }, '×')))));
+      }
+      async function find() {
+        if (chosen.length >= MAX_PEOPLE) { $(found).replaceChildren(); return; }
+        try {
+          const { items } = await api(`/document-works/people?q=${encodeURIComponent($(search).value.trim())}`);
+          const left = items.filter((p) => !chosen.some((c) => c.id === p.id)).slice(0, 5);
+          $(found).replaceChildren(...left.map((p) => el('li', {}, el('button', {
+            type: 'button', class: 'hover-fill press t-quick flex min-h-11 w-full items-center rounded-xl px-3 text-left text-[14px] font-medium [overflow-wrap:anywhere]',
+            onclick: () => { chosen.push(p); $(search).value = ''; paintChosen(); find(); $(search).focus(); },
+          }, p.name))));
+        } catch (err) { onError(err.message); }
+      }
+      $(search).addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(find, 250); });
+      return {
+        set(people) { chosen = [...people]; $(search).value = ''; paintChosen(); find(); },
+        ids: () => chosen.map((p) => p.id),
+      };
+    }
+
+    // ---- The document form: a new งาน with its first document, one more in a งาน, or the details of one ----
     function clearErrors() {
       document.querySelectorAll('#docForm [data-err]').forEach((x) => { x.hidden = true; x.textContent = ''; });
       document.querySelectorAll('#docForm [aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
@@ -239,62 +461,182 @@
       box.textContent = text;
       box.hidden = false;
     }
-    function openForm(d) {
-      state.editing = d;
+    // Files waiting to go up. Each keeps its own name, and the reason if it was refused.
+    function paintFiles() {
+      $('#files').replaceChildren(...state.files.map((f) => el('li', { class: 'grid gap-1 rounded-2xl bg-surface2 p-2' },
+        el('div', { class: 'flex items-center gap-2' },
+          el('input', { value: f.title, maxlength: '200', 'data-file-title': true, 'aria-label': `ชื่อเอกสารของไฟล์ ${f.file.name}`, class: 'field h-11 min-w-0 flex-1 rounded-xl px-3 text-[15px]', oninput: (e) => { f.title = e.target.value; } }),
+          el('button', { type: 'button', 'aria-label': `เอา ${f.file.name} ออก`, class: 'press t-quick h-11 shrink-0 rounded-xl px-3 text-[14px] font-medium text-brand', onclick: () => { state.files = state.files.filter((x) => x !== f); paintFiles(); } }, 'เอาออก')),
+        el('p', { class: 'px-1 text-[13px] text-ink2 [overflow-wrap:anywhere]' }, `${f.file.name} · ${bytes(f.file.size)}`),
+        f.error ? el('p', { class: 'px-1 text-[14px] font-medium text-brand' }, f.error) : null)));
+    }
+    function addFiles() {
+      const picked = [...$('#fFile').files];
+      $('#fFile').value = ''; // The same file can be picked again after it is taken out
+      state.files.push(...picked.slice(0, MAX_FILES - state.files.length).map((file) => ({ file, title: file.name.replace(/\.[^.]+$/, ''), error: '' })));
+      if (state.files.length + picked.length > MAX_FILES) showError('file', `เลือกได้ครั้งละไม่เกิน ${MAX_FILES} ไฟล์`);
+      paintFiles();
+    }
+    const showUnit = () => { $('#unitBox').hidden = $('#fCategory').value !== 'unit_order'; };
+    function openForm(mode, d = null) {
+      state.mode = mode;
+      state.doc = d;
       clearErrors();
       $('#docForm').reset();
-      $('#formTitle').textContent = d ? 'แก้ไขข้อมูลเอกสาร' : 'เพิ่มเอกสาร';
-      $('#fileBox').hidden = !!d;
-      $('#levelBox').hidden = !state.admin;
-      $('#formSave').textContent = d ? 'บันทึก' : 'อัปโหลด';
+      $('#formTitle').textContent = { new: 'เพิ่มงาน', add: 'เพิ่มเอกสารในงานนี้', edit: 'แก้ไขข้อมูลเอกสาร' }[mode];
+      $('#formWork').textContent = mode === 'new' ? '' : state.work.title;
+      $('#formWork').hidden = mode === 'new';
+      $('#workBox').hidden = mode !== 'new';
+      $('#fileBox').hidden = mode === 'edit';
+      $('#titleBox').hidden = mode !== 'edit';
+      $('#fDate').value = d?.docDate || DESK.isoDay();
+      state.files = [];
+      paintFiles();
+      $('#levelBox').hidden = mode === 'edit' && !state.admin && d.ownerId !== state.me;
+      $('#formSave').textContent = mode === 'edit' ? 'บันทึก' : 'อัปโหลด';
+      if (mode === 'new') state.who.set([]);
       if (d) {
         $('#fTitle').value = d.title;
         $('#fCategory').value = d.category;
+        $('#fUnit').value = d.unitName || '';
         $('#fTags').value = d.tags.join(', ');
         $(`[name="level"][value="${d.accessLevel}"]`).checked = true;
       }
+      showUnit();
       $('#formDlg').showModal();
+    }
+    function showFormProblems(err) {
+      const missing = {};
+      if (err.details && state.mode !== 'edit' && !state.files.length) missing.file = 'เลือกไฟล์เอกสาร';
+      if (err.details && state.mode === 'new' && !$('#fWork').value.trim()) missing.workTitle = 'กรอกชื่องาน';
+      if (err.details && !$('#fCategory').value) missing.category = 'เลือกหมวดเอกสาร';
+      const d = { ...missing, ...err.details };
+      for (const [k, msg] of Object.entries(d)) {
+        if ($(`#docForm [data-err="${k}"]`)) showError(k, msg);
+        if (FIELDS[k]) $(FIELDS[k]).setAttribute('aria-invalid', 'true');
+      }
+      Object.values(FIELDS).map((s) => $(s)).find((n) => n.getAttribute('aria-invalid') === 'true' && n.offsetParent)?.focus();
+      if (!Object.keys(d).length) showError('form', err.message);
+    }
+    // One request per file, so each is checked and saved on its own. A problem with the shared details stops at once, with nothing saved.
+    // After a refused file the ones that went up stay up: the form stays open on the same งาน with only the files still to fix.
+    async function uploadFiles(data) {
+      const btn = $('#formSave'), todo = [...state.files];
+      let done = 0;
+      for (const f of todo) f.error = '';
+      for (const [i, f] of todo.entries()) {
+        btn.textContent = `กำลังอัปโหลด ${i + 1}/${todo.length}`;
+        try {
+          const body = { ...data, title: f.title };
+          if (state.mode === 'new') Object.assign(body, { workTitle: $('#fWork').value, peopleIds: state.who.ids() });
+          else body.workId = state.work.id;
+          const { document: saved } = await sendFile('/documents', body, f.file);
+          done += 1;
+          state.files = state.files.filter((x) => x !== f);
+          if (state.mode === 'new') {
+            state.mode = 'add';
+            state.work = { id: saved.workId, title: $('#fWork').value.trim() };
+          }
+        } catch (err) {
+          if (err.details && !err.details.file && !err.details.title) throw err;
+          f.error = err.details?.file || err.details?.title || err.message;
+        }
+      }
+      paintFiles();
+      return done;
     }
     async function save(ev) {
       ev.preventDefault();
       clearErrors();
-      const btn = $('#formSave'), label = btn.textContent, was = state.editing;
+      const btn = $('#formSave'), label = btn.textContent, editing = state.mode === 'edit';
       btn.disabled = true;
-      if (!was) btn.textContent = 'กำลังอัปโหลด...';
-      const data = { title: $('#fTitle').value, category: $('#fCategory').value, tags: $('#fTags').value.split(',').map((t) => t.trim()).filter(Boolean) };
-      if (state.admin) data.accessLevel = $('[name="level"]:checked').value;
+      const data = { category: $('#fCategory').value, unitName: $('#fUnit').value, docDate: $('#fDate').value || null, tags: $('#fTags').value.split(',').map((t) => t.trim()).filter(Boolean) };
+      if (!$('#levelBox').hidden) data.accessLevel = $('[name="level"]:checked').value;
       try {
-        if (was) await api(`/documents/${was.id}`, { method: 'PUT', body: data });
-        else await sendFile('/documents', data, $('#fFile').files[0]);
-        $('#formDlg').close();
-        toast(was ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มเอกสารแล้ว');
-        await load();
-        $('#list').focus();
-      } catch (err) {
-        // The server stops at the first problem with the details: name a missing file along with them
-        const noFile = err.details && !was && !$('#fFile').files[0] ? { file: 'เลือกไฟล์เอกสาร' } : {};
-        const d = { ...noFile, ...err.details };
-        let first = null;
-        for (const [k, msg] of Object.entries(d)) {
-          if ($(`#docForm [data-err="${k}"]`)) showError(k, msg);
-          if (FIELDS[k]) { $(FIELDS[k]).setAttribute('aria-invalid', 'true'); first ||= $(FIELDS[k]); }
+        if (editing) {
+          await api(`/documents/${state.doc.id}`, { method: 'PUT', body: { ...data, title: $('#fTitle').value } });
+          $('#formDlg').close();
+          toast('บันทึกการแก้ไขแล้ว');
+        } else {
+          if (!state.files.length) throw Object.assign(new Error('เลือกไฟล์เอกสาร'), { details: { file: 'เลือกไฟล์เอกสาร' } });
+          const done = await uploadFiles(data);
+          if (state.files.length) {
+            $('#formTitle').textContent = 'เพิ่มเอกสารในงานนี้';
+            $('#formWork').textContent = state.work?.title ?? '';
+            $('#formWork').hidden = !state.work;
+            $('#workBox').hidden = state.mode !== 'new';
+            showError('form', done ? `อัปโหลดแล้ว ${done} ไฟล์ เหลือ ${state.files.length} ไฟล์ที่ยังไม่ผ่าน แก้ไขหรือเอาออกแล้วกดอัปโหลดอีกครั้ง` : 'ยังอัปโหลดไม่สำเร็จ ดูเหตุผลใต้แต่ละไฟล์');
+            await load();
+            return;
+          }
+          $('#formDlg').close();
+          toast(`เพิ่มเอกสาร ${done} ไฟล์แล้ว`);
         }
-        if (first) first.focus();
-        if (!Object.keys(d).length) showError('form', err.message);
-      } finally {
+        await load();
+        await openWork(state.work.id);
+      } catch (err) { showFormProblems(err); } finally {
         btn.disabled = false;
-        btn.textContent = label;
+        btn.textContent = state.mode === 'edit' ? 'บันทึก' : label;
       }
     }
 
+    // ---- One งาน ----
+    function docRow(d) {
+      return el('li', { class: 'flex flex-wrap items-center gap-3 rounded-2xl border border-line p-2' },
+        cover(d, 'mini'),
+        el('div', { class: 'min-w-0 flex-1 basis-[180px]' },
+          el('p', { class: 'font-display text-[15px] font-semibold [overflow-wrap:anywhere]' }, d.title),
+          el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${categoryOf(d)} · ${day(d.docDate)}`),
+          el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${d.fileName} · ${bytes(d.size)} · เวอร์ชัน ${d.version}`),
+          d.accessLevel === 'private' || d.archivedAt ? el('p', { class: 'flex flex-wrap gap-1.5 pt-1' }, d.accessLevel === 'private' ? personal() : null, d.archivedAt ? shelved() : null) : null),
+        el('div', { class: 'flex gap-1' },
+          el('a', { href: fileUrl(d), 'aria-label': `ดาวน์โหลด ${d.title}`, class: 'hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-4 font-display text-[15px] font-medium' }, 'ดาวน์โหลด'),
+          el('button', { type: 'button', 'aria-label': `จัดการ ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium hover:-translate-y-0.5', onclick: () => openDoc(d.id) }, 'จัดการ')));
+    }
+    async function openWork(id) {
+      try {
+        const { work } = await api(`/document-works/${id}`);
+        state.work = work;
+        $('#workTitle').textContent = work.title;
+        $('#workMeta').textContent = `${work.documents.length} เอกสาร · แก้ไขล่าสุด ${dayTime(work.updatedAt)}`;
+        $('#workPeople').replaceChildren(...work.people.map((p) => chip(p.name)));
+        $('#workDocs').replaceChildren(...work.documents.map(docRow));
+        if (!$('#workDlg').open) $('#workDlg').showModal();
+      } catch (err) { toast(err.message, true); }
+    }
+    function openEdit() {
+      $('#workDlg').close();
+      $('#eWork').value = state.work.title;
+      $('#editErr').hidden = true;
+      state.editWho.set(state.work.people);
+      $('#editDlg').showModal();
+    }
+    async function saveWork(ev) {
+      ev.preventDefault();
+      const btn = $('#editSave');
+      btn.disabled = true;
+      $('#editErr').hidden = true;
+      try {
+        await api(`/document-works/${state.work.id}`, { method: 'PUT', body: { workTitle: $('#eWork').value, peopleIds: state.editWho.ids() } });
+        $('#editDlg').close();
+        toast('บันทึกงานแล้ว');
+        await load();
+        await openWork(state.work.id);
+      } catch (err) {
+        $('#editErr').textContent = Object.values(err.details || {})[0] || err.message;
+        $('#editErr').hidden = false;
+      } finally { btn.disabled = false; }
+    }
+
     // ---- One document ----
-    async function openView(id) {
+    async function openDoc(id) {
       try {
         const { document: d } = await api(`/documents/${id}`);
-        state.open = d;
+        state.doc = d;
+        $('#workDlg').close();
         $('#viewTitle').textContent = d.title;
-        $('#viewMeta').textContent = `${CATEGORIES[d.category]} · แก้ไขล่าสุด ${dayTime(d.updatedAt)}`;
-        $('#viewTags').replaceChildren(...(d.accessLevel === 'admin' ? [adminOnly()] : []), ...d.tags.map(tag));
+        $('#viewMeta').textContent = `${categoryOf(d)} · วันที่เอกสาร ${day(d.docDate)}`;
+        $('#viewTags').replaceChildren(...(d.accessLevel === 'private' ? [personal()] : []), ...d.tags.map(chip));
         $('#viewVersions').replaceChildren(...d.versions.map((v) => el('li', { class: 'flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line py-2 last:border-b-0' },
           el('div', { class: 'min-w-0 flex-1 basis-[220px]' },
             el('p', { class: 'text-[15px] font-medium [overflow-wrap:anywhere]' }, `เวอร์ชัน ${v.version}${v.version === d.version ? ' (ปัจจุบัน)' : ''} · ${v.fileName}`),
@@ -303,18 +645,13 @@
         const archived = !!d.archivedAt;
         $('#viewEdit').hidden = archived;
         $('#viewVersion').hidden = archived;
-        $('#viewArchive').hidden = archived;
         $('#viewRestore').hidden = !archived;
         if (!$('#viewDlg').open) $('#viewDlg').showModal();
       } catch (err) { toast(err.message, true); }
     }
-    function openEdit() {
-      $('#viewDlg').close();
-      openForm(state.open);
-    }
     function openNext() {
       $('#viewDlg').close();
-      $('#nextName').textContent = state.open.title;
+      $('#nextName').textContent = state.doc.title;
       $('#nextForm').reset();
       $('#nextErr').hidden = true;
       $('#nextDlg').showModal();
@@ -328,45 +665,25 @@
       btn.textContent = 'กำลังอัปโหลด...';
       $('#nextErr').hidden = true;
       try {
-        await sendFile(`/documents/${state.open.id}/versions`, {}, file);
+        await sendFile(`/documents/${state.doc.id}/versions`, {}, file);
         $('#nextDlg').close();
         toast('เพิ่มเวอร์ชันใหม่แล้ว');
         await load();
-        $('#list').focus();
+        await openWork(state.work.id);
       } catch (err) { fail(err.details?.file || err.message); } finally {
         btn.disabled = false;
         btn.textContent = 'อัปโหลด';
       }
     }
-    function openOff() {
-      $('#viewDlg').close();
-      $('#offName').textContent = state.open.title;
-      $('#offErr').hidden = true;
-      $('#offDlg').showModal();
-    }
-    async function archive() {
-      const btn = $('#offGo');
-      btn.disabled = true;
-      try {
-        await api(`/documents/${state.open.id}/archive`, { method: 'POST', body: {} });
-        $('#offDlg').close();
-        toast('เก็บเอกสารเข้าคลังแล้ว');
-        await load();
-        $('#list').focus();
-      } catch (err) {
-        $('#offErr').textContent = err.message;
-        $('#offErr').hidden = false;
-      } finally { btn.disabled = false; }
-    }
     async function restore() {
       const btn = $('#viewRestore');
       btn.disabled = true;
       try {
-        await api(`/documents/${state.open.id}/restore`, { method: 'POST', body: {} });
+        await api(`/documents/${state.doc.id}/restore`, { method: 'POST', body: {} });
         $('#viewDlg').close();
         toast('นำเอกสารออกจากคลังแล้ว');
         await load();
-        $('#list').focus();
+        await openWork(state.work.id);
       } catch (err) { toast(err.message, true); } finally { btn.disabled = false; }
     }
 
@@ -375,27 +692,51 @@
       const user = await DESK.start({ page: 'documents', allow: ['pr', 'admin'] });
       if (!user) return;
       state.admin = user.role === 'admin';
+      try { const n = Number(localStorage.getItem('documentsPerPage')); if (PER_PAGE.includes(n)) state.perPage = n; } catch (e) {}
+      state.me = user.id;
       const options = Object.entries(CATEGORIES).map(([k, l]) => el('option', { value: k }, l));
-      $('#fCategory').replaceChildren(...options);
-      $('#filter').replaceChildren(el('option', { value: '' }, 'ทุกหมวด'), ...options.map((o) => o.cloneNode(true)));
+      $('#fCategory').replaceChildren(el('option', { value: '' }, 'เลือกหมวดเอกสาร'), ...options);
+      const choices = (box, all, entries) => $(box).replaceChildren(el('option', { value: '' }, all), ...entries.map(([k, l]) => el('option', { value: k }, l)));
+      choices('#filter', 'ทุกหมวด', Object.entries(CATEGORIES));
+      choices('#filterType', 'ทุกชนิดไฟล์', Object.entries(FILE_TYPES));
+      choices('#filterRound', 'ทุกรอบประเมิน', [['1', 'รอบ 1 (เม.ย.-ก.ย.)'], ['2', 'รอบ 2 (ต.ค.-มี.ค.)']]);
+      choices('#filterLevel', 'ทีมและส่วนตัว', [['team', 'เอกสารของทีม'], ['private', 'เอกสารส่วนตัว']]);
+      choices('#filterPerson', 'ผู้เกี่ยวข้องทุกคน', (await api('/document-works/people')).items.map((p) => [p.id, p.name]));
+      $('#units').replaceChildren(...[...new Set([...ORG.staffGroups.flatMap((g) => g.units), ...Object.keys(ORG.faculties)])].map((u) => el('option', { value: u })));
+      state.who = picker({ list: '#chosen', search: '#fWho', found: '#whoList', onError: (text) => showError('people', text) });
+      state.editWho = picker({ list: '#eChosen', search: '#eWho', found: '#eList', onError: (text) => { $('#editErr').textContent = text; $('#editErr').hidden = false; } });
       $('#app').hidden = false;
 
       let wait;
-      $('#search').addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(load, 250); });
-      $('#filter').addEventListener('change', load);
-      document.querySelectorAll('[data-shelf]').forEach((b) => b.addEventListener('click', () => { state.shelf = b.dataset.shelf; load(); }));
-      $('#add').addEventListener('click', () => openForm(null));
+      $('#search').addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(fresh, 250); });
+      document.querySelectorAll('[data-filter]').forEach((f) => f.addEventListener('change', fresh));
+      $('#perPage').addEventListener('change', () => {
+        state.perPage = Number($('#perPage').value);
+        try { localStorage.setItem('documentsPerPage', state.perPage); } catch (e) {}
+        fresh();
+      });
+      $('#clear').addEventListener('click', () => {
+        $('#search').value = '';
+        document.querySelectorAll('[data-filter]').forEach((f) => { f.value = ''; });
+        fresh();
+        $('#search').focus();
+      });
+      $('#add').addEventListener('click', () => openForm('new'));
       $('#docForm').addEventListener('submit', save);
+      $('#fCategory').addEventListener('change', showUnit);
+      $('#fFile').addEventListener('change', addFiles);
       $('#formClose').addEventListener('click', () => $('#formDlg').close());
-      $('#viewClose').addEventListener('click', () => $('#viewDlg').close());
-      $('#viewEdit').addEventListener('click', openEdit);
+      $('#workClose').addEventListener('click', () => $('#workDlg').close());
+      $('#workEdit').addEventListener('click', openEdit);
+      $('#workAdd').addEventListener('click', () => { $('#workDlg').close(); openForm('add'); });
+      $('#editForm').addEventListener('submit', saveWork);
+      $('#editClose').addEventListener('click', () => $('#editDlg').close());
+      $('#viewClose').addEventListener('click', () => { $('#viewDlg').close(); openWork(state.work.id); });
+      $('#viewEdit').addEventListener('click', () => { $('#viewDlg').close(); openForm('edit', state.doc); });
       $('#viewVersion').addEventListener('click', openNext);
-      $('#viewArchive').addEventListener('click', openOff);
       $('#viewRestore').addEventListener('click', restore);
       $('#nextForm').addEventListener('submit', sendNext);
       $('#nextClose').addEventListener('click', () => $('#nextDlg').close());
-      $('#offClose').addEventListener('click', () => $('#offDlg').close());
-      $('#offGo').addEventListener('click', archive);
       await load();
     })();
   </script>

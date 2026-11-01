@@ -1,12 +1,16 @@
 // คลังเอกสาร (SPEC.md Phase 2, rights in access.mjs): files of the PR team, gathered into งาน and kept with every version they have had.
-// - GET  /api/document-works?q=&category=&archived=1  งาน with the documents the user may see, latest change first; q as in thai.mjs
+// - GET  /api/document-works?q=&category=&type=&level=&year=&round=&person=&archived=1&page=&perPage=
+//                                                     งาน with the documents the user may see, latest change first; q as in thai.mjs
+//                                                     year is Buddhist-era, of the document's date; years lists those that can be chosen
+//                                                     total counts all that match; perPage is 1 to 100 (100 when left out)
+//                                                     round: รอบประเมิน 1 (Apr-Sep) or 2 (Oct-Mar). With a year, round 2 runs from October of that year to March of the next
 // - GET  /api/document-works/people?q=                who can be named on a งาน: PR and admin
 // - GET  /api/document-works/:id                      with all its documents the user may see
 // - PUT  /api/document-works/:id                      { workTitle, peopleIds }
 // - GET  /api/documents/:id                           with its versions
-// - POST /api/documents                               multipart: file + data (JSON { title, category, unitName, tags, accessLevel,
+// - POST /api/documents                               multipart: file + data (JSON { title, category, unitName, docDate, tags, accessLevel,
 //                                                     and workId, or workTitle and peopleIds for a new งาน })
-// - PUT  /api/documents/:id                           { title, category, unitName, tags, accessLevel }: the details, not the file
+// - PUT  /api/documents/:id                           { title, category, unitName, docDate, tags, accessLevel }: the details, not the file
 // - POST /api/documents/:id/versions                  multipart: file. It becomes the current one.
 // - POST /api/documents/:id/archive · restore         hides it from the list and back. There is no delete: the office keeps its records.
 // - GET  /api/documents/:id/file?version=             always a download, never shown in the browser
@@ -28,14 +32,18 @@ import { termConditions } from './thai.mjs';
 
 const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกข้อความขอความอนุเคราะห์', other: 'เอกสารอื่นๆ' };
 const LEVELS = ['team', 'private'];
+const FILE_TYPES = {
+  pdf: ['application/pdf'], word: [mimeOf('a.docx')], excel: [mimeOf('a.xlsx')], powerpoint: [mimeOf('a.pptx')], image: ['image/jpeg', 'image/png'],
+};
 const MAX_PEOPLE = 5;
+const MAX_PER_PAGE = 100;
 const MB = 1024 * 1024;
 const MAX_FILE = 20 * MB;
 const MAX_IMAGE = 10 * MB;
 const MAX_TAGS = 10;
 const IMAGES = ['.jpg', '.jpeg', '.png'];
 const ALLOWED = ['.pdf', '.docx', '.xlsx', '.pptx', ...IMAGES];
-const SELECT = `select d.*, v.file_name, v.mime, v.size, u.name uploader_name from documents d
+const SELECT = `select d.*, to_char(d.doc_date, 'YYYY-MM-DD') doc_day, v.file_name, v.mime, v.size, u.name uploader_name from documents d
   join document_versions v on v.document_id = d.id and v.version = d.version
   left join users u on u.id = v.uploaded_by`;
 
@@ -46,7 +54,7 @@ const uploads = limit('documents', { max: 60, windowMs: 10 * 60 * 1000 });
 export const router = Router();
 
 const documentOut = (d) => ({
-  id: d.id, workId: d.work_id, title: d.title, category: d.category, unitName: d.unit_name, tags: d.tags, accessLevel: d.access_level, version: d.version,
+  id: d.id, workId: d.work_id, title: d.title, category: d.category, unitName: d.unit_name, docDate: d.doc_day, tags: d.tags, accessLevel: d.access_level, version: d.version,
   fileName: d.file_name, mime: d.mime, size: Number(d.size), ownerId: d.uploaded_by, uploader: d.uploader_name || null, archivedAt: d.archived_at, createdAt: d.created_at, updatedAt: d.updated_at,
 });
 const versionOut = (v) => ({ version: v.version, fileName: v.file_name, mime: v.mime, size: Number(v.size), uploader: v.uploader_name || null, createdAt: v.created_at });
@@ -101,6 +109,8 @@ async function withFile(id, f, fn) {
 const addVersion = (c, id, version, f, user) => c.query(`insert into document_versions (document_id, version, file_path, file_name, mime, size, uploaded_by)
   values ($1, $2, $3, $4, $5, $6, $7)`, [id, version, f.path, f.name, f.mime, f.size, user.id]);
 
+const validDate = (v) => typeof v === 'string' && /^(20\d\d)-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().startsWith(v);
+
 // was: the document being edited, or null for a new one. Throws 400 with a field → message map.
 function checkDocument(b, user, was = null) {
   if (!b || typeof b !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลเอกสาร');
@@ -108,6 +118,8 @@ function checkDocument(b, user, was = null) {
   const row = { title: str(b.title, 200, 'ชื่อเอกสาร'), category: b.category, unit: str(b.unitName, 200, 'ชื่อหน่วยงาน'), tags: [], level: b.accessLevel ?? was?.access_level ?? 'team' };
   if (!row.title) errors.title = 'กรอกชื่อเอกสาร';
   if (!Object.hasOwn(CATEGORIES, row.category)) errors.category = 'เลือกหมวดเอกสาร';
+  if (b.docDate != null && !validDate(b.docDate)) errors.docDate = 'เลือกวันที่ของเอกสาร';
+  row.date = b.docDate ?? null;
   if (row.category !== 'unit_order') row.unit = null;
   else if (!row.unit) errors.unitName = 'กรอกชื่อหน่วยงาน';
   if (!LEVELS.includes(row.level)) errors.accessLevel = 'เลือกว่าเป็นเอกสารของทีมหรือส่วนตัว';
@@ -170,30 +182,47 @@ const found = async (id, user) => {
 };
 
 router.get('/document-works', allowed, async (req, res) => {
-  const { category } = req.query;
-  if (category !== undefined && !Object.hasOwn(CATEGORIES, /** @type {string} */ (category))) throw new HttpError(400, 'เลือกหมวดเอกสารให้ถูกต้อง');
-  const params = [isAdmin(req.user), req.user.id, req.query.archived === '1', category ?? null];
+  const { category, type, level, year, round, person } = /** @type {Record<string, string>} */ (req.query);
+  if (category !== undefined && !Object.hasOwn(CATEGORIES, category)) throw new HttpError(400, 'เลือกหมวดเอกสารให้ถูกต้อง');
+  if (type !== undefined && !Object.hasOwn(FILE_TYPES, type)) throw new HttpError(400, 'เลือกชนิดไฟล์ให้ถูกต้อง');
+  if (level !== undefined && !LEVELS.includes(level)) throw new HttpError(400, 'เลือกทีมหรือส่วนตัวให้ถูกต้อง');
+  if (year !== undefined && !/^\d{4}$/.test(year)) throw new HttpError(400, 'เลือกปีให้ถูกต้อง');
+  const page = Number(req.query.page ?? 1), perPage = Number(req.query.perPage ?? MAX_PER_PAGE);
+  if (!Number.isInteger(page) || page < 1 || page > 100000) throw new HttpError(400, 'เลือกหน้าให้ถูกต้อง');
+  if (!Number.isInteger(perPage) || perPage < 1 || perPage > MAX_PER_PAGE) throw new HttpError(400, 'เลือกจำนวนต่อหน้าให้ถูกต้อง');
+  if (round !== undefined && !['1', '2'].includes(round)) throw new HttpError(400, 'เลือกรอบประเมินให้ถูกต้อง');
+  if (person !== undefined && !UUID.test(person)) throw new HttpError(400, 'เลือกผู้เกี่ยวข้องให้ถูกต้อง');
+  const params = [isAdmin(req.user), req.user.id, req.query.archived === '1', category ?? null, type ? FILE_TYPES[type] : null, level ?? null, year ? Number(year) - 543 : null, person ?? null, round ? Number(round) : null];
   const anywhere = (s) => {
     params.push(`%${s.replace(/[\\%_]/g, '\\$&')}%`);
     return `(s.search_text || ' ' || w.title || ' ' || coalesce(n.names, '')) ilike $${params.length}`;
   };
   const terms = termConditions(str(req.query.q, 100, 'คำค้น') ?? '', anywhere);
-  const rows = (await query(`with seen as (
+  const matching = `with seen as (
       ${SELECT} where ($1 or d.access_level = 'team' or d.uploaded_by = $2) and (d.archived_at is not null) = $3 and ($4::text is null or d.category = $4)
-    ), hits as (
+        and ($5::text[] is null or v.mime = any($5)) and ($6::text is null or d.access_level = $6)
+        and ($7::int is null or extract(year from d.doc_date - ($9::int is not null)::int * interval '3 months') = $7)
+        and ($9::int is null or (extract(month from d.doc_date) between 4 and 9) = ($9 = 1))
+        and ($8::uuid is null or exists (select 1 from document_work_people p where p.work_id = d.work_id and p.user_id = $8))
+    ), found as (
       select s.work_id, max(s.updated_at) latest from seen s join document_works w on w.id = s.work_id
       left join lateral (select string_agg(u.name, ' ') names from document_work_people p join users u on u.id = p.user_id where p.work_id = w.id) n on true
-      where true ${terms.map((t) => `and ${t}`).join(' ')} group by s.work_id order by latest desc limit 100
-    )
+      where true ${terms.map((t) => `and ${t}`).join(' ')} group by s.work_id
+    )`;
+  const { total } = await one(`${matching} select count(*)::int total from found`, params);
+  const rows = (await query(`${matching}, hits as (select * from found order by latest desc, work_id limit $${params.length + 1} offset $${params.length + 2})
     select s.*, w.title work_title, h.latest from seen s join hits h on h.work_id = s.work_id join document_works w on w.id = s.work_id
-    order by h.latest desc, s.created_at`, params)).rows;
+    order by h.latest desc, h.work_id, s.created_at`, [...params, perPage, (page - 1) * perPage])).rows;
   const works = new Map();
   for (const d of rows) {
     if (!works.has(d.work_id)) works.set(d.work_id, { id: d.work_id, title: d.work_title, updatedAt: d.latest, people: [], documents: [] });
     works.get(d.work_id).documents.push(documentOut(d));
   }
   for (const p of await peopleOf([...works.keys()])) works.get(p.work_id).people.push(personOut(p));
-  res.json({ items: [...works.values()] });
+  // January to March also belong to round 2 of the year before
+  const years = (await query(`select distinct extract(year from t.day)::int + 543 y from documents, lateral (values (doc_date::timestamp), (doc_date - interval '3 months')) t(day)
+    where $1 or access_level = 'team' or uploaded_by = $2 order by y desc`, [isAdmin(req.user), req.user.id])).rows.map((r) => r.y);
+  res.json({ items: [...works.values()], years, total, page, perPage });
 });
 
 router.get('/document-works/people', allowed, async (req, res) => {
@@ -247,8 +276,9 @@ router.post('/documents', allowed, uploads, receive, async (req, res) => {
         await c.query('insert into document_works (id, title, created_by) values ($1, $2, $3)', [workId, fresh.title, req.user.id]);
         await setPeople(c, workId, fresh.people);
       }
-      await c.query(`insert into documents (id, work_id, title, category, unit_name, tags, access_level, search_text, uploaded_by) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [id, workId, d.title, d.category, d.unit, d.tags, d.level, searchText(d, f.name), req.user.id]);
+      await c.query(`insert into documents (id, work_id, title, category, unit_name, tags, access_level, search_text, uploaded_by, doc_date)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, coalesce($10::date, (now() at time zone 'Asia/Bangkok')::date))`,
+        [id, workId, d.title, d.category, d.unit, d.tags, d.level, searchText(d, f.name), req.user.id, d.date]);
       await addVersion(c, id, 1, f, req.user);
       await audit(c, req.user, 'document.create', id, `เพิ่มเอกสาร ${d.title}`, { category: d.category, level: d.level });
     });
@@ -284,8 +314,8 @@ router.put('/documents/:id', allowed, async (req, res) => {
     openOnly(was);
     const d = checkDocument(req.body, req.user, was);
     const { file_name: name } = (await c.query('select file_name from document_versions where document_id = $1 and version = $2', [id, was.version])).rows[0];
-    await c.query('update documents set title = $2, category = $3, unit_name = $4, tags = $5, access_level = $6, search_text = $7, updated_at = now() where id = $1',
-      [id, d.title, d.category, d.unit, d.tags, d.level, searchText(d, name)]);
+    await c.query('update documents set title = $2, category = $3, unit_name = $4, tags = $5, access_level = $6, search_text = $7, doc_date = coalesce($8::date, doc_date), updated_at = now() where id = $1',
+      [id, d.title, d.category, d.unit, d.tags, d.level, searchText(d, name), d.date]);
     await audit(c, req.user, 'document.update', id, `แก้ไขเอกสาร ${d.title}`, { category: d.category, level: d.level });
   });
   await respond(res, id);

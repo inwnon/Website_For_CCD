@@ -18,6 +18,7 @@
     "build:css": "node server/build-css.mjs",
     "build:images": "node server/build-images.mjs",
     "build:fonts": "node server/build-fonts.mjs",
+    "build:pdf": "node server/build-pdf.mjs",
     "backup": "node --env-file-if-exists=.env server/backup.mjs",
     "backup:restore-test": "node --env-file-if-exists=.env server/restore-test.mjs"
   },
@@ -42,6 +43,7 @@
     "eslint": "^10.13.0",
     "eslint-plugin-html": "^8.2.1",
     "globals": "^17.13.0",
+    "pdfjs-dist": "^6.4.299",
     "subset-font": "^2.9.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^7.0.2"

@@ -151,6 +151,27 @@ describe('finding', () => {
     assert.ok(!(await ids(pr, '?category=request_memo')).includes(d.id));
     assert.equal((await pr.call('GET', '/api/document-works?category=x')).status, 400);
   });
+  test('filters: file type, team or personal, year of upload, ผู้เกี่ยวข้อง; unknown values are refused', async () => {
+    const prId = (await pr.call('GET', '/api/me')).body.user.id;
+    const adminId = (await admin.call('GET', '/api/me')).body.user.id;
+    const d = await add({ title: 'ไฟล์ตัวกรอง', workTitle: 'งานตัวกรองทดสอบ', peopleIds: [adminId] }, file('แผน.xlsx', ZIP));
+    const mine = await add({ accessLevel: 'private', peopleIds: [prId] });
+    const has = async (q) => (await ids(pr, q)).includes(d.id);
+    assert.ok(await has('?type=excel'));
+    assert.ok(!(await has('?type=pdf')));
+    assert.ok(await has('?level=team'));
+    assert.ok(!(await has('?level=private')));
+    assert.ok((await ids(pr, '?level=private')).includes(mine.id));
+    assert.ok(await has(`?person=${adminId}`));
+    assert.ok(!(await has(`?person=${prId}`)));
+    const r = await pr.call('GET', '/api/document-works');
+    const year = new Date().getFullYear() + 543;
+    assert.ok(r.body.years.includes(year));
+    assert.ok(await has(`?year=${year}`) || await has(`?year=${year - 1}&round=2`));
+    assert.ok(!(await has(`?year=${year - 5}`)));
+    assert.ok(await has(`?type=excel&level=team&person=${adminId}&q=${encodeURIComponent('ตัวกรอง')}`));
+    for (const q of ['type=x', 'level=admin', 'year=69', `person=nope`]) assert.equal((await pr.call('GET', `/api/document-works?${q}`)).status, 400, q);
+  });
   test('archived documents leave the list, keep their files, and come back', async () => {
     const d = await add();
     const off = await pr.call('POST', `/api/documents/${d.id}/archive`, {});
@@ -166,6 +187,47 @@ describe('finding', () => {
     assert.ok((await ids(pr)).includes(d.id));
     assert.equal((await pr.call('POST', `/api/documents/${d.id}/restore`, {})).status, 409);
     for (const action of ['document.archive', 'document.restore']) assert.ok(await one('select 1 from audit_log where action = $1 and target = $2', [action, d.id]), action);
+  });
+  test('pages: each งาน once, the total counts every match, filters still apply', async () => {
+    const q = `?q=${encodeURIComponent('งานแบ่งหน้าทดสอบ')}`;
+    const made = [];
+    for (let i = 1; i <= 5; i++) made.push((await add({ workTitle: `งานแบ่งหน้าทดสอบ ${i}` })).workId);
+    const one = (await pr.call('GET', `/api/document-works${q}&perPage=2&page=1`)).body;
+    const two = (await pr.call('GET', `/api/document-works${q}&perPage=2&page=2`)).body;
+    const three = (await pr.call('GET', `/api/document-works${q}&perPage=2&page=3`)).body;
+    assert.deepEqual([one.total, one.page, one.perPage], [5, 1, 2]);
+    assert.deepEqual([one.items.length, two.items.length, three.items.length], [2, 2, 1]);
+    assert.deepEqual([...one.items, ...two.items, ...three.items].map((w) => w.id).sort(), [...made].sort());
+    const past = (await pr.call('GET', `/api/document-works${q}&perPage=2&page=9`)).body;
+    assert.deepEqual([past.items.length, past.total], [0, 5]);
+    assert.equal((await pr.call('GET', `/api/document-works${q}&type=excel`)).body.total, 0);
+    for (const bad of ['page=0', 'page=x', 'perPage=0', 'perPage=101', 'perPage=1.5']) assert.equal((await pr.call('GET', `/api/document-works?${bad}`)).status, 400, bad);
+  });
+  test('รอบประเมิน counts from the date of the document; round 2 crosses into the next year', async () => {
+    const round1 = await add({ title: 'เอกสารรอบหนึ่ง', docDate: '2026-09-30' });
+    const round2 = await add({ title: 'เอกสารรอบสองปลายปี', docDate: '2026-10-01' });
+    const crossing = await add({ title: 'เอกสารรอบสองข้ามปี', docDate: '2027-03-31' });
+    const next = await add({ title: 'เอกสารรอบถัดไป', docDate: '2027-04-01' });
+    assert.equal(round1.docDate, '2026-09-30');
+    const found = async (q) => { const all = await ids(pr, q); return [round1, round2, crossing, next].map((d) => all.includes(d.id)); };
+    assert.deepEqual(await found('?round=1'), [true, false, false, true]);
+    assert.deepEqual(await found('?round=2'), [false, true, true, false]);
+    assert.deepEqual(await found('?round=1&year=2569'), [true, false, false, false]);
+    assert.deepEqual(await found('?round=2&year=2569'), [false, true, true, false], 'October 2569 to March 2570');
+    assert.deepEqual(await found('?round=1&year=2570'), [false, false, false, true]);
+    assert.deepEqual(await found('?year=2570'), [false, false, true, true], 'a year alone is the calendar year');
+    const { years } = (await pr.call('GET', '/api/document-works')).body;
+    assert.ok(years.includes(2569) && years.includes(2570));
+    assert.equal((await pr.call('GET', '/api/document-works?round=3')).status, 400);
+  });
+  test('the date defaults to today, can be changed, and stays when left out', async () => {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
+    const d = await add();
+    assert.equal(d.docDate, today);
+    const url = `/api/documents/${d.id}`;
+    assert.equal((await pr.call('PUT', url, info({ docDate: '2026-01-15' }))).body.document.docDate, '2026-01-15');
+    assert.equal((await pr.call('PUT', url, info())).body.document.docDate, '2026-01-15');
+    for (const docDate of ['2026-02-31', '15/01/2569', '2569-01-15', 5]) assert.ok((await pr.call('PUT', url, info({ docDate }))).body.details?.docDate, String(docDate));
   });
   test('nothing can delete a document', async () => {
     const d = await add();
@@ -302,6 +364,15 @@ describe('documents.html', () => {
     const r = await anon.call('GET', '/documents.html');
     assert.equal(r.status, 200);
     assert.match(r.headers.get('x-robots-tag') || '', /noindex/);
+  });
+  test('PDF.js for the previews is served from this site, as a script', async () => {
+    const page = (await anon.call('GET', '/documents.html')).body.toString();
+    const [dir] = /\/assets\/pdfjs-[0-9.]+\//.exec(page);
+    for (const f of ['pdf.min.mjs', 'pdf.worker.min.mjs']) {
+      const r = await anon.call('GET', `${dir}${f}`);
+      assert.equal(r.status, 200, f);
+      assert.match(r.headers.get('content-type'), /javascript/, f);
+    }
   });
 });
 

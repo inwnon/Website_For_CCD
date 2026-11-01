@@ -116,7 +116,7 @@
   function paintSwitch() {
     const slot = document.getElementById('alertSlot');
     if (!slot) return;
-    slot.innerHTML = `<button type="button" id="alertSwitch" role="switch" aria-checked="${on}" class="alert-switch press t-quick flex h-11 w-full items-center gap-3 rounded-2xl border border-line bg-surface2 px-3 text-left font-display text-[14px] font-medium">
+    slot.innerHTML = `<button type="button" id="alertSwitch" role="switch" aria-checked="${on}" class="alert-switch press t-quick flex min-h-11 w-full items-center gap-3 rounded-2xl border border-line bg-surface2 px-3 py-1 text-left font-display text-[14px] font-medium">
       <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full ${on ? 'bg-red-soft text-brand' : 'bg-shell text-ink2'}" aria-hidden="true">${BELL}</span>
       <span class="min-w-0 flex-1 leading-tight">แจ้งเตือนงานใหม่<span class="block text-[12px] font-normal text-ink2">${on ? 'เปิดอยู่ มีเสียงเตือน' : 'ปิดอยู่'}</span></span>
       <span class="alert-track relative h-6 w-10 shrink-0 rounded-full ${on ? 'bg-grad' : 'bg-line'}" aria-hidden="true"><span class="t-spring absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-raised ${on ? 'translate-x-4' : ''}"></span></span>
