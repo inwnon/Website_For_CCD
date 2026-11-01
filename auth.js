@@ -91,7 +91,7 @@
     { id: 'requests', href: 'requests.html', label: 'คำขอใช้บริการ', soon: true, icon: '<path d="M9 4h6v3H9z"/><path d="M9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3"/><path d="m9 14 2 2 4-4"/>' },
     { id: 'documents', href: 'documents.html', label: 'คลังเอกสาร', soon: true, icon: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>' },
     { id: 'equipment', href: 'equipment.html', label: 'อุปกรณ์', soon: true, icon: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>' },
-    { id: 'phonebook', href: 'phonebook.html', label: 'สมุดโทรศัพท์', soon: true, icon: '<path d="M21 16.5v3a1.5 1.5 0 0 1-1.6 1.5A17 17 0 0 1 3 4.6 1.5 1.5 0 0 1 4.5 3h3a1 1 0 0 1 1 .8l.8 3.4a1 1 0 0 1-.3 1L7.3 9.7a14 14 0 0 0 7 7l1.5-1.7a1 1 0 0 1 1-.3l3.4.8a1 1 0 0 1 .8 1z"/>' },
+    { id: 'phonebook', href: 'phonebook.html', label: 'สมุดโทรศัพท์', icon: '<path d="M21 16.5v3a1.5 1.5 0 0 1-1.6 1.5A17 17 0 0 1 3 4.6 1.5 1.5 0 0 1 4.5 3h3a1 1 0 0 1 1 .8l.8 3.4a1 1 0 0 1-.3 1L7.3 9.7a14 14 0 0 0 7 7l1.5-1.7a1 1 0 0 1 1-.3l3.4.8a1 1 0 0 1 .8 1z"/>' },
     { id: 'students', href: 'students.html', label: 'ทีมนักศึกษา', soon: true, icon: '<circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.5a6 6 0 0 1 3 5.5"/>' },
   ];
   // นักศึกษาฝึกงาน สสอ. are what their email makes them (a student, usually) everywhere but the import page
