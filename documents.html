@@ -203,7 +203,6 @@
       </section>
       <div class="flex flex-wrap justify-end gap-2">
         <button id="viewClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">กลับ</button>
-        <button id="viewEdit" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line px-5 font-display text-[15px] font-medium" hidden>แก้ไขข้อมูล</button>
         <button id="viewVersion" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5" hidden>เพิ่มเวอร์ชันใหม่</button>
       </div>
     </div>
@@ -486,10 +485,10 @@
       state.doc = d;
       clearErrors();
       $('#docForm').reset();
-      $('#formTitle').textContent = { new: 'เพิ่มงาน', add: 'เพิ่มเอกสารในงานนี้', edit: 'แก้ไขข้อมูลเอกสาร' }[mode];
-      $('#formWork').textContent = mode === 'new' ? '' : state.work.title;
-      $('#formWork').hidden = mode === 'new';
-      $('#workBox').hidden = mode !== 'new';
+      $('#formTitle').textContent = { new: 'เพิ่มงาน', add: 'เพิ่มเอกสารในงานนี้', edit: 'แก้ไขงานและเอกสาร' }[mode];
+      $('#formWork').textContent = mode === 'add' ? state.work.title : '';
+      $('#formWork').hidden = mode !== 'add';
+      $('#workBox').hidden = mode === 'add';
       $('#fileBox').hidden = mode === 'edit';
       $('#titleBox').hidden = mode !== 'edit';
       $('#fDate').value = d?.docDate || DESK.isoDay();
@@ -497,7 +496,8 @@
       paintFiles();
       $('#levelBox').hidden = mode === 'edit' && !state.admin && d.ownerId !== state.me;
       $('#formSave').textContent = mode === 'edit' ? 'บันทึก' : 'อัปโหลด';
-      if (mode === 'new') state.who.set([]);
+      if (mode !== 'add') state.who.set(mode === 'edit' ? state.work.people : []);
+      if (mode === 'edit') $('#fWork').value = state.work.title;
       if (d) {
         $('#fTitle').value = d.title;
         $('#fCategory').value = d.category;
@@ -557,7 +557,7 @@
       if (!$('#levelBox').hidden) data.accessLevel = $('[name="level"]:checked').value;
       try {
         if (editing) {
-          await api(`/documents/${state.doc.id}`, { method: 'PUT', body: { ...data, title: $('#fTitle').value } });
+          await api(`/documents/${state.doc.id}`, { method: 'PUT', body: { ...data, title: $('#fTitle').value, workTitle: $('#fWork').value, peopleIds: state.who.ids() } });
           $('#formDlg').close();
           toast('บันทึกการแก้ไขแล้ว');
         } else {
@@ -596,7 +596,8 @@
             d.accessLevel === 'private' ? el('span', { class: 'flex pt-1' }, personal()) : null)),
         el('div', { class: 'flex flex-wrap gap-1' },
           el('a', { href: fileUrl(d), 'aria-label': `ดาวน์โหลด ${d.title}`, class: 'hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-4 font-display text-[15px] font-medium' }, 'ดาวน์โหลด'),
-          el('button', { type: 'button', 'aria-label': `จัดการ ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium hover:-translate-y-0.5', onclick: () => openDoc(d.id) }, 'จัดการ'),
+          el('button', { type: 'button', 'aria-label': `แก้ไข ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium hover:-translate-y-0.5', onclick: () => openForm('edit', d) }, 'แก้ไข'),
+          el('button', { type: 'button', 'aria-label': `เวอร์ชันของ ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium hover:-translate-y-0.5', onclick: () => openDoc(d.id) }, 'เวอร์ชัน'),
           mayDelete(d) ? el('button', { type: 'button', 'aria-label': `ลบ ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5', onclick: () => openOff(d) }, 'ลบ') : null));
     }
 
@@ -697,7 +698,6 @@
             el('p', { class: 'text-[15px] font-medium [overflow-wrap:anywhere]' }, `เวอร์ชัน ${v.version}${v.version === d.version ? ' (ปัจจุบัน)' : ''} · ${v.fileName}`),
             el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${bytes(v.size)} · ${dayTime(v.createdAt)}${v.uploader ? ` · ${v.uploader}` : ''}`)),
           el('a', { href: `/api/documents/${d.id}/file?version=${v.version}`, 'aria-label': `ดาวน์โหลดเวอร์ชัน ${v.version}`, class: 'hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-4 font-display text-[15px] font-medium' }, 'ดาวน์โหลด'))));
-        $('#viewEdit').hidden = false;
         $('#viewVersion').hidden = false;
         if (!$('#viewDlg').open) $('#viewDlg').showModal();
       } catch (err) { toast(err.message, true); }
@@ -772,7 +772,6 @@
       $('#offClose').addEventListener('click', () => $('#offDlg').close());
       $('#offGo').addEventListener('click', drop);
       $('#viewClose').addEventListener('click', () => { $('#viewDlg').close(); openWork(state.work.id); });
-      $('#viewEdit').addEventListener('click', () => { $('#viewDlg').close(); openForm('edit', state.doc); });
       $('#viewVersion').addEventListener('click', openNext);
       $('#nextForm').addEventListener('submit', sendNext);
       $('#nextClose').addEventListener('click', () => $('#nextDlg').close());

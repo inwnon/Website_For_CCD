@@ -11,6 +11,7 @@
 // - POST /api/documents                               multipart: file + data (JSON { title, category, unitName, docDate, tags, accessLevel,
 //                                                     and workId, or workTitle and peopleIds for a new งาน })
 // - PUT  /api/documents/:id                           { title, category, unitName, docDate, tags, accessLevel }: the details, not the file
+//                                                     with workTitle and peopleIds its งาน changes too, in the same save
 // - POST /api/documents/:id/versions                  multipart: file. It becomes the current one.
 // - POST /api/documents/:id/archive · restore         ลบ on the page, for the uploader and admin: it leaves every list, the file stays, because the office keeps its records.
 // - GET  /api/documents/:id/file?version=             always a download, never shown in the browser
@@ -309,6 +310,7 @@ router.post('/documents/:id/versions', allowed, uploads, receive, async (req, re
 
 router.put('/documents/:id', allowed, async (req, res) => {
   const { id } = req.params;
+  const work = req.body?.workTitle === undefined ? null : await checkWork(req.body);
   await tx(async (c) => {
     const was = await held(c, id, req.user);
     openOnly(was);
@@ -317,6 +319,11 @@ router.put('/documents/:id', allowed, async (req, res) => {
     await c.query('update documents set title = $2, category = $3, unit_name = $4, tags = $5, access_level = $6, search_text = $7, doc_date = coalesce($8::date, doc_date), updated_at = now() where id = $1',
       [id, d.title, d.category, d.unit, d.tags, d.level, searchText(d, name), d.date]);
     await audit(c, req.user, 'document.update', id, `แก้ไขเอกสาร ${d.title}`, { category: d.category, level: d.level });
+    if (work) {
+      await c.query('update document_works set title = $2, updated_at = now() where id = $1', [was.work_id, work.title]);
+      await setPeople(c, was.work_id, work.people);
+      await audit(c, req.user, 'document.work', was.work_id, `แก้ไขงานเอกสาร ${work.title}`, { people: work.people.length });
+    }
   });
   await respond(res, id);
 });

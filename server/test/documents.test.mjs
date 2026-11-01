@@ -299,6 +299,23 @@ describe('งาน', () => {
     assert.deepEqual(r.body.work.people.map((p) => p.id), [adminId]);
     assert.ok(await one('select 1 from audit_log where action = $1 and target = $2', ['document.work', d.workId]));
   });
+  test('one save changes the document and its งาน together; a bad งาน changes neither', async () => {
+    const adminId = (await admin.call('GET', '/api/me')).body.user.id;
+    const d = await add({ title: 'ชื่อเอกสารเดิม', workTitle: 'ชื่องานเดิม' });
+    const url = `/api/documents/${d.id}`, work = `/api/document-works/${d.workId}`;
+    const bad = await pr.call('PUT', url, info({ title: 'ชื่อที่ไม่ควรเข้า', workTitle: ' ' }));
+    assert.equal(bad.status, 400);
+    assert.ok(bad.body.details.workTitle);
+    assert.equal((await pr.call('GET', url)).body.document.title, 'ชื่อเอกสารเดิม');
+    const r = await pr.call('PUT', url, info({ title: 'ชื่อเอกสารใหม่', workTitle: 'ชื่องานใหม่', peopleIds: [adminId] }));
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.document.title, 'ชื่อเอกสารใหม่');
+    const w = (await pr.call('GET', work)).body.work;
+    assert.equal(w.title, 'ชื่องานใหม่');
+    assert.deepEqual(w.people.map((p) => p.id), [adminId]);
+    assert.equal((await pr.call('PUT', url, info({ title: 'แก้เฉพาะเอกสาร' }))).status, 200);
+    assert.equal((await pr.call('GET', work)).body.work.title, 'ชื่องานใหม่', 'left out: the งาน stays');
+  });
   test('ผู้เกี่ยวข้อง get no rights: a named person still cannot open a private document of someone else', async () => {
     const prId = (await pr.call('GET', '/api/me')).body.user.id;
     const d = await add({ accessLevel: 'private', peopleIds: [prId] }, file(), admin);
