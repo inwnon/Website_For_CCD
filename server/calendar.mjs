@@ -15,7 +15,7 @@ import { one, query, tx } from './db.mjs';
 import { HttpError, str } from './http.mjs';
 import { eventAssigned, eventCancelled } from './notify.mjs';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 const TYPES = ['meeting', 'activity', 'media', 'other'];
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -35,7 +35,7 @@ function realDay(s) {
   const [y, m, d] = s.split('-').map(Number);
   return y >= 2020 && y <= 2100 && new Date(Date.UTC(y, m - 1, d)).getUTCDate() === d;
 }
-const time = (v) => (typeof v === 'string' && TIME.test(v) && realDay(v.slice(0, 10)) && !Number.isNaN(Date.parse(v)) ? new Date(v) : null);
+export const time = (v) => (typeof v === 'string' && TIME.test(v) && realDay(v.slice(0, 10)) && !Number.isNaN(Date.parse(v)) ? new Date(v) : null);
 
 function range(q) {
   const valid = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && realDay(s);
@@ -63,7 +63,7 @@ function eventOut(e, right, people, userId) {
 }
 
 // Throws 400 with a field → message map; assignees must exist and be people who work on events
-async function checkEvent(b) {
+export async function checkEvent(b) {
   if (!b || typeof b !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลกิจกรรม');
   const errors = {};
   const row = {
@@ -100,6 +100,14 @@ async function saveAssignees(c, eventId, assignees) {
       on conflict (event_id, user_id) do update set duty = $3`, [eventId, a.userId, a.duty]);
   }
   return assignees.map((a) => a.userId).filter((id) => !before.includes(id));
+}
+// d comes from checkEvent. Inside the caller's transaction (also used by requests.mjs).
+export async function createEvent(c, d, user) {
+  const row = (await c.query(`insert into events (title, type, location, start_at, end_at, visibility, description, internal_note, created_by)
+    values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`, [d.title, d.type, d.location, d.start, d.end, d.visibility, d.description, d.note, user.id])).rows[0];
+  await eventAssigned(c, row, await saveAssignees(c, row.id, d.assignees));
+  await audit(c, user, 'event.create', row.id, `สร้างกิจกรรม ${row.title}`, { assignees: d.assignees.length, visibility: row.visibility });
+  return row;
 }
 const respond = async (res, req, e, status = 200) => {
   const right = rightOf(req.user, 'calendar');
@@ -148,14 +156,7 @@ router.get('/calendar/events/:id', requireModule('calendar'), async (req, res) =
 router.post('/calendar/events', writer, async (req, res) => {
   const d = await checkEvent(req.body);
   if (!edits(rightOf(req.user, 'calendar'))) d.note = null;
-  const e = await tx(async (c) => {
-    const row = (await c.query(`insert into events (title, type, location, start_at, end_at, visibility, description, internal_note, created_by)
-      values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`, [d.title, d.type, d.location, d.start, d.end, d.visibility, d.description, d.note, req.user.id])).rows[0];
-    await eventAssigned(c, row, await saveAssignees(c, row.id, d.assignees));
-    await audit(c, req.user, 'event.create', row.id, `สร้างกิจกรรม ${row.title}`, { assignees: d.assignees.length, visibility: row.visibility });
-    return row;
-  });
-  await respond(res, req, e, 201);
+  await respond(res, req, await tx((c) => createEvent(c, d, req.user)), 201);
 });
 
 router.put('/calendar/events/:id', writer, async (req, res) => {

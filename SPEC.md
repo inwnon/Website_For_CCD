@@ -90,7 +90,7 @@ Reuse: `users`, `pr_team`, `sessions`, `audit_log`, `email_outbox`, `settings`, 
 New tables (migrations `023_…` onward):
 - `events` (id, title, type, location, start_at, end_at, status, visibility, description, internal_note, created_by)
 - `event_assignments` (event_id, user_id, duty)
-- `service_requests` (id, requester_id, type, start_at, end_at, location, details, status, review_note, reviewed_by, event_id)
+- `service_requests` (id, requester_id, title, type, start_at, end_at, location, details, status, review_note, reviewed_by, reviewed_at, event_id)
 - `documents` (id, title, category, tags, file_path, mime, size, access_level, version, uploaded_by) + search tokens via `thai.mjs`
 - `equipment` (id, asset_code, name, category, serial, location, status)
 - `equipment_loans` (id, equipment_id, borrower_id, event_id, out_at, due_at, returned_at, condition_note)

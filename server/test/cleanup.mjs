@@ -30,6 +30,7 @@ export async function restore(snap) {
     await client.query('begin');
     if (await tableExists('audit_log')) await client.query('delete from audit_log where at >= $1 and (actor_id = any($2) or actor_id is null)', [snap.at, devIds]);
     await client.query('delete from news where id = any($1)', [news]); // saved_news and read counts cascade
+    if (await tableExists('service_requests')) await client.query('delete from service_requests where created_at >= $1 and requester_id = any($2)', [snap.at, devIds]);
     if (await tableExists('events')) {
       await client.query('delete from events where created_at >= $1 and created_by = any($2)', [snap.at, devIds]); // assignments cascade
       await client.query('delete from notifications where created_at >= $1', [snap.at]);

@@ -9,7 +9,7 @@ import { join, resolve } from 'node:path';
 import { describe, test } from 'node:test';
 import { BASE, login, request } from './helpers.mjs';
 
-const MODULES = ['auth', 'news', 'submissions', 'pr', 'newsdesk', 'reports', 'admin', 'notify', 'privacy', 'calendar'];
+const MODULES = ['auth', 'news', 'submissions', 'pr', 'newsdesk', 'reports', 'admin', 'notify', 'privacy', 'calendar', 'requests'];
 // Open without signing in (what a reader of the public site uses)
 const PUBLIC = new Set(['POST /auth/google', 'POST /auth/dev', 'POST /auth/logout', 'GET /me', 'GET /news', 'GET /news/search', 'GET /news/archive',
   'GET /news/:id', 'POST /news/:id/read', 'GET /calendar/public']);

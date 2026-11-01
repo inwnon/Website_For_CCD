@@ -42,6 +42,8 @@ router.get('/me/data', requireUser, limit('export', { max: 10, windowMs: HOUR })
     storiesRead: (await query(`select n.title, r.day from news_reads r join news n on n.id = r.news_id where r.reader = $1 order by r.day desc`, [`u:${u.id}`])).rows,
     calendarAssignments: (await query(`select e.title, e.start_at, e.end_at, e.location, a.duty from event_assignments a join events e on e.id = a.event_id
       where a.user_id = $1 order by e.start_at desc`, [u.id])).rows,
+    serviceRequests: (await query(`select created_at, title, type, start_at, end_at, location, details, status, review_note, reviewed_at from service_requests
+      where requester_id = $1 order by created_at desc`, [u.id])).rows,
     notifications: (await query('select created_at, kind, ref_id, text, read_at from notifications where user_id = $1 order by id desc', [u.id])).rows,
     emails: (await query('select created_at, kind, subject, status from email_outbox where to_email = $1 order by id desc', [u.email])).rows,
     actionsInBackOffice: (await query('select at, action, summary from audit_log where actor_id = $1 order by at desc', [u.id])).rows,
@@ -117,6 +119,8 @@ export async function erase(c, userId) {
   await c.query('delete from sessions where user_id = $1', [userId]);
   await c.query('delete from saved_news where user_id = $1', [userId]);
   await c.query('delete from event_assignments where user_id = $1', [userId]);
+  // Service requests stay (the office's record of its work) without the person; one still waiting will not be answered
+  await c.query(`update service_requests set requester_id = null, status = case when status = 'pending' then 'cancelled' else status end where requester_id = $1`, [userId]);
   await c.query('delete from notifications where user_id = $1', [userId]);
   await c.query('delete from news_reads where reader = $1', [`u:${userId}`]);
   // Unsent emails to this address go, except the confirmation queued just before (privacy.done)
