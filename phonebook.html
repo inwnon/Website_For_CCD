@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>สมุดโทรศัพท์ | หลังบ้าน คลังข่าว มรส.</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="desk.css">
+  <link rel="stylesheet" href="/assets/app.css?v=752f7e7876">
+</head>
+<body class="app">
+  <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการหมายเลข</a>
+  <div class="flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
+    <header id="mbar" class="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-shell/95 px-4 py-2.5 shadow-raised backdrop-blur-xl lg:hidden"></header>
+    <div id="scrim" class="fixed inset-0 z-40 bg-[rgb(10_11_32/.45)] lg:hidden" aria-hidden="true"></div>
+    <aside id="side" class="scroll-thin fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto bg-bg px-4 pb-4 pt-5 shadow-float lg:static lg:z-auto lg:w-[248px] lg:shrink-0 lg:bg-transparent lg:shadow-none" aria-label="เมนูหลังบ้าน"></aside>
+
+    <main id="main" class="scroll-thin flex min-h-0 min-w-0 flex-1 p-2 sm:p-3 lg:overflow-y-auto lg:pl-0">
+      <section id="gate" class="m-auto flex max-w-[520px] flex-col items-center gap-4 rounded-card border border-line bg-shell p-8 text-center shadow-float" hidden></section>
+
+      <div id="app" class="grid w-full content-start gap-3" hidden>
+        <header class="flex flex-wrap items-center gap-3 rounded-card bg-shell p-4 shadow-raised sm:p-5">
+          <div class="mr-auto min-w-[200px]">
+            <h1 class="font-display tight text-[26px] font-bold text-royal">สมุดโทรศัพท์</h1>
+            <p id="count" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
+          </div>
+          <label class="w-full sm:w-[320px]">
+            <span class="sr-only">ค้นหาหน่วยงานหรือหมายเลข</span>
+            <input id="search" type="search" maxlength="100" autocomplete="off" placeholder="ค้นหาหน่วยงานหรือหมายเลข" class="field h-11 w-full rounded-2xl px-4 text-[15px]">
+          </label>
+          <button id="import" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>นำเข้าไฟล์
+          </button>
+          <button id="add" type="button" class="press t-spring inline-flex h-11 items-center gap-2 rounded-2xl bg-brand px-5 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 dark:text-bg max-sm:w-full max-sm:justify-center" hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มหมายเลข
+          </button>
+        </header>
+
+        <section class="rounded-card bg-shell px-4 py-1 shadow-raised sm:px-5" aria-label="รายการหมายเลข">
+          <ul id="list" tabindex="-1"></ul>
+          <p id="empty" class="py-10 text-center text-[15px] text-ink2" hidden></p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="entryDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="entryTitle">
+    <form id="entryForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <h2 id="entryTitle" class="font-display text-[21px] font-semibold">เพิ่มหมายเลข</h2>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ชื่อหน่วยงาน <span class="text-brand">*</span></span>
+        <input id="fUnit" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="unitErr">
+        <span id="unitErr" data-err="unitName" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="grid content-start gap-1.5">
+          <span class="font-display text-[15px] font-semibold">เบอร์โทรศัพท์</span>
+          <input id="fPhone" maxlength="30" inputmode="tel" autocomplete="off" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="numberHint phoneErr">
+          <span id="phoneErr" data-err="phoneNumber" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+        <label class="grid content-start gap-1.5">
+          <span class="font-display text-[15px] font-semibold">เบอร์ภายใน</span>
+          <input id="fInternal" maxlength="30" inputmode="tel" autocomplete="off" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="numberHint internalErr">
+          <span id="internalErr" data-err="internalNumber" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+        <p id="numberHint" class="text-[14px] text-ink2 sm:col-span-2">กรอกอย่างน้อย 1 เบอร์ เฉพาะเบอร์ของหน่วยงาน ไม่กรอกเบอร์ส่วนตัว</p>
+      </div>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">หมายเหตุ</span>
+        <input id="fNote" maxlength="300" class="field h-12 rounded-2xl px-4 text-[15px]">
+      </label>
+      <p data-err="form" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="entryClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="entrySave" type="submit" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="fileDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="fileTitle">
+    <form id="fileForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <h2 id="fileTitle" class="font-display text-[21px] font-semibold">นำเข้าจากไฟล์</h2>
+      <p class="text-[15px] text-ink2">ใช้ไฟล์ Excel (.xlsx) หรือ CSV ขนาดไม่เกิน 2 MB หัวตารางคือ หน่วยงาน, เบอร์โทรศัพท์, เบอร์ภายใน, หมายเหตุ</p>
+      <a href="/api/phonebook/template.xlsx" download class="press t-quick inline-flex min-h-11 items-center justify-self-start font-display text-[15px] font-semibold text-royal hover:underline">ดาวน์โหลดแบบฟอร์ม Excel</a>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">เลือกไฟล์</span>
+        <input id="fFile" type="file" accept=".xlsx,.csv" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]">
+      </label>
+      <p class="text-[14px] text-ink2">ถ้าชื่อหน่วยงานตรงกับที่มีอยู่ ระบบจะอัปเดตเบอร์ให้ ช่องที่เว้นว่างในไฟล์จะคงค่าเดิมไว้</p>
+      <div id="fileResult" class="grid gap-1 rounded-2xl bg-surface2 px-4 py-3 text-[15px]" role="status" hidden></div>
+      <div id="fileProblems" class="grid gap-1" role="alert" hidden>
+        <p id="fileError" class="text-[14px] font-medium text-brand"></p>
+        <ul id="fileList" class="grid gap-0.5 text-[14px] text-brand"></ul>
+      </div>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="fileClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="fileGo" type="submit" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">ตรวจไฟล์</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dropDlg" class="desk-dlg w-[min(440px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="dropTitle" aria-describedby="dropText">
+    <div class="grid gap-3 p-5 sm:p-6">
+      <h2 id="dropTitle" class="font-display text-[21px] font-semibold">ลบหมายเลขนี้?</h2>
+      <p id="dropText" class="text-[15px] text-ink2"></p>
+      <p id="dropErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="dropClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="dropGo" type="button" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">ลบหมายเลข</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="auth.js"></script>
+  <script src="arrivals.js"></script>
+  <script src="desk.js"></script>
+  <script>
+    const { toast } = DESK;
+    const $ = (s) => document.querySelector(s);
+    const FIELDS = { unitName: '#fUnit', phoneNumber: '#fPhone', internalNumber: '#fInternal' };
+    const state = { items: [], canEdit: false, asked: 0, editing: null, dropping: null, checked: false };
+
+    // Everything from the server goes in as text nodes, never as HTML
+    function el(tag, props = {}, ...kids) {
+      const n = document.createElement(tag);
+      for (const [k, v] of Object.entries(props)) {
+        if (k === 'class') n.className = v;
+        else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+        else if (v !== false && v != null) n.setAttribute(k, v === true ? '' : v);
+      }
+      n.append(...kids.flat().filter((x) => x != null && x !== false));
+      return n;
+    }
+
+    // A number inside the university's exchange cannot be dialled from a mobile, so only the telephone number is a link
+    function number(label, value, dial) {
+      const text = 'font-display text-[16px] font-semibold text-royal';
+      if (!value) return el('span', { class: 'max-sm:hidden' });
+      return el('div', { class: 'grid leading-[1.6]' },
+        el('span', { class: 'text-[13px] text-ink2' }, label),
+        dial
+          ? el('a', { href: `tel:${value.replace(/[^+0-9]/g, '')}`, class: `${text} press t-quick inline-flex min-h-7 items-center justify-self-start hover:underline` }, value)
+          : el('span', { class: text }, value));
+    }
+
+    function row(e) {
+      return el('li', { class: 'grid items-center gap-x-4 gap-y-2 border-b border-line py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_170px_90px_auto]' },
+        el('div', { class: 'min-w-0' },
+          el('p', { class: 'font-display text-[16px] font-semibold [overflow-wrap:anywhere]' }, e.unitName),
+          e.note ? el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, e.note) : null),
+        number('เบอร์โทรศัพท์', e.phoneNumber, true),
+        number('เบอร์ภายใน', e.internalNumber, false),
+        state.canEdit ? el('div', { class: 'flex gap-1' },
+          el('button', { type: 'button', 'aria-label': `แก้ไข ${e.unitName}`, class: 'hover-fill press t-quick h-9 rounded-xl border border-line px-3 font-display text-[14px] font-medium', onclick: () => openForm(e) }, 'แก้ไข'),
+          el('button', { type: 'button', 'aria-label': `ลบ ${e.unitName}`, class: 'press t-quick h-9 rounded-xl px-3 font-display text-[14px] font-medium text-brand hover:-translate-y-0.5', onclick: () => openDrop(e) }, 'ลบ')) : null);
+    }
+
+    function paint(q) {
+      $('#list').replaceChildren(...state.items.map(row));
+      $('#count').textContent = q ? `พบ ${state.items.length} หน่วยงาน` : `ทั้งหมด ${state.items.length} หน่วยงาน`;
+      $('#empty').hidden = state.items.length > 0;
+      $('#empty').textContent = q ? `ไม่พบหมายเลขที่ตรงกับ "${q}"` : 'ยังไม่มีหมายเลขในสมุดโทรศัพท์';
+    }
+
+    // Only the latest search paints: an older, slower answer is dropped
+    async function load() {
+      const q = $('#search').value.trim();
+      const asked = ++state.asked;
+      try {
+        const r = await api(`/phonebook${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+        if (asked !== state.asked) return;
+        state.items = r.items;
+        paint(q);
+      } catch (err) { toast(err.message, true); }
+    }
+
+    // ---- Form ----
+    function clearErrors() {
+      document.querySelectorAll('#entryForm [data-err]').forEach((x) => { x.hidden = true; x.textContent = ''; });
+      document.querySelectorAll('#entryForm [aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
+    }
+    function showError(key, text) {
+      const box = $(`#entryForm [data-err="${key}"]`);
+      box.textContent = text;
+      box.hidden = false;
+    }
+    function openForm(e) {
+      state.editing = e;
+      clearErrors();
+      $('#entryTitle').textContent = e ? 'แก้ไขหมายเลข' : 'เพิ่มหมายเลข';
+      $('#fUnit').value = e?.unitName || '';
+      $('#fPhone').value = e?.phoneNumber || '';
+      $('#fInternal').value = e?.internalNumber || '';
+      $('#fNote').value = e?.note || '';
+      $('#entryDlg').showModal();
+    }
+    async function save(ev) {
+      ev.preventDefault();
+      clearErrors();
+      const btn = $('#entrySave');
+      btn.disabled = true;
+      const body = { unitName: $('#fUnit').value, phoneNumber: $('#fPhone').value, internalNumber: $('#fInternal').value, note: $('#fNote').value };
+      try {
+        const e = state.editing;
+        await api(e ? `/phonebook/${e.id}` : '/phonebook', { method: e ? 'PUT' : 'POST', body });
+        $('#entryDlg').close();
+        toast(e ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มหมายเลขแล้ว');
+        await load();
+        $('#list').focus();
+      } catch (err) {
+        const d = err.details || {};
+        let first = null;
+        for (const [k, msg] of Object.entries(d)) {
+          if ($(`#entryForm [data-err="${k}"]`)) showError(k, msg);
+          if (FIELDS[k]) { $(FIELDS[k]).setAttribute('aria-invalid', 'true'); first ||= $(FIELDS[k]); }
+        }
+        if (first) first.focus();
+        if (!Object.keys(d).length) showError('form', err.message);
+      } finally { btn.disabled = false; }
+    }
+
+    // ---- Import: the first press checks the file and shows what would change, the second saves ----
+    function resetFile() {
+      state.checked = false;
+      $('#fileGo').textContent = 'ตรวจไฟล์';
+      $('#fileResult').hidden = true;
+      $('#fileProblems').hidden = true;
+    }
+    function showProblems(message, problems = []) {
+      $('#fileError').textContent = message;
+      $('#fileList').replaceChildren(...problems.map((p) => el('li', {}, p)));
+      $('#fileProblems').hidden = false;
+    }
+    async function send(save) {
+      const body = new FormData();
+      body.append('file', $('#fFile').files[0]);
+      const res = await fetch(`/api/phonebook/import${save ? '?save=1' : ''}`, { method: 'POST', credentials: 'same-origin', body });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw Object.assign(new Error(data.error || 'นำเข้าไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), { details: data.details });
+      return data;
+    }
+    async function importFile(ev) {
+      ev.preventDefault();
+      if (!$('#fFile').files[0]) { showProblems('เลือกไฟล์ที่จะนำเข้า'); $('#fFile').focus(); return; }
+      const btn = $('#fileGo');
+      btn.disabled = true;
+      $('#fileProblems').hidden = true;
+      try {
+        const r = await send(state.checked);
+        if (r.saved) {
+          $('#fileDlg').close();
+          toast(`นำเข้าแล้ว เพิ่ม ${r.added} อัปเดต ${r.updated} หน่วยงาน`);
+          await load();
+          $('#list').focus();
+          return;
+        }
+        $('#fileResult').replaceChildren(
+          el('p', {}, `เพิ่มใหม่ ${r.added} หน่วยงาน`), el('p', {}, `อัปเดต ${r.updated} หน่วยงาน`), el('p', {}, `เหมือนเดิม ${r.unchanged} หน่วยงาน`));
+        $('#fileResult').hidden = false;
+        state.checked = r.added + r.updated > 0;
+        btn.textContent = state.checked ? 'ยืนยันนำเข้า' : 'ตรวจไฟล์';
+      } catch (err) {
+        resetFile();
+        showProblems(err.message, err.details?.problems);
+      } finally { btn.disabled = false; }
+    }
+
+    // ---- Delete ----
+    function openDrop(e) {
+      state.dropping = e;
+      $('#dropText').textContent = [e.unitName, e.phoneNumber, e.internalNumber].filter(Boolean).join(' ');
+      $('#dropErr').hidden = true;
+      $('#dropDlg').showModal();
+    }
+    async function drop() {
+      const btn = $('#dropGo');
+      btn.disabled = true;
+      try {
+        await api(`/phonebook/${state.dropping.id}`, { method: 'DELETE' });
+        $('#dropDlg').close();
+        toast('ลบหมายเลขแล้ว');
+        await load();
+        $('#list').focus();
+      } catch (err) {
+        $('#dropErr').textContent = err.message;
+        $('#dropErr').hidden = false;
+      } finally { btn.disabled = false; }
+    }
+
+    // ---- Start ----
+    (async () => {
+      const me = await window.ME;
+      const user = await DESK.start({ page: 'phonebook', allow: me.modules?.includes('phonebook') ? [me.user.role] : ['pr', 'admin'] });
+      if (!user) return;
+      const r = await api('/phonebook');
+      state.items = r.items;
+      state.canEdit = r.canEdit;
+      $('#add').hidden = !r.canEdit;
+      $('#import').hidden = !r.canEdit;
+      $('#app').hidden = false;
+      paint('');
+
+      let wait;
+      $('#search').addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(load, 250); });
+      $('#add').addEventListener('click', () => openForm(null));
+      $('#entryForm').addEventListener('submit', save);
+      $('#entryClose').addEventListener('click', () => $('#entryDlg').close());
+      $('#import').addEventListener('click', () => { $('#fFile').value = ''; resetFile(); $('#fileDlg').showModal(); });
+      $('#fFile').addEventListener('change', resetFile);
+      $('#fileForm').addEventListener('submit', importFile);
+      $('#fileClose').addEventListener('click', () => $('#fileDlg').close());
+      $('#dropClose').addEventListener('click', () => $('#dropDlg').close());
+      $('#dropGo').addEventListener('click', drop);
+    })();
+  </script>
+</body>
+</html>
