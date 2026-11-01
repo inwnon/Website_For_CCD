@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>คลังเอกสาร | หลังบ้าน คลังข่าว มรส.</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="desk.css">
+  <style>
+    .seg[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
+    .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
+  </style>
+  <link rel="stylesheet" href="/assets/app.css?v=030ab068e2">
+</head>
+<body class="app">
+  <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการเอกสาร</a>
+  <div class="flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
+    <header id="mbar" class="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-shell/95 px-4 py-2.5 shadow-raised backdrop-blur-xl lg:hidden"></header>
+    <div id="scrim" class="fixed inset-0 z-40 bg-[rgb(10_11_32/.45)] lg:hidden" aria-hidden="true"></div>
+    <aside id="side" class="scroll-thin fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto bg-bg px-4 pb-4 pt-5 shadow-float lg:static lg:z-auto lg:w-[248px] lg:shrink-0 lg:bg-transparent lg:shadow-none" aria-label="เมนูหลังบ้าน"></aside>
+
+    <main id="main" class="scroll-thin flex min-h-0 min-w-0 flex-1 p-2 sm:p-3 lg:overflow-y-auto lg:pl-0">
+      <section id="gate" class="m-auto flex max-w-[520px] flex-col items-center gap-4 rounded-card border border-line bg-shell p-8 text-center shadow-float" hidden></section>
+
+      <div id="app" class="grid w-full content-start gap-3" hidden>
+        <header class="flex flex-wrap items-center gap-3 rounded-card bg-shell p-4 shadow-raised sm:p-5">
+          <div class="mr-auto min-w-[200px]">
+            <h1 class="font-display tight text-[26px] font-bold text-royal">คลังเอกสาร</h1>
+            <p id="count" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
+          </div>
+          <button id="add" type="button" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 max-sm:w-full max-sm:justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มเอกสาร
+          </button>
+          <div class="grid w-full gap-3 sm:grid-cols-[minmax(0,1fr)_200px_auto]">
+            <label class="min-w-0">
+              <span class="sr-only">ค้นหาเอกสาร</span>
+              <input id="search" type="search" maxlength="100" autocomplete="off" placeholder="ค้นหาชื่อ หมวด แท็ก หรือชื่อไฟล์" class="field h-11 w-full rounded-2xl px-4 text-[15px]">
+            </label>
+            <label class="min-w-0">
+              <span class="sr-only">หมวดเอกสาร</span>
+              <select id="filter" class="field doc-sel h-11 w-full rounded-2xl pl-4 pr-10 text-[15px]"></select>
+            </label>
+            <div class="flex gap-0.5 rounded-2xl bg-surface2 p-1" role="group" aria-label="เลือกรายการ">
+              <button type="button" data-shelf="" class="seg press t-quick h-9 flex-auto whitespace-nowrap rounded-xl px-3 font-display text-[15px] font-medium text-ink2">ใช้งานอยู่</button>
+              <button type="button" data-shelf="1" class="seg press t-quick h-9 flex-auto whitespace-nowrap rounded-xl px-3 font-display text-[15px] font-medium text-ink2">เก็บเข้าคลังแล้ว</button>
+            </div>
+          </div>
+        </header>
+
+        <section class="rounded-card bg-shell px-2 py-1 shadow-raised sm:px-3" aria-label="รายการเอกสาร">
+          <ul id="list" tabindex="-1"></ul>
+          <p id="empty" class="py-10 text-center text-[15px] text-ink2" hidden></p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="formDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(600px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="formTitle">
+    <form id="docForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <h2 id="formTitle" class="font-display text-[21px] font-semibold">เพิ่มเอกสาร</h2>
+      <label id="fileBox" class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ไฟล์ <span class="text-brand">*</span></span>
+        <input id="fFile" type="file" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]" aria-describedby="fileHint fileErr">
+        <span id="fileHint" class="text-[14px] text-ink2">PDF, DOCX, XLSX, PPTX ไม่เกิน 20 MB หรือภาพ JPG, PNG ไม่เกิน 10 MB</span>
+        <span id="fileErr" data-err="file" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ชื่อเอกสาร <span class="text-brand">*</span></span>
+        <input id="fTitle" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="titleErr">
+        <span id="titleErr" data-err="title" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">หมวด <span class="text-brand">*</span></span>
+        <select id="fCategory" class="field doc-sel h-12 rounded-2xl pl-4 pr-10 text-[15px]" aria-describedby="categoryErr"></select>
+        <span id="categoryErr" data-err="category" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">แท็ก</span>
+        <input id="fTags" maxlength="500" autocomplete="off" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="tagsHint tagsErr">
+        <span id="tagsHint" class="text-[14px] text-ink2">คั่นแต่ละคำด้วยเครื่องหมายจุลภาค เช่น งบประมาณ, 2569</span>
+        <span id="tagsErr" data-err="tags" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <fieldset id="levelBox" class="grid gap-1" hidden>
+        <legend class="font-display text-[15px] font-semibold">ใครเปิดเอกสารนี้ได้</legend>
+        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="level" value="team" class="h-5 w-5" checked>ทีม PR และผู้ดูแลระบบ</label>
+        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="level" value="admin" class="h-5 w-5">เฉพาะผู้ดูแลระบบ</label>
+        <span data-err="accessLevel" class="text-[14px] font-medium text-brand" hidden></span>
+      </fieldset>
+      <p data-err="form" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="formClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="formSave" type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="viewDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(640px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="viewTitle">
+    <div class="grid gap-4 p-5 sm:p-6">
+      <div>
+        <h2 id="viewTitle" class="font-display text-[21px] font-semibold [overflow-wrap:anywhere]"></h2>
+        <p id="viewMeta" class="mt-1 text-[14px] text-ink2"></p>
+        <div id="viewTags" class="mt-2 flex flex-wrap gap-1.5"></div>
+      </div>
+      <section class="grid gap-1" aria-labelledby="versionsTitle">
+        <h3 id="versionsTitle" class="font-display text-[16px] font-semibold">เวอร์ชันของไฟล์</h3>
+        <ul id="viewVersions"></ul>
+      </section>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="viewClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="viewArchive" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5" hidden>เก็บเข้าคลัง</button>
+        <button id="viewRestore" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line px-5 font-display text-[15px] font-medium disabled:opacity-60" hidden>นำออกจากคลัง</button>
+        <button id="viewEdit" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line px-5 font-display text-[15px] font-medium" hidden>แก้ไขข้อมูล</button>
+        <button id="viewVersion" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5" hidden>เพิ่มเวอร์ชันใหม่</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="nextDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="nextTitle">
+    <form id="nextForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <div>
+        <h2 id="nextTitle" class="font-display text-[21px] font-semibold">เพิ่มเวอร์ชันใหม่</h2>
+        <p id="nextName" class="mt-1 text-[14px] font-medium [overflow-wrap:anywhere]"></p>
+      </div>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ไฟล์ <span class="text-brand">*</span></span>
+        <input id="fNext" type="file" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]" aria-describedby="nextHint nextErr">
+        <span id="nextHint" class="text-[14px] text-ink2">ไฟล์ใหม่จะเป็นฉบับปัจจุบัน ส่วนฉบับเดิมยังดาวน์โหลดได้</span>
+      </label>
+      <p id="nextErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="nextClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="nextGo" type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">อัปโหลด</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="offDlg" class="desk-dlg w-[min(440px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="offTitle" aria-describedby="offName offText">
+    <div class="grid gap-3 p-5 sm:p-6">
+      <h2 id="offTitle" class="font-display text-[21px] font-semibold">เก็บเอกสารนี้เข้าคลัง?</h2>
+      <p id="offName" class="text-[15px] font-medium [overflow-wrap:anywhere]"></p>
+      <p id="offText" class="text-[14px] text-ink2">เอกสารจะหายจากรายการใช้งาน แต่ไฟล์ยังอยู่ครบและนำออกจากคลังได้ทุกเมื่อ</p>
+      <p id="offErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="offClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="offGo" type="button" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">เก็บเข้าคลัง</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="auth.js"></script>
+  <script src="arrivals.js"></script>
+  <script src="desk.js"></script>
+  <script>
+    const { toast, day, dayTime } = DESK;
+    const $ = (s) => document.querySelector(s);
+    const CATEGORIES = { official: 'หนังสือราชการ', report: 'รายงาน', form: 'แบบฟอร์ม', media: 'สื่อประชาสัมพันธ์', other: 'อื่น ๆ' };
+    const FIELDS = { title: '#fTitle', category: '#fCategory', tags: '#fTags', file: '#fFile' };
+    const state = { items: [], shelf: '', asked: 0, open: null, editing: null, admin: false };
+
+    // Everything from the server goes in as text nodes, never as HTML
+    function el(tag, props = {}, ...kids) {
+      const n = document.createElement(tag);
+      for (const [k, v] of Object.entries(props)) {
+        if (k === 'class') n.className = v;
+        else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+        else if (v !== false && v != null) n.setAttribute(k, v === true ? '' : v);
+      }
+      n.append(...kids.flat().filter((x) => x != null && x !== false));
+      return n;
+    }
+    const bytes = (n) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
+    const tag = (t) => el('span', { class: 'rounded-full bg-surface2 px-2.5 py-0.5 text-[13px] [overflow-wrap:anywhere]' }, t);
+    const adminOnly = () => el('span', { class: 'rounded-full bg-royal-soft px-2.5 py-0.5 font-display text-[13px] font-semibold text-royal' }, 'เฉพาะผู้ดูแลระบบ');
+
+    function row(d) {
+      return el('li', { class: 'border-b border-line last:border-b-0' },
+        el('button', { type: 'button', class: 'hover-fill press t-quick grid w-full gap-1 rounded-2xl px-2 py-3 text-left sm:px-3', onclick: () => openView(d.id) },
+          el('span', { class: 'font-display text-[16px] font-semibold [overflow-wrap:anywhere]' }, d.title),
+          el('span', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${CATEGORIES[d.category]} · ${d.fileName} · ${bytes(d.size)} · เวอร์ชัน ${d.version} · ${day(d.updatedAt)}`),
+          d.tags.length || d.accessLevel === 'admin' ? el('span', { class: 'flex flex-wrap gap-1.5 pt-0.5' }, d.accessLevel === 'admin' ? adminOnly() : null, d.tags.map(tag)) : null));
+    }
+
+    function paint(filtered) {
+      $('#list').replaceChildren(...state.items.map(row));
+      $('#count').textContent = `${filtered ? 'พบ' : 'ทั้งหมด'} ${state.items.length} เอกสาร`;
+      $('#empty').hidden = state.items.length > 0;
+      $('#empty').textContent = filtered ? 'ไม่พบเอกสารที่ตรงกับเงื่อนไข' : state.shelf ? 'ยังไม่มีเอกสารที่เก็บเข้าคลัง' : 'ยังไม่มีเอกสาร';
+      document.querySelectorAll('[data-shelf]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.shelf === state.shelf)));
+    }
+
+    // Only the latest search paints: an older, slower answer is dropped
+    async function load() {
+      const q = $('#search').value.trim(), category = $('#filter').value;
+      const asked = ++state.asked;
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (category) params.set('category', category);
+      if (state.shelf) params.set('archived', '1');
+      try {
+        const r = await api(`/documents?${params}`);
+        if (asked !== state.asked) return;
+        state.items = r.items;
+        paint(Boolean(q || category));
+      } catch (err) { toast(err.message, true); }
+    }
+
+    // window.api sends JSON; a file goes as multipart. A proxy in front of the app answers an oversized file without JSON.
+    async function sendFile(path, data, file) {
+      const body = new FormData();
+      body.append('data', JSON.stringify(data));
+      if (file) body.append('file', file);
+      const res = await fetch(`/api${path}`, { method: 'POST', credentials: 'same-origin', body });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) throw Object.assign(new Error(out.error || (res.status === 413 ? 'ไฟล์ใหญ่เกินกำหนด' : 'อัปโหลดไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')), { status: res.status, details: out.details });
+      return out;
+    }
+
+    // ---- New document, or the details of one ----
+    function clearErrors() {
+      document.querySelectorAll('#docForm [data-err]').forEach((x) => { x.hidden = true; x.textContent = ''; });
+      document.querySelectorAll('#docForm [aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
+    }
+    function showError(key, text) {
+      const box = $(`#docForm [data-err="${key}"]`);
+      box.textContent = text;
+      box.hidden = false;
+    }
+    function openForm(d) {
+      state.editing = d;
+      clearErrors();
+      $('#docForm').reset();
+      $('#formTitle').textContent = d ? 'แก้ไขข้อมูลเอกสาร' : 'เพิ่มเอกสาร';
+      $('#fileBox').hidden = !!d;
+      $('#levelBox').hidden = !state.admin;
+      $('#formSave').textContent = d ? 'บันทึก' : 'อัปโหลด';
+      if (d) {
+        $('#fTitle').value = d.title;
+        $('#fCategory').value = d.category;
+        $('#fTags').value = d.tags.join(', ');
+        $(`[name="level"][value="${d.accessLevel}"]`).checked = true;
+      }
+      $('#formDlg').showModal();
+    }
+    async function save(ev) {
+      ev.preventDefault();
+      clearErrors();
+      const btn = $('#formSave'), label = btn.textContent, was = state.editing;
+      btn.disabled = true;
+      if (!was) btn.textContent = 'กำลังอัปโหลด...';
+      const data = { title: $('#fTitle').value, category: $('#fCategory').value, tags: $('#fTags').value.split(',').map((t) => t.trim()).filter(Boolean) };
+      if (state.admin) data.accessLevel = $('[name="level"]:checked').value;
+      try {
+        if (was) await api(`/documents/${was.id}`, { method: 'PUT', body: data });
+        else await sendFile('/documents', data, $('#fFile').files[0]);
+        $('#formDlg').close();
+        toast(was ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มเอกสารแล้ว');
+        await load();
+        $('#list').focus();
+      } catch (err) {
+        // The server stops at the first problem with the details: name a missing file along with them
+        const noFile = err.details && !was && !$('#fFile').files[0] ? { file: 'เลือกไฟล์เอกสาร' } : {};
+        const d = { ...noFile, ...err.details };
+        let first = null;
+        for (const [k, msg] of Object.entries(d)) {
+          if ($(`#docForm [data-err="${k}"]`)) showError(k, msg);
+          if (FIELDS[k]) { $(FIELDS[k]).setAttribute('aria-invalid', 'true'); first ||= $(FIELDS[k]); }
+        }
+        if (first) first.focus();
+        if (!Object.keys(d).length) showError('form', err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+      }
+    }
+
+    // ---- One document ----
+    async function openView(id) {
+      try {
+        const { document: d } = await api(`/documents/${id}`);
+        state.open = d;
+        $('#viewTitle').textContent = d.title;
+        $('#viewMeta').textContent = `${CATEGORIES[d.category]} · แก้ไขล่าสุด ${dayTime(d.updatedAt)}`;
+        $('#viewTags').replaceChildren(...(d.accessLevel === 'admin' ? [adminOnly()] : []), ...d.tags.map(tag));
+        $('#viewVersions').replaceChildren(...d.versions.map((v) => el('li', { class: 'flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line py-2 last:border-b-0' },
+          el('div', { class: 'min-w-0 flex-1 basis-[220px]' },
+            el('p', { class: 'text-[15px] font-medium [overflow-wrap:anywhere]' }, `เวอร์ชัน ${v.version}${v.version === d.version ? ' (ปัจจุบัน)' : ''} · ${v.fileName}`),
+            el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${bytes(v.size)} · ${dayTime(v.createdAt)}${v.uploader ? ` · ${v.uploader}` : ''}`)),
+          el('a', { href: `/api/documents/${d.id}/file?version=${v.version}`, 'aria-label': `ดาวน์โหลดเวอร์ชัน ${v.version}`, class: 'hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-4 font-display text-[15px] font-medium' }, 'ดาวน์โหลด'))));
+        const archived = !!d.archivedAt;
+        $('#viewEdit').hidden = archived;
+        $('#viewVersion').hidden = archived;
+        $('#viewArchive').hidden = archived;
+        $('#viewRestore').hidden = !archived;
+        if (!$('#viewDlg').open) $('#viewDlg').showModal();
+      } catch (err) { toast(err.message, true); }
+    }
+    function openEdit() {
+      $('#viewDlg').close();
+      openForm(state.open);
+    }
+    function openNext() {
+      $('#viewDlg').close();
+      $('#nextName').textContent = state.open.title;
+      $('#nextForm').reset();
+      $('#nextErr').hidden = true;
+      $('#nextDlg').showModal();
+    }
+    async function sendNext(ev) {
+      ev.preventDefault();
+      const file = $('#fNext').files[0], btn = $('#nextGo');
+      const fail = (text) => { $('#nextErr').textContent = text; $('#nextErr').hidden = false; };
+      if (!file) { fail('เลือกไฟล์เอกสาร'); $('#fNext').focus(); return; }
+      btn.disabled = true;
+      btn.textContent = 'กำลังอัปโหลด...';
+      $('#nextErr').hidden = true;
+      try {
+        await sendFile(`/documents/${state.open.id}/versions`, {}, file);
+        $('#nextDlg').close();
+        toast('เพิ่มเวอร์ชันใหม่แล้ว');
+        await load();
+        $('#list').focus();
+      } catch (err) { fail(err.details?.file || err.message); } finally {
+        btn.disabled = false;
+        btn.textContent = 'อัปโหลด';
+      }
+    }
+    function openOff() {
+      $('#viewDlg').close();
+      $('#offName').textContent = state.open.title;
+      $('#offErr').hidden = true;
+      $('#offDlg').showModal();
+    }
+    async function archive() {
+      const btn = $('#offGo');
+      btn.disabled = true;
+      try {
+        await api(`/documents/${state.open.id}/archive`, { method: 'POST', body: {} });
+        $('#offDlg').close();
+        toast('เก็บเอกสารเข้าคลังแล้ว');
+        await load();
+        $('#list').focus();
+      } catch (err) {
+        $('#offErr').textContent = err.message;
+        $('#offErr').hidden = false;
+      } finally { btn.disabled = false; }
+    }
+    async function restore() {
+      const btn = $('#viewRestore');
+      btn.disabled = true;
+      try {
+        await api(`/documents/${state.open.id}/restore`, { method: 'POST', body: {} });
+        $('#viewDlg').close();
+        toast('นำเอกสารออกจากคลังแล้ว');
+        await load();
+        $('#list').focus();
+      } catch (err) { toast(err.message, true); } finally { btn.disabled = false; }
+    }
+
+    // ---- Start ----
+    (async () => {
+      const user = await DESK.start({ page: 'documents', allow: ['pr', 'admin'] });
+      if (!user) return;
+      state.admin = user.role === 'admin';
+      const options = Object.entries(CATEGORIES).map(([k, l]) => el('option', { value: k }, l));
+      $('#fCategory').replaceChildren(...options);
+      $('#filter').replaceChildren(el('option', { value: '' }, 'ทุกหมวด'), ...options.map((o) => o.cloneNode(true)));
+      $('#app').hidden = false;
+
+      let wait;
+      $('#search').addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(load, 250); });
+      $('#filter').addEventListener('change', load);
+      document.querySelectorAll('[data-shelf]').forEach((b) => b.addEventListener('click', () => { state.shelf = b.dataset.shelf; load(); }));
+      $('#add').addEventListener('click', () => openForm(null));
+      $('#docForm').addEventListener('submit', save);
+      $('#formClose').addEventListener('click', () => $('#formDlg').close());
+      $('#viewClose').addEventListener('click', () => $('#viewDlg').close());
+      $('#viewEdit').addEventListener('click', openEdit);
+      $('#viewVersion').addEventListener('click', openNext);
+      $('#viewArchive').addEventListener('click', openOff);
+      $('#viewRestore').addEventListener('click', restore);
+      $('#nextForm').addEventListener('submit', sendNext);
+      $('#nextClose').addEventListener('click', () => $('#nextDlg').close());
+      $('#offClose').addEventListener('click', () => $('#offDlg').close());
+      $('#offGo').addEventListener('click', archive);
+      await load();
+    })();
+  </script>
+</body>
+</html>
