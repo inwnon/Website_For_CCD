@@ -37,7 +37,7 @@
     .seg[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
     @media (prefers-reduced-motion: reduce) { .cal-chip:active { transform: none; } }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=752f7e7876">
+  <link rel="stylesheet" href="/assets/app.css?v=a65c4ec10a">
   <script src="thai-date.js" defer></script>
 </head>
 <body class="app">
@@ -300,6 +300,7 @@
     async function openNote(n) {
       $('#noteDlg').close();
       if (!n.readAt) { try { await api(`/notifications/${n.id}/read`, { method: 'POST', body: {} }); } catch (e) {} }
+      if (n.kind.startsWith('request.')) { location.href = `requests.html?id=${n.refId}`; return; }
       loadNotes(false);
       if (n.refId) openEvent(n.refId);
     }

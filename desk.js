@@ -1,4 +1,4 @@
-// Back-office shell shared by pr-news.html, pr-collections.html, pr-import.html, report.html, calendar.html, phonebook.html and chanon.html (pr.html has its own copy of the menu).
+// Back-office shell shared by pr-news.html, pr-collections.html, pr-import.html, report.html, calendar.html, requests.html, phonebook.html and chanon.html (pr.html has its own copy of the menu).
 // Needs auth.js (window.api, window.ME). The page provides:
 //   <aside id="side"></aside>  <header id="mbar"></header>  <main id="main"> … <section id="gate" hidden></section> … </main>
 // DESK.start({ page, allow }) fills the menu, checks the role and resolves to the signed-in user (or null: the gate is shown).

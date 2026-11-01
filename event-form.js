@@ -3,6 +3,7 @@
 // EventForm.open({ event, day, showNote, notify, onSaved }): event is null for a new one; day (YYYY-MM-DD) is where a new one starts;
 //   showNote offers the internal note (PR and admin); notify(text) reports success; onSaved(event) runs after saving.
 // EventForm.cancel({ event, notify, onDone }): asks first, then cancels.
+// EventForm.picker({ list, search, found, onError }): the people picker alone, for requests.html (selectors of its two <ul>s and <input>).
 // Rights are the server's: this only offers what it was told to.
 (function () {
   const TZ = 'Asia/Bangkok';
@@ -98,7 +99,7 @@
 
   const $ = (s) => document.querySelector(s);
   const FIELDS = { title: '#fTitle', type: '#fType', startAt: '#fStart', endAt: '#fEnd' };
-  let ready = false, opts = {}, off = {}, chosen = [], timer = null;
+  let ready = false, opts = {}, off = {}, who = null;
 
   // People's names go in as text nodes, never as HTML
   function el(tag, props = {}, ...kids) {
@@ -126,29 +127,40 @@
     box.hidden = false;
   }
 
-  function paintChosen() {
-    $('#chosen').replaceChildren(...chosen.map((a) => {
-      const name = a.name || a.email || 'ไม่ระบุชื่อ';
-      return el('li', { class: 'grid gap-2 rounded-2xl bg-surface2 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:items-center' },
-        el('span', { class: 'text-[14px] font-medium' }, name),
-        el('input', { maxlength: '120', value: a.duty, placeholder: 'หน้าที่ เช่น ช่างภาพ', 'aria-label': `หน้าที่ของ ${name}`, 'data-duty': a.id, class: 'ef-field h-11 min-w-0 rounded-xl px-3 text-[14px]', oninput: (e) => { a.duty = e.target.value; } }),
-        el('button', { type: 'button', class: 'press t-quick h-11 rounded-xl px-3 text-[14px] font-medium text-brand', 'aria-label': `เอา ${name} ออก`, onclick: () => { chosen = chosen.filter((x) => x !== a); paintChosen(); findPeople(); } }, 'เอาออก'));
-    }));
-  }
-  async function findPeople() {
-    try {
-      const { items } = await window.api(`/calendar/people?q=${encodeURIComponent($('#fWho').value.trim())}`);
-      const left = items.filter((p) => !chosen.some((a) => a.id === p.id)).slice(0, 6);
-      $('#whoList').replaceChildren(...left.map((p) => el('li', {}, el('button', {
-        type: 'button', class: 'hover-fill press t-quick flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-[14px]',
-        onclick: () => {
-          chosen.push({ id: p.id, name: p.name, email: p.email, duty: '' });
-          paintChosen();
-          findPeople();
-          $(`[data-duty="${p.id}"]`)?.focus();
-        },
-      }, el('span', { class: 'min-w-0 truncate font-medium' }, p.name || p.email || 'ไม่ระบุชื่อ'), el('span', { class: 'shrink-0 text-[13px] text-ink2' }, ROLES[p.role] || 'นักศึกษา')))));
-    } catch (err) { showError('assignees', err.message); }
+  const addCss = () => { if (!$('#eventFormCss')) document.head.insertAdjacentHTML('beforeend', `<style id="eventFormCss">${CSS}</style>`); };
+
+  function picker({ list, search, found, onError }) {
+    let chosen = [], timer = null;
+    addCss();
+    function paint() {
+      $(list).replaceChildren(...chosen.map((a) => {
+        const name = a.name || a.email || 'ไม่ระบุชื่อ';
+        return el('li', { class: 'grid gap-2 rounded-2xl bg-surface2 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:items-center' },
+          el('span', { class: 'text-[14px] font-medium' }, name),
+          el('input', { maxlength: '120', value: a.duty, placeholder: 'หน้าที่ เช่น ช่างภาพ', 'aria-label': `หน้าที่ของ ${name}`, 'data-duty': a.id, class: 'ef-field h-11 min-w-0 rounded-xl px-3 text-[14px]', oninput: (e) => { a.duty = e.target.value; } }),
+          el('button', { type: 'button', class: 'press t-quick h-11 rounded-xl px-3 text-[14px] font-medium text-brand', 'aria-label': `เอา ${name} ออก`, onclick: () => { chosen = chosen.filter((x) => x !== a); paint(); find(); } }, 'เอาออก'));
+      }));
+    }
+    async function find() {
+      try {
+        const { items } = await window.api(`/calendar/people?q=${encodeURIComponent($(search).value.trim())}`);
+        const left = items.filter((p) => !chosen.some((a) => a.id === p.id)).slice(0, 6);
+        $(found).replaceChildren(...left.map((p) => el('li', {}, el('button', {
+          type: 'button', class: 'hover-fill press t-quick flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-[14px]',
+          onclick: () => {
+            chosen.push({ id: p.id, name: p.name, email: p.email, duty: '' });
+            paint();
+            find();
+            $(`[data-duty="${p.id}"]`)?.focus();
+          },
+        }, el('span', { class: 'min-w-0 truncate font-medium' }, p.name || p.email || 'ไม่ระบุชื่อ'), el('span', { class: 'shrink-0 text-[13px] text-ink2' }, ROLES[p.role] || 'นักศึกษา')))));
+      } catch (err) { onError(err.message); }
+    }
+    $(search).addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(find, 250); });
+    return {
+      set(people) { chosen = people.map((a) => ({ ...a })); $(search).value = ''; paint(); find(); },
+      get: () => chosen.map((a) => ({ userId: a.id, duty: a.duty })),
+    };
   }
 
   async function save(ev) {
@@ -158,7 +170,7 @@
     const body = {
       title: $('#fTitle').value, type: $('#fType').value, location: $('#fLocation').value, startAt: when($('#fStart').value), endAt: when($('#fEnd').value),
       visibility: $('[name="visibility"]:checked').value, description: $('#fDescription').value, internalNote: $('#fNote').value,
-      assignees: chosen.map((a) => ({ userId: a.id, duty: a.duty })),
+      assignees: who.get(),
     };
     const btn = $('#evSave');
     btn.disabled = true;
@@ -196,13 +208,12 @@
   function prepare() {
     if (ready) return;
     ready = true;
-    document.head.insertAdjacentHTML('beforeend', `<style id="eventFormCss">${CSS}</style>`);
     document.body.insertAdjacentHTML('beforeend', HTML);
+    who = picker({ list: '#chosen', search: '#fWho', found: '#whoList', onError: (text) => showError('assignees', text) });
     $('#evForm').addEventListener('submit', save);
     $('#evClose').addEventListener('click', () => $('#evDlg').close());
     $('#offClose').addEventListener('click', () => $('#offDlg').close());
     $('#offGo').addEventListener('click', confirmCancel);
-    $('#fWho').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(findPeople, 250); });
   }
 
   function open(o) {
@@ -220,10 +231,7 @@
     $('#fDescription').value = e?.description || '';
     $('#fNote').value = e?.internalNote || '';
     $('#fNoteBox').hidden = !o.showNote;
-    chosen = (e?.assignees || []).map((a) => ({ ...a }));
-    $('#fWho').value = '';
-    paintChosen();
-    findPeople();
+    who.set(e?.assignees || []);
     $('#evDlg').showModal();
   }
   function cancel(o) {
@@ -234,5 +242,5 @@
     $('#offDlg').showModal();
   }
 
-  window.EventForm = { open, cancel, TYPES };
+  window.EventForm = { open, cancel, picker, TYPES };
 })();
