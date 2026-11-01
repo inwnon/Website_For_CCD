@@ -4,7 +4,7 @@
 // - daily(): the 08:00 Bangkok summary for the PR team
 // - GET/PUT /api/me/notify   what the signed-in user wants by email
 // - GET /api/admin/mail · POST /api/admin/mail/test   outbox and a test email (chanon.html)
-// - GET /api/notifications · POST /api/notifications/:id/read · POST /api/notifications/read-all   in-app notices (calendar events)
+// - GET /api/notifications · POST /api/notifications/:id/read · POST /api/notifications/read-all   in-app notices (calendar events, service requests)
 import { Router } from 'express';
 import nodemailer from 'nodemailer';
 import { requireBackOffice, rightOf } from './access.mjs';
@@ -135,6 +135,30 @@ export async function eventReminders() {
       returning e.id, e.title, e.location, e.start_at, a.duty, u.id user_id, u.email, u.notify`)).rows;
     for (const r of rows) await tell(c, { id: r.user_id, email: r.email, notify: r.notify }, 'event.reminder', r, `พรุ่งนี้มีงาน: ${r.title}`, 'พรุ่งนี้คุณมีงาน', r.duty);
   });
+}
+
+// ---- Service requests (called from requests.mjs inside its transactions): an in-app notice, and an email unless turned off ----
+const requestLines = (r) => [r.title, `${WHEN.format(r.start_at)} น.`, `สถานที่ ${r.location}`];
+const requestButton = (r) => ({ label: 'เปิดคำขอใช้บริการ', href: link(`requests.html?id=${r.id}`) });
+export async function requestSubmitted(db, r, user) {
+  const text = `คำขอใช้บริการใหม่: ${r.title}`;
+  const rows = (await db.query(`select u.id, t.email, u.notify from pr_team t left join users u on u.email = t.email where t.role in ('pr', 'admin')`)).rows;
+  for (const u of rows) {
+    if (u.email === user.email) continue;
+    if (u.id) await db.query('insert into notifications (user_id, kind, ref_id, text) values ($1, $2, $3, $4)', [u.id, 'request.new', r.id, text]);
+    if (!wants(u.notify, 'prNew')) continue;
+    await enqueue(db, { kind: 'request.new', ref: r.id, to: u.email, subject: text, title: 'มีคำขอใช้บริการใหม่', lines: requestLines(r), quote: r.details || undefined, button: requestButton(r) });
+  }
+}
+export async function requestDecided(db, r) {
+  const u = (await db.query('select id, email, notify from users where id = $1 and erased_at is null', [r.requester_id])).rows[0];
+  if (!u) return;
+  const approved = r.status === 'approved';
+  const text = `${approved ? 'อนุมัติคำขอแล้ว' : 'ไม่อนุมัติคำขอ'}: ${r.title}`;
+  const kind = `request.${r.status}`;
+  await db.query('insert into notifications (user_id, kind, ref_id, text) values ($1, $2, $3, $4)', [u.id, kind, r.id, text]);
+  if (!wants(u.notify, 'status')) return;
+  await enqueue(db, { kind, ref: r.id, to: u.email, subject: text, title: approved ? 'ทีม PR อนุมัติคำขอของคุณแล้ว' : 'ทีม PR ไม่อนุมัติคำขอของคุณ', lines: requestLines(r), quote: r.review_note || undefined, button: requestButton(r) });
 }
 
 // ---- Daily summary (08:00 Bangkok) ----

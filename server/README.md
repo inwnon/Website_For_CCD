@@ -35,6 +35,7 @@ npm run db:seed         # (ไม่บังคับ) ข้อมูลตั
 | `access.mjs` | ตารางสิทธิ์โมดูลหลังบ้าน (SPEC §2): `rightOf`, `requireModule` |
 | `calendar.mjs` | ปฏิทินงาน: กิจกรรม การมอบหมาย ปฏิทินสาธารณะ (แจ้งเตือนอยู่ใน `notify.mjs`) |
 | `phonebook.mjs` | สมุดโทรศัพท์: เบอร์โทรศัพท์และเบอร์ภายในของหน่วยงาน ค้นหาภาษาไทย นำเข้าจาก Excel/CSV |
+| `requests.mjs` | คำขอใช้บริการ: เลขานุการส่งคำขอ ทีม PR อนุมัติหรือปฏิเสธ คำขอที่อนุมัติกลายเป็นงานในปฏิทิน |
 | `pages.mjs` | ส่ง `news.html` / `search.html` พร้อมเนื้อหาจาก server (Open Graph, JSON-LD, ข่าวภายใน = noindex), `sitemap.xml`, `robots.txt` |
 | `thai.mjs` | ตัดคำภาษาไทย (`Intl.Segmenter`) สำหรับค้นหา |
 | `exif.mjs` | ลบตำแหน่ง GPS ออกจากรูปที่อัปโหลด (JPEG PNG WebP HEIC) โดยไม่บีบอัดซ้ำ — `scrub-gps.mjs` ลบจากไฟล์เก่าที่มีอยู่แล้ว |
