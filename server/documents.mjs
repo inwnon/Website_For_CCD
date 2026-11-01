@@ -1,5 +1,7 @@
 // คลังเอกสาร (SPEC.md Phase 2, rights in access.mjs): files of the PR team, gathered into งาน and kept with every version they have had.
-// - GET  /api/document-works?q=&category=&archived=1  งาน with the documents the user may see, latest change first; q as in thai.mjs
+// - GET  /api/document-works?q=&category=&type=&level=&year=&person=&archived=1
+//                                                     งาน with the documents the user may see, latest change first; q as in thai.mjs
+//                                                     year is Buddhist-era, of the upload; years lists those that have documents
 // - GET  /api/document-works/people?q=                who can be named on a งาน: PR and admin
 // - GET  /api/document-works/:id                      with all its documents the user may see
 // - PUT  /api/document-works/:id                      { workTitle, peopleIds }
@@ -28,6 +30,9 @@ import { termConditions } from './thai.mjs';
 
 const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกข้อความขอความอนุเคราะห์', other: 'เอกสารอื่นๆ' };
 const LEVELS = ['team', 'private'];
+const FILE_TYPES = {
+  pdf: ['application/pdf'], word: [mimeOf('a.docx')], excel: [mimeOf('a.xlsx')], powerpoint: [mimeOf('a.pptx')], image: ['image/jpeg', 'image/png'],
+};
 const MAX_PEOPLE = 5;
 const MB = 1024 * 1024;
 const MAX_FILE = 20 * MB;
@@ -170,9 +175,13 @@ const found = async (id, user) => {
 };
 
 router.get('/document-works', allowed, async (req, res) => {
-  const { category } = req.query;
-  if (category !== undefined && !Object.hasOwn(CATEGORIES, /** @type {string} */ (category))) throw new HttpError(400, 'เลือกหมวดเอกสารให้ถูกต้อง');
-  const params = [isAdmin(req.user), req.user.id, req.query.archived === '1', category ?? null];
+  const { category, type, level, year, person } = /** @type {Record<string, string>} */ (req.query);
+  if (category !== undefined && !Object.hasOwn(CATEGORIES, category)) throw new HttpError(400, 'เลือกหมวดเอกสารให้ถูกต้อง');
+  if (type !== undefined && !Object.hasOwn(FILE_TYPES, type)) throw new HttpError(400, 'เลือกชนิดไฟล์ให้ถูกต้อง');
+  if (level !== undefined && !LEVELS.includes(level)) throw new HttpError(400, 'เลือกทีมหรือส่วนตัวให้ถูกต้อง');
+  if (year !== undefined && !/^\d{4}$/.test(year)) throw new HttpError(400, 'เลือกปีให้ถูกต้อง');
+  if (person !== undefined && !UUID.test(person)) throw new HttpError(400, 'เลือกผู้เกี่ยวข้องให้ถูกต้อง');
+  const params = [isAdmin(req.user), req.user.id, req.query.archived === '1', category ?? null, type ? FILE_TYPES[type] : null, level ?? null, year ? Number(year) - 543 : null, person ?? null];
   const anywhere = (s) => {
     params.push(`%${s.replace(/[\\%_]/g, '\\$&')}%`);
     return `(s.search_text || ' ' || w.title || ' ' || coalesce(n.names, '')) ilike $${params.length}`;
@@ -180,6 +189,9 @@ router.get('/document-works', allowed, async (req, res) => {
   const terms = termConditions(str(req.query.q, 100, 'คำค้น') ?? '', anywhere);
   const rows = (await query(`with seen as (
       ${SELECT} where ($1 or d.access_level = 'team' or d.uploaded_by = $2) and (d.archived_at is not null) = $3 and ($4::text is null or d.category = $4)
+        and ($5::text[] is null or v.mime = any($5)) and ($6::text is null or d.access_level = $6)
+        and ($7::int is null or extract(year from d.created_at at time zone 'Asia/Bangkok') = $7)
+        and ($8::uuid is null or exists (select 1 from document_work_people p where p.work_id = d.work_id and p.user_id = $8))
     ), hits as (
       select s.work_id, max(s.updated_at) latest from seen s join document_works w on w.id = s.work_id
       left join lateral (select string_agg(u.name, ' ') names from document_work_people p join users u on u.id = p.user_id where p.work_id = w.id) n on true
@@ -193,7 +205,9 @@ router.get('/document-works', allowed, async (req, res) => {
     works.get(d.work_id).documents.push(documentOut(d));
   }
   for (const p of await peopleOf([...works.keys()])) works.get(p.work_id).people.push(personOut(p));
-  res.json({ items: [...works.values()] });
+  const years = (await query(`select distinct extract(year from created_at at time zone 'Asia/Bangkok')::int + 543 y from documents
+    where $1 or access_level = 'team' or uploaded_by = $2 order by y desc`, [isAdmin(req.user), req.user.id])).rows.map((r) => r.y);
+  res.json({ items: [...works.values()], years });
 });
 
 router.get('/document-works/people', allowed, async (req, res) => {

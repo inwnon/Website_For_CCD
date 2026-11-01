@@ -67,7 +67,7 @@ Existing pages are unchanged. New pages follow the repo pattern (one `.html` per
 
 ### Phase 2 — daily operations (Must)
 9. Service requests: secretary submits → pr approves/rejects → approved request becomes a calendar event.
-10. Documents: cards with a preview; one งาน holds many documents and up to 5 ผู้เกี่ยวข้อง (PR or admin accounts, shown and searchable, no rights); categories คำสั่งมหาวิทยาลัย, คำสั่งจากหน่วยงาน (names the unit), บันทึกข้อความขอความอนุเคราะห์, เอกสารอื่นๆ; tags; Thai search; each document is the team's or personal (uploader and admin only); versions; archive, no delete.
+10. Documents: cards with a preview; one งาน holds many documents and up to 5 ผู้เกี่ยวข้อง (PR or admin accounts, shown and searchable, no rights); categories คำสั่งมหาวิทยาลัย, คำสั่งจากหน่วยงาน (names the unit), บันทึกข้อความขอความอนุเคราะห์, เอกสารอื่นๆ; tags; Thai search; each document is the team's or personal (uploader and admin only); filters by category, file type, ผู้เกี่ยวข้อง, year and team or personal; versions; no delete.
 11. Equipment: asset code, status (available / on loan / repair / retired), loan & return linked to an event, overdue list, double-booking blocked.
 
 ### Phase 3 — students & integrations (Should)

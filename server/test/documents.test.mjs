@@ -151,6 +151,27 @@ describe('finding', () => {
     assert.ok(!(await ids(pr, '?category=request_memo')).includes(d.id));
     assert.equal((await pr.call('GET', '/api/document-works?category=x')).status, 400);
   });
+  test('filters: file type, team or personal, year of upload, ผู้เกี่ยวข้อง; unknown values are refused', async () => {
+    const prId = (await pr.call('GET', '/api/me')).body.user.id;
+    const adminId = (await admin.call('GET', '/api/me')).body.user.id;
+    const d = await add({ title: 'ไฟล์ตัวกรอง', workTitle: 'งานตัวกรองทดสอบ', peopleIds: [adminId] }, file('แผน.xlsx', ZIP));
+    const mine = await add({ accessLevel: 'private', peopleIds: [prId] });
+    const has = async (q) => (await ids(pr, q)).includes(d.id);
+    assert.ok(await has('?type=excel'));
+    assert.ok(!(await has('?type=pdf')));
+    assert.ok(await has('?level=team'));
+    assert.ok(!(await has('?level=private')));
+    assert.ok((await ids(pr, '?level=private')).includes(mine.id));
+    assert.ok(await has(`?person=${adminId}`));
+    assert.ok(!(await has(`?person=${prId}`)));
+    const r = await pr.call('GET', '/api/document-works');
+    const year = new Date().getFullYear() + 543;
+    assert.ok(r.body.years.includes(year));
+    assert.ok(await has(`?year=${year}`));
+    assert.ok(!(await has(`?year=${year - 5}`)));
+    assert.ok(await has(`?type=excel&level=team&year=${year}&person=${adminId}&q=${encodeURIComponent('ตัวกรอง')}`));
+    for (const q of ['type=x', 'level=admin', 'year=69', `person=nope`]) assert.equal((await pr.call('GET', `/api/document-works?${q}`)).status, 400, q);
+  });
   test('archived documents leave the list, keep their files, and come back', async () => {
     const d = await add();
     const off = await pr.call('POST', `/api/documents/${d.id}/archive`, {});
