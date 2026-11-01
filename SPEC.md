@@ -62,7 +62,7 @@ Existing pages are unchanged. New pages follow the repo pattern (one `.html` per
 4. Calendar: day/week/month views; create/edit events; assign people with a duty.
 5. Event visibility `internal` (default) | `public`; public events on `index.html`.
 6. Notifications on assignment and the day before: in-app + email via the existing `email_outbox`.
-7. Phone book: CRUD + search (unit numbers only).
+7. Phone book: CRUD + search + import from Excel/CSV (unit numbers only).
 8. All changes written to the existing `audit_log`.
 
 ### Phase 2 — daily operations (Must)
@@ -94,7 +94,7 @@ New tables (migrations `023_…` onward):
 - `documents` (id, title, category, tags, file_path, mime, size, access_level, version, uploaded_by) + search tokens via `thai.mjs`
 - `equipment` (id, asset_code, name, category, serial, location, status)
 - `equipment_loans` (id, equipment_id, borrower_id, event_id, out_at, due_at, returned_at, condition_note)
-- `phonebook` (id, unit_name, phone_type `unit`|`internal`, number, note)
+- `phonebook` (id, unit_name, phone_number, internal_number, note): one row per unit, at least one number
 - `student_profiles` (user_id, student_code, faculty, year, phone, skills)
 - `work_logs` (id, student_id, event_id, check_in, check_out, approved_by, approved_at)
 - `notifications` (id, user_id, kind, ref_id, read_at, created_at)
