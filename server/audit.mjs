@@ -36,6 +36,7 @@ export const ACTIONS = {
   'request.cancel': 'ยกเลิกคำขอใช้บริการ',
   'document.create': 'เพิ่มเอกสาร',
   'document.update': 'แก้ไขข้อมูลเอกสาร',
+  'document.work': 'แก้ไขงานเอกสาร',
   'document.version': 'เพิ่มเวอร์ชันเอกสาร',
   'document.archive': 'เก็บเอกสารเข้าคลัง',
   'document.restore': 'นำเอกสารออกจากคลัง',

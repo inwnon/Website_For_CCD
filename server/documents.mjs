@@ -1,12 +1,17 @@
-// คลังเอกสาร (SPEC.md Phase 2, rights in access.mjs): files of the PR team, kept with every version they have had.
-// - GET  /api/documents?q=&category=&archived=1   the documents the user may see, latest change first; q as in thai.mjs
-// - GET  /api/documents/:id                       with its versions
-// - POST /api/documents                           multipart: file + data (JSON { title, category, tags, accessLevel })
-// - PUT  /api/documents/:id                       { title, category, tags, accessLevel }: the details, not the file
-// - POST /api/documents/:id/versions              multipart: file. It becomes the current one.
-// - POST /api/documents/:id/archive · restore     hides it from the list and back. There is no delete: the office keeps its records.
-// - GET  /api/documents/:id/file?version=         always a download, never shown in the browser
-// accessLevel team: PR and admin; admin: admin only, and only an admin sets it. The search does not look inside files.
+// คลังเอกสาร (SPEC.md Phase 2, rights in access.mjs): files of the PR team, gathered into งาน and kept with every version they have had.
+// - GET  /api/document-works?q=&category=&archived=1  งาน with the documents the user may see, latest change first; q as in thai.mjs
+// - GET  /api/document-works/people?q=                who can be named on a งาน: PR and admin
+// - GET  /api/document-works/:id                      with all its documents the user may see
+// - PUT  /api/document-works/:id                      { workTitle, peopleIds }
+// - GET  /api/documents/:id                           with its versions
+// - POST /api/documents                               multipart: file + data (JSON { title, category, unitName, tags, accessLevel,
+//                                                     and workId, or workTitle and peopleIds for a new งาน })
+// - PUT  /api/documents/:id                           { title, category, unitName, tags, accessLevel }: the details, not the file
+// - POST /api/documents/:id/versions                  multipart: file. It becomes the current one.
+// - POST /api/documents/:id/archive · restore         hides it from the list and back. There is no delete: the office keeps its records.
+// - GET  /api/documents/:id/file?version=             always a download, never shown in the browser
+// accessLevel team: PR and admin; private: the uploader and admin, who alone may change it. ผู้เกี่ยวข้อง give no rights.
+// The search does not look inside files.
 import { randomUUID } from 'node:crypto';
 import { extname, join } from 'node:path';
 import { Router } from 'express';
@@ -21,8 +26,9 @@ import { HttpError, str } from './http.mjs';
 import { limit, matchesName } from './security.mjs';
 import { termConditions } from './thai.mjs';
 
-const CATEGORIES = { official: 'หนังสือราชการ', report: 'รายงาน', form: 'แบบฟอร์ม', media: 'สื่อประชาสัมพันธ์', other: 'อื่น ๆ' };
-const LEVELS = ['team', 'admin'];
+const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกข้อความขอความอนุเคราะห์', other: 'เอกสารอื่นๆ' };
+const LEVELS = ['team', 'private'];
+const MAX_PEOPLE = 5;
 const MB = 1024 * 1024;
 const MAX_FILE = 20 * MB;
 const MAX_IMAGE = 10 * MB;
@@ -40,11 +46,11 @@ const uploads = limit('documents', { max: 60, windowMs: 10 * 60 * 1000 });
 export const router = Router();
 
 const documentOut = (d) => ({
-  id: d.id, title: d.title, category: d.category, tags: d.tags, accessLevel: d.access_level, version: d.version, fileName: d.file_name, mime: d.mime, size: Number(d.size),
-  uploader: d.uploader_name || null, archivedAt: d.archived_at, createdAt: d.created_at, updatedAt: d.updated_at,
+  id: d.id, workId: d.work_id, title: d.title, category: d.category, unitName: d.unit_name, tags: d.tags, accessLevel: d.access_level, version: d.version,
+  fileName: d.file_name, mime: d.mime, size: Number(d.size), ownerId: d.uploaded_by, uploader: d.uploader_name || null, archivedAt: d.archived_at, createdAt: d.created_at, updatedAt: d.updated_at,
 });
 const versionOut = (v) => ({ version: v.version, fileName: v.file_name, mime: v.mime, size: Number(v.size), uploader: v.uploader_name || null, createdAt: v.created_at });
-const searchText = (d, fileName) => [d.title, CATEGORIES[d.category], ...d.tags, fileName].join('\n');
+const searchText = (d, fileName) => [d.title, CATEGORIES[d.category], d.unit, ...d.tags, fileName].filter(Boolean).join('\n');
 
 async function respond(res, id, status = 200) {
   const versions = (await query(`select v.*, u.name uploader_name from document_versions v left join users u on u.id = v.uploaded_by
@@ -99,20 +105,53 @@ const addVersion = (c, id, version, f, user) => c.query(`insert into document_ve
 function checkDocument(b, user, was = null) {
   if (!b || typeof b !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลเอกสาร');
   const errors = {};
-  const row = { title: str(b.title, 200, 'ชื่อเอกสาร'), category: b.category, tags: [], level: b.accessLevel ?? was?.access_level ?? 'team' };
+  const row = { title: str(b.title, 200, 'ชื่อเอกสาร'), category: b.category, unit: str(b.unitName, 200, 'ชื่อหน่วยงาน'), tags: [], level: b.accessLevel ?? was?.access_level ?? 'team' };
   if (!row.title) errors.title = 'กรอกชื่อเอกสาร';
   if (!Object.hasOwn(CATEGORIES, row.category)) errors.category = 'เลือกหมวดเอกสาร';
-  if (!LEVELS.includes(row.level)) errors.accessLevel = 'เลือกระดับการเข้าถึง';
+  if (row.category !== 'unit_order') row.unit = null;
+  else if (!row.unit) errors.unitName = 'กรอกชื่อหน่วยงาน';
+  if (!LEVELS.includes(row.level)) errors.accessLevel = 'เลือกว่าเป็นเอกสารของทีมหรือส่วนตัว';
   if (Array.isArray(b.tags ?? [])) {
     row.tags = [...new Set((b.tags ?? []).map((t) => str(t, 50, 'แท็ก')).filter(Boolean))];
     if (row.tags.length > MAX_TAGS) errors.tags = `ใส่แท็กได้ไม่เกิน ${MAX_TAGS} คำ`;
   } else errors.tags = 'แท็กไม่ถูกต้อง';
   if (Object.keys(errors).length) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', errors);
-  if (!isAdmin(user) && row.level !== (was?.access_level ?? 'team')) throw new HttpError(403, 'ระดับการเข้าถึงตั้งได้เฉพาะผู้ดูแลระบบ');
+  if (was && row.level !== was.access_level && !isAdmin(user) && was.uploaded_by !== user.id) throw new HttpError(403, 'เปลี่ยนเป็นเอกสารของทีมหรือส่วนตัวได้เฉพาะผู้อัปโหลดและผู้ดูแลระบบ');
   return row;
 }
 
-const denied = (d, user) => d.access_level === 'admin' && !isAdmin(user);
+// Throws 400 with a field → message map. People must be PR or admin accounts.
+async function checkWork(b) {
+  const errors = {};
+  const title = str(b.workTitle, 200, 'ชื่องาน');
+  const people = Array.isArray(b.peopleIds ?? []) ? b.peopleIds ?? [] : null;
+  if (!title) errors.workTitle = 'กรอกชื่องาน';
+  if (!people || people.length > MAX_PEOPLE) errors.people = `ระบุผู้เกี่ยวข้องได้ไม่เกิน ${MAX_PEOPLE} คน`;
+  else if (people.some((p) => typeof p !== 'string' || !UUID.test(p))) errors.people = 'ไม่พบบางคนที่เลือก';
+  else if (new Set(people).size < people.length) errors.people = 'เลือกคนเดียวกันซ้ำ';
+  else if (people.length && (await one(`select count(*)::int n from users where id = any($1::uuid[]) and role in ('pr', 'admin') and erased_at is null`, [people])).n < people.length) {
+    errors.people = 'ผู้เกี่ยวข้องต้องเป็นทีม PR หรือผู้ดูแลระบบ';
+  }
+  if (Object.keys(errors).length) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', errors);
+  return { title, people };
+}
+async function setPeople(c, workId, people) {
+  await c.query('delete from document_work_people where work_id = $1', [workId]);
+  for (const id of people) await c.query('insert into document_work_people (work_id, user_id) values ($1, $2)', [workId, id]);
+}
+const peopleOf = async (ids) => (await query(`select p.work_id, u.id, u.name, u.email from document_work_people p join users u on u.id = p.user_id
+  where p.work_id = any($1::uuid[]) order by u.name`, [ids])).rows;
+const personOut = (p) => ({ id: p.id, name: p.name || p.email });
+
+// A งาน can be used through a document the user may see. Only someone else's private documents: refused.
+async function workFor(id, user) {
+  const w = UUID.test(id) ? await one('select * from document_works where id = $1', [id]) : null;
+  if (!w) throw new HttpError(404, 'ไม่พบงานนี้');
+  if (!(await one(`select 1 from documents where work_id = $1 and ($2 or access_level = 'team' or uploaded_by = $3) limit 1`, [id, isAdmin(user), user.id]))) throw new HttpError(403, 'บัญชีนี้ไม่มีสิทธิ์ใช้งานนี้');
+  return w;
+}
+
+const denied = (d, user) => d.access_level === 'private' && !isAdmin(user) && d.uploaded_by !== user.id;
 function mayUse(d, user) {
   if (!d) throw new HttpError(404, 'ไม่พบเอกสารนี้');
   if (denied(d, user)) throw new HttpError(403, 'บัญชีนี้ไม่มีสิทธิ์ใช้เอกสารนี้');
@@ -130,18 +169,55 @@ const found = async (id, user) => {
   return d;
 };
 
-router.get('/documents', allowed, async (req, res) => {
+router.get('/document-works', allowed, async (req, res) => {
   const { category } = req.query;
   if (category !== undefined && !Object.hasOwn(CATEGORIES, /** @type {string} */ (category))) throw new HttpError(400, 'เลือกหมวดเอกสารให้ถูกต้อง');
-  const params = [isAdmin(req.user), req.query.archived === '1', category ?? null];
+  const params = [isAdmin(req.user), req.user.id, req.query.archived === '1', category ?? null];
   const anywhere = (s) => {
     params.push(`%${s.replace(/[\\%_]/g, '\\$&')}%`);
-    return `d.search_text ilike $${params.length}`;
+    return `(s.search_text || ' ' || w.title || ' ' || coalesce(n.names, '')) ilike $${params.length}`;
   };
   const terms = termConditions(str(req.query.q, 100, 'คำค้น') ?? '', anywhere);
-  const rows = (await query(`${SELECT} where ($1 or d.access_level = 'team') and (d.archived_at is not null) = $2 and ($3::text is null or d.category = $3)
-    ${terms.map((t) => `and ${t}`).join(' ')} order by d.updated_at desc limit 200`, params)).rows;
-  res.json({ items: rows.map(documentOut) });
+  const rows = (await query(`with seen as (
+      ${SELECT} where ($1 or d.access_level = 'team' or d.uploaded_by = $2) and (d.archived_at is not null) = $3 and ($4::text is null or d.category = $4)
+    ), hits as (
+      select s.work_id, max(s.updated_at) latest from seen s join document_works w on w.id = s.work_id
+      left join lateral (select string_agg(u.name, ' ') names from document_work_people p join users u on u.id = p.user_id where p.work_id = w.id) n on true
+      where true ${terms.map((t) => `and ${t}`).join(' ')} group by s.work_id order by latest desc limit 100
+    )
+    select s.*, w.title work_title, h.latest from seen s join hits h on h.work_id = s.work_id join document_works w on w.id = s.work_id
+    order by h.latest desc, s.created_at`, params)).rows;
+  const works = new Map();
+  for (const d of rows) {
+    if (!works.has(d.work_id)) works.set(d.work_id, { id: d.work_id, title: d.work_title, updatedAt: d.latest, people: [], documents: [] });
+    works.get(d.work_id).documents.push(documentOut(d));
+  }
+  for (const p of await peopleOf([...works.keys()])) works.get(p.work_id).people.push(personOut(p));
+  res.json({ items: [...works.values()] });
+});
+
+router.get('/document-works/people', allowed, async (req, res) => {
+  const q = str(req.query.q, 100, 'คำค้น');
+  const rows = (await query(`select id, name, email from users where role in ('pr', 'admin') and erased_at is null
+    and ($1::text is null or name ilike $1 or email ilike $1) order by name, email limit 20`, [q ? `%${q.replace(/[\\%_]/g, '\\$&')}%` : null])).rows;
+  res.json({ items: rows.map(personOut) });
+});
+
+router.get('/document-works/:id', allowed, async (req, res) => {
+  const w = await workFor(req.params.id, req.user);
+  const rows = (await query(`${SELECT} where d.work_id = $1 and ($2 or d.access_level = 'team' or d.uploaded_by = $3) order by d.created_at`, [w.id, isAdmin(req.user), req.user.id])).rows;
+  res.json({ work: { id: w.id, title: w.title, updatedAt: w.updated_at, people: (await peopleOf([w.id])).map(personOut), documents: rows.map(documentOut) } });
+});
+
+router.put('/document-works/:id', allowed, async (req, res) => {
+  const was = await workFor(req.params.id, req.user);
+  const d = await checkWork(req.body ?? {});
+  await tx(async (c) => {
+    await c.query('update document_works set title = $2, updated_at = now() where id = $1', [was.id, d.title]);
+    await setPeople(c, was.id, d.people);
+    await audit(c, req.user, 'document.work', was.id, `แก้ไขงานเอกสาร ${d.title}`, { people: d.people.length });
+  });
+  res.json({ work: { id: was.id, title: d.title, people: (await peopleOf([was.id])).map(personOut) } });
 });
 
 router.get('/documents/:id', allowed, async (req, res) => {
@@ -162,9 +238,17 @@ router.post('/documents', allowed, uploads, receive, async (req, res) => {
   try {
     const d = checkDocument(req.data, req.user);
     needFile(req);
+    const known = req.data.workId === undefined ? null : await workFor(req.data.workId, req.user);
+    const fresh = known ? null : await checkWork({ ...req.data, workTitle: req.data.workTitle ?? d.title });
     await withFile(id, req.file, async (c, f) => {
-      await c.query(`insert into documents (id, title, category, tags, access_level, search_text, uploaded_by) values ($1, $2, $3, $4, $5, $6, $7)`,
-        [id, d.title, d.category, d.tags, d.level, searchText(d, f.name), req.user.id]);
+      const workId = known?.id ?? randomUUID();
+      if (known) await c.query('update document_works set updated_at = now() where id = $1', [workId]);
+      else {
+        await c.query('insert into document_works (id, title, created_by) values ($1, $2, $3)', [workId, fresh.title, req.user.id]);
+        await setPeople(c, workId, fresh.people);
+      }
+      await c.query(`insert into documents (id, work_id, title, category, unit_name, tags, access_level, search_text, uploaded_by) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [id, workId, d.title, d.category, d.unit, d.tags, d.level, searchText(d, f.name), req.user.id]);
       await addVersion(c, id, 1, f, req.user);
       await audit(c, req.user, 'document.create', id, `เพิ่มเอกสาร ${d.title}`, { category: d.category, level: d.level });
     });
@@ -184,7 +268,7 @@ router.post('/documents/:id/versions', allowed, uploads, receive, async (req, re
       openOnly(d);
       const version = d.version + 1;
       await addVersion(c, id, version, f, req.user);
-      await c.query('update documents set version = $2, search_text = $3, updated_at = now() where id = $1', [id, version, searchText(d, f.name)]);
+      await c.query('update documents set version = $2, search_text = $3, updated_at = now() where id = $1', [id, version, searchText({ ...d, unit: d.unit_name }, f.name)]);
       await audit(c, req.user, 'document.version', id, `เพิ่มเวอร์ชัน ${version} ของ ${d.title}`, { version });
     });
   } finally {
@@ -200,8 +284,8 @@ router.put('/documents/:id', allowed, async (req, res) => {
     openOnly(was);
     const d = checkDocument(req.body, req.user, was);
     const { file_name: name } = (await c.query('select file_name from document_versions where document_id = $1 and version = $2', [id, was.version])).rows[0];
-    await c.query('update documents set title = $2, category = $3, tags = $4, access_level = $5, search_text = $6, updated_at = now() where id = $1',
-      [id, d.title, d.category, d.tags, d.level, searchText(d, name)]);
+    await c.query('update documents set title = $2, category = $3, unit_name = $4, tags = $5, access_level = $6, search_text = $7, updated_at = now() where id = $1',
+      [id, d.title, d.category, d.unit, d.tags, d.level, searchText(d, name)]);
     await audit(c, req.user, 'document.update', id, `แก้ไขเอกสาร ${d.title}`, { category: d.category, level: d.level });
   });
   await respond(res, id);

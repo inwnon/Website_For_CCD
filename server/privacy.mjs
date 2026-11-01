@@ -126,6 +126,8 @@ export async function erase(c, userId) {
   // Documents stay too (university records rules), without who uploaded them
   await c.query('update documents set uploaded_by = null where uploaded_by = $1', [userId]);
   await c.query('update document_versions set uploaded_by = null where uploaded_by = $1', [userId]);
+  await c.query('update document_works set created_by = null where created_by = $1', [userId]);
+  await c.query('delete from document_work_people where user_id = $1', [userId]);
   await c.query('delete from notifications where user_id = $1', [userId]);
   await c.query('delete from news_reads where reader = $1', [`u:${userId}`]);
   // Unsent emails to this address go, except the confirmation queued just before (privacy.done)
