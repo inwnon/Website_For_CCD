@@ -35,10 +35,11 @@
     .doc-mini .doc-shot { inset: 4px 4px 0; width: calc(100% - 8px); height: calc(100% - 4px); border-radius: 4px 4px 0 0; }
     @keyframes shotIn { from { opacity: 0; } to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { .doc-shot { animation: none; } }
+    .page-btn[aria-current="page"] { background: rgb(var(--royal)); border-color: rgb(var(--royal)); color: rgb(var(--shell)); }
     .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=805d728d8b">
+  <link rel="stylesheet" href="/assets/app.css?v=e60b0b0cfa">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการเอกสาร</a>
@@ -80,6 +81,14 @@
           <ul id="list" tabindex="-1" class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"></ul>
           <p id="empty" class="rounded-card bg-shell py-10 text-center text-[15px] text-ink2 shadow-raised" hidden></p>
         </section>
+
+        <div id="pager" class="flex flex-wrap items-center justify-between gap-3 rounded-card bg-shell px-4 py-3 shadow-raised" hidden>
+          <label class="flex items-center gap-2 text-[14px] text-ink2">แสดงหน้าละ
+            <select id="perPage" class="field doc-sel h-11 rounded-2xl pl-3 pr-8 text-[14px]"><option value="20">20 งาน</option><option value="40">40 งาน</option><option value="60">60 งาน</option></select>
+          </label>
+          <p id="range" class="text-[14px] text-ink2 max-sm:order-3 max-sm:w-full"></p>
+          <nav id="pages" class="flex flex-wrap items-center gap-1" aria-label="เลือกหน้า"></nav>
+        </div>
       </div>
     </main>
   </div>
@@ -240,13 +249,14 @@
     const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกข้อความขอความอนุเคราะห์', other: 'เอกสารอื่นๆ' };
     const FIELDS = { workTitle: '#fWork', people: '#fWho', file: '#fFile', title: '#fTitle', category: '#fCategory', docDate: '#fDate', unitName: '#fUnit', tags: '#fTags' };
     const MAX_FILES = 10;
+    const PER_PAGE = [20, 40, 60];
     const MAX_PEOPLE = 5;
     const PREVIEW_WIDTH = 480;
     const FILE_TYPES = { pdf: 'PDF', word: 'Word', excel: 'Excel', powerpoint: 'PowerPoint', image: 'ภาพ' };
     const FILE_KIND = { pdf: 'pdf', docx: 'word', xlsx: 'excel', pptx: 'powerpoint', jpg: 'image', jpeg: 'image', png: 'image' };
     const FILE_ICON = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>';
     const PDFJS = '/assets/pdfjs-6.4.299/';
-    const state = { works: [], files: [], asked: 0, work: null, doc: null, mode: 'new', admin: false, me: null, who: null, editWho: null };
+    const state = { works: [], files: [], total: 0, page: 1, perPage: 20, asked: 0, work: null, doc: null, mode: 'new', admin: false, me: null, who: null, editWho: null };
 
     // Everything from the server goes in as text nodes, never as HTML
     function el(tag, props = {}, ...kids) {
@@ -349,11 +359,36 @@
     }
     function paint(filtered) {
       $('#list').replaceChildren(...state.works.map(card));
-      $('#count').textContent = `${filtered ? 'พบ' : 'ทั้งหมด'} ${state.works.length} งาน`;
-      $('#empty').hidden = state.works.length > 0;
+      $('#count').textContent = `${filtered ? 'พบ' : 'ทั้งหมด'} ${state.total} งาน`;
+      $('#empty').hidden = state.total > 0;
       $('#empty').textContent = filtered ? 'ไม่พบงานที่ตรงกับเงื่อนไข' : 'ยังไม่มีงานในคลังเอกสาร';
       $('#clear').hidden = !filtered;
+      paintPager();
     }
+    // The numbers near the current page, with the first and the last always there
+    function pageNumbers(last) {
+      const near = [...new Set([1, state.page - 1, state.page, state.page + 1, last])].filter((n) => n >= 1 && n <= last).sort((a, b) => a - b);
+      return near.flatMap((n, i) => (i && n - near[i - 1] > 1 ? [null, n] : [n]));
+    }
+    function paintPager() {
+      const last = Math.max(1, Math.ceil(state.total / state.perPage));
+      const button = (label, page, props = {}) => el('button', { type: 'button', class: 'page-btn hover-fill press t-quick h-11 min-w-11 rounded-2xl border border-line px-3 font-display text-[15px] font-medium disabled:opacity-40', onclick: () => goTo(page), ...props }, label);
+      $('#pager').hidden = state.total <= PER_PAGE[0];
+      $('#perPage').value = String(state.perPage);
+      $('#range').textContent = `${(state.page - 1) * state.perPage + 1}-${Math.min(state.page * state.perPage, state.total)} จาก ${state.total} งาน`;
+      $('#pages').replaceChildren(
+        button('ก่อนหน้า', state.page - 1, { disabled: state.page === 1 }),
+        ...pageNumbers(last).map((n) => (n ? button(String(n), n, { 'aria-label': `หน้า ${n}`, 'aria-current': n === state.page ? 'page' : null }) : el('span', { class: 'px-1 text-ink2', 'aria-hidden': 'true' }, '…'))),
+        button('ถัดไป', state.page + 1, { disabled: state.page === last }));
+    }
+    async function goTo(page) {
+      state.page = page;
+      await load();
+      $('#list').focus({ preventScroll: true });
+      $('#app').scrollIntoView({ block: 'start' });
+    }
+    // A new search or filter starts again from the first page
+    const fresh = () => { state.page = 1; return load(); };
     function paintYears(years) {
       const box = $('#filterYear'), now = box.value;
       box.replaceChildren(el('option', { value: '' }, 'ทุกปี'), ...years.map((y) => el('option', { value: y }, `พ.ศ. ${y}`)));
@@ -365,13 +400,18 @@
       const asked = ++state.asked;
       const params = new URLSearchParams();
       if (q) params.set('q', q);
+      params.set('page', state.page);
+      params.set('perPage', state.perPage);
       document.querySelectorAll('[data-filter]').forEach((f) => { if (f.value) params.set(f.dataset.filter, f.value); });
       try {
         const r = await api(`/document-works?${params}`);
         if (asked !== state.asked) return;
+        // The page can be gone after a change: fall back to the last one
+        if (!r.items.length && r.total && state.page > 1) { state.page = Math.ceil(r.total / state.perPage); await load(); return; }
         state.works = r.items;
+        state.total = r.total;
         paintYears(r.years);
-        paint(params.size > 0);
+        paint(params.size > 2);
       } catch (err) { toast(err.message, true); }
     }
 
@@ -652,6 +692,7 @@
       const user = await DESK.start({ page: 'documents', allow: ['pr', 'admin'] });
       if (!user) return;
       state.admin = user.role === 'admin';
+      try { const n = Number(localStorage.getItem('documentsPerPage')); if (PER_PAGE.includes(n)) state.perPage = n; } catch (e) {}
       state.me = user.id;
       const options = Object.entries(CATEGORIES).map(([k, l]) => el('option', { value: k }, l));
       $('#fCategory').replaceChildren(el('option', { value: '' }, 'เลือกหมวดเอกสาร'), ...options);
@@ -667,12 +708,17 @@
       $('#app').hidden = false;
 
       let wait;
-      $('#search').addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(load, 250); });
-      document.querySelectorAll('[data-filter]').forEach((f) => f.addEventListener('change', load));
+      $('#search').addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(fresh, 250); });
+      document.querySelectorAll('[data-filter]').forEach((f) => f.addEventListener('change', fresh));
+      $('#perPage').addEventListener('change', () => {
+        state.perPage = Number($('#perPage').value);
+        try { localStorage.setItem('documentsPerPage', state.perPage); } catch (e) {}
+        fresh();
+      });
       $('#clear').addEventListener('click', () => {
         $('#search').value = '';
         document.querySelectorAll('[data-filter]').forEach((f) => { f.value = ''; });
-        load();
+        fresh();
         $('#search').focus();
       });
       $('#add').addEventListener('click', () => openForm('new'));

@@ -188,6 +188,21 @@ describe('finding', () => {
     assert.equal((await pr.call('POST', `/api/documents/${d.id}/restore`, {})).status, 409);
     for (const action of ['document.archive', 'document.restore']) assert.ok(await one('select 1 from audit_log where action = $1 and target = $2', [action, d.id]), action);
   });
+  test('pages: each งาน once, the total counts every match, filters still apply', async () => {
+    const q = `?q=${encodeURIComponent('งานแบ่งหน้าทดสอบ')}`;
+    const made = [];
+    for (let i = 1; i <= 5; i++) made.push((await add({ workTitle: `งานแบ่งหน้าทดสอบ ${i}` })).workId);
+    const one = (await pr.call('GET', `/api/document-works${q}&perPage=2&page=1`)).body;
+    const two = (await pr.call('GET', `/api/document-works${q}&perPage=2&page=2`)).body;
+    const three = (await pr.call('GET', `/api/document-works${q}&perPage=2&page=3`)).body;
+    assert.deepEqual([one.total, one.page, one.perPage], [5, 1, 2]);
+    assert.deepEqual([one.items.length, two.items.length, three.items.length], [2, 2, 1]);
+    assert.deepEqual([...one.items, ...two.items, ...three.items].map((w) => w.id).sort(), [...made].sort());
+    const past = (await pr.call('GET', `/api/document-works${q}&perPage=2&page=9`)).body;
+    assert.deepEqual([past.items.length, past.total], [0, 5]);
+    assert.equal((await pr.call('GET', `/api/document-works${q}&type=excel`)).body.total, 0);
+    for (const bad of ['page=0', 'page=x', 'perPage=0', 'perPage=101', 'perPage=1.5']) assert.equal((await pr.call('GET', `/api/document-works?${bad}`)).status, 400, bad);
+  });
   test('รอบประเมิน counts from the date of the document; round 2 crosses into the next year', async () => {
     const round1 = await add({ title: 'เอกสารรอบหนึ่ง', docDate: '2026-09-30' });
     const round2 = await add({ title: 'เอกสารรอบสองปลายปี', docDate: '2026-10-01' });
