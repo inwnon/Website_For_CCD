@@ -36,7 +36,10 @@ export async function restore(snap) {
       await client.query('delete from events where created_at >= $1 and created_by = any($2)', [snap.at, devIds]); // assignments cascade
       await client.query('delete from notifications where created_at >= $1', [snap.at]);
     }
-    if (await tableExists('documents')) documents = (await client.query('delete from documents where created_at >= $1 returning id', [snap.at])).rows.map((r) => r.id); // versions cascade
+    if (await tableExists('documents')) {
+      documents = (await client.query('delete from documents where created_at >= $1 returning id', [snap.at])).rows.map((r) => r.id); // versions cascade
+      await client.query('delete from document_works where created_at >= $1', [snap.at]);
+    }
     if (await tableExists('collections')) await client.query('delete from collections where created_at >= $1 and created_by = any($2)', [snap.at, devIds]);
     // Reads counted during the run, on stories that stay (the seed stories)
     const reads = (await client.query('delete from news_reads where at >= $1 returning news_id, day, source, device', [snap.at])).rows;

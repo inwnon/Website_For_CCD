@@ -14,7 +14,7 @@ const TEMP_EMAIL = 'documents-test@sru.ac.th';
 const UUID = '00000000-0000-4000-8000-000000000000';
 const PDF = Buffer.from('%PDF-1.7\nเอกสารทดสอบ\n');
 const ZIP = Buffer.from('PK\x03\x04ทดสอบ');
-const info = (over = {}) => ({ title: 'เอกสารทดสอบคลัง', category: 'report', tags: ['ทดสอบ'], ...over });
+const info = (over = {}) => ({ title: 'เอกสารทดสอบคลัง', category: 'other', tags: ['ทดสอบ'], ...over });
 /** @param {string} [name] @param {Buffer} [buf] @param {string} [type] */
 const file = (name = 'รายงาน.pdf', buf = PDF, type = 'application/pdf') => ({ file: [[name, buf, type]] });
 
@@ -24,7 +24,8 @@ const add = async (over, f = file(), who = pr) => {
   assert.equal(r.status, 201, JSON.stringify(r.body));
   return r.body.document;
 };
-const ids = async (who, q = '') => (await who.call('GET', `/api/documents${q}`)).body.items.map((d) => d.id);
+const works = async (who, q = '') => (await who.call('GET', `/api/document-works${q}`)).body.items;
+const ids = async (who, q = '') => (await works(who, q)).flatMap((w) => w.documents.map((d) => d.id));
 
 before(async () => {
   snap = await snapshot();
@@ -116,7 +117,7 @@ describe('downloading and versions', () => {
     assert.equal((await pr.call('GET', `/api/documents/${d.id}/file?version=9`)).status, 404);
     assert.equal((await pr.call('GET', `/api/documents/${d.id}/file?version=x`)).status, 404);
     assert.ok(await one(`select 1 from audit_log where action = 'document.version' and target = $1`, [d.id]));
-    assert.ok((await pr.call('GET', `/api/documents?q=${encodeURIComponent('ฉบับใหม่')}`)).body.items.some((x) => x.id === d.id), 'the new name can be found');
+    assert.ok((await ids(pr, `?q=${encodeURIComponent('ฉบับใหม่')}`)).includes(d.id), 'the new name can be found');
   });
   test('versions added at the same time get their own numbers', async () => {
     const d = await add();
@@ -126,7 +127,7 @@ describe('downloading and versions', () => {
   });
   test('editing changes the details, not the file', async () => {
     const d = await add();
-    const r = await pr.call('PUT', `/api/documents/${d.id}`, info({ title: 'ชื่อใหม่ทดสอบ', category: 'form', tags: ['ใหม่', 'ใหม่', ' แบบฟอร์ม '] }));
+    const r = await pr.call('PUT', `/api/documents/${d.id}`, info({ title: 'ชื่อใหม่ทดสอบ', category: 'request_memo', tags: ['ใหม่', 'ใหม่', ' แบบฟอร์ม '] }));
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.equal(r.body.document.title, 'ชื่อใหม่ทดสอบ');
     assert.deepEqual(r.body.document.tags, ['ใหม่', 'แบบฟอร์ม']);
@@ -138,17 +139,17 @@ describe('downloading and versions', () => {
 
 describe('finding', () => {
   test('Thai search: part of a word, words in any order, tags, category, file name', async () => {
-    const d = await add({ title: 'รายงานประจำปีงบประมาณ', category: 'official', tags: ['ค่ายอาสา'] }, file('สรุปผลโครงการ.pdf'));
-    for (const q of ['งบประมาณ', 'ประมา', 'งบประมาณรายงาน', 'ค่ายอา', 'หนังสือราชการ', 'สรุปผล']) {
+    const d = await add({ title: 'รายงานประจำปีงบประมาณ', category: 'unit_order', unitName: 'กองกลางทดสอบ', workTitle: 'โครงการพัฒนาบุคลากร', tags: ['ค่ายอาสา'] }, file('สรุปผลโครงการ.pdf'));
+    for (const q of ['งบประมาณ', 'ประมา', 'งบประมาณรายงาน', 'ค่ายอา', 'คำสั่งจากหน่วยงาน', 'กองกลางทดสอบ', 'สรุปผล', 'พัฒนาบุคลากร']) {
       assert.ok((await ids(pr, `?q=${encodeURIComponent(q)}`)).includes(d.id), q);
     }
     assert.equal((await ids(pr, `?q=${encodeURIComponent('ไม่มีคำนี้เลยในคลัง')}`)).length, 0);
   });
   test('the list filters by category; unknown filters are refused', async () => {
-    const d = await add({ category: 'media' });
-    assert.ok((await ids(pr, '?category=media')).includes(d.id));
-    assert.ok(!(await ids(pr, '?category=form')).includes(d.id));
-    assert.equal((await pr.call('GET', '/api/documents?category=x')).status, 400);
+    const d = await add({ category: 'university_order' });
+    assert.ok((await ids(pr, '?category=university_order')).includes(d.id));
+    assert.ok(!(await ids(pr, '?category=request_memo')).includes(d.id));
+    assert.equal((await pr.call('GET', '/api/document-works?category=x')).status, 400);
   });
   test('archived documents leave the list, keep their files, and come back', async () => {
     const d = await add();
@@ -172,35 +173,110 @@ describe('finding', () => {
   });
 });
 
-describe('access levels', () => {
-  test('a document for admins only: PR cannot reach it by list, search or id', async () => {
-    const d = await add({ title: 'ลับเฉพาะผู้ดูแลทดสอบ', accessLevel: 'admin' }, file(), admin);
+describe('งาน', () => {
+  test('one งาน holds many documents; a new one is made with its first document', async () => {
+    const first = await add({ title: 'คำสั่งแต่งตั้ง', workTitle: 'งานรับปริญญาทดสอบ', category: 'university_order' });
+    const second = await add({ title: 'บันทึกขอความอนุเคราะห์', workId: first.workId, category: 'request_memo' });
+    assert.equal(second.workId, first.workId);
+    const w = (await pr.call('GET', `/api/document-works/${first.workId}`)).body.work;
+    assert.equal(w.title, 'งานรับปริญญาทดสอบ');
+    assert.deepEqual(w.documents.map((d) => d.id), [first.id, second.id]);
+    const card = (await works(pr, `?q=${encodeURIComponent('รับปริญญาทดสอบ')}`))[0];
+    assert.equal(card.id, first.workId);
+    assert.equal(card.documents.length, 2);
+  });
+  test('a งาน without its own name takes the document name', async () => {
+    const d = await add({ title: 'ชื่อเดียวทดสอบ' });
+    assert.equal((await pr.call('GET', `/api/document-works/${d.workId}`)).body.work.title, 'ชื่อเดียวทดสอบ');
+  });
+  test('adding to a งาน that does not exist is refused and keeps no file', async () => {
+    const before = (await readdir(abs('tmp'))).length;
+    assert.equal((await pr.call('POST', '/api/documents', form(info({ workId: UUID }), file()))).status, 404);
+    assert.equal((await readdir(abs('tmp'))).length, before);
+  });
+  test('คำสั่งจากหน่วยงาน needs the unit; other categories drop it', async () => {
+    const r = await pr.call('POST', '/api/documents', form(info({ category: 'unit_order', unitName: ' ' }), file()));
+    assert.equal(r.status, 400);
+    assert.ok(r.body.details.unitName);
+    const d = await add({ category: 'unit_order', unitName: 'สำนักงานอธิการบดี' });
+    assert.equal(d.unitName, 'สำนักงานอธิการบดี');
+    assert.equal((await pr.call('PUT', `/api/documents/${d.id}`, info({ category: 'other', unitName: 'ทิ้งไป' }))).body.document.unitName, null);
+  });
+  test('at most 5 ผู้เกี่ยวข้อง, PR and admin only; they can be changed and searched', async () => {
+    const prId = (await pr.call('GET', '/api/me')).body.user.id;
+    const adminId = (await admin.call('GET', '/api/me')).body.user.id;
+    const studentId = (await student.call('GET', '/api/me')).body.user.id;
+    const people = (await pr.call('GET', '/api/document-works/people')).body.items;
+    assert.ok(people.some((p) => p.id === prId) && people.some((p) => p.id === adminId));
+    assert.ok(!people.some((p) => p.id === studentId));
+    const d = await add({ workTitle: 'งานมีผู้เกี่ยวข้อง', peopleIds: [prId, adminId] });
+    const w = `/api/document-works/${d.workId}`;
+    assert.equal((await pr.call('GET', w)).body.work.people.length, 2);
+    const { name } = (await pr.call('GET', w)).body.work.people[0];
+    assert.ok((await ids(pr, `?q=${encodeURIComponent(name)}`)).includes(d.id), 'found by name');
+    assert.equal((await pr.call('PUT', w, { workTitle: 'ชื่อใหม่', peopleIds: [studentId] })).status, 400);
+    assert.equal((await pr.call('PUT', w, { workTitle: 'ชื่อใหม่', peopleIds: [prId, prId] })).status, 400);
+    assert.equal((await pr.call('PUT', w, { workTitle: 'ชื่อใหม่', peopleIds: Array(6).fill(UUID) })).status, 400);
+    assert.equal((await pr.call('PUT', w, { workTitle: ' ' })).status, 400);
+    const r = await pr.call('PUT', w, { workTitle: 'ชื่อใหม่', peopleIds: [adminId] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.deepEqual(r.body.work.people.map((p) => p.id), [adminId]);
+    assert.ok(await one('select 1 from audit_log where action = $1 and target = $2', ['document.work', d.workId]));
+  });
+  test('ผู้เกี่ยวข้อง get no rights: a named person still cannot open a private document of someone else', async () => {
+    const prId = (await pr.call('GET', '/api/me')).body.user.id;
+    const d = await add({ accessLevel: 'private', peopleIds: [prId] }, file(), admin);
+    assert.equal((await pr.call('GET', `/api/documents/${d.id}/file`)).status, 403);
+  });
+});
+
+describe('team or personal', () => {
+  test('a personal document opens for the uploader and admin, nobody else', async () => {
+    const d = await add({ title: 'ส่วนตัวของคนหนึ่งทดสอบ', accessLevel: 'private' }, file(), admin);
+    const mine = await add({ title: 'ส่วนตัวของ PR ทดสอบ', accessLevel: 'private' });
+    const doc = `/api/documents/${d.id}`, work = `/api/document-works/${d.workId}`;
     assert.ok((await ids(admin)).includes(d.id));
     assert.ok(!(await ids(pr)).includes(d.id));
-    assert.ok(!(await ids(pr, `?q=${encodeURIComponent('ลับเฉพาะผู้ดูแล')}`)).includes(d.id));
-    assert.equal((await pr.call('GET', `/api/documents/${d.id}`)).status, 403);
-    assert.equal((await pr.call('GET', `/api/documents/${d.id}/file`)).status, 403);
-    assert.equal((await pr.call('GET', `/api/documents/${d.id}/file?version=1`)).status, 403);
-    assert.equal((await pr.call('PUT', `/api/documents/${d.id}`, info())).status, 403);
-    assert.equal((await pr.call('POST', `/api/documents/${d.id}/versions`, form({}, file()))).status, 403);
-    assert.equal((await pr.call('POST', `/api/documents/${d.id}/archive`, {})).status, 403);
-    assert.equal((await pr.call('POST', `/api/documents/${d.id}/restore`, {})).status, 403);
-    assert.equal((await admin.call('GET', `/api/documents/${d.id}/file`)).status, 200);
+    assert.ok(!(await ids(pr, `?q=${encodeURIComponent('ส่วนตัวของคนหนึ่ง')}`)).includes(d.id));
+    assert.equal((await pr.call('GET', work)).status, 403);
+    assert.equal((await pr.call('PUT', work, { workTitle: 'ยึด' })).status, 403);
+    assert.equal((await pr.call('POST', '/api/documents', form(info({ workId: d.workId }), file()))).status, 403);
+    assert.equal((await pr.call('GET', doc)).status, 403);
+    assert.equal((await pr.call('GET', `${doc}/file`)).status, 403);
+    assert.equal((await pr.call('GET', `${doc}/file?version=1`)).status, 403);
+    assert.equal((await pr.call('PUT', doc, info())).status, 403);
+    assert.equal((await pr.call('POST', `${doc}/versions`, form({}, file()))).status, 403);
+    assert.equal((await pr.call('POST', `${doc}/archive`, {})).status, 403);
+    assert.equal((await pr.call('POST', `${doc}/restore`, {})).status, 403);
+    assert.equal((await pr.call('GET', `/api/documents/${mine.id}/file`)).status, 200);
+    assert.equal((await admin.call('GET', `/api/documents/${mine.id}/file`)).status, 200);
   });
-  test('only an admin sets the level', async () => {
-    assert.equal((await pr.call('POST', '/api/documents', form(info({ accessLevel: 'admin' }), file()))).status, 403);
-    const d = await add();
-    assert.equal((await pr.call('PUT', `/api/documents/${d.id}`, info({ accessLevel: 'admin' }))).status, 403);
-    assert.equal((await pr.call('PUT', `/api/documents/${d.id}`, info({ accessLevel: 'team' }))).status, 200);
-    assert.equal((await admin.call('PUT', `/api/documents/${d.id}`, info({ accessLevel: 'admin' }))).body.document.accessLevel, 'admin');
-    assert.equal((await admin.call('PUT', `/api/documents/${d.id}`, info())).body.document.accessLevel, 'admin', 'left out: stays as it was');
+  test('in one งาน, a teammate sees the documents of the team only', async () => {
+    const shared = await add({ workTitle: 'งานปนกันทดสอบ' });
+    const hidden = await add({ title: 'ลับในงานเดียวกัน', workId: shared.workId, accessLevel: 'private' }, file(), admin);
+    const work = `/api/document-works/${shared.workId}`;
+    assert.deepEqual((await pr.call('GET', work)).body.work.documents.map((d) => d.id), [shared.id]);
+    assert.deepEqual((await admin.call('GET', work)).body.work.documents.map((d) => d.id), [shared.id, hidden.id]);
+    assert.equal((await works(pr)).find((w) => w.id === shared.workId).documents.length, 1);
+  });
+  test('only the uploader and admin switch between team and personal', async () => {
+    const d = await add({}, file(), admin);
+    const url = `/api/documents/${d.id}`;
+    assert.equal((await pr.call('PUT', url, info({ accessLevel: 'private' }))).status, 403);
+    assert.equal((await pr.call('PUT', url, info({ accessLevel: 'team' }))).status, 200);
+    assert.equal((await admin.call('PUT', url, info({ accessLevel: 'private' }))).body.document.accessLevel, 'private');
+    const mine = await add();
+    const own = `/api/documents/${mine.id}`;
+    assert.equal((await pr.call('PUT', own, info({ accessLevel: 'private' }))).body.document.accessLevel, 'private');
+    assert.equal((await admin.call('PUT', own, info({ accessLevel: 'team' }))).body.document.accessLevel, 'team');
+    assert.equal((await pr.call('PUT', own, info())).body.document.accessLevel, 'team', 'left out: stays as it was');
   });
 });
 
 describe('who may do what', () => {
   test('only PR and admin: every other role gets 403 on every route, the signed-out 401', async () => {
     const d = await add();
-    const routes = [['GET', '/api/documents'], ['GET', `/api/documents/${d.id}`], ['GET', `/api/documents/${d.id}/file`], ['PUT', `/api/documents/${d.id}`, info()],
+    const routes = [['GET', '/api/document-works'], ['GET', '/api/document-works/people'], ['GET', `/api/document-works/${d.workId}`], ['PUT', `/api/document-works/${d.workId}`, { workTitle: 'ทดสอบ' }], ['GET', `/api/documents/${d.id}`], ['GET', `/api/documents/${d.id}/file`], ['PUT', `/api/documents/${d.id}`, info()],
       ['POST', `/api/documents/${d.id}/archive`, {}], ['POST', `/api/documents/${d.id}/restore`, {}]];
     const uploads = [['POST', '/api/documents'], ['POST', `/api/documents/${d.id}/versions`]];
     for (const [who, status] of [[student, 403], [secretary, 403], [executive, 403], [staff, 403], [external, 403], [anon, 401]]) {
@@ -211,6 +287,7 @@ describe('who may do what', () => {
   });
   test('unknown ids answer 404', async () => {
     for (const id of [UUID, 'not-an-id']) {
+      assert.equal((await pr.call('GET', `/api/document-works/${id}`)).status, 404);
       assert.equal((await pr.call('GET', `/api/documents/${id}`)).status, 404);
       assert.equal((await pr.call('GET', `/api/documents/${id}/file`)).status, 404);
       assert.equal((await pr.call('PUT', `/api/documents/${id}`, info())).status, 404);
@@ -236,9 +313,11 @@ describe('PDPA', () => {
     const u = await one(`insert into users (email, name, role) values ($1, 'ผู้อัปโหลดทดสอบ', 'staff') returning id`, [TEMP_EMAIL]);
     await query('update documents set uploaded_by = $1 where id = $2', [u.id, d.id]);
     await query('update document_versions set uploaded_by = $1 where document_id = $2', [u.id, d.id]);
+    await query('insert into document_work_people (work_id, user_id) values ($1, $2)', [d.workId, u.id]);
     await tx((c) => erase(c, u.id));
     assert.equal((await one('select uploaded_by from documents where id = $1', [d.id])).uploaded_by, null);
     assert.equal((await one('select uploaded_by from document_versions where document_id = $1', [d.id])).uploaded_by, null);
+    assert.equal(await one('select 1 from document_work_people where user_id = $1', [u.id]), null);
     assert.equal((await pr.call('GET', `/api/documents/${d.id}`)).body.document.uploader, null);
   });
 });
