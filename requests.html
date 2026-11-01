@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>คำขอใช้บริการ | หลังบ้าน คลังข่าว มรส.</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark', t === 'dark');
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+  <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="desk.css">
+  <style>
+    /* One colour per status, always with its name in words */
+    .st-pending { background: rgb(var(--gold-soft)); color: rgb(var(--gold)); }
+    .st-approved { background: rgb(var(--royal-soft)); color: rgb(var(--royal)); }
+    .st-rejected { background: rgb(var(--red-soft)); color: rgb(var(--red)); }
+    .st-cancelled { background: rgb(var(--surface-2)); color: rgb(var(--ink-2)); }
+    .seg[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
+  </style>
+  <link rel="stylesheet" href="/assets/app.css?v=a65c4ec10a">
+  <script src="thai-date.js" defer></script>
+</head>
+<body class="app">
+  <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการคำขอ</a>
+  <div class="flex min-h-dvh flex-col lg:h-dvh lg:flex-row">
+    <header id="mbar" class="sticky top-0 z-40 flex items-center gap-3 border-b border-line bg-shell/95 px-4 py-2.5 shadow-raised backdrop-blur-xl lg:hidden"></header>
+    <div id="scrim" class="fixed inset-0 z-40 bg-[rgb(10_11_32/.45)] lg:hidden" aria-hidden="true"></div>
+    <aside id="side" class="scroll-thin fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto bg-bg px-4 pb-4 pt-5 shadow-float lg:static lg:z-auto lg:w-[248px] lg:shrink-0 lg:bg-transparent lg:shadow-none" aria-label="เมนูหลังบ้าน"></aside>
+
+    <main id="main" class="scroll-thin flex min-h-0 min-w-0 flex-1 p-2 sm:p-3 lg:overflow-y-auto lg:pl-0">
+      <section id="gate" class="m-auto flex max-w-[520px] flex-col items-center gap-4 rounded-card border border-line bg-shell p-8 text-center shadow-float" hidden></section>
+
+      <div id="app" class="grid w-full content-start gap-3" hidden>
+        <header class="flex flex-wrap items-center gap-3 rounded-card bg-shell p-4 shadow-raised sm:p-5">
+          <div class="mr-auto min-w-[200px]">
+            <h1 class="font-display tight text-[26px] font-bold text-royal">คำขอใช้บริการ</h1>
+            <p id="count" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
+          </div>
+          <button id="add" type="button" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 max-sm:w-full max-sm:justify-center" hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>ส่งคำขอ
+          </button>
+          <div class="flex w-full flex-wrap gap-0.5 rounded-2xl bg-surface2 p-1 sm:w-fit" role="group" aria-label="กรองตามสถานะ">
+            <button type="button" data-status="" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">ทั้งหมด</button>
+            <button type="button" data-status="pending" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">รอพิจารณา</button>
+            <button type="button" data-status="approved" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">อนุมัติแล้ว</button>
+            <button type="button" data-status="rejected" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">ไม่อนุมัติ</button>
+            <button type="button" data-status="cancelled" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">ยกเลิกแล้ว</button>
+          </div>
+        </header>
+
+        <section class="rounded-card bg-shell px-2 py-1 shadow-raised sm:px-3" aria-label="รายการคำขอ">
+          <ul id="list" tabindex="-1"></ul>
+          <p id="empty" class="py-10 text-center text-[15px] text-ink2" hidden></p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="formDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(640px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="formTitle">
+    <form id="reqForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <h2 id="formTitle" class="font-display text-[21px] font-semibold">ส่งคำขอใช้บริการ</h2>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ชื่องาน <span class="text-brand">*</span></span>
+        <input id="fTitle" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="titleErr">
+        <span id="titleErr" data-err="title" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="grid content-start gap-1.5">
+          <span class="font-display text-[15px] font-semibold">ประเภท <span class="text-brand">*</span></span>
+          <select id="fType" class="field ef-sel h-12 rounded-2xl pl-4 pr-10 text-[15px]" aria-describedby="typeErr"></select>
+          <span id="typeErr" data-err="type" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+        <label class="grid content-start gap-1.5">
+          <span class="font-display text-[15px] font-semibold">สถานที่ <span class="text-brand">*</span></span>
+          <input id="fLocation" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="locationErr">
+          <span id="locationErr" data-err="location" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+      </div>
+      <div class="grid gap-4">
+        <label class="grid min-w-0 gap-1.5">
+          <span class="font-display text-[15px] font-semibold">เริ่ม <span class="text-brand">*</span></span>
+          <input id="fStart" type="datetime-local" class="field h-12 w-full rounded-2xl px-4 text-[15px]" aria-describedby="startErr">
+          <span id="startErr" data-err="startAt" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+        <label class="grid min-w-0 gap-1.5">
+          <span class="font-display text-[15px] font-semibold">สิ้นสุด <span class="text-brand">*</span></span>
+          <input id="fEnd" type="datetime-local" class="field h-12 w-full rounded-2xl px-4 text-[15px]" aria-describedby="endErr">
+          <span id="endErr" data-err="endAt" class="text-[14px] font-medium text-brand" hidden></span>
+        </label>
+      </div>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">รายละเอียด</span>
+        <textarea id="fDetails" rows="4" maxlength="2000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
+      </label>
+      <p data-err="form" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="formClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="formSave" type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">ส่งคำขอ</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="viewDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(600px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="viewTitle">
+    <div class="grid gap-4 p-5 sm:p-6">
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <h2 id="viewTitle" class="min-w-0 font-display text-[21px] font-semibold [overflow-wrap:anywhere]"></h2>
+        <span id="viewStatus"></span>
+      </div>
+      <dl id="viewFacts" class="grid gap-x-4 gap-y-1 text-[15px] sm:grid-cols-[110px_minmax(0,1fr)]"></dl>
+      <div id="viewDecision" class="grid gap-1 rounded-2xl bg-surface2 px-4 py-3 text-[15px]" hidden></div>
+      <a id="viewEvent" class="press t-quick inline-flex min-h-11 items-center justify-self-start font-display text-[15px] font-semibold text-royal hover:underline" hidden>เปิดในปฏิทินงาน</a>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="viewClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="viewCancel" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5" hidden>ยกเลิกคำขอ</button>
+        <button id="viewReject" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line px-5 font-display text-[15px] font-medium" hidden>ไม่อนุมัติ</button>
+        <button id="viewApprove" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5" hidden>อนุมัติ</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="okDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(640px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="okTitle">
+    <form id="okForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <div>
+        <h2 id="okTitle" class="font-display text-[21px] font-semibold">อนุมัติคำขอนี้?</h2>
+        <p id="okName" class="mt-1 text-[14px] font-medium [overflow-wrap:anywhere]"></p>
+        <p class="mt-2 text-[14px] text-ink2">ระบบจะสร้างกิจกรรมภายในทีมในปฏิทินงาน มอบหมายคนตอนนี้ หรือเพิ่มในปฏิทินภายหลังก็ได้</p>
+      </div>
+      <section aria-labelledby="whoTitle" class="grid gap-2">
+        <label id="whoTitle" for="fWho" class="font-display text-[15px] font-semibold">มอบหมายคนรับผิดชอบ</label>
+        <ul id="chosen" class="grid gap-2"></ul>
+        <input id="fWho" type="search" autocomplete="off" placeholder="ค้นหาชื่อทีม PR หรือนักศึกษา" class="field h-12 rounded-2xl px-4 text-[15px]">
+        <ul id="whoList" class="grid gap-1" aria-label="คนที่มอบหมายได้"></ul>
+      </section>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">หมายเหตุถึงผู้ขอ</span>
+        <textarea id="fOkNote" rows="2" maxlength="1000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
+      </label>
+      <p id="okErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="okClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="okGo" type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">อนุมัติคำขอ</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="noDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="noTitle">
+    <form id="noForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <div>
+        <h2 id="noTitle" class="font-display text-[21px] font-semibold">ไม่อนุมัติคำขอนี้?</h2>
+        <p id="noName" class="mt-1 text-[14px] font-medium [overflow-wrap:anywhere]"></p>
+      </div>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">เหตุผล <span class="text-brand">*</span></span>
+        <textarea id="fNoNote" rows="3" maxlength="1000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]" aria-describedby="noHint noErr"></textarea>
+        <span id="noHint" class="text-[14px] text-ink2">ผู้ขอจะเห็นเหตุผลนี้</span>
+      </label>
+      <p id="noErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="noClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="noGo" type="submit" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">ไม่อนุมัติ</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="offDlg" class="desk-dlg w-[min(440px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="offTitle" aria-describedby="offName">
+    <div class="grid gap-3 p-5 sm:p-6">
+      <h2 id="offTitle" class="font-display text-[21px] font-semibold">ยกเลิกคำขอนี้?</h2>
+      <p id="offName" class="text-[15px] text-ink2 [overflow-wrap:anywhere]"></p>
+      <p id="offErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="offClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ไม่ยกเลิก</button>
+        <button id="offGo" type="button" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">ยกเลิกคำขอ</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>window.SERVER_AUTH = true;</script>
+  <script src="auth.js"></script>
+  <script src="arrivals.js"></script>
+  <script src="desk.js"></script>
+  <script src="event-form.js"></script>
+  <script>
+    const { toast, dayTime } = DESK;
+    const $ = (s) => document.querySelector(s);
+    const TYPES = { photo: 'ถ่ายภาพ', video: 'ถ่ายวิดีโอ', news: 'เขียนข่าว', other: 'อื่น ๆ' };
+    const STATUS = { pending: 'รอพิจารณา', approved: 'อนุมัติแล้ว', rejected: 'ไม่อนุมัติ', cancelled: 'ยกเลิกแล้ว' };
+    const FIELDS = { title: '#fTitle', type: '#fType', location: '#fLocation', startAt: '#fStart', endAt: '#fEnd' };
+    const state = { items: [], status: '', asked: 0, open: null, reviews: false, submits: false, who: null };
+
+    // Everything from the server goes in as text nodes, never as HTML
+    function el(tag, props = {}, ...kids) {
+      const n = document.createElement(tag);
+      for (const [k, v] of Object.entries(props)) {
+        if (k === 'class') n.className = v;
+        else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+        else if (v !== false && v != null) n.setAttribute(k, v === true ? '' : v);
+      }
+      n.append(...kids.flat().filter((x) => x != null && x !== false));
+      return n;
+    }
+    const pill = (s) => el('span', { class: `st-${s} inline-flex rounded-full px-3 py-0.5 font-display text-[13px] font-semibold` }, STATUS[s]);
+
+    function row(r) {
+      return el('li', { class: 'border-b border-line last:border-b-0' },
+        el('button', { type: 'button', class: 'hover-fill press t-quick grid w-full items-center gap-x-4 gap-y-1 rounded-2xl px-2 py-3 text-left sm:grid-cols-[minmax(0,1fr)_auto] sm:px-3', onclick: () => openView(r) },
+          el('span', { class: 'grid min-w-0 gap-0.5' },
+            el('span', { class: 'font-display text-[16px] font-semibold [overflow-wrap:anywhere]' }, r.title),
+            el('span', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${TYPES[r.type]} · ${dayTime(r.startAt)} · ${r.location}`),
+            state.reviews || !state.submits ? el('span', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `ผู้ขอ ${r.requester || 'ไม่ระบุชื่อ'}`) : null),
+          el('span', { class: 'justify-self-start sm:justify-self-end' }, pill(r.status))));
+    }
+
+    function paint() {
+      $('#list').replaceChildren(...state.items.map(row));
+      $('#count').textContent = `${state.status ? STATUS[state.status] : 'ทั้งหมด'} ${state.items.length} คำขอ`;
+      $('#empty').hidden = state.items.length > 0;
+      $('#empty').textContent = state.status ? `ไม่มีคำขอสถานะ${STATUS[state.status]}` : 'ยังไม่มีคำขอใช้บริการ';
+      document.querySelectorAll('[data-status]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.status === state.status)));
+    }
+
+    // Only the latest choice paints: an older, slower answer is dropped
+    async function load() {
+      const asked = ++state.asked;
+      try {
+        const r = await api(`/requests${state.status ? `?status=${state.status}` : ''}`);
+        if (asked !== state.asked) return;
+        state.items = r.items;
+        paint();
+      } catch (err) { toast(err.message, true); }
+    }
+
+    // ---- New request ----
+    function clearErrors() {
+      document.querySelectorAll('#reqForm [data-err]').forEach((x) => { x.hidden = true; x.textContent = ''; });
+      document.querySelectorAll('#reqForm [aria-invalid]').forEach((x) => x.removeAttribute('aria-invalid'));
+    }
+    function showError(key, text) {
+      const box = $(`#reqForm [data-err="${key}"]`);
+      box.textContent = text;
+      box.hidden = false;
+    }
+    function openForm() {
+      clearErrors();
+      $('#reqForm').reset();
+      $('#formDlg').showModal();
+    }
+    async function save(ev) {
+      ev.preventDefault();
+      clearErrors();
+      const btn = $('#formSave');
+      btn.disabled = true;
+      const when = (v) => (v ? `${v}:00+07:00` : null);
+      const body = { title: $('#fTitle').value, type: $('#fType').value, location: $('#fLocation').value, startAt: when($('#fStart').value), endAt: when($('#fEnd').value), details: $('#fDetails').value };
+      try {
+        await api('/requests', { method: 'POST', body });
+        $('#formDlg').close();
+        toast('ส่งคำขอแล้ว ทีม PR จะพิจารณาและแจ้งผลให้ทราบ');
+        await load();
+        $('#list').focus();
+      } catch (err) {
+        const d = err.details || {};
+        let first = null;
+        for (const [k, msg] of Object.entries(d)) {
+          if ($(`#reqForm [data-err="${k}"]`)) showError(k, msg);
+          if (FIELDS[k]) { $(FIELDS[k]).setAttribute('aria-invalid', 'true'); first ||= $(FIELDS[k]); }
+        }
+        if (first) first.focus();
+        if (!Object.keys(d).length) showError('form', err.message);
+      } finally { btn.disabled = false; }
+    }
+
+    // ---- One request ----
+    function openView(r) {
+      state.open = r;
+      const fact = (k, v) => [el('dt', { class: 'font-display font-semibold text-ink2' }, k), el('dd', { class: 'mb-1 [overflow-wrap:anywhere] sm:mb-0 whitespace-pre-line' }, v)];
+      $('#viewTitle').textContent = r.title;
+      $('#viewStatus').replaceChildren(pill(r.status));
+      $('#viewFacts').replaceChildren(...[
+        fact('ประเภท', TYPES[r.type]), fact('เริ่ม', dayTime(r.startAt)), fact('สิ้นสุด', dayTime(r.endAt)), fact('สถานที่', r.location),
+        fact('ผู้ขอ', r.requester || 'ไม่ระบุชื่อ'), fact('ส่งเมื่อ', dayTime(r.createdAt)), r.details ? fact('รายละเอียด', r.details) : [],
+      ].flat());
+      const decided = r.status === 'approved' || r.status === 'rejected';
+      $('#viewDecision').hidden = !decided;
+      if (decided) {
+        $('#viewDecision').replaceChildren(el('p', { class: 'font-display font-semibold' }, `${STATUS[r.status]}โดย ${r.reviewer || 'ทีม PR'} เมื่อ ${dayTime(r.reviewedAt)}`));
+        if (r.reviewNote) $('#viewDecision').append(el('p', { class: '[overflow-wrap:anywhere] whitespace-pre-line' }, `${r.status === 'rejected' ? 'เหตุผล' : 'หมายเหตุ'}: ${r.reviewNote}`));
+      }
+      $('#viewEvent').hidden = !r.eventId;
+      if (r.eventId) $('#viewEvent').href = `calendar.html?id=${r.eventId}`;
+      const pending = r.status === 'pending';
+      $('#viewCancel').hidden = !(pending && state.submits);
+      $('#viewReject').hidden = !(pending && state.reviews);
+      $('#viewApprove').hidden = !(pending && state.reviews);
+      $('#viewDlg').showModal();
+    }
+
+    // The three decisions end the same way. If someone else got there first, the list is refreshed behind the dialog.
+    async function act(btn, box, dlg, path, body, done) {
+      btn.disabled = true;
+      box.hidden = true;
+      try {
+        await api(`/requests/${state.open.id}/${path}`, { method: 'POST', body });
+        dlg.close();
+        toast(done);
+        await load();
+        $('#list').focus();
+      } catch (err) {
+        box.textContent = Object.values(err.details || {})[0] || err.message;
+        box.hidden = false;
+        if (err.status === 409) load();
+      } finally { btn.disabled = false; }
+    }
+    function openOk() {
+      $('#viewDlg').close();
+      $('#okName').textContent = state.open.title;
+      $('#fOkNote').value = '';
+      $('#okErr').hidden = true;
+      state.who ||= EventForm.picker({ list: '#chosen', search: '#fWho', found: '#whoList', onError: (text) => { $('#okErr').textContent = text; $('#okErr').hidden = false; } });
+      state.who.set([]);
+      $('#okDlg').showModal();
+    }
+    function openNo() {
+      $('#viewDlg').close();
+      $('#noName').textContent = state.open.title;
+      $('#fNoNote').value = '';
+      $('#noErr').hidden = true;
+      $('#noDlg').showModal();
+    }
+    function openOff() {
+      $('#viewDlg').close();
+      $('#offName').textContent = state.open.title;
+      $('#offErr').hidden = true;
+      $('#offDlg').showModal();
+    }
+
+    // ---- Start ----
+    (async () => {
+      const me = await window.ME;
+      const user = await DESK.start({ page: 'requests', allow: me.modules?.includes('requests') ? [me.user.role] : ['pr', 'admin'] });
+      if (!user) return;
+      state.reviews = user.role === 'pr' || user.role === 'admin';
+      state.submits = user.role === 'secretary' || user.role === 'admin';
+      if (state.reviews) state.status = 'pending';
+      $('#fType').replaceChildren(...Object.entries(TYPES).map(([k, l]) => el('option', { value: k }, l)));
+      $('#add').hidden = !state.submits;
+      $('#app').hidden = false;
+
+      document.querySelectorAll('[data-status]').forEach((b) => b.addEventListener('click', () => { state.status = b.dataset.status; load(); }));
+      $('#add').addEventListener('click', openForm);
+      $('#reqForm').addEventListener('submit', save);
+      $('#formClose').addEventListener('click', () => $('#formDlg').close());
+      $('#viewClose').addEventListener('click', () => $('#viewDlg').close());
+      $('#viewApprove').addEventListener('click', openOk);
+      $('#viewReject').addEventListener('click', openNo);
+      $('#viewCancel').addEventListener('click', openOff);
+      $('#okClose').addEventListener('click', () => $('#okDlg').close());
+      $('#noClose').addEventListener('click', () => $('#noDlg').close());
+      $('#offClose').addEventListener('click', () => $('#offDlg').close());
+      $('#okForm').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        act($('#okGo'), $('#okErr'), $('#okDlg'), 'approve', { assignees: state.who.get(), note: $('#fOkNote').value }, 'อนุมัติคำขอแล้ว สร้างกิจกรรมในปฏิทินงานแล้ว');
+      });
+      $('#noForm').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        act($('#noGo'), $('#noErr'), $('#noDlg'), 'reject', { note: $('#fNoNote').value }, 'แจ้งผลไม่อนุมัติแล้ว');
+      });
+      $('#offGo').addEventListener('click', () => act($('#offGo'), $('#offErr'), $('#offDlg'), 'cancel', {}, 'ยกเลิกคำขอแล้ว'));
+
+      await load();
+      const id = new URLSearchParams(location.search).get('id');
+      if (id) {
+        try { openView((await api(`/requests/${encodeURIComponent(id)}`)).request); } catch (err) { toast(err.message, true); }
+      }
+    })();
+  </script>
+</body>
+</html>

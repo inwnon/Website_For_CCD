@@ -199,7 +199,7 @@ describe('calendar.html', () => {
   test('the menu opens the pages that are built and no others', async () => {
     const js = String((await anon.call('GET', '/auth.js')).body);
     const entries = [...js.matchAll(/\{ id: '(\w+)', href: '\w+\.html', label: '[^']+',( soon: true,)? icon:/g)];
-    assert.deepEqual(entries.filter((m) => !m[2]).map((m) => m[1]), ['calendar', 'phonebook']);
+    assert.deepEqual(entries.filter((m) => !m[2]).map((m) => m[1]), ['calendar', 'requests', 'phonebook']);
     assert.equal(entries.length, 6);
   });
 });

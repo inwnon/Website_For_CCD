@@ -163,6 +163,14 @@ describe('who may do what', () => {
   });
 });
 
+describe('requests.html', () => {
+  test('the page opens but stays out of search results', async () => {
+    const r = await anon.call('GET', '/requests.html');
+    assert.equal(r.status, 200);
+    assert.match(r.headers.get('x-robots-tag') || '', /noindex/);
+  });
+});
+
 describe('PDPA', () => {
   test('the export lists the requester\'s requests; erasing unlinks them and cancels what is pending', async () => {
     const r = await submit();
