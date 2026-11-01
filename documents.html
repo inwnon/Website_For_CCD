@@ -35,9 +35,10 @@
     .doc-mini .doc-shot { inset: 4px 4px 0; width: calc(100% - 8px); height: calc(100% - 4px); border-radius: 4px 4px 0 0; }
     @keyframes shotIn { from { opacity: 0; } to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { .doc-shot { animation: none; } }
-    .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
+    .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=e0b78294e1">
+  <script src="thai-date.js" defer></script>
+  <link rel="stylesheet" href="/assets/app.css?v=805d728d8b">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการเอกสาร</a>
@@ -63,12 +64,13 @@
               <span class="sr-only">ค้นหางานหรือเอกสาร</span>
               <input id="search" type="search" maxlength="100" autocomplete="off" placeholder="ค้นหางาน เอกสาร หรือผู้เกี่ยวข้อง" class="field h-11 w-full rounded-2xl px-4 text-[15px]">
             </label>
-            <div class="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-[repeat(5,minmax(0,1fr))_auto]" role="group" aria-label="ตัวกรอง">
-              <label class="min-w-0"><span class="sr-only">หมวดเอกสาร</span><select id="filter" data-filter="category" class="field doc-sel h-11 w-full rounded-2xl pl-4 pr-9 text-[15px]"></select></label>
-              <label class="min-w-0"><span class="sr-only">ชนิดไฟล์</span><select id="filterType" data-filter="type" class="field doc-sel h-11 w-full rounded-2xl pl-4 pr-9 text-[15px]"></select></label>
-              <label class="min-w-0"><span class="sr-only">ผู้เกี่ยวข้อง</span><select id="filterPerson" data-filter="person" class="field doc-sel h-11 w-full rounded-2xl pl-4 pr-9 text-[15px]"></select></label>
-              <label class="min-w-0"><span class="sr-only">ปีที่เพิ่มเอกสาร</span><select id="filterYear" data-filter="year" class="field doc-sel h-11 w-full rounded-2xl pl-4 pr-9 text-[15px]"></select></label>
-              <label class="min-w-0"><span class="sr-only">เอกสารของทีมหรือส่วนตัว</span><select id="filterLevel" data-filter="level" class="field doc-sel h-11 w-full rounded-2xl pl-4 pr-9 text-[15px]"></select></label>
+            <div class="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-[repeat(6,minmax(0,1fr))_auto]" role="group" aria-label="ตัวกรอง">
+              <label class="min-w-0"><span class="sr-only">หมวดเอกสาร</span><select id="filter" data-filter="category" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">ชนิดไฟล์</span><select id="filterType" data-filter="type" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">ผู้เกี่ยวข้อง</span><select id="filterPerson" data-filter="person" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">ปีของเอกสาร</span><select id="filterYear" data-filter="year" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">รอบประเมิน</span><select id="filterRound" data-filter="round" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
+              <label class="min-w-0"><span class="sr-only">เอกสารของทีมหรือส่วนตัว</span><select id="filterLevel" data-filter="level" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
               <button id="clear" type="button" class="hover-fill press t-quick h-11 whitespace-nowrap rounded-2xl border border-line px-4 font-display text-[15px] font-medium" hidden>ล้างตัวกรอง</button>
             </div>
           </div>
@@ -102,13 +104,14 @@
           <span id="peopleErr" data-err="people" class="text-[14px] font-medium text-brand" hidden></span>
         </section>
       </div>
-      <label id="fileBox" class="grid gap-1.5">
-        <span class="font-display text-[15px] font-semibold">ไฟล์เอกสาร <span class="text-brand">*</span></span>
-        <input id="fFile" type="file" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]" aria-describedby="fileHint fileErr">
-        <span id="fileHint" class="text-[14px] text-ink2">PDF, DOCX, XLSX, PPTX ไม่เกิน 20 MB หรือภาพ JPG, PNG ไม่เกิน 10 MB เพิ่มเอกสารอื่นในงานนี้ได้หลังบันทึก</span>
+      <section id="fileBox" class="grid gap-2" aria-labelledby="filesTitle">
+        <label id="filesTitle" for="fFile" class="font-display text-[15px] font-semibold">ไฟล์เอกสาร <span class="text-brand">*</span></label>
+        <ul id="files" class="grid gap-2"></ul>
+        <input id="fFile" type="file" multiple accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]" aria-describedby="fileHint fileErr">
+        <span id="fileHint" class="text-[14px] text-ink2">เลือกได้ครั้งละหลายไฟล์ สูงสุด 10 ไฟล์ PDF, DOCX, XLSX, PPTX ไม่เกิน 20 MB ภาพ JPG, PNG ไม่เกิน 10 MB</span>
         <span id="fileErr" data-err="file" class="text-[14px] font-medium text-brand" hidden></span>
-      </label>
-      <label class="grid gap-1.5">
+      </section>
+      <label id="titleBox" class="grid gap-1.5">
         <span class="font-display text-[15px] font-semibold">ชื่อเอกสาร <span class="text-brand">*</span></span>
         <input id="fTitle" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="titleErr">
         <span id="titleErr" data-err="title" class="text-[14px] font-medium text-brand" hidden></span>
@@ -117,6 +120,12 @@
         <span class="font-display text-[15px] font-semibold">หมวดเอกสาร <span class="text-brand">*</span></span>
         <select id="fCategory" class="field doc-sel h-12 rounded-2xl pl-4 pr-10 text-[15px]" aria-describedby="categoryErr"></select>
         <span id="categoryErr" data-err="category" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
+      <label class="grid min-w-0 gap-1.5">
+        <span class="font-display text-[15px] font-semibold">วันที่ของเอกสาร <span class="text-brand">*</span></span>
+        <input id="fDate" type="date" class="field h-12 w-full rounded-2xl px-4 text-[15px]" aria-describedby="dateHint dateErr">
+        <span id="dateHint" class="text-[14px] text-ink2">ใช้นับปีและรอบประเมิน รอบ 1 เม.ย.-ก.ย. รอบ 2 ต.ค.-มี.ค.</span>
+        <span id="dateErr" data-err="docDate" class="text-[14px] font-medium text-brand" hidden></span>
       </label>
       <label id="unitBox" class="grid gap-1.5" hidden>
         <span class="font-display text-[15px] font-semibold">ชื่อหน่วยงาน <span class="text-brand">*</span></span>
@@ -229,14 +238,15 @@
     const { toast, day, dayTime } = DESK;
     const $ = (s) => document.querySelector(s);
     const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกข้อความขอความอนุเคราะห์', other: 'เอกสารอื่นๆ' };
-    const FIELDS = { workTitle: '#fWork', people: '#fWho', file: '#fFile', title: '#fTitle', category: '#fCategory', unitName: '#fUnit', tags: '#fTags' };
+    const FIELDS = { workTitle: '#fWork', people: '#fWho', file: '#fFile', title: '#fTitle', category: '#fCategory', docDate: '#fDate', unitName: '#fUnit', tags: '#fTags' };
+    const MAX_FILES = 10;
     const MAX_PEOPLE = 5;
     const PREVIEW_WIDTH = 480;
     const FILE_TYPES = { pdf: 'PDF', word: 'Word', excel: 'Excel', powerpoint: 'PowerPoint', image: 'ภาพ' };
     const FILE_KIND = { pdf: 'pdf', docx: 'word', xlsx: 'excel', pptx: 'powerpoint', jpg: 'image', jpeg: 'image', png: 'image' };
     const FILE_ICON = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>';
     const PDFJS = '/assets/pdfjs-6.4.299/';
-    const state = { works: [], asked: 0, work: null, doc: null, mode: 'new', admin: false, me: null, who: null, editWho: null };
+    const state = { works: [], files: [], asked: 0, work: null, doc: null, mode: 'new', admin: false, me: null, who: null, editWho: null };
 
     // Everything from the server goes in as text nodes, never as HTML
     function el(tag, props = {}, ...kids) {
@@ -411,6 +421,22 @@
       box.textContent = text;
       box.hidden = false;
     }
+    // Files waiting to go up. Each keeps its own name, and the reason if it was refused.
+    function paintFiles() {
+      $('#files').replaceChildren(...state.files.map((f) => el('li', { class: 'grid gap-1 rounded-2xl bg-surface2 p-2' },
+        el('div', { class: 'flex items-center gap-2' },
+          el('input', { value: f.title, maxlength: '200', 'data-file-title': true, 'aria-label': `ชื่อเอกสารของไฟล์ ${f.file.name}`, class: 'field h-11 min-w-0 flex-1 rounded-xl px-3 text-[15px]', oninput: (e) => { f.title = e.target.value; } }),
+          el('button', { type: 'button', 'aria-label': `เอา ${f.file.name} ออก`, class: 'press t-quick h-11 shrink-0 rounded-xl px-3 text-[14px] font-medium text-brand', onclick: () => { state.files = state.files.filter((x) => x !== f); paintFiles(); } }, 'เอาออก')),
+        el('p', { class: 'px-1 text-[13px] text-ink2 [overflow-wrap:anywhere]' }, `${f.file.name} · ${bytes(f.file.size)}`),
+        f.error ? el('p', { class: 'px-1 text-[14px] font-medium text-brand' }, f.error) : null)));
+    }
+    function addFiles() {
+      const picked = [...$('#fFile').files];
+      $('#fFile').value = ''; // The same file can be picked again after it is taken out
+      state.files.push(...picked.slice(0, MAX_FILES - state.files.length).map((file) => ({ file, title: file.name.replace(/\.[^.]+$/, ''), error: '' })));
+      if (state.files.length + picked.length > MAX_FILES) showError('file', `เลือกได้ครั้งละไม่เกิน ${MAX_FILES} ไฟล์`);
+      paintFiles();
+    }
     const showUnit = () => { $('#unitBox').hidden = $('#fCategory').value !== 'unit_order'; };
     function openForm(mode, d = null) {
       state.mode = mode;
@@ -422,6 +448,10 @@
       $('#formWork').hidden = mode === 'new';
       $('#workBox').hidden = mode !== 'new';
       $('#fileBox').hidden = mode === 'edit';
+      $('#titleBox').hidden = mode !== 'edit';
+      $('#fDate').value = d?.docDate || DESK.isoDay();
+      state.files = [];
+      paintFiles();
       $('#levelBox').hidden = mode === 'edit' && !state.admin && d.ownerId !== state.me;
       $('#formSave').textContent = mode === 'edit' ? 'บันทึก' : 'อัปโหลด';
       if (mode === 'new') state.who.set([]);
@@ -435,37 +465,78 @@
       showUnit();
       $('#formDlg').showModal();
     }
+    function showFormProblems(err) {
+      const missing = {};
+      if (err.details && state.mode !== 'edit' && !state.files.length) missing.file = 'เลือกไฟล์เอกสาร';
+      if (err.details && state.mode === 'new' && !$('#fWork').value.trim()) missing.workTitle = 'กรอกชื่องาน';
+      if (err.details && !$('#fCategory').value) missing.category = 'เลือกหมวดเอกสาร';
+      const d = { ...missing, ...err.details };
+      for (const [k, msg] of Object.entries(d)) {
+        if ($(`#docForm [data-err="${k}"]`)) showError(k, msg);
+        if (FIELDS[k]) $(FIELDS[k]).setAttribute('aria-invalid', 'true');
+      }
+      Object.values(FIELDS).map((s) => $(s)).find((n) => n.getAttribute('aria-invalid') === 'true' && n.offsetParent)?.focus();
+      if (!Object.keys(d).length) showError('form', err.message);
+    }
+    // One request per file, so each is checked and saved on its own. A problem with the shared details stops at once, with nothing saved.
+    // After a refused file the ones that went up stay up: the form stays open on the same งาน with only the files still to fix.
+    async function uploadFiles(data) {
+      const btn = $('#formSave'), todo = [...state.files];
+      let done = 0;
+      for (const f of todo) f.error = '';
+      for (const [i, f] of todo.entries()) {
+        btn.textContent = `กำลังอัปโหลด ${i + 1}/${todo.length}`;
+        try {
+          const body = { ...data, title: f.title };
+          if (state.mode === 'new') Object.assign(body, { workTitle: $('#fWork').value, peopleIds: state.who.ids() });
+          else body.workId = state.work.id;
+          const { document: saved } = await sendFile('/documents', body, f.file);
+          done += 1;
+          state.files = state.files.filter((x) => x !== f);
+          if (state.mode === 'new') {
+            state.mode = 'add';
+            state.work = { id: saved.workId, title: $('#fWork').value.trim() };
+          }
+        } catch (err) {
+          if (err.details && !err.details.file && !err.details.title) throw err;
+          f.error = err.details?.file || err.details?.title || err.message;
+        }
+      }
+      paintFiles();
+      return done;
+    }
     async function save(ev) {
       ev.preventDefault();
       clearErrors();
-      const btn = $('#formSave'), label = btn.textContent, { mode, doc } = state;
+      const btn = $('#formSave'), label = btn.textContent, editing = state.mode === 'edit';
       btn.disabled = true;
-      if (mode !== 'edit') btn.textContent = 'กำลังอัปโหลด...';
-      const data = { title: $('#fTitle').value, category: $('#fCategory').value, unitName: $('#fUnit').value, tags: $('#fTags').value.split(',').map((t) => t.trim()).filter(Boolean) };
+      const data = { category: $('#fCategory').value, unitName: $('#fUnit').value, docDate: $('#fDate').value || null, tags: $('#fTags').value.split(',').map((t) => t.trim()).filter(Boolean) };
       if (!$('#levelBox').hidden) data.accessLevel = $('[name="level"]:checked').value;
-      if (mode === 'new') Object.assign(data, { workTitle: $('#fWork').value, peopleIds: state.who.ids() });
-      if (mode === 'add') data.workId = state.work.id;
       try {
-        const { document: saved } = mode === 'edit' ? await api(`/documents/${doc.id}`, { method: 'PUT', body: data }) : await sendFile('/documents', data, $('#fFile').files[0]);
-        $('#formDlg').close();
-        toast({ new: 'เพิ่มงานแล้ว', add: 'เพิ่มเอกสารแล้ว', edit: 'บันทึกการแก้ไขแล้ว' }[mode]);
-        await load();
-        await openWork(saved.workId);
-      } catch (err) {
-        // The server stops at the first group of problems: name what else is missing along with them
-        const missing = {};
-        if (err.details && mode !== 'edit' && !$('#fFile').files[0]) missing.file = 'เลือกไฟล์เอกสาร';
-        if (err.details && mode === 'new' && !$('#fWork').value.trim()) missing.workTitle = 'กรอกชื่องาน';
-        const d = { ...missing, ...err.details };
-        for (const [k, msg] of Object.entries(d)) {
-          if ($(`#docForm [data-err="${k}"]`)) showError(k, msg);
-          if (FIELDS[k]) $(FIELDS[k]).setAttribute('aria-invalid', 'true');
+        if (editing) {
+          await api(`/documents/${state.doc.id}`, { method: 'PUT', body: { ...data, title: $('#fTitle').value } });
+          $('#formDlg').close();
+          toast('บันทึกการแก้ไขแล้ว');
+        } else {
+          if (!state.files.length) throw Object.assign(new Error('เลือกไฟล์เอกสาร'), { details: { file: 'เลือกไฟล์เอกสาร' } });
+          const done = await uploadFiles(data);
+          if (state.files.length) {
+            $('#formTitle').textContent = 'เพิ่มเอกสารในงานนี้';
+            $('#formWork').textContent = state.work?.title ?? '';
+            $('#formWork').hidden = !state.work;
+            $('#workBox').hidden = state.mode !== 'new';
+            showError('form', done ? `อัปโหลดแล้ว ${done} ไฟล์ เหลือ ${state.files.length} ไฟล์ที่ยังไม่ผ่าน แก้ไขหรือเอาออกแล้วกดอัปโหลดอีกครั้ง` : 'ยังอัปโหลดไม่สำเร็จ ดูเหตุผลใต้แต่ละไฟล์');
+            await load();
+            return;
+          }
+          $('#formDlg').close();
+          toast(`เพิ่มเอกสาร ${done} ไฟล์แล้ว`);
         }
-        Object.values(FIELDS).map((s) => $(s)).find((n) => n.getAttribute('aria-invalid') === 'true' && n.offsetParent)?.focus();
-        if (!Object.keys(d).length) showError('form', err.message);
-      } finally {
+        await load();
+        await openWork(state.work.id);
+      } catch (err) { showFormProblems(err); } finally {
         btn.disabled = false;
-        btn.textContent = label;
+        btn.textContent = state.mode === 'edit' ? 'บันทึก' : label;
       }
     }
 
@@ -475,7 +546,7 @@
         cover(d, 'mini'),
         el('div', { class: 'min-w-0 flex-1 basis-[180px]' },
           el('p', { class: 'font-display text-[15px] font-semibold [overflow-wrap:anywhere]' }, d.title),
-          el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, categoryOf(d)),
+          el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${categoryOf(d)} · ${day(d.docDate)}`),
           el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${d.fileName} · ${bytes(d.size)} · เวอร์ชัน ${d.version}`),
           d.accessLevel === 'private' || d.archivedAt ? el('p', { class: 'flex flex-wrap gap-1.5 pt-1' }, d.accessLevel === 'private' ? personal() : null, d.archivedAt ? shelved() : null) : null),
         el('div', { class: 'flex gap-1' },
@@ -524,7 +595,7 @@
         state.doc = d;
         $('#workDlg').close();
         $('#viewTitle').textContent = d.title;
-        $('#viewMeta').textContent = `${categoryOf(d)} · แก้ไขล่าสุด ${dayTime(d.updatedAt)}`;
+        $('#viewMeta').textContent = `${categoryOf(d)} · วันที่เอกสาร ${day(d.docDate)}`;
         $('#viewTags').replaceChildren(...(d.accessLevel === 'private' ? [personal()] : []), ...d.tags.map(chip));
         $('#viewVersions').replaceChildren(...d.versions.map((v) => el('li', { class: 'flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line py-2 last:border-b-0' },
           el('div', { class: 'min-w-0 flex-1 basis-[220px]' },
@@ -587,6 +658,7 @@
       const choices = (box, all, entries) => $(box).replaceChildren(el('option', { value: '' }, all), ...entries.map(([k, l]) => el('option', { value: k }, l)));
       choices('#filter', 'ทุกหมวด', Object.entries(CATEGORIES));
       choices('#filterType', 'ทุกชนิดไฟล์', Object.entries(FILE_TYPES));
+      choices('#filterRound', 'ทุกรอบประเมิน', [['1', 'รอบ 1 (เม.ย.-ก.ย.)'], ['2', 'รอบ 2 (ต.ค.-มี.ค.)']]);
       choices('#filterLevel', 'ทีมและส่วนตัว', [['team', 'เอกสารของทีม'], ['private', 'เอกสารส่วนตัว']]);
       choices('#filterPerson', 'ผู้เกี่ยวข้องทุกคน', (await api('/document-works/people')).items.map((p) => [p.id, p.name]));
       $('#units').replaceChildren(...[...new Set([...ORG.staffGroups.flatMap((g) => g.units), ...Object.keys(ORG.faculties)])].map((u) => el('option', { value: u })));
@@ -606,6 +678,7 @@
       $('#add').addEventListener('click', () => openForm('new'));
       $('#docForm').addEventListener('submit', save);
       $('#fCategory').addEventListener('change', showUnit);
+      $('#fFile').addEventListener('change', addFiles);
       $('#formClose').addEventListener('click', () => $('#formDlg').close());
       $('#workClose').addEventListener('click', () => $('#workDlg').close());
       $('#workEdit').addEventListener('click', openEdit);

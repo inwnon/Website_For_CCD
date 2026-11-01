@@ -167,9 +167,9 @@ describe('finding', () => {
     const r = await pr.call('GET', '/api/document-works');
     const year = new Date().getFullYear() + 543;
     assert.ok(r.body.years.includes(year));
-    assert.ok(await has(`?year=${year}`));
+    assert.ok(await has(`?year=${year}`) || await has(`?year=${year - 1}&round=2`));
     assert.ok(!(await has(`?year=${year - 5}`)));
-    assert.ok(await has(`?type=excel&level=team&year=${year}&person=${adminId}&q=${encodeURIComponent('ตัวกรอง')}`));
+    assert.ok(await has(`?type=excel&level=team&person=${adminId}&q=${encodeURIComponent('ตัวกรอง')}`));
     for (const q of ['type=x', 'level=admin', 'year=69', `person=nope`]) assert.equal((await pr.call('GET', `/api/document-works?${q}`)).status, 400, q);
   });
   test('archived documents leave the list, keep their files, and come back', async () => {
@@ -187,6 +187,32 @@ describe('finding', () => {
     assert.ok((await ids(pr)).includes(d.id));
     assert.equal((await pr.call('POST', `/api/documents/${d.id}/restore`, {})).status, 409);
     for (const action of ['document.archive', 'document.restore']) assert.ok(await one('select 1 from audit_log where action = $1 and target = $2', [action, d.id]), action);
+  });
+  test('รอบประเมิน counts from the date of the document; round 2 crosses into the next year', async () => {
+    const round1 = await add({ title: 'เอกสารรอบหนึ่ง', docDate: '2026-09-30' });
+    const round2 = await add({ title: 'เอกสารรอบสองปลายปี', docDate: '2026-10-01' });
+    const crossing = await add({ title: 'เอกสารรอบสองข้ามปี', docDate: '2027-03-31' });
+    const next = await add({ title: 'เอกสารรอบถัดไป', docDate: '2027-04-01' });
+    assert.equal(round1.docDate, '2026-09-30');
+    const found = async (q) => { const all = await ids(pr, q); return [round1, round2, crossing, next].map((d) => all.includes(d.id)); };
+    assert.deepEqual(await found('?round=1'), [true, false, false, true]);
+    assert.deepEqual(await found('?round=2'), [false, true, true, false]);
+    assert.deepEqual(await found('?round=1&year=2569'), [true, false, false, false]);
+    assert.deepEqual(await found('?round=2&year=2569'), [false, true, true, false], 'October 2569 to March 2570');
+    assert.deepEqual(await found('?round=1&year=2570'), [false, false, false, true]);
+    assert.deepEqual(await found('?year=2570'), [false, false, true, true], 'a year alone is the calendar year');
+    const { years } = (await pr.call('GET', '/api/document-works')).body;
+    assert.ok(years.includes(2569) && years.includes(2570));
+    assert.equal((await pr.call('GET', '/api/document-works?round=3')).status, 400);
+  });
+  test('the date defaults to today, can be changed, and stays when left out', async () => {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
+    const d = await add();
+    assert.equal(d.docDate, today);
+    const url = `/api/documents/${d.id}`;
+    assert.equal((await pr.call('PUT', url, info({ docDate: '2026-01-15' }))).body.document.docDate, '2026-01-15');
+    assert.equal((await pr.call('PUT', url, info())).body.document.docDate, '2026-01-15');
+    for (const docDate of ['2026-02-31', '15/01/2569', '2569-01-15', 5]) assert.ok((await pr.call('PUT', url, info({ docDate }))).body.details?.docDate, String(docDate));
   });
   test('nothing can delete a document', async () => {
     const d = await add();
