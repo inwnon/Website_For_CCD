@@ -229,7 +229,21 @@ describe('finding', () => {
     assert.equal((await pr.call('PUT', url, info())).body.document.docDate, '2026-01-15');
     for (const docDate of ['2026-02-31', '15/01/2569', '2569-01-15', 5]) assert.ok((await pr.call('PUT', url, info({ docDate }))).body.details?.docDate, String(docDate));
   });
-  test('nothing can delete a document', async () => {
+  test('ลบ: only the uploader and admin; it leaves the งาน and the list, the file stays', async () => {
+    const shared = await add({ workTitle: 'งานลบเอกสารทดสอบ' }, file(), admin);
+    const mine = await add({ title: 'เอกสารที่จะลบ', workId: shared.workId });
+    assert.equal((await pr.call('POST', `/api/documents/${shared.id}/archive`, {})).status, 403);
+    assert.equal((await pr.call('POST', `/api/documents/${mine.id}/archive`, {})).status, 200);
+    const left = (await pr.call('GET', `/api/document-works/${shared.workId}`)).body.work.documents;
+    assert.deepEqual(left.map((d) => d.id), [shared.id]);
+    assert.ok(!(await ids(pr)).includes(mine.id));
+    const stored = await one('select file_path from document_versions where document_id = $1', [mine.id]);
+    assert.deepEqual(await readFile(abs(stored.file_path)), PDF);
+    assert.equal((await admin.call('POST', `/api/documents/${shared.id}/archive`, {})).status, 200);
+    assert.deepEqual((await pr.call('GET', `/api/document-works/${shared.workId}`)).body.work.documents, []);
+    assert.ok(!(await works(pr)).some((w) => w.id === shared.workId), 'a งาน with nothing left leaves the list');
+  });
+  test('nothing can delete a document for good', async () => {
     const d = await add();
     assert.equal((await admin.call('DELETE', `/api/documents/${d.id}`)).status, 404);
   });

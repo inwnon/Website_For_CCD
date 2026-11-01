@@ -5,14 +5,14 @@
 //                                                     total counts all that match; perPage is 1 to 100 (100 when left out)
 //                                                     round: รอบประเมิน 1 (Apr-Sep) or 2 (Oct-Mar). With a year, round 2 runs from October of that year to March of the next
 // - GET  /api/document-works/people?q=                who can be named on a งาน: PR and admin
-// - GET  /api/document-works/:id                      with all its documents the user may see
+// - GET  /api/document-works/:id                      with its documents the user may see, without those taken out
 // - PUT  /api/document-works/:id                      { workTitle, peopleIds }
 // - GET  /api/documents/:id                           with its versions
 // - POST /api/documents                               multipart: file + data (JSON { title, category, unitName, docDate, tags, accessLevel,
 //                                                     and workId, or workTitle and peopleIds for a new งาน })
 // - PUT  /api/documents/:id                           { title, category, unitName, docDate, tags, accessLevel }: the details, not the file
 // - POST /api/documents/:id/versions                  multipart: file. It becomes the current one.
-// - POST /api/documents/:id/archive · restore         hides it from the list and back. There is no delete: the office keeps its records.
+// - POST /api/documents/:id/archive · restore         ลบ on the page, for the uploader and admin: it leaves every list, the file stays, because the office keeps its records.
 // - GET  /api/documents/:id/file?version=             always a download, never shown in the browser
 // accessLevel team: PR and admin; private: the uploader and admin, who alone may change it. ผู้เกี่ยวข้อง give no rights.
 // The search does not look inside files.
@@ -234,7 +234,7 @@ router.get('/document-works/people', allowed, async (req, res) => {
 
 router.get('/document-works/:id', allowed, async (req, res) => {
   const w = await workFor(req.params.id, req.user);
-  const rows = (await query(`${SELECT} where d.work_id = $1 and ($2 or d.access_level = 'team' or d.uploaded_by = $3) order by d.created_at`, [w.id, isAdmin(req.user), req.user.id])).rows;
+  const rows = (await query(`${SELECT} where d.work_id = $1 and d.archived_at is null and ($2 or d.access_level = 'team' or d.uploaded_by = $3) order by d.created_at`, [w.id, isAdmin(req.user), req.user.id])).rows;
   res.json({ work: { id: w.id, title: w.title, updatedAt: w.updated_at, people: (await peopleOf([w.id])).map(personOut), documents: rows.map(documentOut) } });
 });
 
@@ -325,9 +325,10 @@ router.post('/documents/:id/archive', allowed, async (req, res) => {
   const { id } = req.params;
   await tx(async (c) => {
     const d = await held(c, id, req.user);
+    if (!isAdmin(req.user) && d.uploaded_by !== req.user.id) throw new HttpError(403, 'ลบได้เฉพาะผู้อัปโหลดและผู้ดูแลระบบ');
     openOnly(d);
     await c.query('update documents set archived_at = now(), updated_at = now() where id = $1', [id]);
-    await audit(c, req.user, 'document.archive', id, `เก็บเอกสาร ${d.title} เข้าคลัง`);
+    await audit(c, req.user, 'document.archive', id, `ลบเอกสาร ${d.title} ออกจากคลัง`);
   });
   await respond(res, id);
 });
@@ -338,7 +339,7 @@ router.post('/documents/:id/restore', allowed, async (req, res) => {
     const d = await held(c, id, req.user);
     if (!d.archived_at) throw new HttpError(409, 'เอกสารนี้ไม่ได้อยู่ในคลังเก็บ');
     await c.query('update documents set archived_at = null, updated_at = now() where id = $1', [id]);
-    await audit(c, req.user, 'document.restore', id, `นำเอกสาร ${d.title} ออกจากคลัง`);
+    await audit(c, req.user, 'document.restore', id, `กู้คืนเอกสาร ${d.title}`);
   });
   await respond(res, id);
 });
