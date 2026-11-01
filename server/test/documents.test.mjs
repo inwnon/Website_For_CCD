@@ -220,6 +220,14 @@ describe('who may do what', () => {
   });
 });
 
+describe('documents.html', () => {
+  test('the page opens but stays out of search results', async () => {
+    const r = await anon.call('GET', '/documents.html');
+    assert.equal(r.status, 200);
+    assert.match(r.headers.get('x-robots-tag') || '', /noindex/);
+  });
+});
+
 describe('PDPA', () => {
   test('the export lists what the person uploaded; erasing keeps the document without the person', async () => {
     const d = await add({ title: 'เอกสารของผู้ส่งออก' });
