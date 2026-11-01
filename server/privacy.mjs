@@ -44,6 +44,8 @@ router.get('/me/data', requireUser, limit('export', { max: 10, windowMs: HOUR })
       where a.user_id = $1 order by e.start_at desc`, [u.id])).rows,
     serviceRequests: (await query(`select created_at, title, type, start_at, end_at, location, details, status, review_note, reviewed_at from service_requests
       where requester_id = $1 order by created_at desc`, [u.id])).rows,
+    documentsUploaded: (await query(`select v.created_at, d.title, v.version, v.file_name from document_versions v join documents d on d.id = v.document_id
+      where v.uploaded_by = $1 order by v.created_at desc`, [u.id])).rows,
     notifications: (await query('select created_at, kind, ref_id, text, read_at from notifications where user_id = $1 order by id desc', [u.id])).rows,
     emails: (await query('select created_at, kind, subject, status from email_outbox where to_email = $1 order by id desc', [u.email])).rows,
     actionsInBackOffice: (await query('select at, action, summary from audit_log where actor_id = $1 order by at desc', [u.id])).rows,
@@ -121,6 +123,9 @@ export async function erase(c, userId) {
   await c.query('delete from event_assignments where user_id = $1', [userId]);
   // Service requests stay (the office's record of its work) without the person; one still waiting will not be answered
   await c.query(`update service_requests set requester_id = null, status = case when status = 'pending' then 'cancelled' else status end where requester_id = $1`, [userId]);
+  // Documents stay too (university records rules), without who uploaded them
+  await c.query('update documents set uploaded_by = null where uploaded_by = $1', [userId]);
+  await c.query('update document_versions set uploaded_by = null where uploaded_by = $1', [userId]);
   await c.query('delete from notifications where user_id = $1', [userId]);
   await c.query('delete from news_reads where reader = $1', [`u:${userId}`]);
   // Unsent emails to this address go, except the confirmation queued just before (privacy.done)

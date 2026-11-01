@@ -9,7 +9,7 @@ import sharp from 'sharp';
 import { query } from '../db.mjs';
 import { thaiWords, searchTerms } from '../thai.mjs';
 import { restore, snapshot } from './cleanup.mjs';
-import { BASE, ID_STAFF, anon, form, img, login, request } from './helpers.mjs';
+import { BASE, ID_STAFF, anon, form, gpsEntries, img, login, request } from './helpers.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
 const NEWS = {
@@ -55,15 +55,6 @@ describe('Thai', () => {
 });
 
 describe('privacy', () => {
-  // TIFF inside the EXIF block: the number of entries left in the GPS directory
-  function gpsEntries(exif) {
-    const t = exif.toString('latin1', 0, 6) === 'Exif\0\0' ? 6 : 0;
-    const le = exif[t] === 0x49;
-    const u16 = (o) => (le ? exif.readUInt16LE(t + o) : exif.readUInt16BE(t + o)), u32 = (o) => (le ? exif.readUInt32LE(t + o) : exif.readUInt32BE(t + o));
-    const ifd0 = u32(4);
-    for (let i = 0; i < u16(ifd0); i++) if (u16(ifd0 + 2 + i * 12) === 0x8825) return u16(u32(ifd0 + 2 + i * 12 + 8));
-    return null;
-  }
   test('photos keep their quality but not where they were taken (GPS removed from the original)', async () => {
     const photo = await sharp({ create: { width: 800, height: 600, channels: 3, background: '#3a6' } })
       .withExif({ IFD0: { Make: 'TestPhone' }, IFD3: { GPSLatitudeRef: 'N', GPSLatitude: '9/1 8/1 3000/100', GPSLongitudeRef: 'E', GPSLongitude: '99/1 20/1 1234/100' } })

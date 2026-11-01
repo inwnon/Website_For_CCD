@@ -28,3 +28,7 @@ export function searchTerms(q, max = 5) {
     return { phrase, words: words.length > 1 || (words[0] && words[0] !== phrase) ? words.slice(0, 8) : [] };
   });
 }
+
+// SQL conditions, one per term: the phrase as typed, or else all of its Thai words. anywhere(text) gives the condition for one piece of text.
+export const termConditions = (q, anywhere) => searchTerms(q)
+  .map(({ phrase, words }) => `(${[anywhere(phrase), ...(words.length ? [`(${words.map(anywhere).join(' and ')})`] : [])].join(' or ')})`);
