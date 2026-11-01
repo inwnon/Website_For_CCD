@@ -1,4 +1,4 @@
-// System settings, users and roles, usage history (admin.html). Admin only.
+// System settings, users and roles, usage history (chanon.html). Admin only.
 // - GET  /api/admin/settings                 { settings, defaults, labels }
 // - PUT  /api/admin/settings/:key  { value } validate + save (org: null = back to org-data.js)
 // - GET  /api/admin/users?q=&role=&limit=&offset=

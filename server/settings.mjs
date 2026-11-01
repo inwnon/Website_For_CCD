@@ -1,4 +1,4 @@
-// System settings edited on admin.html. Stored in the settings table; anything not stored uses DEFAULTS.
+// System settings edited on chanon.html. Stored in the settings table; anything not stored uses DEFAULTS.
 // The values are cached in memory: load() at startup, save() updates the cache.
 // Pages read the public part from /site-config.js (window.SITE) and the org chart from /org-data.js.
 import { query } from './db.mjs';
@@ -124,7 +124,7 @@ export function remember(key, value) {
   if (key === 'org') applyOrg(value || FILE_ORG);
 }
 
-// ประเภทข่าวที่ใช้กับวิดีโอเท่านั้น: fixed, shown after the categories above (not edited on admin.html)
+// ประเภทข่าวที่ใช้กับวิดีโอเท่านั้น: fixed, shown after the categories above (not edited on chanon.html)
 export const VIDEO_CATEGORIES = ['วิดีโอเสียงตามสาย'];
 
 // window.SITE for the pages

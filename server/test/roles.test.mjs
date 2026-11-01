@@ -1,5 +1,5 @@
 // Developer accounts (DEVELOPERS in auth.mjs): highest rights, switch between ทีม PR งานสื่อสารองค์กร and ผู้พัฒนาระบบ
-// per session; nobody else can switch, and admin.html cannot change their role. Banner submissions keep ผู้ออกแบบ.
+// per session; nobody else can switch, and chanon.html cannot change their role. Banner submissions keep ผู้ออกแบบ.
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { query } from '../db.mjs';
@@ -48,7 +48,7 @@ describe('developer role switch', () => {
     assert.equal((await dev.call('POST', '/api/me/role', { role: 'staff' })).status, 400);
     assert.equal((await dev.call('POST', '/api/me/role', { role: 'coordinator' })).status, 400);
   });
-  test('admin.html cannot change a developer\'s role; the list marks the account', async () => {
+  test('chanon.html cannot change a developer\'s role; the list marks the account', async () => {
     const r = await admin.call('PUT', '/api/admin/roles', { email: 'satearnpong.nis@sru.ac.th', role: 'default' });
     assert.equal(r.status, 409);
     const list = (await admin.call('GET', '/api/admin/users?q=satearnpong.nis')).body.items;

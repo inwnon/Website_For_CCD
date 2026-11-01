@@ -5,7 +5,7 @@
 //      Each snapshot has manifest.json (path, size, sha256 of every file) for the restore test.
 //   3. off-site copy: BACKUP_OFFSITE_CMD, run with {dir} replaced by BACKUP_DIR, e.g.
 //        rclone sync {dir} sru-backup:prsru        or        rsync -a --delete {dir}/ backup@nas.sru.ac.th:/backups/prsru/
-//   4. BACKUP_DIR/status.json: what happened (admin.html → สำรองข้อมูล shows it). Exit code 1 when anything failed.
+//   4. BACKUP_DIR/status.json: what happened (chanon.html → สำรองข้อมูล shows it). Exit code 1 when anything failed.
 // Database access: PG_DUMP_VIA=docker (default: `docker compose exec db pg_dump`, the database container of this project)
 // or PG_DUMP_VIA=local (pg_dump on PATH, using PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE).
 import { spawn } from 'node:child_process';

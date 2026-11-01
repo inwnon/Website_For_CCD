@@ -9,7 +9,7 @@ import sharp from 'sharp';
 import { query } from '../db.mjs';
 import { thaiWords, searchTerms } from '../thai.mjs';
 import { restore, snapshot } from './cleanup.mjs';
-import { ID_STAFF, anon, form, img, login, request } from './helpers.mjs';
+import { BASE, ID_STAFF, anon, form, img, login, request } from './helpers.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
 const NEWS = {
@@ -143,10 +143,23 @@ describe('SEO', () => {
     assert.ok(sm.includes(`/news.html?id=${publicId}</loc>`));
     if (internalId) assert.ok(!sm.includes(internalId));
     const robots = String((await request('GET', '/robots.txt')).body);
-    for (const line of ['Disallow: /api/', 'Disallow: /admin.html', 'Disallow: /pr.html']) assert.ok(robots.includes(line), line);
+    for (const line of ['Disallow: /api/', 'Disallow: /chanon.html', 'Disallow: /pr.html']) assert.ok(robots.includes(line), line);
     assert.match(robots, /Sitemap: .+\/sitemap\.xml/);
-    for (const page of ['/admin.html', '/pr.html', '/login.html', '/submit.html']) assert.match((await request('GET', page)).headers.get('x-robots-tag') || '', /noindex/, page);
+    for (const page of ['/chanon.html', '/pr.html', '/login.html', '/submit.html']) assert.match((await request('GET', page)).headers.get('x-robots-tag') || '', /noindex/, page);
     assert.equal((await request('GET', '/index.html')).headers.get('x-robots-tag'), null);
+  });
+  test('admin.html moved to chanon.html: old links keep working, the settings stay for admins only', async () => {
+    for (const [from, to] of [['/admin.html', '/chanon.html'], ['/admin.html?tab=mail&x=1', '/chanon.html?tab=mail&x=1']]) {
+      const r = await fetch(BASE + from, { redirect: 'manual' });
+      assert.equal(r.status, 301, from);
+      assert.equal(r.headers.get('location'), to);
+    }
+    assert.equal((await request('GET', '/chanon.html')).status, 200);
+    assert.equal((await (await login('admin')).call('GET', '/api/admin/settings')).status, 200);
+    assert.equal((await request('GET', '/api/admin/settings')).status, 401);
+    for (const as of ['pr', 'staff', 'student', 'external', 'coordinator', 'secretary', 'executive']) {
+      assert.equal((await (await login(as)).call('GET', '/api/admin/settings')).status, 403, as);
+    }
   });
   test('search page: results, heading and filter bar come from the server as the script shows them (no jump on a phone)', async () => {
     const html = String((await request('GET', `/search.html?q=${encodeURIComponent('ทดสอบคุณภาพ $&')}`)).body);

@@ -72,7 +72,7 @@ describe('นักศึกษาฝึกงาน สสอ.', () => {
     assert.ok(bad.body.details.unit && bad.body.details.year, 'asks for คณะ and ชั้นปี');
   });
 
-  test('ผู้ดูแลระบบ gives and takes back the role (admin.html)', async () => {
+  test('ผู้ดูแลระบบ gives and takes back the role (chanon.html)', async () => {
     const email = 'intern-test@student.sru.ac.th';
     assert.equal((await admin.call('PUT', '/api/admin/roles', { email, role: 'intern' })).status, 200);
     const u = (await admin.call('GET', `/api/admin/users?role=intern&q=${encodeURIComponent(email)}`)).body.items;

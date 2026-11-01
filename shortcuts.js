@@ -26,7 +26,7 @@
     scheduled: ['ข่าวที่ตั้งเวลาไว้', 'pr-news.html?show=scheduled', 'var(--gold-soft)', 'var(--gold)'],
     collections: ['อัลบั้มข่าว', 'pr-collections.html', 'var(--purple-soft)', 'var(--purple)'],
     report: ['รายงาน', 'report.html', 'var(--sky-soft)', 'var(--sky)'],
-    admin: ['ตั้งค่าระบบ', 'admin.html', 'var(--surface-2)', 'var(--ink)'],
+    admin: ['ตั้งค่าระบบ', 'chanon.html', 'var(--surface-2)', 'var(--ink)'],
   };
   const icon = (k, size = 18) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
   const tile = (id, size = 36) => `<span class="scx-ic" style="width:${size}px;height:${size}px;background:rgb(${SC[id][2]});color:rgb(${SC[id][3]})">${icon(id, size > 32 ? 18 : 16)}</span>`;

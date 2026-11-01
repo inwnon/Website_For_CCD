@@ -1,5 +1,5 @@
 // แจ้งเตือนงานใหม่ on every back-office page of the PR team (pr.html, pr-news.html, pr-collections.html, pr-import.html,
-// report.html, admin.html): when someone sends work in (or sends it again after fixing it), a short chime,
+// report.html, chanon.html): when someone sends work in (or sends it again after fixing it), a short chime,
 // a notice with the work's title and a "ดูงาน" link, the count in the tab title while the tab is in the background,
 // and a system notification if the browser allows it. Needs auth.js (window.api, window.ME).
 //   <div id="alertSlot"></div> in the side bar gets the on/off switch (kept in this browser)

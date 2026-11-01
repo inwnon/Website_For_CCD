@@ -84,14 +84,14 @@ app.use('/brand_assets', express.static(join(ROOT, 'brand_assets')));
 // Built CSS and the self-hosted fonts (npm run build:css). app.css is linked with ?v=<hash>, so both cache for good.
 app.use('/assets/src', (req, res) => res.status(404).end());
 app.use('/assets', express.static(join(ROOT, 'assets'), { index: false, immutable: true, maxAge: '365d', fallthrough: false }));
-// Settings the pages need (admin.html): window.SITE, and the org chart when admin has edited it
+// Settings the pages need (chanon.html): window.SITE, and the org chart when admin has edited it
 app.get('/site-config.js', (req, res) => {
   res.type('application/javascript').set('Cache-Control', 'no-cache').send(`window.SITE = ${JSON.stringify(publicSite())};\n`);
 });
 app.get('/org-data.js', (req, res, next) => {
   if (!setting('org')) return next(); // the file itself
   const data = { staffGroups: ORG.staffGroups, subUnits: ORG.subUnits, faculties: ORG.faculties };
-  res.type('application/javascript').set('Cache-Control', 'no-cache').send(`// Org chart saved on admin.html\nwindow.ORG = ${JSON.stringify(data, null, 2)};\n\n${ORG_HELPERS}`);
+  res.type('application/javascript').set('Cache-Control', 'no-cache').send(`// Org chart saved on chanon.html\nwindow.ORG = ${JSON.stringify(data, null, 2)};\n\n${ORG_HELPERS}`);
 });
 // news.html with the story in it, sitemap.xml, robots.txt (pages.mjs); sign-in and back-office pages are noindex
 app.use(pagesRouter);
