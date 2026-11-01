@@ -9,6 +9,7 @@ import { anon, login } from './helpers.mjs';
 const UNIT = 'ทดสอบสมุดโทรศัพท์';
 const HEAD = ['หน่วยงาน', 'เบอร์โทรศัพท์', 'เบอร์ภายใน', 'หมายเหตุ'];
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const BOM = Buffer.from([0xef, 0xbb, 0xbf]);
 let serial = 0;
 const unit = (name = 'กองกลาง') => `${UNIT} ${name} ${++serial}`;
 const entry = (over = {}) => ({ unitName: unit(), phoneNumber: '0-7791-3333', internalNumber: '1234', note: 'เวลาราชการ', ...over });
@@ -202,7 +203,7 @@ describe('importing a file', () => {
   test('reads CSV in UTF-8 and in Windows-874', async () => {
     const [a, b] = [unit('ยูทีเอฟ'), unit('วินโดวส์')];
     const line = (n) => `${HEAD.join(',')}\r\n${n},0-7791-3333,1234,เวลาราชการ\r\n`;
-    assert.equal((await send(pr, Buffer.from(`FEFF${line(a)}`), 'phones.csv', true, 'text/csv')).status, 200);
+    assert.equal((await send(pr, Buffer.concat([BOM, Buffer.from(line(a))]), 'phones.csv', true, 'text/csv')).status, 200);
     assert.equal((await send(pr, thaiBytes(line(b)), 'phones.csv', true, 'text/csv')).status, 200);
     for (const n of [a, b]) assert.deepEqual([(await stored(n))?.phone_number, (await stored(n))?.note], ['0-7791-3333', 'เวลาราชการ']);
   });
