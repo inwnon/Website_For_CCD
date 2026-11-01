@@ -4,6 +4,7 @@
 //   submissions/{submission id}/{file id}.web.webp    1600px copy of photos for previews
 //   drafts/{draft id}/...                  the same for a draft (drafts.mjs); moved to submissions/ when it is sent
 //   media/{news id}/...                    published story images (/media/..., audience checked in news.mjs)
+//   documents/{document id}/{random id}.{ext}         every version of a document (documents.mjs)
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { copyFile, mkdir, rename, rm } from 'node:fs/promises';
@@ -111,6 +112,16 @@ export async function storeUploads(submissionId, uploads, startPositions = {}, f
     throw err;
   }
   return rows;
+}
+
+// Moves a temp upload into the document's folder under a random name and returns the path. Pictures lose where they were taken.
+export async function storeDocument(documentId, f) {
+  const dir = join('documents', documentId);
+  await mkdir(abs(dir), { recursive: true });
+  if (/\.(jpe?g|png)$/i.test(f.originalname)) await stripGps(f.path);
+  const path = join(dir, randomUUID() + extname(f.originalname).toLowerCase()).replaceAll('\\', '/');
+  await rename(f.path, abs(path));
+  return path;
 }
 
 export const removeStored = (path) => Promise.all([rm(abs(path), { force: true }), rm(abs(webPath(path)), { force: true })]);

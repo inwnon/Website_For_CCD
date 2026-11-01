@@ -25,6 +25,7 @@ export async function restore(snap) {
   const subs = (await query('select id from submissions where sender_id = any($1) and sent_at >= $2', [devIds, snap.at])).rows.map((r) => r.id);
   const news = (await query('select id from news where created_at >= $2 and (created_by = any($1) or submission_id = any($3))', [devIds, snap.at, subs])).rows.map((r) => r.id);
   const drafts = (await tableExists('submission_drafts')) ? (await query('select id from submission_drafts where sender_id = any($1) and created_at >= $2', [devIds, snap.at])).rows.map((r) => r.id) : [];
+  let documents = [];
   const client = await pool.connect();
   try {
     await client.query('begin');
@@ -35,6 +36,7 @@ export async function restore(snap) {
       await client.query('delete from events where created_at >= $1 and created_by = any($2)', [snap.at, devIds]); // assignments cascade
       await client.query('delete from notifications where created_at >= $1', [snap.at]);
     }
+    if (await tableExists('documents')) documents = (await client.query('delete from documents where created_at >= $1 returning id', [snap.at])).rows.map((r) => r.id); // versions cascade
     if (await tableExists('collections')) await client.query('delete from collections where created_at >= $1 and created_by = any($2)', [snap.at, devIds]);
     // Reads counted during the run, on stories that stay (the seed stories)
     const reads = (await client.query('delete from news_reads where at >= $1 returning news_id, day, source, device', [snap.at])).rows;
@@ -74,6 +76,7 @@ export async function restore(snap) {
     ...subs.map((id) => removeSubmissionDir(id)),
     ...drafts.map((id) => removeDraftDir(id)),
     ...news.map((id) => rm(abs(join('media', id)), { recursive: true, force: true })),
+    ...documents.map((id) => rm(abs(join('documents', id)), { recursive: true, force: true })),
   ]);
   // Profile photos no account points to any more
   const photos = new Set((await query('select photo_path from users where photo_path is not null')).rows.map((r) => r.photo_path));

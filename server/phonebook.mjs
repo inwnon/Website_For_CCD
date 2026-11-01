@@ -19,7 +19,7 @@ import { query, tx } from './db.mjs';
 import { UPLOAD_DIR, removeTemp } from './files.mjs';
 import { HttpError, str } from './http.mjs';
 import { limit, matchesName, sniff } from './security.mjs';
-import { searchTerms } from './thai.mjs';
+import { termConditions } from './thai.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NUMBER = /^\+?[0-9][0-9 ()-]{2,29}$/;
@@ -64,7 +64,7 @@ function matching(q) {
     const p = `$${params.length}`;
     return `(unit_name ilike ${p} or phone_number ilike ${p} or internal_number ilike ${p} or note ilike ${p})`;
   };
-  const where = searchTerms(q).map(({ phrase, words }) => `(${[anywhere(phrase), ...(words.length ? [`(${words.map(anywhere).join(' and ')})`] : [])].join(' or ')})`);
+  const where = termConditions(q, anywhere);
   return { where: where.length ? `where ${where.join(' and ')}` : '', params };
 }
 
