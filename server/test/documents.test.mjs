@@ -303,6 +303,15 @@ describe('documents.html', () => {
     assert.equal(r.status, 200);
     assert.match(r.headers.get('x-robots-tag') || '', /noindex/);
   });
+  test('PDF.js for the previews is served from this site, as a script', async () => {
+    const page = (await anon.call('GET', '/documents.html')).body.toString();
+    const [dir] = /\/assets\/pdfjs-[0-9.]+\//.exec(page);
+    for (const f of ['pdf.min.mjs', 'pdf.worker.min.mjs']) {
+      const r = await anon.call('GET', `${dir}${f}`);
+      assert.equal(r.status, 200, f);
+      assert.match(r.headers.get('content-type'), /javascript/, f);
+    }
+  });
 });
 
 describe('PDPA', () => {
