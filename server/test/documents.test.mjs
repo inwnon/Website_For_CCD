@@ -229,7 +229,21 @@ describe('finding', () => {
     assert.equal((await pr.call('PUT', url, info())).body.document.docDate, '2026-01-15');
     for (const docDate of ['2026-02-31', '15/01/2569', '2569-01-15', 5]) assert.ok((await pr.call('PUT', url, info({ docDate }))).body.details?.docDate, String(docDate));
   });
-  test('nothing can delete a document', async () => {
+  test('ลบ: only the uploader and admin; it leaves the งาน and the list, the file stays', async () => {
+    const shared = await add({ workTitle: 'งานลบเอกสารทดสอบ' }, file(), admin);
+    const mine = await add({ title: 'เอกสารที่จะลบ', workId: shared.workId });
+    assert.equal((await pr.call('POST', `/api/documents/${shared.id}/archive`, {})).status, 403);
+    assert.equal((await pr.call('POST', `/api/documents/${mine.id}/archive`, {})).status, 200);
+    const left = (await pr.call('GET', `/api/document-works/${shared.workId}`)).body.work.documents;
+    assert.deepEqual(left.map((d) => d.id), [shared.id]);
+    assert.ok(!(await ids(pr)).includes(mine.id));
+    const stored = await one('select file_path from document_versions where document_id = $1', [mine.id]);
+    assert.deepEqual(await readFile(abs(stored.file_path)), PDF);
+    assert.equal((await admin.call('POST', `/api/documents/${shared.id}/archive`, {})).status, 200);
+    assert.deepEqual((await pr.call('GET', `/api/document-works/${shared.workId}`)).body.work.documents, []);
+    assert.ok(!(await works(pr)).some((w) => w.id === shared.workId), 'a งาน with nothing left leaves the list');
+  });
+  test('nothing can delete a document for good', async () => {
     const d = await add();
     assert.equal((await admin.call('DELETE', `/api/documents/${d.id}`)).status, 404);
   });
@@ -284,6 +298,23 @@ describe('งาน', () => {
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.deepEqual(r.body.work.people.map((p) => p.id), [adminId]);
     assert.ok(await one('select 1 from audit_log where action = $1 and target = $2', ['document.work', d.workId]));
+  });
+  test('one save changes the document and its งาน together; a bad งาน changes neither', async () => {
+    const adminId = (await admin.call('GET', '/api/me')).body.user.id;
+    const d = await add({ title: 'ชื่อเอกสารเดิม', workTitle: 'ชื่องานเดิม' });
+    const url = `/api/documents/${d.id}`, work = `/api/document-works/${d.workId}`;
+    const bad = await pr.call('PUT', url, info({ title: 'ชื่อที่ไม่ควรเข้า', workTitle: ' ' }));
+    assert.equal(bad.status, 400);
+    assert.ok(bad.body.details.workTitle);
+    assert.equal((await pr.call('GET', url)).body.document.title, 'ชื่อเอกสารเดิม');
+    const r = await pr.call('PUT', url, info({ title: 'ชื่อเอกสารใหม่', workTitle: 'ชื่องานใหม่', peopleIds: [adminId] }));
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.document.title, 'ชื่อเอกสารใหม่');
+    const w = (await pr.call('GET', work)).body.work;
+    assert.equal(w.title, 'ชื่องานใหม่');
+    assert.deepEqual(w.people.map((p) => p.id), [adminId]);
+    assert.equal((await pr.call('PUT', url, info({ title: 'แก้เฉพาะเอกสาร' }))).status, 200);
+    assert.equal((await pr.call('GET', work)).body.work.title, 'ชื่องานใหม่', 'left out: the งาน stays');
   });
   test('ผู้เกี่ยวข้อง get no rights: a named person still cannot open a private document of someone else', async () => {
     const prId = (await pr.call('GET', '/api/me')).body.user.id;
