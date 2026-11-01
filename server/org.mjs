@@ -1,5 +1,5 @@
 // The org chart the server checks units against: org-data.js (the same file the pages use),
-// or the chart saved on admin.html (settings.mjs calls applyOrg). The exports are live bindings.
+// or the chart saved on chanon.html (settings.mjs calls applyOrg). The exports are live bindings.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import vm from 'node:vm';

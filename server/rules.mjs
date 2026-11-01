@@ -19,7 +19,7 @@ export const MAX_GUESTS = 5;
 export const MIN_BODY = 150;
 export const MAX_TITLE = 180;
 export const MAX_LEAD = 250;
-// ประเภทข่าว, photo limits and video platforms come from the settings (admin.html); submit.html reads the same values.
+// ประเภทข่าว, photo limits and video platforms come from the settings (chanon.html); submit.html reads the same values.
 // categories(): every valid one, the video-only ones too (a story or an import may be a video)
 export const categories = () => [...new Set([...get('categories'), ...VIDEO_CATEGORIES])];
 export const videoOnly = (c) => VIDEO_CATEGORIES.includes(c) && !get('categories').includes(c);

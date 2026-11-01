@@ -32,7 +32,7 @@ const DEV_LOGIN = !PROD && process.env.ALLOW_DEV_LOGIN === '1';
 const google = new OAuth2Client();
 const hash = (token) => createHash('sha256').update(token).digest('hex');
 
-// ผู้พัฒนาระบบ: the highest rights (admin), not given or taken away on admin.html (pr_team), and may switch to
+// ผู้พัฒนาระบบ: the highest rights (admin), not given or taken away on chanon.html (pr_team), and may switch to
 // working as the PR team to see the site as they do. DEVELOPER_EMAILS in .env adds more (comma separated).
 export const DEVELOPERS = new Set(['satearnpong.nis@sru.ac.th', ...(process.env.DEVELOPER_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)]);
 export const SWITCH_ROLES = { pr: 'ทีม PR งานสื่อสารองค์กร', admin: 'ผู้พัฒนาระบบ' };

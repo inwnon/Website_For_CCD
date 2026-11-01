@@ -3,7 +3,7 @@
 // - worker: sends queued rows every 30 s over SMTP (.env SMTP_*); without SMTP rows become 'skipped'
 // - daily(): the 08:00 Bangkok summary for the PR team
 // - GET/PUT /api/me/notify   what the signed-in user wants by email
-// - GET /api/admin/mail · POST /api/admin/mail/test   outbox and a test email (admin.html)
+// - GET /api/admin/mail · POST /api/admin/mail/test   outbox and a test email (chanon.html)
 // - GET /api/notifications · POST /api/notifications/:id/read · POST /api/notifications/read-all   in-app notices (calendar events)
 import { Router } from 'express';
 import nodemailer from 'nodemailer';
@@ -237,7 +237,7 @@ router.post('/admin/mail/test', requireAdmin, mailTest, async (req, res) => {
   await enqueue(null, {
     kind: 'test', to: req.user.email, subject: 'อีเมลทดสอบ', title: 'อีเมลทดสอบจากระบบคลังข่าว มรส.',
     lines: [SMTP ? 'ถ้าคุณได้รับอีเมลนี้ แปลว่าการตั้งค่า SMTP ใช้งานได้' : 'ยังไม่ได้ตั้งค่า SMTP อีเมลนี้จึงบันทึกไว้ในระบบเท่านั้น'],
-    button: { label: 'เปิดหน้าตั้งค่าระบบ', href: link('admin.html#mail') },
+    button: { label: 'เปิดหน้าตั้งค่าระบบ', href: link('chanon.html#mail') },
   });
   await audit(null, req.user, 'mail.test', req.user.email, `ส่งอีเมลทดสอบถึง ${req.user.email}`);
   sendQueued().catch(() => {});

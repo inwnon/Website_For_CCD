@@ -4,7 +4,7 @@
 //   2. the restored database must have the same rows as when the dump was made (the dump's .json), and its tables
 //   3. the newest media snapshot: every file in its manifest is there with its size; a sample is checked by SHA-256;
 //      every photo / file / story image the restored database points to exists in the snapshot
-//   4. the result goes to BACKUP_DIR/status.json (admin.html → สำรองข้อมูล). Exit code 1 when anything failed.
+//   4. the result goes to BACKUP_DIR/status.json (chanon.html → สำรองข้อมูล). Exit code 1 when anything failed.
 import { existsSync } from 'node:fs';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -14,7 +14,7 @@ const VIA = process.env.RESTORE_VIA || 'docker';
 const IMAGE = process.env.RESTORE_IMAGE || 'postgres:16-alpine';
 const SAMPLE = Number(process.env.RESTORE_SAMPLE) || 40;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-// The checks are shown in admin.html, in Thai
+// The checks are shown in chanon.html, in Thai
 const TABLE = { news: 'ข่าว', users: 'ผู้ใช้', submissions: 'งานที่ส่ง', submission_files: 'ไฟล์แนบ', audit_log: 'ประวัติการใช้งาน', news_revisions: 'ประวัติการแก้ไขข่าว' };
 
 async function latest(dir, re) {

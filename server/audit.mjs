@@ -10,7 +10,7 @@ export async function audit(db, user, action, target, summary, details = {}) {
   );
 }
 
-// Action names → Thai labels for the history filter on admin.html
+// Action names → Thai labels for the history filter on chanon.html
 export const ACTIONS = {
   'submission.status': 'เปลี่ยนสถานะงาน',
   'submission.message': 'ตอบข้อความผู้ส่ง',

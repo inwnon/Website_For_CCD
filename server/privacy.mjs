@@ -1,7 +1,7 @@
 // PDPA (phase 10): the data subject's rights and how long things are kept
 // - GET    /api/me/data                    everything the system holds about me, as a JSON file
 // - GET    /api/me/delete-request          my open request (or null) · POST { reason } asks · DELETE cancels
-// - GET    /api/admin/requests             requests (admin.html → คำขอข้อมูลส่วนบุคคล)
+// - GET    /api/admin/requests             requests (chanon.html → คำขอข้อมูลส่วนบุคคล)
 // - POST   /api/admin/requests/:id/erase   erase the account · POST /api/admin/requests/:id/reject { note }
 // - purge(): files of work that was never published, and drafts not touched, after settings retention.days; old emails after 180 days
 import { randomUUID } from 'node:crypto';
@@ -72,7 +72,7 @@ router.post('/me/delete-request', requireUser, limit('deleteRequest', { max: 5, 
       await enqueue(c, {
         kind: 'privacy.request', ref: String(row.id), to, subject: `คำขอลบข้อมูลส่วนบุคคลจาก ${req.user.email}`, title: 'มีคำขอลบข้อมูลส่วนบุคคล',
         lines: [`${req.user.name || req.user.email} (${req.user.email}) ขอให้ลบข้อมูลส่วนบุคคล`, 'ดำเนินการภายใน 30 วันนับจากวันที่ได้รับคำขอ'],
-        quote: reason || undefined, button: { label: 'เปิดคำขอในหน้าตั้งค่าระบบ', href: link('admin.html#requests') },
+        quote: reason || undefined, button: { label: 'เปิดคำขอในหน้าตั้งค่าระบบ', href: link('chanon.html#requests') },
       });
     }
     await enqueue(c, {
