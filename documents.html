@@ -44,7 +44,7 @@
     .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=88da439517">
+  <link rel="stylesheet" href="/assets/app.css?v=e4d9f4eaed">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการเอกสาร</a>
@@ -188,43 +188,6 @@
         </div>
       </div>
     </div>
-  </dialog>
-
-  <dialog id="viewDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(640px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="viewTitle">
-    <div class="grid gap-4 p-5 sm:p-6">
-      <div>
-        <h2 id="viewTitle" class="font-display text-[21px] font-semibold [overflow-wrap:anywhere]"></h2>
-        <p id="viewMeta" class="mt-1 text-[14px] text-ink2 [overflow-wrap:anywhere]"></p>
-        <div id="viewTags" class="mt-2 flex flex-wrap gap-1.5"></div>
-      </div>
-      <section class="grid gap-1" aria-labelledby="versionsTitle">
-        <h3 id="versionsTitle" class="font-display text-[16px] font-semibold">เวอร์ชันของไฟล์</h3>
-        <ul id="viewVersions"></ul>
-      </section>
-      <div class="flex flex-wrap justify-end gap-2">
-        <button id="viewClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">กลับ</button>
-        <button id="viewVersion" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5" hidden>เพิ่มเวอร์ชันใหม่</button>
-      </div>
-    </div>
-  </dialog>
-
-  <dialog id="nextDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="nextTitle">
-    <form id="nextForm" class="grid gap-4 p-5 sm:p-6" novalidate>
-      <div>
-        <h2 id="nextTitle" class="font-display text-[21px] font-semibold">เพิ่มเวอร์ชันใหม่</h2>
-        <p id="nextName" class="mt-1 text-[14px] font-medium [overflow-wrap:anywhere]"></p>
-      </div>
-      <label class="grid gap-1.5">
-        <span class="font-display text-[15px] font-semibold">ไฟล์ <span class="text-brand">*</span></span>
-        <input id="fNext" type="file" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]" aria-describedby="nextHint nextErr">
-        <span id="nextHint" class="text-[14px] text-ink2">ไฟล์ใหม่จะเป็นฉบับปัจจุบัน ส่วนฉบับเดิมยังดาวน์โหลดได้</span>
-      </label>
-      <p id="nextErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
-      <div class="flex flex-wrap justify-end gap-2">
-        <button id="nextClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
-        <button id="nextGo" type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">อัปโหลด</button>
-      </div>
-    </form>
   </dialog>
 
   <dialog id="offDlg" class="desk-dlg w-[min(440px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="offTitle" aria-describedby="offName offText">
@@ -592,12 +555,11 @@
           el('span', { class: 'grid min-w-0 flex-1' },
             el('span', { class: 'font-display text-[15px] font-semibold [overflow-wrap:anywhere]' }, d.title),
             el('span', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${categoryOf(d)} · ${day(d.docDate)}`),
-            el('span', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${d.fileName} · ${bytes(d.size)} · เวอร์ชัน ${d.version}`),
+            el('span', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${d.fileName} · ${bytes(d.size)}`),
             d.accessLevel === 'private' ? el('span', { class: 'flex pt-1' }, personal()) : null)),
         el('div', { class: 'flex flex-wrap gap-1' },
           el('a', { href: fileUrl(d), 'aria-label': `ดาวน์โหลด ${d.title}`, class: 'hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-4 font-display text-[15px] font-medium' }, 'ดาวน์โหลด'),
           el('button', { type: 'button', 'aria-label': `แก้ไข ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium hover:-translate-y-0.5', onclick: () => openForm('edit', d) }, 'แก้ไข'),
-          el('button', { type: 'button', 'aria-label': `เวอร์ชันของ ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium hover:-translate-y-0.5', onclick: () => openDoc(d.id) }, 'เวอร์ชัน'),
           mayDelete(d) ? el('button', { type: 'button', 'aria-label': `ลบ ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5', onclick: () => openOff(d) }, 'ลบ') : null));
     }
 
@@ -684,50 +646,6 @@
       } finally { btn.disabled = false; }
     }
 
-    // ---- One document ----
-    async function openDoc(id) {
-      try {
-        const { document: d } = await api(`/documents/${id}`);
-        state.doc = d;
-        $('#workDlg').close();
-        $('#viewTitle').textContent = d.title;
-        $('#viewMeta').textContent = `${categoryOf(d)} · วันที่เอกสาร ${day(d.docDate)}`;
-        $('#viewTags').replaceChildren(...(d.accessLevel === 'private' ? [personal()] : []), ...d.tags.map(chip));
-        $('#viewVersions').replaceChildren(...d.versions.map((v) => el('li', { class: 'flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line py-2 last:border-b-0' },
-          el('div', { class: 'min-w-0 flex-1 basis-[220px]' },
-            el('p', { class: 'text-[15px] font-medium [overflow-wrap:anywhere]' }, `เวอร์ชัน ${v.version}${v.version === d.version ? ' (ปัจจุบัน)' : ''} · ${v.fileName}`),
-            el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, `${bytes(v.size)} · ${dayTime(v.createdAt)}${v.uploader ? ` · ${v.uploader}` : ''}`)),
-          el('a', { href: `/api/documents/${d.id}/file?version=${v.version}`, 'aria-label': `ดาวน์โหลดเวอร์ชัน ${v.version}`, class: 'hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-4 font-display text-[15px] font-medium' }, 'ดาวน์โหลด'))));
-        $('#viewVersion').hidden = false;
-        if (!$('#viewDlg').open) $('#viewDlg').showModal();
-      } catch (err) { toast(err.message, true); }
-    }
-    function openNext() {
-      $('#viewDlg').close();
-      $('#nextName').textContent = state.doc.title;
-      $('#nextForm').reset();
-      $('#nextErr').hidden = true;
-      $('#nextDlg').showModal();
-    }
-    async function sendNext(ev) {
-      ev.preventDefault();
-      const file = $('#fNext').files[0], btn = $('#nextGo');
-      const fail = (text) => { $('#nextErr').textContent = text; $('#nextErr').hidden = false; };
-      if (!file) { fail('เลือกไฟล์เอกสาร'); $('#fNext').focus(); return; }
-      btn.disabled = true;
-      btn.textContent = 'กำลังอัปโหลด...';
-      $('#nextErr').hidden = true;
-      try {
-        await sendFile(`/documents/${state.doc.id}/versions`, {}, file);
-        $('#nextDlg').close();
-        toast('เพิ่มเวอร์ชันใหม่แล้ว');
-        await load();
-        await openWork(state.work.id);
-      } catch (err) { fail(err.details?.file || err.message); } finally {
-        btn.disabled = false;
-        btn.textContent = 'อัปโหลด';
-      }
-    }
     // ---- Start ----
     (async () => {
       const user = await DESK.start({ page: 'documents', allow: ['pr', 'admin'] });
@@ -771,10 +689,6 @@
       $('#workDlg').addEventListener('close', stopViewer);
       $('#offClose').addEventListener('click', () => $('#offDlg').close());
       $('#offGo').addEventListener('click', drop);
-      $('#viewClose').addEventListener('click', () => { $('#viewDlg').close(); openWork(state.work.id); });
-      $('#viewVersion').addEventListener('click', openNext);
-      $('#nextForm').addEventListener('submit', sendNext);
-      $('#nextClose').addEventListener('click', () => $('#nextDlg').close());
       await load();
     })();
   </script>
