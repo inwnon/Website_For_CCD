@@ -432,6 +432,58 @@ describe('who may do what', () => {
   });
 });
 
+describe('categories set on chanon.html', () => {
+  const put = (value) => admin.call('PUT', '/api/admin/settings/docCategories', { value });
+  const live = async () => (await pr.call('GET', '/api/document-categories')).body.items;
+  let originals;
+  before(async () => { originals = await live(); });
+  // The server keeps settings in memory: put the list back through the API, then drop the row if there was none
+  after(async () => {
+    await query('update documents set category = $1 where not category = any($2)', ['other', originals.map((c) => c.id)]);
+    assert.equal((await put(originals)).status, 200);
+    if (!snap.settings?.some((s) => s.key === 'docCategories')) await query("delete from settings where key = 'docCategories'");
+  });
+  test('the team reads the list, other roles get 403', async () => {
+    assert.deepEqual((await live()).map((c) => c.id), ['university_order', 'unit_order', 'request_memo', 'other']);
+    assert.equal((await live()).find((c) => c.id === 'unit_order').needsUnit, true);
+    for (const who of [student, secretary, executive, staff, external]) assert.equal((await who.call('GET', '/api/document-categories')).status, 403);
+    assert.equal((await pr.call('PUT', '/api/admin/settings/docCategories', { value: [] })).status, 403);
+  });
+  test('an admin adds, renames and reorders; a new category may need a unit', async () => {
+    const start = await live();
+    assert.equal((await put([...start, { label: 'สัญญาจ้าง', needsUnit: true }])).status, 200);
+    const added = (await live()).at(-1);
+    assert.match(added.id, /^c_[0-9a-f]{8}$/);
+    const r = await pr.call('POST', '/api/documents', form(info({ category: added.id }), file()));
+    assert.equal(r.status, 400);
+    assert.ok(r.body.details.unitName);
+    const d = await add({ category: added.id, unitName: 'กองคลัง', title: 'สัญญาเช่าเครื่องถ่ายเอกสาร' });
+    assert.equal(d.unitName, 'กองคลัง');
+    assert.equal((await put([{ ...added, label: 'สัญญาและข้อตกลง' }, ...start])).status, 200);
+    assert.equal((await live())[0].label, 'สัญญาและข้อตกลง');
+    assert.ok((await ids(pr, `?q=${encodeURIComponent('ข้อตกลง')}`)).includes(d.id), 'search uses the live label');
+    assert.ok(!(await ids(pr, `?q=${encodeURIComponent('สัญญาจ้าง')}`)).includes(d.id), 'the old label no longer matches');
+    assert.ok((await ids(pr, `?category=${added.id}`)).includes(d.id));
+  });
+  test('a category in use cannot be deleted; an unused one can', async () => {
+    const all = await live();
+    const used = all.find((c) => c.label === 'สัญญาและข้อตกลง');
+    const r = await put(all.filter((c) => c !== used));
+    assert.equal(r.status, 400);
+    assert.match(r.body.error, /สัญญาและข้อตกลง/);
+    assert.equal((await put([...all, { label: 'ทดลองลบ', needsUnit: false }])).status, 200);
+    assert.equal((await put(all)).status, 200);
+    assert.ok(!(await live()).some((c) => c.label === 'ทดลองลบ'));
+  });
+  test('bad lists are refused', async () => {
+    const all = await live();
+    for (const value of [[], [{ label: '' }], [{ label: 'ซ้ำ' }, { label: 'ซ้ำ' }], [{ id: 'Bad Id!', label: 'x' }], 'x']) {
+      assert.equal((await put(value)).status, 400, JSON.stringify(value));
+    }
+    assert.deepEqual(await live(), all);
+  });
+});
+
 describe('documents.html', () => {
   test('the page opens but stays out of search results', async () => {
     const r = await anon.call('GET', '/documents.html');

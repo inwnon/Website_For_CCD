@@ -1,6 +1,7 @@
 // System settings edited on chanon.html. Stored in the settings table; anything not stored uses DEFAULTS.
 // The values are cached in memory: load() at startup, save() updates the cache.
 // Pages read the public part from /site-config.js (window.SITE) and the org chart from /org-data.js.
+import { randomBytes } from 'node:crypto';
 import { query } from './db.mjs';
 import { HttpError } from './http.mjs';
 import { applyOrg, FILE_ORG } from './org.mjs';
@@ -20,6 +21,13 @@ export const DEFAULTS = {
   review: { days: 2 },
   // ผังหน่วยงาน: same shape as window.ORG in org-data.js (null = use the file)
   org: null,
+  // หมวดเอกสาร (documents.html): id is stored on each document; needsUnit = the uploader names the unit
+  docCategories: [
+    { id: 'university_order', label: 'คำสั่งมหาวิทยาลัย', needsUnit: false },
+    { id: 'unit_order', label: 'คำสั่งจากหน่วยงาน', needsUnit: true },
+    { id: 'request_memo', label: 'บันทึกขออนุเคราะห์จากหน่วยงาน', needsUnit: false },
+    { id: 'other', label: 'เอกสารอื่นๆ', needsUnit: false },
+  ],
   // การเก็บข้อมูล (PDPA): files of work never published are removed after this many days without activity
   retention: { days: 180 },
   // ข้อความแจ้งเตือนถึงผู้ส่ง (PR can edit each one before sending)
@@ -33,7 +41,7 @@ export const DEFAULTS = {
 // Names shown in the history list
 export const LABELS = {
   categories: 'ประเภทข่าว', photos: 'จำนวนภาพ', platforms: 'แหล่งวิดีโอ', review: 'เวลาตรวจข่าว',
-  org: 'ผังหน่วยงาน', messages: 'ข้อความแจ้งเตือน', retention: 'ระยะเวลาเก็บข้อมูล',
+  org: 'ผังหน่วยงาน', docCategories: 'หมวดเอกสาร', messages: 'ข้อความแจ้งเตือน', retention: 'ระยะเวลาเก็บข้อมูล',
 };
 
 const bad = (msg) => { throw new HttpError(400, msg); };
@@ -96,6 +104,18 @@ const VALIDATE = {
     if (!Object.keys(faculties).length) bad('ต้องมีคณะอย่างน้อย 1 คณะ');
     return { staffGroups, subUnits, faculties };
   },
+  // A new category comes without an id and gets one here
+  docCategories: (v) => {
+    if (!Array.isArray(v) || !v.length) bad('ต้องมีหมวดเอกสารอย่างน้อย 1 หมวด');
+    if (v.length > 30) bad('หมวดเอกสารได้ไม่เกิน 30 หมวด');
+    const out = v.map((c) => {
+      if (c?.id != null && !/^[a-z0-9_]{1,40}$/.test(c.id)) bad('รหัสหมวดเอกสารไม่ถูกต้อง');
+      return { id: c?.id || `c_${randomBytes(4).toString('hex')}`, label: text(c?.label, 60, 'ชื่อหมวดเอกสาร'), needsUnit: c?.needsUnit === true };
+    });
+    if (new Set(out.map((c) => c.id)).size !== out.length) bad('มีหมวดเอกสารซ้ำกัน');
+    if (new Set(out.map((c) => c.label)).size !== out.length) bad('มีชื่อหมวดเอกสารซ้ำกัน');
+    return out;
+  },
   messages: (v) => Object.fromEntries(Object.keys(DEFAULTS.messages).map((k) => [k, text(v?.[k], 500, 'ข้อความแจ้งเตือน')])),
 };
 export const KEYS = Object.keys(VALIDATE);
@@ -114,6 +134,11 @@ export async function load() {
 export async function save(client, key, value, user) {
   if (!KEYS.includes(key)) throw new HttpError(404, 'ไม่พบการตั้งค่านี้');
   const clean = VALIDATE[key](value);
+  if (key === 'docCategories') {
+    const left = (await client.query('select distinct category from documents where not category = any($1)', [clean.map((c) => c.id)])).rows;
+    const name = (id) => get('docCategories').find((c) => c.id === id)?.label ?? id;
+    if (left.length) bad(`ลบหมวด ${left.map((r) => `"${name(r.category)}"`).join(', ')} ไม่ได้ เพราะยังมีเอกสารในหมวดนี้`);
+  }
   await client.query(`insert into settings (key, value, updated_by) values ($1, $2, $3)
     on conflict (key) do update set value = $2, updated_at = now(), updated_by = $3`, [key, JSON.stringify(clean), user.id]);
   return clean;

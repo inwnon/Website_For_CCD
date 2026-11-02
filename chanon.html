@@ -27,7 +27,7 @@
     .code-area { font-family: "Noto Sans Thai", ui-monospace, monospace; font-size: 14px; line-height: 1.75; tab-size: 2; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=f70748e28c">
+  <link rel="stylesheet" href="/assets/app.css?v=8697ef9aa0">
 </head>
 <body class="app">
   <a href="#panel" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่การตั้งค่า</a>
@@ -52,7 +52,7 @@
     const { esc, day, dayTime, num, toast, ROLE_TH } = DESK;
     const $ = (s) => document.querySelector(s);
     const SECTIONS = [
-      ['users', 'ผู้ใช้และบทบาท'], ['org', 'ผังหน่วยงาน'], ['categories', 'ประเภทข่าว'], ['media', 'ภาพและวิดีโอ'],
+      ['users', 'ผู้ใช้และบทบาท'], ['org', 'ผังหน่วยงาน'], ['categories', 'ประเภทข่าว'], ['docCategories', 'หมวดเอกสาร'], ['media', 'ภาพและวิดีโอ'],
       ['review', 'เวลาตรวจข่าว'], ['messages', 'ข้อความแจ้งเตือน'], ['mail', 'อีเมลแจ้งเตือน'], ['requests', 'คำขอข้อมูลส่วนบุคคล'], ['retention', 'ระยะเวลาเก็บข้อมูล'], ['backups', 'สำรองข้อมูล'], ['audit', 'ประวัติการใช้งาน'],
     ];
     const PLATFORM = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
@@ -233,6 +233,54 @@
       });
       $('#catAdd').addEventListener('submit', (e) => { e.preventDefault(); const v = e.target.c.value.trim(); if (v && !list.includes(v)) { list.push(v); paint(); } e.target.reset(); });
       $('#catSave').addEventListener('click', (e) => save('categories', list, e.currentTarget));
+    }
+
+    // ================= Document categories =================
+    function docCategories() {
+      let list = S.settings.docCategories.map((c) => ({ ...c }));
+      const icon = (d) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="${d}"/></svg>`;
+      $('#panel').innerHTML = head('หมวดเอกสาร', 'ตัวเลือกหมวดในหน้าคลังเอกสาร ทั้งในฟอร์มและตัวกรอง เปลี่ยนชื่อแล้วเอกสารเดิมแสดงและค้นหาด้วยชื่อใหม่ ลบได้เฉพาะหมวดที่ยังไม่มีเอกสาร') + `
+        <div class="grid max-w-[720px] gap-3 p-5 sm:px-6">
+          <ol id="dcList" class="grid gap-1.5"></ol>
+          <form id="dcAdd" class="flex flex-wrap items-center gap-2"><input name="c" maxlength="60" placeholder="เพิ่มหมวดเอกสาร" class="field h-11 min-w-0 grow basis-48 rounded-xl px-3 text-[15px]" aria-label="ชื่อหมวดเอกสารใหม่">
+            <label class="flex items-center gap-2 text-[14px]"><input type="checkbox" name="unit" class="h-5 w-5 accent-royal">ต้องระบุหน่วยงาน</label>
+            <button class="press t-spring h-11 rounded-xl bg-royal px-5 font-display text-[15px] font-semibold text-white dark:text-bg hover:-translate-y-0.5">เพิ่ม</button></form>
+        </div>` + saveBar('dcSave');
+      const paint = () => {
+        $('#dcList').innerHTML = list.map((c, i) => `<li class="flex flex-wrap items-center gap-2 rounded-2xl border border-line py-1.5 pl-4 pr-1.5">
+          <span class="w-6 text-[13px] text-ink2">${i + 1}</span><input data-label="${i}" maxlength="60" class="field h-10 min-w-0 grow basis-48 rounded-xl px-3 font-display text-[15px] font-medium">
+          <label class="flex items-center gap-2 text-[14px] text-ink2"><input type="checkbox" data-unit="${i}" class="h-5 w-5 accent-royal" ${c.needsUnit ? 'checked' : ''}>ต้องระบุหน่วยงาน</label>
+          <span class="flex">
+          <button type="button" data-mv="${i},-1" class="icon-btn grid h-9 w-9 place-items-center rounded-full text-ink2 hover:text-ink disabled:opacity-30" ${i ? '' : 'disabled'}>${icon('m6 15 6-6 6 6')}</button>
+          <button type="button" data-mv="${i},1" class="icon-btn grid h-9 w-9 place-items-center rounded-full text-ink2 hover:text-ink disabled:opacity-30" ${i < list.length - 1 ? '' : 'disabled'}>${icon('m6 9 6 6 6-6')}</button>
+          <button type="button" data-rm="${i}" class="icon-btn grid h-9 w-9 place-items-center rounded-full text-brand">${icon('M6 6l12 12M18 6 6 18')}</button></span></li>`).join('');
+        // Labels are typed by admins: set as values and attributes, never as HTML
+        list.forEach((c, i) => {
+          const name = c.label || `หมวดที่ ${i + 1}`;
+          $(`[data-label="${i}"]`).value = c.label;
+          $(`[data-label="${i}"]`).setAttribute('aria-label', `ชื่อหมวดที่ ${i + 1}`);
+          $(`[data-mv="${i},-1"]`).setAttribute('aria-label', `เลื่อน ${name} ขึ้น`);
+          $(`[data-mv="${i},1"]`).setAttribute('aria-label', `เลื่อน ${name} ลง`);
+          $(`[data-rm="${i}"]`).setAttribute('aria-label', `ลบ ${name}`);
+        });
+      };
+      paint();
+      $('#dcList').addEventListener('input', (e) => {
+        if (e.target.dataset.label) list[Number(e.target.dataset.label)].label = e.target.value;
+        if (e.target.dataset.unit) list[Number(e.target.dataset.unit)].needsUnit = e.target.checked;
+      });
+      $('#dcList').addEventListener('click', (e) => {
+        const mv = e.target.closest('[data-mv]'), rm = e.target.closest('[data-rm]');
+        if (mv) { const [i, d] = mv.dataset.mv.split(',').map(Number); [list[i], list[i + d]] = [list[i + d], list[i]]; paint(); }
+        if (rm) { list.splice(Number(rm.dataset.rm), 1); paint(); }
+      });
+      $('#dcAdd').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const v = e.target.c.value.trim();
+        if (v && !list.some((c) => c.label === v)) { list.push({ label: v, needsUnit: e.target.unit.checked }); paint(); }
+        e.target.reset();
+      });
+      $('#dcSave').addEventListener('click', async (e) => { if (await save('docCategories', list, e.currentTarget)) docCategories(); });
     }
 
     // ================= Photos + video platforms =================
@@ -472,7 +520,7 @@
     }
 
     // ================= Routing (#section) =================
-    const RENDER = { users, org, categories, media, review, messages, mail, requests, retention, backups, audit };
+    const RENDER = { users, org, categories, docCategories, media, review, messages, mail, requests, retention, backups, audit };
     function show() {
       const id = SECTIONS.some(([k]) => k === location.hash.slice(1)) ? location.hash.slice(1) : 'users';
       document.querySelectorAll('#secNav a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.sec === id)));
