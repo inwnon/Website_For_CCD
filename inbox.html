@@ -445,7 +445,7 @@
     let filter = 'all', query = '', current = new URLSearchParams(location.search).get('ref');
 
     // ---- Signed-in state ----
-    const ROLE_LABEL = { staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.' };
+    const ROLE_LABEL = { staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ประชาสัมพันธ์หน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.' };
     async function load() {
       const r = await api('/submissions');
       subs = r.submissions;

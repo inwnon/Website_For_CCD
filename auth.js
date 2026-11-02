@@ -79,7 +79,7 @@
 
   // ---- Header account menu (re-run with window.renderAccountButton() after marking items read) ----
   // The page's <a id="login"> becomes a button that opens a menu: profile, inbox, PR tools, settings, theme, sign out.
-  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
+  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ประชาสัมพันธ์หน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
   // Developer accounts switch between these two (POST /api/me/role); ผู้พัฒนาระบบ has the highest rights
   const SWITCH = [['pr', 'ทีม PR งานสื่อสารองค์กร'], ['admin', 'ผู้พัฒนาระบบ']];
   const roleName = (u) => (u.developer ? Object.fromEntries(SWITCH)[u.role] : ROLE_TH[u.role]) || '';

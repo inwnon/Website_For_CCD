@@ -17,7 +17,7 @@ import { ALL_PLATFORMS, DEFAULTS, KEYS, LABELS, all, remember, save } from './se
 export const router = Router();
 router.use('/admin', requireAdmin);
 
-const ROLE_TH = { default: 'ตามโดเมนอีเมล', intern: 'นักศึกษาฝึกงาน สสอ.', coordinator: 'ผู้ประสานงานหน่วยงาน', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ' };
+const ROLE_TH = { default: 'ตามโดเมนอีเมล', intern: 'นักศึกษาฝึกงาน สสอ.', coordinator: 'ประชาสัมพันธ์หน่วยงาน', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ' };
 
 // ---- Settings ----
 router.get('/admin/settings', (req, res) => {
@@ -74,7 +74,7 @@ router.put('/admin/roles', async (req, res) => {
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpError(400, 'อีเมลไม่ถูกต้อง');
   if (!ROLE_TH[role]) throw new HttpError(400, 'บทบาทไม่ถูกต้อง');
   const unit = role === 'coordinator' ? str(req.body?.unit, 200, 'หน่วยงาน') : null;
-  if (role === 'coordinator' && !(STAFF_UNITS.has(unit) || FACULTIES.has(unit))) throw new HttpError(400, 'เลือกหน่วยงานที่ผู้ประสานงานดูแล');
+  if (role === 'coordinator' && !(STAFF_UNITS.has(unit) || FACULTIES.has(unit))) throw new HttpError(400, 'เลือกหน่วยงานที่ประชาสัมพันธ์หน่วยงานดูแล');
   if (DEVELOPERS.has(email)) throw new HttpError(409, 'บัญชีผู้พัฒนาระบบมีสิทธิ์สูงสุดเสมอ เปลี่ยนบทบาทจากหน้านี้ไม่ได้');
   if (email === req.user.email && role !== 'admin') throw new HttpError(409, 'เปลี่ยนบทบาทของตัวเองไม่ได้ ให้ผู้ดูแลระบบคนอื่นเปลี่ยนให้');
   await tx(async (c) => {
