@@ -19,7 +19,7 @@
   <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="desk.css">
-  <link rel="stylesheet" href="/assets/app.css?v=8697ef9aa0">
+  <link rel="stylesheet" href="/assets/app.css?v=f84d562a38">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการหมายเลข</a>
@@ -32,26 +32,30 @@
       <section id="gate" class="m-auto flex max-w-[520px] flex-col items-center gap-4 rounded-card border border-line bg-shell p-8 text-center shadow-float" hidden></section>
 
       <div id="app" class="grid w-full content-start gap-3" hidden>
-        <header class="flex flex-wrap items-center gap-3 rounded-card bg-shell p-4 shadow-raised sm:p-5">
-          <div class="mr-auto min-w-[200px]">
-            <h1 class="font-display tight text-[26px] font-bold text-royal">สมุดโทรศัพท์</h1>
-            <p id="count" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
+        <header class="grid gap-4 rounded-card bg-shell p-4 shadow-raised sm:p-5">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="mr-auto min-w-[200px]">
+              <h1 class="font-display tight text-[26px] font-bold text-royal">สมุดโทรศัพท์</h1>
+              <p id="count" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
+            </div>
+            <button id="toggleAll" type="button" class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>เปิดทั้งหมด</button>
+            <button id="import" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>นำเข้าไฟล์
+            </button>
+            <button id="add" type="button" class="press t-spring inline-flex h-11 items-center gap-2 rounded-2xl bg-brand px-5 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 dark:text-bg max-sm:w-full max-sm:justify-center" hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มหมายเลข
+            </button>
           </div>
-          <label class="w-full sm:w-[320px]">
+          <label class="relative block">
             <span class="sr-only">ค้นหาหน่วยงานหรือหมายเลข</span>
-            <input id="search" type="search" maxlength="100" autocomplete="off" placeholder="ค้นหาหน่วยงานหรือหมายเลข" class="field h-11 w-full rounded-2xl px-4 text-[15px]">
+            <svg class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-royal" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="search" type="search" maxlength="100" autocomplete="off" placeholder="ค้นหาหน่วยงานหรือเบอร์โทร" class="field h-14 w-full rounded-2xl border-2 border-royal pl-12 pr-4 text-[17px] font-medium">
           </label>
-          <button id="import" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>นำเข้าไฟล์
-          </button>
-          <button id="add" type="button" class="press t-spring inline-flex h-11 items-center gap-2 rounded-2xl bg-brand px-5 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 dark:text-bg max-sm:w-full max-sm:justify-center" hidden>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มหมายเลข
-          </button>
         </header>
 
-        <section class="rounded-card bg-shell px-4 py-1 shadow-raised sm:px-5" aria-label="รายการหมายเลข">
-          <ul id="list" tabindex="-1"></ul>
-          <p id="empty" class="py-10 text-center text-[15px] text-ink2" hidden></p>
+        <section aria-label="รายการหมายเลข">
+          <div id="list" tabindex="-1" class="mt-2 gap-x-5 lg:columns-2"></div>
+          <p id="empty" class="rounded-card bg-shell py-10 text-center text-[15px] text-ink2 shadow-raised" hidden></p>
         </section>
       </div>
     </main>
@@ -65,10 +69,15 @@
         <input id="fUnit" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="unitErr">
         <span id="unitErr" data-err="unitName" class="text-[14px] font-medium text-brand" hidden></span>
       </label>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">อยู่ภายใต้หน่วยงานหลัก</span>
+        <select id="fParent" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="parentErr"></select>
+        <span id="parentErr" data-err="parentId" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
       <div class="grid gap-4 sm:grid-cols-2">
         <label class="grid content-start gap-1.5">
           <span class="font-display text-[15px] font-semibold">เบอร์โทรศัพท์</span>
-          <input id="fPhone" maxlength="30" inputmode="tel" autocomplete="off" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="numberHint phoneErr">
+          <input id="fPhone" maxlength="30" inputmode="tel" autocomplete="off" placeholder="077-913-333" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="numberHint phoneErr">
           <span id="phoneErr" data-err="phoneNumber" class="text-[14px] font-medium text-brand" hidden></span>
         </label>
         <label class="grid content-start gap-1.5">
@@ -93,7 +102,7 @@
   <dialog id="fileDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="fileTitle">
     <form id="fileForm" class="grid gap-4 p-5 sm:p-6" novalidate>
       <h2 id="fileTitle" class="font-display text-[21px] font-semibold">นำเข้าจากไฟล์</h2>
-      <p class="text-[15px] text-ink2">ใช้ไฟล์ Excel (.xlsx) หรือ CSV ขนาดไม่เกิน 2 MB หัวตารางคือ หน่วยงาน, เบอร์โทรศัพท์, เบอร์ภายใน, หมายเหตุ</p>
+      <p class="text-[15px] text-ink2">ใช้ไฟล์ Excel (.xlsx) หรือ CSV ขนาดไม่เกิน 2 MB หัวตารางคือ หน่วยงานหลัก, หน่วยงาน, เบอร์โทรศัพท์, เบอร์ภายใน, หมายเหตุ ถ้าหน่วยงานนั้นเป็นหน่วยงานหลักเอง ให้เว้นช่องหน่วยงานหลักว่างไว้</p>
       <a href="/api/phonebook/template.xlsx" download class="press t-quick inline-flex min-h-11 items-center justify-self-start font-display text-[15px] font-semibold text-royal hover:underline">ดาวน์โหลดแบบฟอร์ม Excel</a>
       <label class="grid gap-1.5">
         <span class="font-display text-[15px] font-semibold">เลือกไฟล์</span>
@@ -131,8 +140,9 @@
   <script>
     const { toast } = DESK;
     const $ = (s) => document.querySelector(s);
-    const FIELDS = { unitName: '#fUnit', phoneNumber: '#fPhone', internalNumber: '#fInternal' };
-    const state = { items: [], canEdit: false, asked: 0, editing: null, dropping: null, checked: false };
+    const FIELDS = { unitName: '#fUnit', parentId: '#fParent', phoneNumber: '#fPhone', internalNumber: '#fInternal' };
+    const state = { items: [], matches: null, open: new Set(), canEdit: false, asked: 0, editing: null, dropping: null, checked: false };
+    const INDENT = ['', 'pl-5', 'pl-10'];
 
     // Everything from the server goes in as text nodes, never as HTML
     function el(tag, props = {}, ...kids) {
@@ -149,7 +159,7 @@
     // A number inside the university's exchange cannot be dialled from a mobile, so only the telephone number is a link
     function number(label, value, dial) {
       const text = 'font-display text-[16px] font-semibold text-royal';
-      if (!value) return el('span', { class: 'max-sm:hidden' });
+      if (!value) return null;
       return el('div', { class: 'grid leading-[1.6]' },
         el('span', { class: 'text-[13px] text-ink2' }, label),
         dial
@@ -157,23 +167,107 @@
           : el('span', { class: text }, value));
     }
 
-    function row(e) {
-      return el('li', { class: 'grid items-center gap-x-4 gap-y-2 border-b border-line py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_170px_90px_auto]' },
-        el('div', { class: 'min-w-0' },
-          el('p', { class: 'font-display text-[16px] font-semibold [overflow-wrap:anywhere]' }, e.unitName),
-          e.note ? el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, e.note) : null),
-        number('เบอร์โทรศัพท์', e.phoneNumber, true),
-        number('เบอร์ภายใน', e.internalNumber, false),
-        state.canEdit ? el('div', { class: 'flex gap-1' },
-          el('button', { type: 'button', 'aria-label': `แก้ไข ${e.unitName}`, class: 'hover-fill press t-quick h-9 rounded-xl border border-line px-3 font-display text-[14px] font-medium', onclick: () => openForm(e) }, 'แก้ไข'),
-          el('button', { type: 'button', 'aria-label': `ลบ ${e.unitName}`, class: 'press t-quick h-9 rounded-xl px-3 font-display text-[14px] font-medium text-brand hover:-translate-y-0.5', onclick: () => openDrop(e) }, 'ลบ')) : null);
+    function numbers(e) {
+      return el('div', { class: 'flex flex-wrap gap-x-5 gap-y-1' }, number('เบอร์โทรศัพท์', e.phoneNumber, true), number('เบอร์ภายใน', e.internalNumber, false));
+    }
+    function tools(e) {
+      return state.canEdit ? el('div', { class: 'flex shrink-0 gap-1' },
+        el('button', { type: 'button', 'aria-label': `แก้ไข ${e.unitName}`, class: 'hover-fill press t-quick h-9 rounded-xl border border-line px-3 font-display text-[14px] font-medium', onclick: () => openForm(e) }, 'แก้ไข'),
+        el('button', { type: 'button', 'aria-label': `ลบ ${e.unitName}`, class: 'press t-quick h-9 rounded-xl px-3 font-display text-[14px] font-medium text-brand hover:-translate-y-0.5', onclick: () => openDrop(e) }, 'ลบ')) : null;
+    }
+    const note = (e) => (e.note ? el('p', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, e.note) : null);
+
+    // parent id ('' for หน่วยงานหลัก) → its units, in name order as the server sends them
+    function children() {
+      const kids = new Map();
+      for (const e of state.items) {
+        const k = e.parentId ?? '';
+        if (!kids.has(k)) kids.set(k, []);
+        kids.get(k).push(e);
+      }
+      return kids;
+    }
+    // Every unit under id, depth first, as [unit, depth]
+    function under(kids, id, depth = 0, out = []) {
+      for (const k of kids.get(id) || []) { out.push([k, depth]); under(kids, k.id, depth + 1, out); }
+      return out;
+    }
+    // While searching: the units that match, the units above them (to show where they sit) and everything under a match
+    function shown(kids) {
+      if (!state.matches) return null;
+      const byId = new Map(state.items.map((e) => [e.id, e]));
+      const show = new Set();
+      for (const id of state.matches) {
+        for (let e = byId.get(id); e && !show.has(e.id); e = byId.get(e.parentId)) show.add(e.id);
+        for (const [k] of under(kids, id)) show.add(k.id);
+      }
+      return show;
+    }
+
+    function subRow([e, depth]) {
+      return el('li', { class: `grid items-center gap-x-4 gap-y-1 border-b border-line py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] ${INDENT[Math.min(depth, 2)]}` },
+        el('div', { class: 'min-w-0' }, el('p', { class: 'text-[15px] font-medium [overflow-wrap:anywhere]' }, e.unitName), note(e)),
+        el('div', { class: 'flex flex-wrap items-center gap-x-4 gap-y-1' }, numbers(e), tools(e)));
+    }
+    function chevron() {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      for (const [k, v] of Object.entries({ width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', class: 't-quick shrink-0' })) svg.setAttribute(k, v);
+      path.setAttribute('d', 'm6 9 6 6 6-6');
+      svg.append(path);
+      return svg;
+    }
+    // Sub-units fold away until opened; while searching every group that matches is open and cannot fold
+    function card(e, subs, searching) {
+      const open = searching || state.open.has(e.id);
+      const list = subs.length ? el('ul', { id: `s-${e.id}`, class: 'border-t border-line px-4 sm:px-5', hidden: !open }, subs.map(subRow)) : null;
+      let toggle = null;
+      if (list && !searching) {
+        const label = el('span', {});
+        const icon = chevron();
+        const paintToggle = (on) => {
+          toggle.setAttribute('aria-expanded', String(on));
+          label.textContent = `${on ? 'ซ่อน' : 'แสดง'} ${subs.length} หน่วยงานย่อย`;
+          icon.classList.toggle('rotate-180', on);
+          list.hidden = !on;
+        };
+        toggle = el('button', { type: 'button', 'aria-controls': list.id, class: 'hover-fill press t-quick flex min-h-11 w-full items-center justify-between gap-3 border-t border-line px-4 font-display text-[15px] font-medium text-royal sm:px-5',
+          onclick: () => {
+            if (state.open.has(e.id)) state.open.delete(e.id); else state.open.add(e.id);
+            paintToggle(state.open.has(e.id));
+            paintToggleAll();
+          } }, label, icon);
+        paintToggle(open);
+      }
+      return el('section', { class: 'mb-5 break-inside-avoid overflow-hidden rounded-card border border-line bg-shell shadow-raised', 'aria-labelledby': `u-${e.id}` },
+        el('div', { class: 'grid gap-2 p-4 sm:p-5' },
+          el('div', { class: 'flex items-start gap-3' },
+            el('div', { class: 'min-w-0 flex-1' },
+              el('h2', { id: `u-${e.id}`, class: 'font-display text-[18px] font-semibold [overflow-wrap:anywhere]' }, e.unitName),
+              note(e)),
+            tools(e)),
+          numbers(e)),
+        toggle, list);
+    }
+
+    // หน่วยงานหลัก that have sub-units
+    const groups = () => { const parents = new Set(state.items.map((e) => e.parentId)); return state.items.filter((e) => !e.parentId && parents.has(e.id)); };
+    function paintToggleAll() {
+      const all = groups();
+      $('#toggleAll').hidden = Boolean(state.matches) || !all.length;
+      $('#toggleAll').textContent = all.length && all.every((e) => state.open.has(e.id)) ? 'ปิดทั้งหมด' : 'เปิดทั้งหมด';
     }
 
     function paint(q) {
-      $('#list').replaceChildren(...state.items.map(row));
-      $('#count').textContent = q ? `พบ ${state.items.length} หน่วยงาน` : `ทั้งหมด ${state.items.length} หน่วยงาน`;
-      $('#empty').hidden = state.items.length > 0;
+      const kids = children();
+      const show = shown(kids);
+      const tops = (kids.get('') || []).filter((e) => !show || show.has(e.id));
+      $('#list').replaceChildren(...tops.map((e) => card(e, under(kids, e.id).filter(([k]) => !show || show.has(k.id)), Boolean(show))));
+      const subs = state.items.length - (kids.get('') || []).length;
+      $('#count').textContent = q ? `พบ ${state.matches.length} หน่วยงาน` : `${state.items.length - subs} หน่วยงานหลัก ${subs} หน่วยงานย่อย`;
+      $('#empty').hidden = tops.length > 0;
       $('#empty').textContent = q ? `ไม่พบหมายเลขที่ตรงกับ "${q}"` : 'ยังไม่มีหมายเลขในสมุดโทรศัพท์';
+      paintToggleAll();
     }
 
     // Only the latest search paints: an older, slower answer is dropped
@@ -184,6 +278,7 @@
         const r = await api(`/phonebook${q ? `?q=${encodeURIComponent(q)}` : ''}`);
         if (asked !== state.asked) return;
         state.items = r.items;
+        state.matches = r.matches || null;
         paint(q);
       } catch (err) { toast(err.message, true); }
     }
@@ -198,9 +293,18 @@
       box.textContent = text;
       box.hidden = false;
     }
+    // Every unit in tree order, indented; a unit cannot go under itself or under one of its own units
+    function parentOptions(e) {
+      const kids = children();
+      const own = new Set(e ? [e.id, ...under(kids, e.id).map(([k]) => k.id)] : []);
+      $('#fParent').replaceChildren(el('option', { value: '' }, 'ไม่มี (เป็นหน่วยงานหลัก)'),
+        ...under(kids, '').filter(([k]) => !own.has(k.id)).map(([k, depth]) => el('option', { value: k.id }, `${'— '.repeat(depth)}${k.unitName}`)));
+      $('#fParent').value = e?.parentId || '';
+    }
     function openForm(e) {
       state.editing = e;
       clearErrors();
+      parentOptions(e);
       $('#entryTitle').textContent = e ? 'แก้ไขหมายเลข' : 'เพิ่มหมายเลข';
       $('#fUnit').value = e?.unitName || '';
       $('#fPhone').value = e?.phoneNumber || '';
@@ -213,7 +317,7 @@
       clearErrors();
       const btn = $('#entrySave');
       btn.disabled = true;
-      const body = { unitName: $('#fUnit').value, phoneNumber: $('#fPhone').value, internalNumber: $('#fInternal').value, note: $('#fNote').value };
+      const body = { unitName: $('#fUnit').value, parentId: $('#fParent').value || null, phoneNumber: $('#fPhone').value, internalNumber: $('#fInternal').value, note: $('#fNote').value };
       try {
         const e = state.editing;
         await api(e ? `/phonebook/${e.id}` : '/phonebook', { method: e ? 'PUT' : 'POST', body });
@@ -269,7 +373,8 @@
           return;
         }
         $('#fileResult').replaceChildren(
-          el('p', {}, `เพิ่มใหม่ ${r.added} หน่วยงาน`), el('p', {}, `อัปเดต ${r.updated} หน่วยงาน`), el('p', {}, `เหมือนเดิม ${r.unchanged} หน่วยงาน`));
+          el('p', {}, `เพิ่มใหม่ ${r.added} หน่วยงาน`), el('p', {}, `อัปเดต ${r.updated} หน่วยงาน`), el('p', {}, `เหมือนเดิม ${r.unchanged} หน่วยงาน`),
+          r.missing ? el('p', { class: 'font-medium text-brand' }, `ไม่พบคอลัมน์ ${r.missing.join(', ')} ในไฟล์ ข้อมูลช่องนี้จะไม่ถูกนำเข้า ตรวจหัวตารางก่อนยืนยัน`) : null);
         $('#fileResult').hidden = false;
         state.checked = r.added + r.updated > 0;
         btn.textContent = state.checked ? 'ยืนยันนำเข้า' : 'ตรวจไฟล์';
@@ -308,6 +413,7 @@
       if (!user) return;
       const r = await api('/phonebook');
       state.items = r.items;
+      state.matches = null;
       state.canEdit = r.canEdit;
       $('#add').hidden = !r.canEdit;
       $('#import').hidden = !r.canEdit;
@@ -316,6 +422,11 @@
 
       let wait;
       $('#search').addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(load, 250); });
+      $('#toggleAll').addEventListener('click', () => {
+        const all = groups();
+        if (all.every((e) => state.open.has(e.id))) state.open.clear(); else all.forEach((e) => state.open.add(e.id));
+        paint('');
+      });
       $('#add').addEventListener('click', () => openForm(null));
       $('#entryForm').addEventListener('submit', save);
       $('#entryClose').addEventListener('click', () => $('#entryDlg').close());

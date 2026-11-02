@@ -8,6 +8,7 @@ import { anon, login } from './helpers.mjs';
 
 const UNIT = 'ทดสอบสมุดโทรศัพท์';
 const HEAD = ['หน่วยงาน', 'เบอร์โทรศัพท์', 'เบอร์ภายใน', 'หมายเหตุ'];
+const TEMPLATE = ['หน่วยงานหลัก', ...HEAD];
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const BOM = Buffer.from([0xef, 0xbb, 0xbf]);
 let serial = 0;
@@ -21,7 +22,7 @@ const create = async (over) => {
   return r.body.entry;
 };
 const logged = async (action, id) => (await one('select count(*)::int n from audit_log where action = $1 and target = $2', [action, id])).n;
-const find = async (who, q) => (await who.call('GET', `/api/phonebook?q=${encodeURIComponent(q)}`)).body.items;
+const find = async (who, q) => (await who.call('GET', `/api/phonebook?q=${encodeURIComponent(q)}`)).body.matches;
 const stored = (name) => one('select * from phonebook where unit_name = $1', [name]);
 
 const sheet = async (rows, head = HEAD) => {
@@ -89,7 +90,7 @@ describe('who may do what', () => {
 describe('changing entries', () => {
   test('create, update and delete, each in audit_log', async () => {
     const e = await create();
-    assert.deepEqual([e.phoneNumber, e.internalNumber], ['0-7791-3333', '1234']);
+    assert.deepEqual([e.phoneNumber, e.internalNumber], ['077-913-333', '1234']);
     assert.equal(await logged('phonebook.create', e.id), 1);
 
     const put = await pr.call('PUT', `/api/phonebook/${e.id}`, entry({ phoneNumber: null, internalNumber: '4321', note: null }));
@@ -143,8 +144,8 @@ describe('changing entries', () => {
 
 describe('search', () => {
   test('finds a unit by a word inside its Thai name, by either number and by note', async () => {
-    const e = await create({ unitName: `${UNIT} สำนักงานอธิการบดี ${++serial}`, phoneNumber: '0-7791-9876', internalNumber: '5544', note: 'ห้องประชุมใหญ่' });
-    for (const q of ['อธิการบดี', 'สำนักงาน อธิการบดี', '9876', '5544', 'ประชุมใหญ่']) assert.ok((await find(staff, q)).some((x) => x.id === e.id), q);
+    const e = await create({ unitName: `${UNIT} สำนักงานอธิการบดี ${++serial}`, phoneNumber: '077-919-876', internalNumber: '5544', note: 'ห้องประชุมใหญ่' });
+    for (const q of ['อธิการบดี', 'สำนักงาน อธิการบดี', '9876', '919876', '5544', 'ประชุมใหญ่']) assert.ok((await find(staff, q)).includes(e.id), q);
     assert.deepEqual(await find(staff, 'ไม่มีหน่วยงานนี้แน่นอน'), []);
   });
   test('% and _ are plain characters', async () => {
@@ -161,7 +162,7 @@ describe('importing a file', () => {
     assert.match(r.headers.get('content-disposition'), /attachment/);
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(r.body);
-    assert.deepEqual(/** @type {any[]} */ (wb.worksheets[0].getRow(1).values).slice(1), HEAD);
+    assert.deepEqual(/** @type {any[]} */ (wb.worksheets[0].getRow(1).values).slice(1), TEMPLATE);
     const preview = await send(pr, r.body);
     assert.equal(preview.status, 400, 'nothing to import');
   });
@@ -178,10 +179,10 @@ describe('importing a file', () => {
 
     const saved = await send(pr, buf, 'phones.xlsx', true);
     assert.deepEqual(saved.body, { added: 2, updated: 1, unchanged: 1, saved: true });
-    assert.equal((await stored(a)).phone_number, '0-7791-2222');
+    assert.equal((await stored(a)).phone_number, '077-912-222');
     assert.equal((await stored(b)).phone_number, null);
     const row = await stored(old.unitName);
-    assert.deepEqual([row.phone_number, row.internal_number, row.note], ['0-7791-4444', '1111', 'เดิม'], 'an empty cell keeps what is there');
+    assert.deepEqual([row.phone_number, row.internal_number, row.note], ['077-914-444', '1111', 'เดิม'], 'an empty cell keeps what is there');
     assert.equal((await one(`select count(*)::int n from audit_log where action = 'phonebook.import' and actor_email = 'pr@sru.ac.th' and at >= $1`, [snap.at])).n, 1);
   });
   test('a bad row names its line and saves nothing', async () => {
@@ -198,14 +199,14 @@ describe('importing a file', () => {
     const r = await send(pr, await sheet([['เวลาราชการ', 1234, 77913333, name]], ['หมายเหตุ', 'เบอร์ภายใน', 'เบอร์โทรศัพท์', 'หน่วยงาน']), 'phones.xlsx', true);
     assert.equal(r.status, 200, JSON.stringify(r.body));
     const row = await stored(name);
-    assert.deepEqual([row.phone_number, row.internal_number, row.note], ['077913333', '1234', 'เวลาราชการ']);
+    assert.deepEqual([row.phone_number, row.internal_number, row.note], ['077-913-333', '1234', 'เวลาราชการ']);
   });
   test('reads CSV in UTF-8 and in Windows-874', async () => {
     const [a, b] = [unit('ยูทีเอฟ'), unit('วินโดวส์')];
     const line = (n) => `${HEAD.join(',')}\r\n${n},0-7791-3333,1234,เวลาราชการ\r\n`;
     assert.equal((await send(pr, Buffer.concat([BOM, Buffer.from(line(a))]), 'phones.csv', true, 'text/csv')).status, 200);
     assert.equal((await send(pr, thaiBytes(line(b)), 'phones.csv', true, 'text/csv')).status, 200);
-    for (const n of [a, b]) assert.deepEqual([(await stored(n))?.phone_number, (await stored(n))?.note], ['0-7791-3333', 'เวลาราชการ']);
+    for (const n of [a, b]) assert.deepEqual([(await stored(n))?.phone_number, (await stored(n))?.note], ['077-913-333', 'เวลาราชการ']);
   });
   test('refuses other files, a wrong header and a file that is too big', async () => {
     assert.equal((await send(pr, Buffer.from('not a workbook'), 'phones.xlsx')).status, 400);
@@ -219,5 +220,83 @@ describe('importing a file', () => {
   test('refuses more rows than the limit', async () => {
     const rows = Array.from({ length: 1001 }, (_, i) => [`${UNIT} ${i}`, '1234', '', '']);
     assert.equal((await send(pr, await sheet(rows))).status, 400);
+  });
+});
+
+describe('หน่วยงานหลัก and หน่วยงานย่อย', () => {
+  test('a unit sits under another; the same name may sit under two parents', async () => {
+    const [a, b] = [await create({ unitName: unit('คณะ') }), await create({ unitName: unit('คณะ') })];
+    const name = unit('สำนักงานคณบดี');
+    const subA = await create({ unitName: name, parentId: a.id });
+    const subB = await create({ unitName: name, parentId: b.id });
+    assert.deepEqual([subA.parentId, subB.parentId], [a.id, b.id]);
+    const twice = await pr.call('POST', '/api/phonebook', entry({ unitName: name, parentId: a.id }));
+    assert.equal(twice.status, 400);
+    assert.ok(twice.body.details.unitName);
+    const items = (await staff.call('GET', '/api/phonebook')).body.items;
+    assert.equal(items.find((x) => x.id === subA.id).parentId, a.id);
+    assert.ok((await find(staff, name)).includes(subB.id));
+  });
+  test('a unit cannot go under itself or under its own sub-unit; an unknown parent is refused', async () => {
+    const top = await create();
+    const sub = await create({ parentId: top.id });
+    for (const parentId of [top.id, sub.id]) {
+      const r = await pr.call('PUT', `/api/phonebook/${top.id}`, entry({ unitName: top.unitName, parentId }));
+      assert.equal(r.status, 400, parentId);
+      assert.ok(r.body.details.parentId);
+    }
+    for (const parentId of ['00000000-0000-4000-8000-000000000000', 'nope', 5]) {
+      const r = await pr.call('POST', '/api/phonebook', entry({ parentId }));
+      assert.equal(r.status, 400, String(parentId));
+      assert.ok(r.body.details.parentId);
+    }
+  });
+  test('a unit with sub-units is not deleted; moving it is logged', async () => {
+    const top = await create();
+    const sub = await create({ parentId: top.id });
+    assert.equal((await pr.call('DELETE', `/api/phonebook/${top.id}`)).status, 400);
+    const moved = await pr.call('PUT', `/api/phonebook/${sub.id}`, entry({ unitName: sub.unitName, parentId: null }));
+    assert.equal(moved.body.entry.parentId, null);
+    assert.equal(await logged('phonebook.update', sub.id), 1);
+    assert.equal((await pr.call('DELETE', `/api/phonebook/${top.id}`)).status, 200);
+  });
+});
+
+describe('telephone numbers', () => {
+  test('are stored as 077-913-333 or 081-234-5678; other numbers stay as typed', async () => {
+    for (const [typed, saved] of [['077913333', '077-913-333'], ['0 7791 3333', '077-913-333'], ['0812345678', '081-234-5678'], ['+66 77 913 333', '+66 77 913 333'], ['1669', '1669']]) {
+      assert.equal((await create({ phoneNumber: typed })).phoneNumber, saved, typed);
+    }
+  });
+});
+
+describe('importing units under a หน่วยงานหลัก', () => {
+  const GROUPED = ['หน่วยงานหลัก', ...HEAD];
+  test('a new หน่วยงานหลัก and its units come in together; a unit imported before moves under it', async () => {
+    const [top, sub, loose] = [unit('คณะ'), unit('สำนักงานคณบดี'), unit('สาขา')];
+    const before = await create({ unitName: loose, phoneNumber: '077913000' });
+    const buf = await sheet([['', top, '077913100', '', ''], [top, sub, '077913101', '', ''], [top, loose, '', '3102', '']], GROUPED);
+    const preview = await send(pr, buf);
+    assert.deepEqual(preview.body, { added: 2, updated: 1, unchanged: 0, saved: false });
+    assert.equal((await send(pr, buf, 'phones.xlsx', true)).status, 200);
+    const parent = await stored(top);
+    assert.equal(parent.parent_id, null);
+    assert.equal((await stored(sub)).parent_id, parent.id);
+    const moved = await one('select * from phonebook where id = $1', [before.id]);
+    assert.deepEqual([moved.parent_id, moved.phone_number, moved.internal_number], [parent.id, '077-913-000', '3102']);
+  });
+  test('a หน่วยงานหลัก that is nowhere is a bad row', async () => {
+    const r = await send(pr, await sheet([[unit('ไม่มี'), unit(), '1234', '', '']], GROUPED), 'phones.xlsx', true);
+    assert.equal(r.status, 400);
+    assert.match(r.body.details.problems[0], /^แถว 2: ไม่พบหน่วยงานหลัก/);
+  });
+  test('reads headers written another way, and names a number column it cannot find', async () => {
+    const name = unit();
+    const r = await send(pr, await sheet([[name, '1234']], ['ชื่อหน่วยงาน', 'เบอร์ ภายใน']));
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.deepEqual(r.body.missing, ['เบอร์โทรศัพท์']);
+    const ok = await send(pr, await sheet([[name, '077913333', '1234']], ['หน่วยงาน', 'เบอร์โทร', 'โทรภายใน']), 'phones.xlsx', true);
+    assert.equal(ok.body.missing, undefined);
+    assert.equal((await stored(name)).phone_number, '077-913-333');
   });
 });
