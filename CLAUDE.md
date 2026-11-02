@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 ## Project
-คลังข่าว มรส. (university PR newsroom), being extended with back-office modules for the Corporate Communication office: calendar, service requests, documents, equipment, phone book, student team.
+คลังข่าว มรส. (university PR newsroom), being extended with back-office modules for the Corporate Communication office: calendar, service requests, documents, phone book, student team.
 Stack (fixed): Node.js 22 + Express 5 (ESM `.mjs`) + PostgreSQL 16 via `pg` + plain SQL migrations + static HTML pages with locally built Tailwind. Do not add or swap libraries without asking.
 Runs unchanged on Hostinger VPS (dev) and the university server (prod); only `.env` differs. No paid services or per-call APIs.
 New-module requirements: @SPEC.md (read only when working on those modules). Server details: `server/README.md`.
