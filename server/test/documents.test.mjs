@@ -132,6 +132,7 @@ describe('downloading and versions', () => {
     assert.equal(r.body.document.title, 'ชื่อใหม่ทดสอบ');
     assert.deepEqual(r.body.document.tags, ['ใหม่', 'แบบฟอร์ม']);
     assert.equal(r.body.document.version, 1);
+    assert.deepEqual((await pr.call('PUT', `/api/documents/${d.id}`, info({ title: 'ชื่อใหม่ทดสอบ', tags: undefined }))).body.document.tags, ['ใหม่', 'แบบฟอร์ม'], 'tags left out stay');
     assert.ok((await ids(pr, `?q=${encodeURIComponent('ชื่อใหม่ทดสอบ')}`)).includes(d.id));
     assert.ok(await one(`select 1 from audit_log where action = 'document.update' and target = $1`, [d.id]));
   });
@@ -202,6 +203,14 @@ describe('finding', () => {
     assert.deepEqual([past.items.length, past.total], [0, 5]);
     assert.equal((await pr.call('GET', `/api/document-works${q}&type=excel`)).body.total, 0);
     for (const bad of ['page=0', 'page=x', 'perPage=0', 'perPage=101', 'perPage=1.5']) assert.equal((await pr.call('GET', `/api/document-works?${bad}`)).status, 400, bad);
+  });
+  test('งาน come newest วันที่เอกสารลงนาม first, not newest upload', async () => {
+    const q = `?q=${encodeURIComponent('งานเรียงวันลงนาม')}`;
+    const march = await add({ workTitle: 'งานเรียงวันลงนาม มีนา', docDate: '2026-03-01' });
+    const january = await add({ workTitle: 'งานเรียงวันลงนาม มกรา', docDate: '2026-01-05' });
+    const may = await add({ workTitle: 'งานเรียงวันลงนาม พฤษภา', docDate: '2026-01-02' });
+    await add({ workId: may.workId, docDate: '2026-05-20' });
+    assert.deepEqual((await works(pr, q)).map((w) => w.id), [may.workId, march.workId, january.workId]);
   });
   test('รอบประเมิน counts from the date of the document; round 2 crosses into the next year', async () => {
     const round1 = await add({ title: 'เอกสารรอบหนึ่ง', docDate: '2026-09-30' });
@@ -298,6 +307,18 @@ describe('งาน', () => {
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.deepEqual(r.body.work.people.map((p) => p.id), [adminId]);
     assert.ok(await one('select 1 from audit_log where action = $1 and target = $2', ['document.work', d.workId]));
+  });
+
+  test('ผู้เกี่ยวข้อง photos: through this server, PR and admin only, never to other roles', async () => {
+    const prId = (await pr.call('GET', '/api/me')).body.user.id;
+    const studentId = (await student.call('GET', '/api/me')).body.user.id;
+    const d = await add({ workTitle: 'งานรูปผู้เกี่ยวข้อง', peopleIds: [prId] });
+    const [p] = (await works(pr, `?q=${encodeURIComponent('งานรูปผู้เกี่ยวข้อง')}`))[0].people;
+    assert.ok(p.photo === null || p.photo.startsWith(`/api/document-works/photo/${prId}.webp`), 'no outside address');
+    assert.ok(Object.hasOwn((await pr.call('GET', `/api/document-works/${d.workId}`)).body.work.people[0], 'photo'));
+    for (const who of [student, secretary, executive, staff, external]) assert.equal((await who.call('GET', `/api/document-works/photo/${prId}.webp`)).status, 403);
+    assert.equal((await pr.call('GET', `/api/document-works/photo/${studentId}.webp`)).status, 404, 'only PR and admin photos');
+    assert.equal((await pr.call('GET', '/api/document-works/photo/nope.webp')).status, 404);
   });
   test('one save changes the document and its งาน together; a bad งาน changes neither', async () => {
     const adminId = (await admin.call('GET', '/api/me')).body.user.id;

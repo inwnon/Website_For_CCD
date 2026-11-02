@@ -27,9 +27,9 @@ const NAMED = 'u.consent_at is not null and u.first_name is not null and u.last_
 const onTeam = (devs) => `(u.role = 'pr' or u.email = any(${devs}::text[]))`;
 const onFaculty = (units, pos) => `(u.role in ('staff', 'coordinator', 'secretary', 'executive') and u.unit = any(${units}::text[]) and u.position ~* ${pos})`;
 
-// A version in the photo link, so a new photo is not hidden by the browser's cache
-const photoSource = (u) => u.photo_path || (GOOGLE_PHOTO.test(u.avatar_url || '') ? u.avatar_url : null);
-const version = (src) => createHash('sha256').update(src).digest('hex').slice(0, 10);
+// A version in the photo link, so a new photo is not hidden by the browser's cache (also used by documents.mjs)
+export const photoSource = (u) => u.photo_path || (GOOGLE_PHOTO.test(u.avatar_url || '') ? u.avatar_url : null);
+export const version =(src) => createHash('sha256').update(src).digest('hex').slice(0, 10);
 
 const person = (u) => {
   const src = photoSource(u);
@@ -61,7 +61,7 @@ router.get('/contact', async (req, res) => {
 });
 
 const inFlight = new Map();
-async function googlePhoto(url) {
+export async function googlePhoto(url) {
   const rel = `contact/${version(url)}.webp`;
   if (existsSync(abs(rel))) return rel;
   if (!inFlight.has(rel)) {
