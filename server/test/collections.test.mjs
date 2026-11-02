@@ -28,7 +28,7 @@ before(async () => {
 after(async () => { await restore(snap); });
 
 describe('เพิ่มเข้าอัลบั้ม จากฟอร์มข่าว', () => {
-  const STORY = { kind: 'video', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'], body: 'ข้อความประกอบทดสอบ', date: day(4), videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', confirmDuplicate: true };
+  const STORY = { kind: 'video', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'], channels: ['facebook'], body: 'ข้อความประกอบทดสอบ', date: day(4), videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', confirmDuplicate: true };
   const create = async (title) => (await pr.call('POST', '/api/pr/collections', { title, items: [] })).body.collection.id;
   const itemsOf = async (id) => (await query('select items from collections where id = $1', [id])).rows[0].items;
 
