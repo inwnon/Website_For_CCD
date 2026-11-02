@@ -44,7 +44,7 @@
     .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=24bf3c3bda">
+  <link rel="stylesheet" href="/assets/app.css?v=0070cecd8b">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการเอกสาร</a>
@@ -205,7 +205,7 @@
   <script>
     const { toast, day, dayTime } = DESK;
     const $ = (s) => document.querySelector(s);
-    const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกข้อความขอความอนุเคราะห์', other: 'เอกสารอื่นๆ' };
+    const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกขออนุเคราะห์จากหน่วยงาน', other: 'เอกสารอื่นๆ' };
     const FIELDS = { workTitle: '#fWork', people: '#fWho', file: '#fFile', title: '#fTitle', category: '#fCategory', docDate: '#fDate', unitName: '#fUnit' };
     const MAX_FILES = 10;
     const PER_PAGE = [20, 40, 60];
@@ -320,8 +320,9 @@
     }
     // ผู้เกี่ยวข้อง on a card: overlapping profile photos (or the first letter), named for screen readers
     const initial = (name) => [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(name.replace(/^[เแโใไ]/, ''))][0]?.segment ?? '?';
-    function face(p) {
-      const ring = 'h-8 w-8 shrink-0 rounded-full ring-2 ring-shell';
+    function face(p, i) {
+      // Phones show 3 and +N; from lg (PC, notebook) all 5
+      const ring = `h-8 w-8 shrink-0 rounded-full ring-2 ring-shell ${i >= 3 ? 'max-lg:sr-only' : ''}`;
       return p.photo
         ? el('img', { src: p.photo, alt: p.name, title: p.name, width: 32, height: 32, loading: 'lazy', class: `${ring} bg-surface2 object-cover` })
         : el('span', { role: 'img', 'aria-label': p.name, title: p.name, class: `${ring} grid place-items-center bg-royal-soft font-display text-[13px] font-semibold text-royal` }, initial(p.name));
@@ -329,8 +330,8 @@
     function faces(people) {
       if (!people.length) return null;
       const more = people.length - 3;
-      return el('span', { class: 'flex -space-x-2' }, people.slice(0, 3).map(face),
-        more > 0 ? el('span', { role: 'img', 'aria-label': `และอีก ${more} คน`, class: 'grid h-8 min-w-8 shrink-0 place-items-center rounded-full bg-surface2 px-1.5 text-[13px] font-semibold ring-2 ring-shell' }, `+${more}`) : null);
+      return el('span', { class: 'flex -space-x-2' }, people.map(face),
+        more > 0 ? el('span', { 'aria-hidden': 'true', class: 'grid h-8 min-w-8 shrink-0 place-items-center rounded-full bg-surface2 px-1.5 text-[13px] font-semibold ring-2 ring-shell lg:hidden' }, `+${more}`) : null);
     }
     function paint(filtered) {
       $('#list').replaceChildren(...state.works.map(card));

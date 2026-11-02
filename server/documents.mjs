@@ -33,7 +33,7 @@ import { HttpError, str } from './http.mjs';
 import { limit, matchesName } from './security.mjs';
 import { termConditions } from './thai.mjs';
 
-const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกข้อความขอความอนุเคราะห์', other: 'เอกสารอื่นๆ' };
+const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกขออนุเคราะห์จากหน่วยงาน', other: 'เอกสารอื่นๆ' };
 const LEVELS = ['team', 'private'];
 const FILE_TYPES = {
   pdf: ['application/pdf'], word: [mimeOf('a.docx')], excel: [mimeOf('a.xlsx')], powerpoint: [mimeOf('a.pptx')], image: ['image/jpeg', 'image/png'],
@@ -213,14 +213,14 @@ router.get('/document-works', allowed, async (req, res) => {
         and ($9::int is null or (extract(month from d.doc_date) between 4 and 9) = ($9 = 1))
         and ($8::uuid is null or exists (select 1 from document_work_people p where p.work_id = d.work_id and p.user_id = $8))
     ), found as (
-      select s.work_id, max(s.updated_at) latest from seen s join document_works w on w.id = s.work_id
+      select s.work_id, max(s.doc_date) signed, max(s.updated_at) latest from seen s join document_works w on w.id = s.work_id
       left join lateral (select string_agg(u.name, ' ') names from document_work_people p join users u on u.id = p.user_id where p.work_id = w.id) n on true
       where true ${terms.map((t) => `and ${t}`).join(' ')} group by s.work_id
     )`;
   const { total } = await one(`${matching} select count(*)::int total from found`, params);
-  const rows = (await query(`${matching}, hits as (select * from found order by latest desc, work_id limit $${params.length + 1} offset $${params.length + 2})
+  const rows = (await query(`${matching}, hits as (select * from found order by signed desc, latest desc, work_id limit $${params.length + 1} offset $${params.length + 2})
     select s.*, w.title work_title, h.latest from seen s join hits h on h.work_id = s.work_id join document_works w on w.id = s.work_id
-    order by h.latest desc, h.work_id, s.created_at`, [...params, perPage, (page - 1) * perPage])).rows;
+    order by h.signed desc, h.latest desc, h.work_id, s.created_at`, [...params, perPage, (page - 1) * perPage])).rows;
   const works = new Map();
   for (const d of rows) {
     if (!works.has(d.work_id)) works.set(d.work_id, { id: d.work_id, title: d.work_title, updatedAt: d.latest, people: [], documents: [] });

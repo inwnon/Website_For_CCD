@@ -204,6 +204,14 @@ describe('finding', () => {
     assert.equal((await pr.call('GET', `/api/document-works${q}&type=excel`)).body.total, 0);
     for (const bad of ['page=0', 'page=x', 'perPage=0', 'perPage=101', 'perPage=1.5']) assert.equal((await pr.call('GET', `/api/document-works?${bad}`)).status, 400, bad);
   });
+  test('งาน come newest วันที่เอกสารลงนาม first, not newest upload', async () => {
+    const q = `?q=${encodeURIComponent('งานเรียงวันลงนาม')}`;
+    const march = await add({ workTitle: 'งานเรียงวันลงนาม มีนา', docDate: '2026-03-01' });
+    const january = await add({ workTitle: 'งานเรียงวันลงนาม มกรา', docDate: '2026-01-05' });
+    const may = await add({ workTitle: 'งานเรียงวันลงนาม พฤษภา', docDate: '2026-01-02' });
+    await add({ workId: may.workId, docDate: '2026-05-20' });
+    assert.deepEqual((await works(pr, q)).map((w) => w.id), [may.workId, march.workId, january.workId]);
+  });
   test('รอบประเมิน counts from the date of the document; round 2 crosses into the next year', async () => {
     const round1 = await add({ title: 'เอกสารรอบหนึ่ง', docDate: '2026-09-30' });
     const round2 = await add({ title: 'เอกสารรอบสองปลายปี', docDate: '2026-10-01' });
