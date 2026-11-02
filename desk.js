@@ -21,7 +21,7 @@
   const MENU = [
     { id: 'inbox', href: 'pr.html', label: 'งานที่ส่งเข้ามา', roles: ['pr', 'admin'] },
     { id: 'news', href: 'pr-news.html', label: 'จัดการข่าว', roles: ['pr', 'admin'] },
-    { id: 'collections', href: 'pr-collections.html', label: 'อัลบั้มข่าว', roles: ['pr', 'admin'] },
+    { id: 'collections', href: 'pr-collections.html', label: 'อัลบั้มข่าว', roles: ['pr', 'admin', 'intern'] },
     // เพิ่มข่าว: the PR team's own story of the day, live at once (pr-import.html?mode=add)
     { id: 'add', href: 'pr-import.html?mode=add', label: 'เพิ่มข่าว', roles: ['pr', 'admin'] },
     { id: 'import', href: 'pr-import.html', label: 'นำเข้าข่าวย้อนหลัง', roles: ['pr', 'admin', 'intern'] },

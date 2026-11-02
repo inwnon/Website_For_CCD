@@ -29,6 +29,7 @@
     .img-pick:has(input:checked) .box { box-shadow: 0 0 0 3px rgb(var(--purple)); }
     .img-pick:has(input:focus-visible) .box { outline: 3px solid rgb(var(--focus)); outline-offset: 3px; }
     .pick-item { cursor: grab; touch-action: pan-y; }
+    .album-list { max-height: 40dvh; overflow-y: auto; }
     .rm-btn { transition: transform .35s var(--spring); }
     .rm-btn:hover { transform: scale(1.08); }
     .rm-btn:active { transform: scale(.92); }
@@ -184,6 +185,17 @@
               <span id="albumLinksErr" class="err" hidden></span>
             </div>
 
+            <!-- อัลบั้มข่าว: the story joins the sets chosen here when it is saved -->
+            <div class="grid gap-1.5">
+              <span class="font-display text-[15px] font-semibold">อัลบั้มข่าว</span>
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="albumBtn" type="button" class="press t-quick inline-flex h-11 items-center rounded-full border border-line bg-shell px-5 font-display text-[15px] font-medium hover:-translate-y-0.5 disabled:opacity-60">เพิ่มเข้าอัลบั้ม</button>
+                <ul id="albumChosen" class="flex flex-wrap gap-2" aria-label="อัลบั้มที่เลือก"></ul>
+              </div>
+              <span class="text-[13px] text-ink2">ระบบเพิ่มข่าวเข้าอัลบั้มที่เลือกพร้อมการบันทึกข่าวนี้</span>
+              <span id="collectionsErr" class="err" hidden></span>
+            </div>
+
             <!-- ฉบับภาษาอังกฤษ (ไม่บังคับ): the story page has a TH / EN switch when there is one -->
             <details id="enBox" class="group rounded-card border border-line bg-surface2/60">
               <summary class="press t-quick flex cursor-pointer list-none items-center justify-between gap-3 rounded-card px-4 py-3.5 hover:bg-surface2 sm:px-5">
@@ -227,6 +239,33 @@
       </aside>
     </main>
   </div>
+
+  <dialog id="albumDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(640px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="albumDlgTitle">
+    <div class="grid gap-4 p-5 sm:p-6">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 id="albumDlgTitle" class="font-display text-[21px] font-semibold">เพิ่มเข้าอัลบั้มข่าว</h2>
+          <p class="mt-1 text-[14px] text-ink2">เลือกได้หลายอัลบั้ม</p>
+        </div>
+        <button id="albumClose" type="button" class="press t-quick grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line hover:bg-surface2" aria-label="ปิด"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ค้นหาอัลบั้ม</span>
+        <input id="albumQ" type="search" class="field h-12 rounded-2xl px-4 text-[16px]">
+      </label>
+      <ul id="albumList" class="album-list grid gap-1"></ul>
+      <form id="albumNew" class="grid gap-1.5">
+        <label for="albumNewName" class="font-display text-[15px] font-semibold">สร้างอัลบั้มใหม่</label>
+        <div class="flex gap-2">
+          <input id="albumNewName" maxlength="200" required class="field h-12 min-w-0 flex-1 rounded-2xl px-4 text-[16px]">
+          <button type="submit" class="press t-quick h-12 shrink-0 rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-medium hover:-translate-y-0.5 disabled:opacity-60">สร้าง</button>
+        </div>
+      </form>
+      <div class="flex justify-end">
+        <button id="albumDone" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">เสร็จ</button>
+      </div>
+    </div>
+  </dialog>
 
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
@@ -283,7 +322,7 @@
       const field = document.getElementById(key);
       if (field) field.setAttribute('aria-invalid', String(!!msg));
     }
-    const clearErrs = () => ['unit', 'date', 'time', 'title', 'body', 'categories', 'photos', 'videoUrl', 'videoLinks', 'albumUrl', 'albumLinks', 'credit'].forEach((k) => setErr(k));
+    const clearErrs = () => ['unit', 'date', 'time', 'title', 'body', 'categories', 'photos', 'videoUrl', 'videoLinks', 'albumUrl', 'albumLinks', 'collections', 'credit'].forEach((k) => setErr(k));
 
     // ---- เวลา 24 ชั่วโมง: "930", "9.30", "9:3" and "14" become 09:30, 09:30, 09:03 and 14:00 ----
     function time24(v) {
@@ -417,6 +456,72 @@
     drop.addEventListener('dragleave', () => drop.classList.remove('is-over'));
     drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('is-over'); addFiles(e.dataTransfer.files); });
 
+    // ---- เพิ่มเข้าอัลบั้ม ----
+    const IN_ALBUM_MAX = 100; // collections.mjs MAX_ITEMS
+    const chosen = new Map(); // the sets this story joins when it is saved: id → name
+    let albums = null;        // every set, read when the dialog first opens
+    let inSets = [];          // แก้ไขข่าว: the sets that already have this story
+    function paintChosen() {
+      $('#albumChosen').innerHTML = [...chosen].map(([id, name]) => `<li class="inline-flex min-h-11 items-center gap-1 rounded-full bg-surface2 py-1 pl-4 pr-1 text-[14px]">
+        <span class="min-w-0">${esc(name)}</span>
+        <button type="button" data-unchoose="${id}" aria-label="เอาออกจากอัลบั้ม ${esc(name)}" class="rm-btn grid h-9 w-9 shrink-0 place-items-center rounded-full"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></li>`).join('');
+    }
+    function paintAlbums() {
+      const q = $('#albumQ').value.trim().toLowerCase();
+      const rows = albums.filter((a) => a.title.toLowerCase().includes(q));
+      $('#albumList').innerHTML = rows.map((a) => {
+        const has = inSets.includes(a.id), on = chosen.has(a.id), full = a.items.length >= IN_ALBUM_MAX;
+        return `<li><label class="t-quick flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl px-3 py-2 hover:bg-surface2">
+          <input type="checkbox" data-album="${a.id}" class="h-5 w-5 shrink-0"${has || on ? ' checked' : ''}${has || (full && !on) ? ' disabled' : ''}>
+          <span class="min-w-0 flex-1 text-[15px]">${esc(a.title)}</span>
+          <span class="shrink-0 text-[13px] text-ink2">${has ? 'มีข่าวนี้แล้ว' : full ? 'เต็มแล้ว' : `${a.items.length} ข่าว`}</span></label></li>`;
+      }).join('') || `<li class="px-3 py-2 text-[14px] text-ink2">${albums.length ? 'ไม่พบอัลบั้มที่ตรงกับคำค้น' : 'ยังไม่มีอัลบั้มข่าว สร้างอัลบั้มใหม่ด้านล่างได้'}</li>`;
+    }
+    $('#albumBtn').addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try {
+        albums ??= (await api('/pr/collections')).items;
+        $('#albumQ').value = '';
+        paintAlbums();
+        $('#albumDlg').showModal();
+      } catch (err) { toast(err.message, true); }
+      $('#albumBtn').disabled = false;
+    });
+    $('#albumQ').addEventListener('input', paintAlbums);
+    $('#albumList').addEventListener('change', (e) => {
+      const a = albums.find((x) => x.id === e.target.dataset.album);
+      if (!a) return;
+      if (e.target.checked) chosen.set(a.id, a.title); else chosen.delete(a.id);
+      paintChosen();
+      setErr('collections');
+    });
+    $('#albumNew').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = $('#albumNewName').value.trim();
+      if (!title) { $('#albumNewName').focus(); return; }
+      const btn = e.currentTarget.querySelector('[type=submit]');
+      btn.disabled = true;
+      try {
+        const { collection } = await api('/pr/collections', { method: 'POST', body: { title, items: [] } });
+        albums.unshift(collection);
+        chosen.set(collection.id, collection.title);
+        $('#albumNewName').value = '';
+        $('#albumQ').value = '';
+        paintAlbums();
+        paintChosen();
+        toast(`สร้างอัลบั้ม "${collection.title}" แล้ว`);
+      } catch (err) { toast(err.message, true); }
+      btn.disabled = false;
+    });
+    ['#albumDone', '#albumClose'].forEach((b) => $(b).addEventListener('click', () => { $('#albumDlg').close(); $('#albumBtn').focus(); }));
+    $('#albumChosen').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-unchoose]');
+      if (!b) return;
+      chosen.delete(b.dataset.unchoose);
+      paintChosen();
+      $('#albumBtn').focus();
+    });
+
     // ---- Submit ----
     $('#lead').addEventListener('input', () => { $('#leadCount').textContent = $('#lead').value.length; });
     let tools = null; // text-tools.js on the story text
@@ -435,7 +540,7 @@
         categories: cats(), audience: AUD[radio('aud')], videoUrl: $('#videoUrl').value.trim() || null, videoLinks: moreVideos.get(),
         credit: $('#credit').value, creditKind: radio('kind') === 'video' ? null : radio('creditKind'),
         sourceUrl: sourceUrl || null, albumUrl: $('#albumUrl').value.trim() || null, albumLinks: moreAlbums.get(),
-        titleEn: $('#titleEn').value, bodyEn: $('#bodyEn').value,
+        titleEn: $('#titleEn').value, bodyEn: $('#bodyEn').value, collections: [...chosen.keys()],
         bodySize: null, bodyLeading: tools?.get().leading, fresh: ADD || undefined,
         // The pictures in the order arranged: u:<n> = the n-th file sent
         photoOrder: photos.filter((p) => p.on && p.kind === 'file').map((p, i) => `u:${i}`),
@@ -533,6 +638,8 @@
       $('#leadCount').textContent = '0';
       moreVideos.set([]);
       moreAlbums.set([]);
+      chosen.clear();
+      paintChosen();
       $('#enBox').open = false;
       document.querySelectorAll('input[name=cat]').forEach((i) => { i.disabled = false; });
       syncKind();
@@ -584,6 +691,7 @@
       $('#credit').value = s.credit || '';
       document.querySelector(`input[name=creditKind][value=${s.creditKind === 'source' ? 'source' : 'designer'}]`).checked = true;
       sourceUrl = s.sourceUrl || null;
+      inSets = s.collections;
       $('#albumUrl').value = s.albumUrl || '';
       moreAlbums.set(s.albumLinks || []);
       document.querySelectorAll('input[name=channel]').forEach((i) => { i.checked = s.channels.includes(i.value); });

@@ -32,8 +32,8 @@ const STATUS_TH = { review: 'รอ PR ตรวจ', writing: 'PR กำลั�
 const PR_MOVES = ['review', 'writing', 'revise', 'rejected']; // "published" goes through /publish
 
 export const router = Router();
-// Everything under /pr is the PR team's, but /pr/import (newsdesk.mjs), which นักศึกษาฝึกงาน สสอ. may use too
-router.use('/pr', (req, res, next) => (/^\/import(\/|$)/.test(req.path) ? next() : requirePr(req, res, next)));
+// Everything under /pr is the PR team's, but /pr/import (newsdesk.mjs) and /pr/collections, which นักศึกษาฝึกงาน สสอ. may use too
+router.use('/pr', (req, res, next) => (/^\/(import|collections)(\/|$)/.test(req.path) ? next() : requirePr(req, res, next)));
 
 // แจ้งเตือนงานใหม่ (arrivals.js): work sent or sent again since `since` (at most a day back), newest first, and the
 // server's time to ask from next. The back-office pages ask every 20 seconds.
