@@ -28,6 +28,7 @@ const create = async (over) => {
 };
 const logged = async (action, id) => (await one('select count(*)::int n from audit_log where action = $1 and target = $2', [action, id])).n;
 const find = async (who, q) => (await who.call('GET', `/api/phonebook?q=${encodeURIComponent(q)}`)).body.matches;
+const counts = ({ added, updated, unchanged, removed, saved }) => ({ added, updated, unchanged, removed, saved });
 const stored = (name) => one('select * from phonebook where unit_name = $1', [name]);
 
 const sheet = async (rows, head = HEAD) => {
@@ -109,12 +110,15 @@ describe('changing entries', () => {
     assert.equal(await one('select 1 from phonebook where id = $1', [e.id]), null);
     assert.equal(await logged('phonebook.delete', e.id), 1);
   });
-  test('a unit may have either number alone, but not neither', async () => {
+  test('a unit may have either number alone; only a หน่วยงานหลัก may have neither', async () => {
     assert.equal((await create({ internalNumber: null })).internalNumber, null);
     assert.equal((await create({ phoneNumber: null })).phoneNumber, null);
-    const r = await pr.call('POST', '/api/phonebook', entry({ phoneNumber: ' ', internalNumber: '' }));
+    const heading = await create({ phoneNumber: ' ', internalNumber: '' });
+    assert.deepEqual([heading.phoneNumber, heading.internalNumber], [null, null]);
+    const r = await pr.call('POST', '/api/phonebook', entry({ phoneNumber: ' ', internalNumber: '', parentId: heading.id }));
     assert.equal(r.status, 400);
     assert.ok(r.body.details.phoneNumber);
+    assert.equal((await create({ internalNumber: '6010/3400', parentId: heading.id })).internalNumber, '6010/3400');
   });
   test('a unit name is used once, whatever the case', async () => {
     const e = await create({ unitName: `${UNIT} Office ${++serial}` });
@@ -181,11 +185,11 @@ describe('importing a file', () => {
 
     const preview = await send(pr, buf);
     assert.equal(preview.status, 200, JSON.stringify(preview.body));
-    assert.deepEqual(preview.body, { added: 2, updated: 1, unchanged: 1, saved: false });
+    assert.deepEqual(counts(preview.body), { added: 2, updated: 1, unchanged: 1, removed: 0, saved: false });
     assert.equal(await stored(a), null, 'nothing saved yet');
 
     const saved = await send(pr, buf, 'phones.xlsx', true);
-    assert.deepEqual(saved.body, { added: 2, updated: 1, unchanged: 1, saved: true });
+    assert.deepEqual(counts(saved.body), { added: 2, updated: 1, unchanged: 1, removed: 0, saved: true });
     assert.equal((await stored(a)).phone_number, '077-912-222');
     assert.equal((await stored(b)).phone_number, null);
     const row = await stored(old.unitName);
@@ -198,7 +202,7 @@ describe('importing a file', () => {
     const buf = await sheet([[good, '0-7791-2222', '', ''], ['', '1234', '', ''], [unit(), 'โทรหาสมชาย', '', ''], [unit(), '', '', ''], [dup, '1234', '', ''], [dup, '5678', '', '']]);
     const r = await send(pr, buf, 'phones.xlsx', true);
     assert.equal(r.status, 400);
-    assert.deepEqual(r.body.details.problems.map((p) => p.match(/^แถว (\d+)/)[1]), ['3', '4', '5', '7']);
+    assert.deepEqual(r.body.details.problems.map((p) => p.match(/^แถว (\d+)/)[1]), ['3', '4', '7'], 'a name with no number is a หน่วยงานหลัก');
     assert.equal(await stored(good), null);
   });
   test('columns may come in any order; numbers Excel stored as numbers keep their zero', async () => {
@@ -284,7 +288,7 @@ describe('importing units under a หน่วยงานหลัก', () => {
     const before = await create({ unitName: loose, phoneNumber: '077913000' });
     const buf = await sheet([['', top, '077913100', '', ''], [top, sub, '077913101', '', ''], [top, loose, '', '3102', '']], GROUPED);
     const preview = await send(pr, buf);
-    assert.deepEqual(preview.body, { added: 2, updated: 1, unchanged: 0, saved: false });
+    assert.deepEqual(counts(preview.body), { added: 2, updated: 1, unchanged: 0, removed: 0, saved: false });
     assert.equal((await send(pr, buf, 'phones.xlsx', true)).status, 200);
     const parent = await stored(top);
     assert.equal(parent.parent_id, null);
@@ -361,5 +365,76 @@ describe('edit rights an admin lends', () => {
       assert.equal(r.status, 400, String(until));
       assert.ok(r.body.details.until);
     }
+  });
+});
+
+describe('importing the layout the PR team writes', () => {
+  // A title, then per group: a heading merged across the table, the header again, and the group's units
+  const grouped = async (g1, g2, names) => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('สมุด');
+    const heading = (text) => { const r = ws.addRow([text]); ws.mergeCells(`A${r.number}:D${r.number}`); };
+    const head = ['ที่', 'หน่วยงาน', 'หมายเลขโทรศัพท์สายตรง', 'เบอร์ภายใน'];
+    heading('สมุดโทรศัพท์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี');
+    heading(g1);
+    ws.addRow(head);
+    ws.addRow([0, names[0], '077-913-333', '6900']);
+    ws.addRow([1, names[1], '077-913-399', 9999]);
+    heading(g2);
+    ws.addRow(head);
+    ws.addRow([1, g2, '', '3400']);
+    ws.addRow([2, names[2], 77913320, '6010/3400']);
+    return Buffer.from(await wb.xlsx.writeBuffer());
+  };
+  test('groups become หน่วยงานหลัก, the header may repeat, numbers and order are kept', async () => {
+    const [g1, g2] = [unit('ผู้บริหาร'), unit('สำนักงานอธิการบดี')];
+    const names = [unit('เบอร์สายตรง'), unit('อธิการบดี'), unit('งานธุรการ')];
+    const buf = await grouped(g1, g2, names);
+    const preview = await send(pr, buf);
+    assert.equal(preview.status, 200, JSON.stringify(preview.body));
+    assert.deepEqual(counts(preview.body), { added: 6, updated: 0, unchanged: 0, removed: 0, saved: false });
+    assert.deepEqual(preview.body.columns, [{ header: 'ที่', field: null }, { header: 'หน่วยงาน', field: 'หน่วยงาน' },
+      { header: 'หมายเลขโทรศัพท์สายตรง', field: 'เบอร์โทรศัพท์' }, { header: 'เบอร์ภายใน', field: 'เบอร์ภายใน' }]);
+    assert.equal(preview.body.missing, undefined);
+    assert.equal((await send(pr, buf, 'phones.xlsx', true)).status, 200);
+
+    const [p1, p2] = [await stored(g1), await stored(g2)];
+    assert.deepEqual([p1.parent_id, p1.phone_number, p1.internal_number], [null, null, null], 'a heading has no number');
+    assert.deepEqual([(await stored(names[0])).parent_id, (await stored(names[0])).phone_number], [p1.id, '077-913-333']);
+    assert.equal((await stored(names[1])).internal_number, '9999');
+    const c = await stored(names[2]);
+    assert.deepEqual([c.parent_id, c.phone_number, c.internal_number], [p2.id, '077-913-320', '6010/3400']);
+    assert.equal((await one('select internal_number from phonebook where parent_id = $1 and unit_name = $2', [p2.id, g2])).internal_number, '3400', 'a unit may share its group name');
+    assert.equal(await one('select 1 from phonebook where unit_name like $1', ['สมุดโทรศัพท์ มหาวิทยาลัย%']), null, 'the title is not a unit');
+
+    const order = (await staff.call('GET', '/api/phonebook')).body.items.map((x) => x.unitName);
+    assert.ok(order.indexOf(g1) < order.indexOf(g2) && order.indexOf(names[1]) > order.indexOf(names[0]), 'file order, not name order');
+    const again = await send(pr, buf);
+    assert.deepEqual(counts(again.body), { added: 0, updated: 0, unchanged: 6, removed: 0, saved: false });
+  });
+  test('the same layout as CSV: a heading is one cell outside the unit column', async () => {
+    const [g, a] = [unit('กลุ่ม'), unit('หน่วย')];
+    const csv = `${g},,,\r\nที่,หน่วยงาน,หมายเลขโทรศัพท์สายตรง,เบอร์ภายใน\r\n1,${a},077-913-301,3301\r\n`;
+    const r = await send(pr, Buffer.concat([BOM, Buffer.from(csv)]), 'phones.csv', true, 'text/csv');
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal((await stored(a)).parent_id, (await stored(g)).id);
+  });
+  test('the CSV template opens in Excel with Thai headers', async () => {
+    const r = await pr.call('GET', '/api/phonebook/template.csv');
+    assert.equal(r.status, 200);
+    assert.equal(String(r.body).replace(/^\ufeff/, '').trim(), TEMPLATE.join(','));
+    assert.equal((await staff.call('GET', '/api/phonebook/template.csv')).status, 403);
+  });
+  test('replacing the whole book: admin only, and the book is then exactly the file', async () => {
+    const [g1, g2] = [unit('ผู้บริหาร'), unit('สำนักงาน')];
+    const buf = await grouped(g1, g2, [unit(), unit(), unit()]);
+    const fd = () => { const d = new FormData(); d.append('file', new Blob([buf], { type: XLSX }), 'p.xlsx'); return d; };
+    assert.equal((await pr.call('POST', '/api/phonebook/import?replace=1', fd())).status, 403);
+    const before = (await one('select count(*)::int n from phonebook')).n;
+    const preview = await admin.call('POST', '/api/phonebook/import?replace=1', fd());
+    assert.deepEqual(counts(preview.body), { added: 6, updated: 0, unchanged: 0, removed: before, saved: false });
+    const saved = await admin.call('POST', '/api/phonebook/import?replace=1&save=1', fd());
+    assert.equal(saved.status, 200, JSON.stringify(saved.body));
+    assert.equal((await one('select count(*)::int n from phonebook')).n, 6);
   });
 });
