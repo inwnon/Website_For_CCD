@@ -27,7 +27,7 @@ Base role comes from the Google email domain (existing `rules.mjs`): `sru.ac.th`
 | Calendar | all | create/edit/assign | own + team | view + create, edit and assign own (no internal notes) | view | — | public events only |
 | Service requests | all | approve/reject | — | create + track own | view | — | — |
 | Documents | all | all | — | — | — | — | — |
-| Phone book | all | edit | view | view | view | view | — |
+| Phone book | all | view; edit while an admin's time-limited grant runs (also interns) | view | view | view | view | — |
 | Students | all | manage/approve | own record | — | summary | — | — |
 | Dashboard | all | view | — | — | view | — | — |
 
