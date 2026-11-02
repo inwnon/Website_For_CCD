@@ -44,7 +44,7 @@
     .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=0070cecd8b">
+  <link rel="stylesheet" href="/assets/app.css?v=dc4538925e">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการเอกสาร</a>
@@ -558,7 +558,30 @@
 
     // ---- One งาน ----
     const mayDelete = (d) => state.admin || d.ownerId === state.me;
-    function docRow(d) {
+    const ARROW = (up) => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${up ? 'M12 19V5M5 12l7-7 7 7' : 'M12 5v14M19 12l-7 7-7-7'}"/></svg>`;
+    function moveButton(d, i, step, count) {
+      const b = el('button', { type: 'button', 'data-move': `${d.id}:${step}`, disabled: i + step < 0 || i + step >= count, 'aria-label': `เลื่อน ${d.title} ${step < 0 ? 'ขึ้น' : 'ลง'}`,
+        class: 'hover-fill press t-quick grid h-11 w-11 place-items-center rounded-2xl border border-line disabled:pointer-events-none disabled:opacity-40', onclick: () => move(i, step) });
+      b.insertAdjacentHTML('afterbegin', ARROW(step < 0));
+      return b;
+    }
+    // ↑ / ↓: saved at once for the whole team; the first document that can be previewed is the card's cover
+    async function move(i, step) {
+      const docs = [...state.work.documents];
+      [docs[i], docs[i + step]] = [docs[i + step], docs[i]];
+      try {
+        await api(`/document-works/${state.work.id}/order`, { method: 'PUT', body: { ids: docs.map((d) => d.id) } });
+        state.work.documents = docs;
+        $('#workDocs').replaceChildren(...docs.map(docRow));
+        document.querySelectorAll('[data-doc]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.doc === state.shown)));
+        const id = docs[i + step].id;
+        const btn = $(`[data-move="${id}:${step}"]`);
+        (btn.disabled ? $(`[data-move="${id}:${-step}"]`) : btn).focus();
+        toast(`ย้าย ${docs[i + step].title} ไปลำดับที่ ${i + step + 1}`);
+        load();
+      } catch (err) { toast(err.message, true); }
+    }
+    function docRow(d, i, docs) {
       return el('li', { class: 'grid gap-2 rounded-2xl border border-line p-2' },
         el('button', { type: 'button', 'data-doc': d.id, 'aria-pressed': 'false', class: 'doc-row hover-fill press t-quick flex w-full items-center gap-3 rounded-xl p-1 text-left', onclick: () => showDoc(d) },
           cover(d, 'mini'),
@@ -570,7 +593,8 @@
         el('div', { class: 'flex flex-wrap gap-1' },
           el('a', { href: fileUrl(d), 'aria-label': `ดาวน์โหลด ${d.title}`, class: 'hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-4 font-display text-[15px] font-medium' }, 'ดาวน์โหลด'),
           el('button', { type: 'button', 'aria-label': `แก้ไข ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium hover:-translate-y-0.5', onclick: () => openForm('edit', d) }, 'แก้ไข'),
-          mayDelete(d) ? el('button', { type: 'button', 'aria-label': `ลบ ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5', onclick: () => openOff(d) }, 'ลบ') : null));
+          mayDelete(d) ? el('button', { type: 'button', 'aria-label': `ลบ ${d.title}`, class: 'press t-quick h-11 rounded-2xl px-3 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5', onclick: () => openOff(d) }, 'ลบ') : null,
+          docs.length > 1 ? el('span', { class: 'ml-auto flex gap-1' }, moveButton(d, i, -1, docs.length), moveButton(d, i, 1, docs.length)) : null));
     }
 
     // ---- The large preview: a new choice cancels whatever is still being drawn ----
