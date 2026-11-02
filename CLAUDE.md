@@ -13,6 +13,7 @@ New-module requirements: @SPEC.md (read only when working on those modules). Ser
 - Check: `npm run check` (ESLint + JSDoc type check). A hook lints each file Claude edits (`.claude/hooks/lint-file.mjs`): fix what it reports right away
 - CSS: `npm run build:css` after any Tailwind class change; fonts `npm run build:fonts`; brand images `npm run build:images`; PDF.js `npm run build:pdf` after updating `pdfjs-dist`
 - Audit: `npm audit --omit=dev`
+- Accessibility: `npm run a11y` (needs `npm run dev`; axe-core in local headless Chrome, every page, light + dark) after any page change
 - Dev login (`ALLOW_DEV_LOGIN=1`): `POST /api/auth/dev` `{"as":"pr"}` — staff, student, external, pr, admin, coordinator, secretary, executive
 
 ## Structure

@@ -20,7 +20,8 @@
     "build:fonts": "node server/build-fonts.mjs",
     "build:pdf": "node server/build-pdf.mjs",
     "backup": "node --env-file-if-exists=.env server/backup.mjs",
-    "backup:restore-test": "node --env-file-if-exists=.env server/restore-test.mjs"
+    "backup:restore-test": "node --env-file-if-exists=.env server/restore-test.mjs",
+    "a11y": "node server/a11y.mjs"
   },
   "dependencies": {
     "archiver": "^8.0.0",
@@ -40,6 +41,7 @@
     "@types/node": "^26.6.5",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
+    "axe-core": "^4.14.0",
     "eslint": "^10.13.0",
     "eslint-plugin-html": "^8.2.1",
     "globals": "^17.13.0",
