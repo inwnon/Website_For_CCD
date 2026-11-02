@@ -4,7 +4,8 @@
 //                                                     year is Buddhist-era, of the document's date; years lists those that can be chosen
 //                                                     total counts all that match; perPage is 1 to 100 (100 when left out)
 //                                                     round: รอบประเมิน 1 (Apr-Sep) or 2 (Oct-Mar). With a year, round 2 runs from October of that year to March of the next
-// - GET  /api/document-works/people?q=                who can be named on a งาน: PR and admin
+// - GET  /api/document-categories                     หมวดเอกสาร in order: [{ id, label, needsUnit }]
+// - GET  /api/document-works/people?q=              who can be named on a งาน: PR and admin
 // - GET  /api/document-works/:id                      with its documents the user may see, without those taken out
 // - GET  /api/document-works/photo/:id.webp           the profile photo of someone who can be named (pages load nothing from outside)
 // - PUT  /api/document-works/:id                      { workTitle, peopleIds }
@@ -32,9 +33,12 @@ import { one, query, tx } from './db.mjs';
 import { UPLOAD_DIR, mimeOf, removeStored, removeTemp, sendMedia, storeDocument } from './files.mjs';
 import { HttpError, str } from './http.mjs';
 import { limit, matchesName } from './security.mjs';
+import * as settings from './settings.mjs';
 import { termConditions } from './thai.mjs';
 
-const CATEGORIES = { university_order: 'คำสั่งมหาวิทยาลัย', unit_order: 'คำสั่งจากหน่วยงาน', request_memo: 'บันทึกขออนุเคราะห์จากหน่วยงาน', other: 'เอกสารอื่นๆ' };
+// หมวดเอกสาร, set on chanon.html
+const categories = () => /** @type {{ id: string, label: string, needsUnit: boolean }[]} */ (settings.get('docCategories'));
+const categoryOf = (id) => categories().find((c) => c.id === id);
 const LEVELS = ['team', 'private'];
 const FILE_TYPES = {
   pdf: ['application/pdf'], word: [mimeOf('a.docx')], excel: [mimeOf('a.xlsx')], powerpoint: [mimeOf('a.pptx')], image: ['image/jpeg', 'image/png'],
@@ -62,7 +66,8 @@ const documentOut = (d) => ({
   fileName: d.file_name, mime: d.mime, size: Number(d.size), ownerId: d.uploaded_by, uploader: d.uploader_name || null, archivedAt: d.archived_at, createdAt: d.created_at, updatedAt: d.updated_at,
 });
 const versionOut = (v) => ({ version: v.version, fileName: v.file_name, mime: v.mime, size: Number(v.size), uploader: v.uploader_name || null, createdAt: v.created_at });
-const searchText = (d, fileName) => [d.title, CATEGORIES[d.category], d.unit, ...d.tags, fileName].filter(Boolean).join('\n');
+// The category's label is matched at search time, so a renamed category is found by its new name
+const searchText = (d, fileName) => [d.title, d.unit, ...d.tags, fileName].filter(Boolean).join('\n');
 
 async function respond(res, id, status = 200) {
   const versions = (await query(`select v.*, u.name uploader_name from document_versions v left join users u on u.id = v.uploaded_by
@@ -121,10 +126,11 @@ function checkDocument(b, user, was = null) {
   const errors = {};
   const row = { title: str(b.title, 200, 'ชื่อเอกสาร'), category: b.category, unit: str(b.unitName, 200, 'ชื่อหน่วยงาน'), tags: [], level: b.accessLevel ?? was?.access_level ?? 'team' };
   if (!row.title) errors.title = 'กรอกชื่อเอกสาร';
-  if (!Object.hasOwn(CATEGORIES, row.category)) errors.category = 'เลือกหมวดเอกสาร';
+  const category = categoryOf(row.category);
+  if (!category) errors.category = 'เลือกหมวดเอกสาร';
   if (b.docDate != null && !validDate(b.docDate)) errors.docDate = 'เลือกวันที่เอกสารลงนาม';
   row.date = b.docDate ?? null;
-  if (row.category !== 'unit_order') row.unit = null;
+  if (!category?.needsUnit) row.unit = null;
   else if (!row.unit) errors.unitName = 'กรอกชื่อหน่วยงาน';
   if (!LEVELS.includes(row.level)) errors.accessLevel = 'เลือกว่าเป็นเอกสารของทีมหรือส่วนตัว';
   // documents.html no longer asks for tags: left out, they stay as they were
@@ -192,7 +198,7 @@ const found = async (id, user) => {
 
 router.get('/document-works', allowed, async (req, res) => {
   const { category, type, level, year, round, person } = /** @type {Record<string, string>} */ (req.query);
-  if (category !== undefined && !Object.hasOwn(CATEGORIES, category)) throw new HttpError(400, 'เลือกหมวดเอกสารให้ถูกต้อง');
+  if (category !== undefined && !categoryOf(category)) throw new HttpError(400, 'เลือกหมวดเอกสารให้ถูกต้อง');
   if (type !== undefined && !Object.hasOwn(FILE_TYPES, type)) throw new HttpError(400, 'เลือกชนิดไฟล์ให้ถูกต้อง');
   if (level !== undefined && !LEVELS.includes(level)) throw new HttpError(400, 'เลือกทีมหรือส่วนตัวให้ถูกต้อง');
   if (year !== undefined && !/^\d{4}$/.test(year)) throw new HttpError(400, 'เลือกปีให้ถูกต้อง');
@@ -202,9 +208,11 @@ router.get('/document-works', allowed, async (req, res) => {
   if (round !== undefined && !['1', '2'].includes(round)) throw new HttpError(400, 'เลือกรอบประเมินให้ถูกต้อง');
   if (person !== undefined && !UUID.test(person)) throw new HttpError(400, 'เลือกผู้เกี่ยวข้องให้ถูกต้อง');
   const params = [isAdmin(req.user), req.user.id, req.query.archived === '1', category ?? null, type ? FILE_TYPES[type] : null, level ?? null, year ? Number(year) - 543 : null, person ?? null, round ? Number(round) : null];
+  let labels = null; // id → label, sent once and only when there is something to search
   const anywhere = (s) => {
+    if (!labels) labels = `$${params.push(JSON.stringify(Object.fromEntries(categories().map((c) => [c.id, c.label]))))}::jsonb`;
     params.push(`%${s.replace(/[\\%_]/g, '\\$&')}%`);
-    return `(s.search_text || ' ' || w.title || ' ' || coalesce(n.names, '')) ilike $${params.length}`;
+    return `(s.search_text || ' ' || coalesce(${labels} ->> s.category, '') || ' ' || w.title || ' ' || coalesce(n.names, '')) ilike $${params.length}`;
   };
   const terms = termConditions(str(req.query.q, 100, 'คำค้น') ?? '', anywhere);
   const matching = `with seen as (
@@ -233,6 +241,8 @@ router.get('/document-works', allowed, async (req, res) => {
     where $1 or access_level = 'team' or uploaded_by = $2 order by y desc`, [isAdmin(req.user), req.user.id])).rows.map((r) => r.y);
   res.json({ items: [...works.values()], years, total, page, perPage });
 });
+
+router.get('/document-categories', allowed, (req, res) => res.json({ items: categories() }));
 
 router.get('/document-works/people', allowed, async (req, res) => {
   const q = str(req.query.q, 100, 'คำค้น');
