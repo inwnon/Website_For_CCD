@@ -430,11 +430,18 @@ describe('importing the layout the PR team writes', () => {
     const buf = await grouped(g1, g2, [unit(), unit(), unit()]);
     const fd = () => { const d = new FormData(); d.append('file', new Blob([buf], { type: XLSX }), 'p.xlsx'); return d; };
     assert.equal((await pr.call('POST', '/api/phonebook/import?replace=1', fd())).status, 403);
-    const before = (await one('select count(*)::int n from phonebook')).n;
-    const preview = await admin.call('POST', '/api/phonebook/import?replace=1', fd());
-    assert.deepEqual(counts(preview.body), { added: 6, updated: 0, unchanged: 0, removed: before, saved: false });
-    const saved = await admin.call('POST', '/api/phonebook/import?replace=1&save=1', fd());
-    assert.equal(saved.status, 200, JSON.stringify(saved.body));
-    assert.equal((await one('select count(*)::int n from phonebook')).n, 6);
+    // Saving wipes the whole book, so what was there (other tests' units, a developer's own data) comes back afterwards
+    const kept = (await query('select coalesce(json_agg(p), \'[]\') rows from phonebook p')).rows[0].rows;
+    try {
+      const preview = await admin.call('POST', '/api/phonebook/import?replace=1', fd());
+      assert.deepEqual(counts(preview.body), { added: 6, updated: 0, unchanged: 0, removed: kept.length, saved: false });
+      const saved = await admin.call('POST', '/api/phonebook/import?replace=1&save=1', fd());
+      assert.equal(saved.status, 200, JSON.stringify(saved.body));
+      assert.equal((await one('select count(*)::int n from phonebook')).n, 6);
+    } finally {
+      // One statement, so a sub-unit may come before its หน่วยงานหลัก
+      await query('delete from phonebook');
+      await query('insert into phonebook select * from json_populate_recordset(null::phonebook, $1)', [JSON.stringify(kept)]);
+    }
   });
 });
