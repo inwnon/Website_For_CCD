@@ -68,7 +68,7 @@ describe('ประเภทข่าว on banners', () => {
     const pub = await pr.call('POST', `/api/pr/submissions/${ref}/publish`, { cover: files[0].id });
     assert.equal(pub.status, 201, JSON.stringify(pub.body));
     assert.deepEqual(pub.body.news.categories, ['ข่าวการศึกษา']);
-    const imp = await pr.call('POST', '/api/pr/import', form({ kind: 'banner', title: 'นำเข้าแบนเนอร์ไม่มีประเภท', body: 'ข้อความ', credit: 'ทีมกราฟิก', unit: 'กองกลาง',
+    const imp = await pr.call('POST', '/api/pr/import', form({ channels: ['facebook'], kind: 'banner', title: 'นำเข้าแบนเนอร์ไม่มีประเภท', body: 'ข้อความ', credit: 'ทีมกราฟิก', unit: 'กองกลาง',
       categories: [], audience: ['public'], date: '2026-10-01' }, { photo: [['a.jpg', await img('#468', 800, 1000), 'image/jpeg']] }));
     assert.equal(imp.status, 400);
     assert.ok(imp.body.details.categories);

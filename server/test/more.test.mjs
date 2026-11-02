@@ -11,7 +11,7 @@ const YT = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 const MORE = ['https://youtu.be/abcdefghijk', 'https://www.facebook.com/watch/?v=123456789'];
 const VIDEO = { type: 'video', desc: 'คำอธิบายวิดีโอทดสอบ', title: 'วิดีโอทดสอบหลายลิงก์', eventDate: '2026-10-12', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
   videoLink: YT, videoPlatform: 'youtube', audience: ['public'], consent: true };
-const IMPORT = { kind: 'video', body: 'ข้อความประกอบทดสอบ', title: 'นำเข้าวิดีโอทดสอบหลายลิงก์', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'],
+const IMPORT = { kind: 'video', channels: ['facebook'], body: 'ข้อความประกอบทดสอบ', title: 'นำเข้าวิดีโอทดสอบหลายลิงก์', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'],
   date: '2026-10-01', videoUrl: YT, confirmDuplicate: true };
 
 before(async () => {

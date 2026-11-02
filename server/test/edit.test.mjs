@@ -31,7 +31,7 @@ describe('วิดีโอเสียงตามสาย is a story\'s one 
       categories: ['วิดีโอเสียงตามสาย', 'ข่าวการศึกษา'], videoLink: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', videoPlatform: 'youtube', audience: ['public'], consent: true }));
     assert.equal(v.status, 400);
     assert.match(v.body.details.categories, /ประเภทเดียว/);
-    const i = await pr.call('POST', '/api/pr/import', form({ kind: 'video', body: 'ข้อความประกอบทดสอบ', title: 'นำเข้าวิดีโอทดสอบ', unit: 'กองกลาง', categories: ['วิดีโอเสียงตามสาย', 'ข่าวการศึกษา'],
+    const i = await pr.call('POST', '/api/pr/import', form({ channels: ['facebook'], kind: 'video', body: 'ข้อความประกอบทดสอบ', title: 'นำเข้าวิดีโอทดสอบ', unit: 'กองกลาง', categories: ['วิดีโอเสียงตามสาย', 'ข่าวการศึกษา'],
       audience: ['public'], date: '2026-10-01', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }));
     assert.equal(i.status, 400);
     assert.match(i.body.details.categories, /ประเภทเดียว/);
@@ -95,7 +95,7 @@ describe('แก้ไขข่าว on the site (pr-import.html?edit=id)', () 
     assert.equal(story.photos.length, 2);
     const at = new Date(story.publishedAt);
     const data = { kind: 'news', title: 'หัวข้อหลังแก้ไขบนเว็บไซต์', lead: 'โปรยใหม่', body: 'เนื้อหาใหม่หลังแก้ไข ยาวพอสำหรับข่าว', unit: story.unit,
-      categories: story.categories, audience: ['public'], date: BKK_DAY.format(at), time: '10:15', credit: 'ช่างภาพทดสอบ', bodySize: 17, bodyLeading: 'normal',
+      categories: story.categories, audience: ['public'], channels: ['facebook'], date: BKK_DAY.format(at), time: '10:15', credit: 'ช่างภาพทดสอบ', bodySize: 17, bodyLeading: 'normal',
       photos: [`p:${story.photos[1].path}`, 'u:0'] };
     const r = await pr.call('PUT', `/api/pr/news/${newsId}`, form(data, { photo: [['c.jpg', await img('#2a6', 800, 600), 'image/jpeg']] }));
     assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -116,7 +116,7 @@ describe('แก้ไขข่าว on the site (pr-import.html?edit=id)', () 
 describe('pictures in the order dragged', () => {
   test('import follows photoOrder: the first one is the cover', async () => {
     const sharp = (await import('sharp')).default;
-    const r = await pr.call('POST', '/api/pr/import', form({ kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ทดสอบลำดับภาพนำเข้า', body: 'เนื้อหาข่าวทดสอบลำดับภาพที่ลากจัดไว้', unit: 'กองกลาง',
+    const r = await pr.call('POST', '/api/pr/import', form({ channels: ['facebook'], kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ทดสอบลำดับภาพนำเข้า', body: 'เนื้อหาข่าวทดสอบลำดับภาพที่ลากจัดไว้', unit: 'กองกลาง',
       categories: ['ข่าวการศึกษา'], audience: ['public'], date: '2026-10-01', photoOrder: ['u:1', 'u:0'], confirmDuplicate: true },
       { photo: [['red.jpg', await img('#d00', 800, 600), 'image/jpeg'], ['blue.jpg', await img('#00d', 800, 600), 'image/jpeg']] }));
     assert.equal(r.status, 201, JSON.stringify(r.body));

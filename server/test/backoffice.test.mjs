@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import ExcelJS from 'exceljs';
+import { query } from '../db.mjs';
 import { fbUrl } from '../newsdesk.mjs';
 import { restore, snapshot } from './cleanup.mjs';
 import { BASE, BROWSER_UA, ID_STAFF, anon, form, img, login } from './helpers.mjs';
@@ -12,7 +13,7 @@ const daysAgo = (n) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangko
 const IMPORT = {
   kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ทดสอบนำเข้า สัมมนาวิชาการครูภาษาไทยระดับภูมิภาค', lead: 'สัมมนาครูภาษาไทย',
   body: 'คณะครุศาสตร์จัดสัมมนาวิชาการสำหรับครูภาษาไทยในภูมิภาค มีครูเข้าร่วมกว่าสองร้อยคน', unit: 'คณะครุศาสตร์',
-  categories: ['ข่าวประชุม/สัมมนา'], audience: ['public'], date: daysAgo(9), time: '09:30',
+  categories: ['ข่าวประชุม/สัมมนา'], audience: ['public'], channels: ['facebook'], date: daysAgo(9), time: '09:30',
   sourceUrl: 'https://m.facebook.com/sru.pr/posts/pfbid0TEST123?__cft__=abc&ref=share',
 };
 
@@ -168,6 +169,62 @@ describe('import (นำเข้าข่าวย้อนหลัง)', () =
     assert.ok(!(await anon.call('GET', `/api/news?date=${IMPORT.date}`)).body.items.some((n) => n.id === id));
     assert.equal((await pr.call('POST', `/api/pr/news/${id}/restore`)).status, 200);
     assert.equal((await anon.call('GET', `/api/news/${id}`)).status, 200);
+  });
+});
+
+describe('ช่องทางเผยแพร่', () => {
+  const counts = async () => (await pr.call('GET', `/api/reports?from=${daysAgo(60)}&to=${today}`)).body.channels.counts;
+  const pic = async () => ({ photo: [['a.jpg', await img('#468'), 'image/jpeg']] });
+
+  test('kept on the story, changed by an edit, unknown ones refused', async () => {
+    const was = await counts();
+    const bad = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, confirmDuplicate: true, channels: ['ช่องที่ไม่มี'] }, await pic()));
+    assert.equal(bad.status, 400);
+    assert.ok(bad.body.details.channels);
+
+    const r = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ทดสอบช่องทางเผยแพร่', confirmDuplicate: true, channels: ['facebook', 'line', 'facebook'] }, await pic()));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const id = r.body.news.id;
+    const s = (await pr.call('GET', `/api/pr/news/${id}`)).body.story;
+    assert.deepEqual(s.channels, ['facebook', 'line']);
+    const now = await counts();
+    assert.equal(now.facebook, (was.facebook || 0) + 1);
+    assert.equal(now.line, (was.line || 0) + 1);
+
+    const noField = { ...IMPORT, channels: undefined };
+    const edit = { ...noField, title: 'ทดสอบช่องทางเผยแพร่', photos: s.photos.map((p) => `p:${p.path}`) };
+    assert.equal((await pr.call('PUT', `/api/pr/news/${id}`, form(edit))).status, 200);
+    assert.deepEqual((await pr.call('GET', `/api/pr/news/${id}`)).body.story.channels, ['facebook', 'line'], 'an edit without the field leaves them');
+    assert.equal((await pr.call('PUT', `/api/pr/news/${id}`, form({ ...edit, channels: ['website'] }))).status, 200);
+    assert.deepEqual((await pr.call('GET', `/api/pr/news/${id}`)).body.story.channels, ['website']);
+  });
+
+  test('at least one is needed for a new story', async () => {
+    for (const channels of [[], undefined]) {
+      const r = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ทดสอบไม่เลือกช่องทาง', confirmDuplicate: true, channels }, await pic()));
+      assert.equal(r.status, 400);
+      assert.ok(r.body.details.channels);
+    }
+  });
+
+  test('an older story with none: counted, listed for the team, and an edit must tick one', async () => {
+    const r = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ทดสอบข่าวเก่าไม่ระบุช่องทาง', confirmDuplicate: true }, await pic()));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const id = r.body.news.id;
+    const was = await counts();
+    await query(`update news set channels = '{}' where id = $1`, [id]);
+    assert.equal((await counts()).none, (was.none || 0) + 1);
+    const listed = async () => (await pr.call('GET', '/api/pr/news?show=nochannel&limit=100')).body.items.some((n) => n.id === id);
+    assert.equal(await listed(), true);
+
+    const s = (await pr.call('GET', `/api/pr/news/${id}`)).body.story;
+    const noField = { ...IMPORT, channels: undefined };
+    const edit = { ...noField, title: s.title, photos: s.photos.map((p) => `p:${p.path}`) };
+    const no = await pr.call('PUT', `/api/pr/news/${id}`, form(edit));
+    assert.equal(no.status, 400);
+    assert.ok(no.body.details.channels);
+    assert.equal((await pr.call('PUT', `/api/pr/news/${id}`, form({ ...edit, channels: ['line'] }))).status, 200);
+    assert.equal(await listed(), false);
   });
 });
 
