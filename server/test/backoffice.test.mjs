@@ -354,10 +354,12 @@ describe('settings, roles and history', () => {
     assert.equal(list[0].role, 'coordinator');
     assert.equal(list[0].coordUnit, 'คณะนิติศาสตร์');
     assert.equal(list[0].signedIn, false);
+    assert.equal((await admin.call('PUT', '/api/admin/roles', { email: 'new.coord@sru.ac.th', role: 'coordinator', unit: 'ศูนย์ภาษา' })).status, 200, 'a sub-unit too');
+    assert.equal((await admin.call('PUT', '/api/admin/roles', { email: 'new.coord@sru.ac.th', role: 'coordinator', unit: 'ไม่มีหน่วยนี้' })).status, 400);
     assert.equal((await admin.call('PUT', '/api/admin/roles', { email: 'admin@sru.ac.th', role: 'default' })).status, 409);
     assert.equal((await admin.call('PUT', '/api/admin/roles', { email: 'new.coord@sru.ac.th', role: 'default' })).status, 200);
     const h = (await admin.call('GET', '/api/admin/audit?q=new.coord')).body.items;
-    assert.deepEqual(h.map((x) => x.action), ['role.remove', 'role.set']);
+    assert.deepEqual(h.map((x) => x.action), ['role.remove', 'role.set', 'role.set']);
     const s = (await admin.call('GET', '/api/admin/audit?action=settings.update')).body.items;
     assert.ok(s.some((x) => x.target === 'categories'));
   });
