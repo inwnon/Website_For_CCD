@@ -41,7 +41,7 @@ export const SWITCH_ROLES = { pr: 'ทีม PR งานสื่อสาร�
 
 export const isPr = (u) => u?.role === 'pr' || u?.role === 'admin';
 export const isAdmin = (u) => u?.role === 'admin';
-// ผู้ประสานงานหน่วยงาน: reads the reports of one unit (u.coord_unit, from pr_team)
+// ประชาสัมพันธ์หน่วยงาน: reads the reports of one unit (u.coord_unit, from pr_team)
 export const isCoordinator = (u) => u?.role === 'coordinator';
 // นักศึกษาฝึกงาน สสอ.: imports past stories (pr-import.html) only; elsewhere their baseRole (rules.mjs)
 export const isIntern = (u) => u?.role === 'intern';
@@ -136,7 +136,7 @@ export const requireAdmin = (req, res, next) => {
 // Reports: PR, admin, and coordinators (their own unit)
 export const requireReports = (req, res, next) => {
   if (!req.user) throw new HttpError(401, 'กรุณาเข้าสู่ระบบ');
-  if (!isPr(req.user) && !isCoordinator(req.user)) throw new HttpError(403, 'เฉพาะทีมงานประชาสัมพันธ์และผู้ประสานงานหน่วยงาน');
+  if (!isPr(req.user) && !isCoordinator(req.user)) throw new HttpError(403, 'เฉพาะทีมงานประชาสัมพันธ์และประชาสัมพันธ์หน่วยงาน');
   next();
 };
 export const requirePr = (req, res, next) => {

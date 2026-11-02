@@ -74,7 +74,7 @@
     }
 
     // ================= Users and roles =================
-    const ROLE_OPTS = [['default', 'ตามโดเมนอีเมล'], ['intern', 'นักศึกษาฝึกงาน สสอ.'], ['coordinator', 'ผู้ประสานงานหน่วยงาน'], ['secretary', 'เลขานุการผู้บริหาร'], ['executive', 'ผู้บริหาร'], ['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ']];
+    const ROLE_OPTS = [['default', 'ตามโดเมนอีเมล'], ['intern', 'นักศึกษาฝึกงาน สสอ.'], ['coordinator', 'ประชาสัมพันธ์หน่วยงาน'], ['secretary', 'เลขานุการผู้บริหาร'], ['executive', 'ผู้บริหาร'], ['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ']];
     const UNITS = () => { const o = S.settings.org || S.fileOrg; return [...o.staffGroups.flatMap((g) => g.units), ...Object.keys(o.faculties)]; };
     const usersState = { q: '', role: '', offset: 0 };
     function roleSelect(u) {
@@ -82,12 +82,12 @@
       return `<select data-role class="field sel h-10 rounded-xl pl-3 pr-9 text-[14px]" aria-label="บทบาทของ ${esc(u.email)}">${ROLE_OPTS.map(([k, l]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
     }
     async function users() {
-      $('#panel').innerHTML = head('ผู้ใช้และบทบาท', 'ทุกคนที่เคยเข้าสู่ระบบ บทบาทเริ่มต้นมาจากโดเมนอีเมล (@sru.ac.th = บุคลากร, @student.sru.ac.th = นักศึกษา) ให้สิทธิ์ทีม PR ผู้ดูแลระบบ ผู้ประสานงานหน่วยงาน หรือนักศึกษาฝึกงาน สสอ. (นำเข้าข่าวย้อนหลังได้อย่างเดียว) ได้ที่นี่ ให้สิทธิ์ล่วงหน้าก่อนผู้ใช้เข้าสู่ระบบครั้งแรกได้') + `
+      $('#panel').innerHTML = head('ผู้ใช้และบทบาท', 'ทุกคนที่เคยเข้าสู่ระบบ บทบาทเริ่มต้นมาจากโดเมนอีเมล (@sru.ac.th = บุคลากร, @student.sru.ac.th = นักศึกษา) ให้สิทธิ์ทีม PR ผู้ดูแลระบบ ประชาสัมพันธ์หน่วยงาน หรือนักศึกษาฝึกงาน สสอ. (นำเข้าข่าวย้อนหลังได้อย่างเดียว) ได้ที่นี่ ให้สิทธิ์ล่วงหน้าก่อนผู้ใช้เข้าสู่ระบบครั้งแรกได้') + `
         <div class="grid gap-4 p-5 sm:px-6">
           <form id="grant" class="grid gap-2 rounded-card border border-line bg-surface2/50 p-4 sm:grid-cols-[minmax(0,1.3fr)_200px_minmax(0,1fr)_auto] sm:items-end">
             <label class="grid gap-1"><span class="font-display text-[14px] font-semibold">ให้สิทธิ์อีเมล</span><input name="email" type="email" required placeholder="ชื่อ@sru.ac.th" class="field h-11 rounded-xl px-3 text-[15px]"></label>
             <label class="grid gap-1"><span class="font-display text-[14px] font-semibold">บทบาท</span><select name="role" class="field sel h-11 rounded-xl pl-3 pr-9 text-[15px]">${ROLE_OPTS.slice(1).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
-            <label class="grid gap-1" data-unitbox><span class="font-display text-[14px] font-semibold">หน่วยงานที่ดูแล</span><input name="unit" list="unitList" placeholder="สำหรับผู้ประสานงาน" class="field h-11 rounded-xl px-3 text-[15px]"></label>
+            <label class="grid gap-1" data-unitbox><span class="font-display text-[14px] font-semibold">หน่วยงานที่ดูแล</span><input name="unit" list="unitList" placeholder="สำหรับประชาสัมพันธ์หน่วยงาน" class="field h-11 rounded-xl px-3 text-[15px]"></label>
             <button class="press t-spring h-11 rounded-xl bg-royal px-5 font-display text-[15px] font-semibold text-white dark:text-bg hover:-translate-y-0.5">ให้สิทธิ์</button>
           </form>
           <datalist id="unitList">${UNITS().map((u) => `<option value="${esc(u)}"></option>`).join('')}</datalist>

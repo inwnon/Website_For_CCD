@@ -5,7 +5,7 @@
 (function () {
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const TZ = 'Asia/Bangkok';
-  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ผู้ประสานงานหน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
+  const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ประชาสัมพันธ์หน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
   const I = {
     inbox: '<path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z"/>',
     news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
@@ -92,8 +92,8 @@
     const canReports = signedIn && me.user.role === 'coordinator';
     const canImport = signedIn && me.user.role === 'intern';
     const title = !signedIn ? 'เข้าสู่ระบบเพื่อใช้หลังบ้าน' : allow.includes('admin') && allow.length === 1 ? 'หน้านี้สำหรับผู้ดูแลระบบ' : 'หน้านี้สำหรับทีมงานประชาสัมพันธ์';
-    const text = !signedIn ? 'ใช้บัญชีที่ได้รับสิทธิ์ในทีม PR หรือผู้ประสานงานหน่วยงาน'
-      : canReports ? 'บัญชีผู้ประสานงานหน่วยงานเปิดได้เฉพาะหน้ารายงานของหน่วยงานตน'
+    const text = !signedIn ? 'ใช้บัญชีที่ได้รับสิทธิ์ในทีม PR หรือประชาสัมพันธ์หน่วยงาน'
+      : canReports ? 'บัญชีประชาสัมพันธ์หน่วยงานเปิดได้เฉพาะหน้ารายงานของหน่วยงานตน'
       : canImport ? 'บัญชีนักศึกษาฝึกงาน สสอ. เปิดได้เฉพาะหน้านำเข้าข่าวย้อนหลัง'
       : `บัญชี ${me.user.email} ยังไม่มีสิทธิ์ใช้หน้านี้ ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์`;
     g.innerHTML = `
@@ -103,7 +103,7 @@
       <a href="${canReports ? 'report.html' : canImport ? 'pr-import.html' : signedIn ? 'index.html' : 'login.html'}" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">${canReports ? 'ไปหน้ารายงาน' : canImport ? 'ไปหน้านำเข้าข่าวย้อนหลัง' : signedIn ? 'กลับหน้าเว็บไซต์' : 'เข้าสู่ระบบ'}</a>
       ${me.devLogin && !signedIn ? `<div class="flex flex-wrap justify-center gap-2">
         <span class="w-full text-[13px] text-ink2">โหมดพัฒนา: ทดลองเข้าสู่ระบบโดยไม่ใช้ Google</span>
-        ${[['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ'], ['coordinator', 'ผู้ประสานงาน (คณะครุศาสตร์)'], ['intern', 'นักศึกษาฝึกงาน สสอ.'], ['secretary', 'เลขานุการผู้บริหาร'], ['executive', 'ผู้บริหาร']].map(([k, l]) => `<button type="button" data-dev="${k}" class="press t-spring inline-flex h-11 items-center rounded-full border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">${l}</button>`).join('')}
+        ${[['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ'], ['coordinator', 'ประชาสัมพันธ์หน่วยงาน (คณะครุศาสตร์)'], ['intern', 'นักศึกษาฝึกงาน สสอ.'], ['secretary', 'เลขานุการผู้บริหาร'], ['executive', 'ผู้บริหาร']].map(([k, l]) => `<button type="button" data-dev="${k}" class="press t-spring inline-flex h-11 items-center rounded-full border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">${l}</button>`).join('')}
       </div>` : ''}`;
     g.hidden = false;
     g.addEventListener('click', async (e) => {
@@ -150,7 +150,7 @@
       document.getElementById('who').hidden = false;
       document.getElementById('whoAvatar').textContent = (me.user.name || me.user.email).trim().charAt(0);
       document.getElementById('whoName').textContent = me.user.name || me.user.email;
-      document.getElementById('whoRole').textContent = role === 'coordinator' && me.user.coordUnit ? `ผู้ประสานงาน ${me.user.coordUnit}` : window.roleName?.(me.user) || ROLE_TH[role] || '';
+      document.getElementById('whoRole').textContent = role === 'coordinator' && me.user.coordUnit ? `ประชาสัมพันธ์ ${me.user.coordUnit}` : window.roleName?.(me.user) || ROLE_TH[role] || '';
       document.getElementById('logout').addEventListener('click', async () => {
         try { await api('/auth/logout', { method: 'POST' }); } catch (e) {}
         location.href = 'index.html';
