@@ -196,7 +196,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=dc4538925e">
+  <link rel="stylesheet" href="/assets/app.css?v=f70748e28c">
 </head>
 
 <body class="min-h-screen">
@@ -799,7 +799,6 @@
       clock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
       eye: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
       building: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h.01M12 9h.01M16 9h.01M8 13h.01M16 13h.01"/></svg>',
-      heart: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.6 4.5 7.1 4.5c2 0 3.6 1.1 4.9 2.8 1.3-1.7 2.9-2.8 4.9-2.8 3.5 0 5.7 3.5 4.4 6.8-1.8 4.6-9.3 9.2-9.3 9.2Z"/></svg>',
     };
     const lang = (en) => `<span class="inline-flex gap-1" aria-label="${en ? 'มีฉบับภาษาไทยและอังกฤษ' : 'ภาษาไทย'}">
         <span class="rounded-md bg-red-soft px-1.5 font-display text-[11px] font-semibold leading-5 text-brand">TH</span>
@@ -838,14 +837,10 @@
             </div>
           </div>
         </a>
-        <div class="pointer-events-none absolute inset-x-0 top-0 aspect-[16/9]">
-          <button type="button" data-save="${n.id}" aria-pressed="false" aria-label="บันทึกข่าวที่ชอบ: ${esc(n.title)}"
-            class="save-btn pointer-events-auto absolute bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-shell text-brand shadow-raised">${ic.heart}</button>
-        </div>
         </div>
       </article>`;
 
-    // ---- Saved (liked) news: stored in the signed-in account ----
+    // ---- Saved (liked) news: the heart beside the story (not on cards), stored in the signed-in account ----
     let saved = new Set();
     const applySaved = () => document.querySelectorAll('[data-save]').forEach((b) => b.setAttribute('aria-pressed', String(saved.has(b.dataset.save))));
     document.addEventListener('click', async (e) => {
