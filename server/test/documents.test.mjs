@@ -270,6 +270,27 @@ describe('งาน', () => {
     assert.equal(card.id, first.workId);
     assert.equal(card.documents.length, 2);
   });
+  test('documents in a งาน keep the order set for them; someone else\'s private one keeps its place', async () => {
+    const a = await add({ title: 'ลำดับหนึ่ง', workTitle: 'งานจัดลำดับทดสอบ' });
+    const hidden = await add({ title: 'ลำดับส่วนตัว', workId: a.workId, accessLevel: 'private' }, file(), admin);
+    const b = await add({ title: 'ลำดับสอง', workId: a.workId });
+    const c = await add({ title: 'ลำดับสาม', workId: a.workId });
+    const url = `/api/document-works/${a.workId}`;
+    const order = async (who) => (await who.call('GET', url)).body.work.documents.map((d) => d.id);
+    assert.deepEqual(await order(pr), [a.id, b.id, c.id], 'upload order at first');
+    const r = await pr.call('PUT', `${url}/order`, { ids: [c.id, a.id, b.id] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.deepEqual(await order(pr), [c.id, a.id, b.id]);
+    assert.deepEqual(await order(admin), [c.id, hidden.id, a.id, b.id], 'the private one stays second');
+    assert.deepEqual((await works(pr, `?q=${encodeURIComponent('งานจัดลำดับทดสอบ')}`))[0].documents.map((d) => d.id), [c.id, a.id, b.id], 'cards follow it');
+    const d = await add({ title: 'ลำดับใหม่', workId: a.workId });
+    assert.deepEqual(await order(pr), [c.id, a.id, b.id, d.id], 'a new one goes last');
+    for (const ids of [[c.id, a.id], [c.id, a.id, b.id, d.id, hidden.id], [c.id, c.id, a.id, b.id], 'x', [c.id, a.id, b.id, UUID]]) {
+      assert.equal((await pr.call('PUT', `${url}/order`, { ids })).status, 400, JSON.stringify(ids));
+    }
+    assert.equal((await student.call('PUT', `${url}/order`, { ids: [a.id] })).status, 403);
+    assert.ok(await one('select 1 from audit_log where action = $1 and target = $2', ['document.order', a.workId]));
+  });
   test('a งาน without its own name takes the document name', async () => {
     const d = await add({ title: 'ชื่อเดียวทดสอบ' });
     assert.equal((await pr.call('GET', `/api/document-works/${d.workId}`)).body.work.title, 'ชื่อเดียวทดสอบ');

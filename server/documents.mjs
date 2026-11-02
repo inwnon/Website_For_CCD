@@ -8,6 +8,7 @@
 // - GET  /api/document-works/:id                      with its documents the user may see, without those taken out
 // - GET  /api/document-works/photo/:id.webp           the profile photo of someone who can be named (pages load nothing from outside)
 // - PUT  /api/document-works/:id                      { workTitle, peopleIds }
+// - PUT  /api/document-works/:id/order                { ids }: every document the user sees in the งาน, in the new order
 // - GET  /api/documents/:id                           with its versions
 // - POST /api/documents                               multipart: file + data (JSON { title, category, unitName, docDate, tags, accessLevel,
 //                                                     and workId, or workTitle and peopleIds for a new งาน })
@@ -220,7 +221,7 @@ router.get('/document-works', allowed, async (req, res) => {
   const { total } = await one(`${matching} select count(*)::int total from found`, params);
   const rows = (await query(`${matching}, hits as (select * from found order by signed desc, latest desc, work_id limit $${params.length + 1} offset $${params.length + 2})
     select s.*, w.title work_title, h.latest from seen s join hits h on h.work_id = s.work_id join document_works w on w.id = s.work_id
-    order by h.signed desc, h.latest desc, h.work_id, s.created_at`, [...params, perPage, (page - 1) * perPage])).rows;
+    order by h.signed desc, h.latest desc, h.work_id, s.position, s.created_at`, [...params, perPage, (page - 1) * perPage])).rows;
   const works = new Map();
   for (const d of rows) {
     if (!works.has(d.work_id)) works.set(d.work_id, { id: d.work_id, title: d.work_title, updatedAt: d.latest, people: [], documents: [] });
@@ -255,8 +256,25 @@ router.get('/document-works/photo/:file', allowed, async (req, res) => {
 
 router.get('/document-works/:id', allowed, async (req, res) => {
   const w = await workFor(req.params.id, req.user);
-  const rows = (await query(`${SELECT} where d.work_id = $1 and d.archived_at is null and ($2 or d.access_level = 'team' or d.uploaded_by = $3) order by d.created_at`, [w.id, isAdmin(req.user), req.user.id])).rows;
+  const rows = (await query(`${SELECT} where d.work_id = $1 and d.archived_at is null and ($2 or d.access_level = 'team' or d.uploaded_by = $3) order by d.position, d.created_at`, [w.id, isAdmin(req.user), req.user.id])).rows;
   res.json({ work: { id: w.id, title: w.title, updatedAt: w.updated_at, people: (await peopleOf([w.id])).map(personOut), documents: rows.map(documentOut) } });
+});
+
+// The documents the user sees, in the new order. They take the places those documents held, so the ones the user
+// cannot see (someone else's private documents) stay where they were.
+router.put('/document-works/:id/order', allowed, async (req, res) => {
+  const w = await workFor(req.params.id, req.user);
+  const ids = req.body?.ids;
+  if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string' || !UUID.test(id)) || new Set(ids).size < ids.length) throw new HttpError(400, 'ลำดับเอกสารไม่ถูกต้อง');
+  await tx(async (c) => {
+    const seen = (await c.query(`select id, position from documents where work_id = $1 and archived_at is null and ($2 or access_level = 'team' or uploaded_by = $3)
+      order by position, created_at for update`, [w.id, isAdmin(req.user), req.user.id])).rows;
+    if (seen.length !== ids.length || !seen.every((d) => ids.includes(d.id))) throw new HttpError(400, 'เอกสารในงานนี้เปลี่ยนไปแล้ว โหลดหน้าใหม่แล้วลองอีกครั้ง');
+    const places = seen.map((d) => d.position).sort((a, b) => a - b);
+    for (const [i, id] of ids.entries()) await c.query('update documents set position = $2 where id = $1', [id, places[i]]);
+    await audit(c, req.user, 'document.order', w.id, `จัดลำดับเอกสารในงาน ${w.title}`, { count: ids.length });
+  });
+  res.json({ ok: true });
 });
 
 router.put('/document-works/:id', allowed, async (req, res) => {
@@ -297,8 +315,9 @@ router.post('/documents', allowed, uploads, receive, async (req, res) => {
         await c.query('insert into document_works (id, title, created_by) values ($1, $2, $3)', [workId, fresh.title, req.user.id]);
         await setPeople(c, workId, fresh.people);
       }
-      await c.query(`insert into documents (id, work_id, title, category, unit_name, tags, access_level, search_text, uploaded_by, doc_date)
-        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, coalesce($10::date, (now() at time zone 'Asia/Bangkok')::date))`,
+      await c.query(`insert into documents (id, work_id, title, category, unit_name, tags, access_level, search_text, uploaded_by, doc_date, position)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, coalesce($10::date, (now() at time zone 'Asia/Bangkok')::date),
+          (select coalesce(max(position), 0) + 1 from documents where work_id = $2))`,
         [id, workId, d.title, d.category, d.unit, d.tags, d.level, searchText(d, f.name), req.user.id, d.date]);
       await addVersion(c, id, 1, f, req.user);
       await audit(c, req.user, 'document.create', id, `เพิ่มเอกสาร ${d.title}`, { category: d.category, level: d.level });
