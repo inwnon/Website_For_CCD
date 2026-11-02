@@ -75,7 +75,7 @@
 
     // ================= Users and roles =================
     const ROLE_OPTS = [['default', 'ตามโดเมนอีเมล'], ['intern', 'นักศึกษาฝึกงาน สสอ.'], ['coordinator', 'ประชาสัมพันธ์หน่วยงาน'], ['secretary', 'เลขานุการผู้บริหาร'], ['executive', 'ผู้บริหาร'], ['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ']];
-    const UNITS = () => { const o = S.settings.org || S.fileOrg; return [...o.staffGroups.flatMap((g) => g.units), ...Object.keys(o.faculties)]; };
+    const UNITS = () => { const o = S.settings.org || S.fileOrg; return [...new Set([...o.staffGroups.flatMap((g) => g.units), ...Object.values(o.subUnits).flatMap((s) => s.units), ...Object.keys(o.faculties)])]; };
     const usersState = { q: '', role: '', offset: 0 };
     function roleSelect(u) {
       const v = ['intern', 'coordinator', 'secretary', 'executive', 'pr', 'admin'].includes(u.role) ? u.role : 'default';

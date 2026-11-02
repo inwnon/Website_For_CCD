@@ -11,7 +11,7 @@ import { DEVELOPERS, domainRole, requireAdmin } from './auth.mjs';
 import { ACTIONS, audit } from './audit.mjs';
 import { query, tx } from './db.mjs';
 import { HttpError, str } from './http.mjs';
-import { FACULTIES, FILE_ORG, STAFF_UNITS } from './org.mjs';
+import { FILE_ORG, allUnits } from './org.mjs';
 import { ALL_PLATFORMS, DEFAULTS, KEYS, LABELS, all, remember, save } from './settings.mjs';
 
 export const router = Router();
@@ -74,7 +74,7 @@ router.put('/admin/roles', async (req, res) => {
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpError(400, 'อีเมลไม่ถูกต้อง');
   if (!ROLE_TH[role]) throw new HttpError(400, 'บทบาทไม่ถูกต้อง');
   const unit = role === 'coordinator' ? str(req.body?.unit, 200, 'หน่วยงาน') : null;
-  if (role === 'coordinator' && !(STAFF_UNITS.has(unit) || FACULTIES.has(unit))) throw new HttpError(400, 'เลือกหน่วยงานที่ประชาสัมพันธ์หน่วยงานดูแล');
+  if (role === 'coordinator' && !allUnits().includes(unit)) throw new HttpError(400, 'เลือกหน่วยงานที่ประชาสัมพันธ์หน่วยงานดูแล');
   if (DEVELOPERS.has(email)) throw new HttpError(409, 'บัญชีผู้พัฒนาระบบมีสิทธิ์สูงสุดเสมอ เปลี่ยนบทบาทจากหน้านี้ไม่ได้');
   if (email === req.user.email && role !== 'admin') throw new HttpError(409, 'เปลี่ยนบทบาทของตัวเองไม่ได้ ให้ผู้ดูแลระบบคนอื่นเปลี่ยนให้');
   await tx(async (c) => {
