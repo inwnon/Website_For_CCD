@@ -19,7 +19,7 @@
   <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="desk.css">
-  <link rel="stylesheet" href="/assets/app.css?v=82b4d1910d">
+  <link rel="stylesheet" href="/assets/app.css?v=f84d562a38">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการหมายเลข</a>
@@ -38,6 +38,7 @@
               <h1 class="font-display tight text-[26px] font-bold text-royal">สมุดโทรศัพท์</h1>
               <p id="count" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
             </div>
+            <button id="toggleAll" type="button" class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>เปิดทั้งหมด</button>
             <button id="import" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>นำเข้าไฟล์
             </button>
@@ -140,7 +141,7 @@
     const { toast } = DESK;
     const $ = (s) => document.querySelector(s);
     const FIELDS = { unitName: '#fUnit', parentId: '#fParent', phoneNumber: '#fPhone', internalNumber: '#fInternal' };
-    const state = { items: [], matches: null, canEdit: false, asked: 0, editing: null, dropping: null, checked: false };
+    const state = { items: [], matches: null, open: new Set(), canEdit: false, asked: 0, editing: null, dropping: null, checked: false };
     const INDENT = ['', 'pl-5', 'pl-10'];
 
     // Everything from the server goes in as text nodes, never as HTML
@@ -208,27 +209,65 @@
         el('div', { class: 'min-w-0' }, el('p', { class: 'text-[15px] font-medium [overflow-wrap:anywhere]' }, e.unitName), note(e)),
         el('div', { class: 'flex flex-wrap items-center gap-x-4 gap-y-1' }, numbers(e), tools(e)));
     }
-    function card(e, subs) {
-      return el('section', { class: 'mb-3 break-inside-avoid rounded-card bg-shell shadow-raised', 'aria-labelledby': `u-${e.id}` },
-        el('div', { class: `grid gap-2 p-4 sm:p-5 ${subs.length ? 'border-b border-line' : ''}` },
+    function chevron() {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      for (const [k, v] of Object.entries({ width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', class: 't-quick shrink-0' })) svg.setAttribute(k, v);
+      path.setAttribute('d', 'm6 9 6 6 6-6');
+      svg.append(path);
+      return svg;
+    }
+    // Sub-units fold away until opened; while searching every group that matches is open and cannot fold
+    function card(e, subs, searching) {
+      const open = searching || state.open.has(e.id);
+      const list = subs.length ? el('ul', { id: `s-${e.id}`, class: 'border-t border-line px-4 sm:px-5', hidden: !open }, subs.map(subRow)) : null;
+      let toggle = null;
+      if (list && !searching) {
+        const label = el('span', {});
+        const icon = chevron();
+        const paintToggle = (on) => {
+          toggle.setAttribute('aria-expanded', String(on));
+          label.textContent = `${on ? 'ซ่อน' : 'แสดง'} ${subs.length} หน่วยงานย่อย`;
+          icon.classList.toggle('rotate-180', on);
+          list.hidden = !on;
+        };
+        toggle = el('button', { type: 'button', 'aria-controls': list.id, class: 'hover-fill press t-quick flex min-h-11 w-full items-center justify-between gap-3 border-t border-line px-4 font-display text-[15px] font-medium text-royal sm:px-5',
+          onclick: () => {
+            if (state.open.has(e.id)) state.open.delete(e.id); else state.open.add(e.id);
+            paintToggle(state.open.has(e.id));
+            paintToggleAll();
+          } }, label, icon);
+        paintToggle(open);
+      }
+      return el('section', { class: 'mb-3 break-inside-avoid overflow-hidden rounded-card bg-shell shadow-raised', 'aria-labelledby': `u-${e.id}` },
+        el('div', { class: 'grid gap-2 p-4 sm:p-5' },
           el('div', { class: 'flex items-start gap-3' },
             el('div', { class: 'min-w-0 flex-1' },
               el('h2', { id: `u-${e.id}`, class: 'font-display text-[18px] font-semibold [overflow-wrap:anywhere]' }, e.unitName),
               note(e)),
             tools(e)),
           numbers(e)),
-        subs.length ? el('ul', { class: 'px-4 sm:px-5' }, subs.map(subRow)) : null);
+        toggle, list);
+    }
+
+    // หน่วยงานหลัก that have sub-units
+    const groups = () => { const parents = new Set(state.items.map((e) => e.parentId)); return state.items.filter((e) => !e.parentId && parents.has(e.id)); };
+    function paintToggleAll() {
+      const all = groups();
+      $('#toggleAll').hidden = Boolean(state.matches) || !all.length;
+      $('#toggleAll').textContent = all.length && all.every((e) => state.open.has(e.id)) ? 'ปิดทั้งหมด' : 'เปิดทั้งหมด';
     }
 
     function paint(q) {
       const kids = children();
       const show = shown(kids);
       const tops = (kids.get('') || []).filter((e) => !show || show.has(e.id));
-      $('#list').replaceChildren(...tops.map((e) => card(e, under(kids, e.id).filter(([k]) => !show || show.has(k.id)))));
+      $('#list').replaceChildren(...tops.map((e) => card(e, under(kids, e.id).filter(([k]) => !show || show.has(k.id)), Boolean(show))));
       const subs = state.items.length - (kids.get('') || []).length;
       $('#count').textContent = q ? `พบ ${state.matches.length} หน่วยงาน` : `${state.items.length - subs} หน่วยงานหลัก ${subs} หน่วยงานย่อย`;
       $('#empty').hidden = tops.length > 0;
       $('#empty').textContent = q ? `ไม่พบหมายเลขที่ตรงกับ "${q}"` : 'ยังไม่มีหมายเลขในสมุดโทรศัพท์';
+      paintToggleAll();
     }
 
     // Only the latest search paints: an older, slower answer is dropped
@@ -383,6 +422,11 @@
 
       let wait;
       $('#search').addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(load, 250); });
+      $('#toggleAll').addEventListener('click', () => {
+        const all = groups();
+        if (all.every((e) => state.open.has(e.id))) state.open.clear(); else all.forEach((e) => state.open.add(e.id));
+        paint('');
+      });
       $('#add').addEventListener('click', () => openForm(null));
       $('#entryForm').addEventListener('submit', save);
       $('#entryClose').addEventListener('click', () => $('#entryDlg').close());
