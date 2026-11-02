@@ -19,7 +19,7 @@
   <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="desk.css">
-  <link rel="stylesheet" href="/assets/app.css?v=f84d562a38">
+  <link rel="stylesheet" href="/assets/app.css?v=9bf7259741">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการหมายเลข</a>
@@ -37,6 +37,7 @@
             <div class="mr-auto min-w-[200px]">
               <h1 class="font-display tight text-[26px] font-bold text-royal">สมุดโทรศัพท์</h1>
               <p id="count" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
+              <p id="editUntil" class="mt-1 text-[14px] font-medium text-royal" hidden></p>
             </div>
             <button id="toggleAll" type="button" class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>เปิดทั้งหมด</button>
             <button id="import" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
@@ -415,6 +416,11 @@
       state.items = r.items;
       state.matches = null;
       state.canEdit = r.canEdit;
+      // A loan ends when its last day ends: show that day
+      if (r.editUntil) {
+        $('#editUntil').textContent = `คุณแก้ไขสมุดโทรศัพท์ได้ถึง ${DESK.day(new Date(r.editUntil).getTime() - 1000)}`;
+        $('#editUntil').hidden = false;
+      }
       $('#add').hidden = !r.canEdit;
       $('#import').hidden = !r.canEdit;
       $('#app').hidden = false;

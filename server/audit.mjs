@@ -44,6 +44,8 @@ export const ACTIONS = {
   'phonebook.update': 'แก้ไขหมายเลขในสมุดโทรศัพท์',
   'phonebook.delete': 'ลบหมายเลขจากสมุดโทรศัพท์',
   'phonebook.import': 'นำเข้าสมุดโทรศัพท์จากไฟล์',
+  'phonebook.grant': 'ให้สิทธิ์แก้ไขสมุดโทรศัพท์',
+  'phonebook.revoke': 'ยกเลิกสิทธิ์แก้ไขสมุดโทรศัพท์',
   'role.set': 'กำหนดบทบาท',
   'role.remove': 'ยกเลิกบทบาท',
   'role.switch': 'สลับบทบาท (ผู้พัฒนาระบบ)',

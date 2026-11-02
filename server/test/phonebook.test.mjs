@@ -15,7 +15,12 @@ let serial = 0;
 const unit = (name = 'กองกลาง') => `${UNIT} ${name} ${++serial}`;
 const entry = (over = {}) => ({ unitName: unit(), phoneNumber: '0-7791-3333', internalNumber: '1234', note: 'เวลาราชการ', ...over });
 
-let snap, pr, admin, student, secretary, executive, staff, coordinator, external;
+let snap, pr, admin, student, secretary, executive, staff, coordinator, external, intern;
+const EDITORS = ['pr@sru.ac.th', 'intern@student.sru.ac.th'];
+// A day in Thai time, n days from today, as YYYY-MM-DD
+const thaiDay = (n) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+/** @param {string} email @param {any} [until] anything, to test what the server refuses */
+const lend = (email, until = thaiDay(1)) => admin.call('POST', '/api/admin/phonebook-editors', { email, until });
 const create = async (over) => {
   const r = await pr.call('POST', '/api/phonebook', entry(over));
   assert.equal(r.status, 201, JSON.stringify(r.body));
@@ -40,10 +45,12 @@ const thaiBytes = (s) => Buffer.from([...s].map((c) => { const n = c.codePointAt
 
 before(async () => {
   snap = await snapshot();
-  [pr, admin, student, secretary, executive, staff, coordinator, external] = await Promise.all(['pr', 'admin', 'student', 'secretary', 'executive', 'staff', 'coordinator', 'external'].map(login));
+  [pr, admin, student, secretary, executive, staff, coordinator, external, intern] = await Promise.all(['pr', 'admin', 'student', 'secretary', 'executive', 'staff', 'coordinator', 'external', 'intern'].map(login));
+  assert.equal((await lend(EDITORS[0])).status, 201, 'PR edits in these tests on a loan from admin');
 });
 after(async () => {
   await query('delete from phonebook where unit_name like $1', [`${UNIT}%`]);
+  await query('delete from phonebook_editors where email = any($1)', [EDITORS]);
   await restore(snap);
 });
 
@@ -298,5 +305,61 @@ describe('importing units under a หน่วยงานหลัก', () => {
     const ok = await send(pr, await sheet([[name, '077913333', '1234']], ['หน่วยงาน', 'เบอร์โทร', 'โทรภายใน']), 'phones.xlsx', true);
     assert.equal(ok.body.missing, undefined);
     assert.equal((await stored(name)).phone_number, '077-913-333');
+  });
+});
+
+describe('edit rights an admin lends', () => {
+  const add = (who) => who.call('POST', '/api/phonebook', entry());
+  test('PR edits only while a loan runs; revoking or an ended loan takes it back', async () => {
+    assert.equal((await pr.call('GET', '/api/phonebook')).body.canEdit, true);
+    assert.equal((await admin.call('DELETE', `/api/admin/phonebook-editors/${EDITORS[0]}`)).status, 200);
+    const without = await pr.call('GET', '/api/phonebook');
+    assert.deepEqual([without.status, without.body.canEdit, without.body.editUntil], [200, false, null]);
+    assert.equal((await add(pr)).status, 403);
+    assert.equal((await pr.call('GET', '/api/phonebook/template.xlsx')).status, 403);
+
+    assert.equal((await lend(EDITORS[0])).status, 201);
+    const back = await pr.call('GET', '/api/phonebook');
+    assert.equal(back.body.canEdit, true);
+    assert.ok(new Date(back.body.editUntil) > new Date());
+    assert.equal((await add(pr)).status, 201);
+
+    await query("update phonebook_editors set expires_at = now() - interval '1 second' where email = $1", [EDITORS[0]]);
+    assert.equal((await add(pr)).status, 403);
+    assert.equal((await lend(EDITORS[0])).status, 201);
+  });
+  test('an intern may get a loan; nobody else but PR', async () => {
+    assert.equal((await add(intern)).status, 403);
+    assert.equal((await lend(EDITORS[1])).status, 201);
+    assert.equal((await add(intern)).status, 201);
+    for (const email of ['user@sru.ac.th', 'coord@sru.ac.th', 'secretary@sru.ac.th', 'admin@sru.ac.th', 'nobody@sru.ac.th']) {
+      const r = await lend(email);
+      assert.equal(r.status, 400, email);
+      assert.ok(r.body.details.email);
+    }
+    const list = (await admin.call('GET', '/api/admin/phonebook-editors')).body;
+    assert.deepEqual(EDITORS.map((e) => list.items.some((x) => x.email === e)), [true, true]);
+    assert.ok(list.people.every((p) => ['pr', 'intern'].includes(p.role)));
+  });
+  test('only admin lends or takes back, and every change is logged', async () => {
+    for (const who of [pr, intern, staff, secretary, executive, coordinator, external]) {
+      assert.equal((await who.call('GET', '/api/admin/phonebook-editors')).status, 403);
+      assert.equal((await who.call('POST', '/api/admin/phonebook-editors', { email: EDITORS[1], until: thaiDay(5) })).status, 403);
+      assert.equal((await who.call('DELETE', `/api/admin/phonebook-editors/${EDITORS[1]}`)).status, 403);
+    }
+    assert.equal((await anon.call('GET', '/api/admin/phonebook-editors')).status, 401);
+    await lend(EDITORS[1], thaiDay(3));
+    await admin.call('DELETE', `/api/admin/phonebook-editors/${EDITORS[1]}`);
+    assert.equal(await logged('phonebook.grant', EDITORS[1]) >= 1, true);
+    assert.equal(await logged('phonebook.revoke', EDITORS[1]), 1);
+    assert.equal((await admin.call('DELETE', `/api/admin/phonebook-editors/${EDITORS[1]}`)).status, 404);
+  });
+  test('the last day is today or later, and a real date', async () => {
+    assert.equal((await lend(EDITORS[1], thaiDay(0))).status, 201, 'today is fine');
+    for (const until of [thaiDay(-1), '2026-02-30', 'tomorrow', '', null, 20261231]) {
+      const r = await lend(EDITORS[1], until);
+      assert.equal(r.status, 400, String(until));
+      assert.ok(r.body.details.until);
+    }
   });
 });

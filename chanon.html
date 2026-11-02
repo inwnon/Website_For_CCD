@@ -27,7 +27,7 @@
     .code-area { font-family: "Noto Sans Thai", ui-monospace, monospace; font-size: 14px; line-height: 1.75; tab-size: 2; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=f84d562a38">
+  <link rel="stylesheet" href="/assets/app.css?v=9bf7259741">
 </head>
 <body class="app">
   <a href="#panel" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่การตั้งค่า</a>
@@ -52,7 +52,7 @@
     const { esc, day, dayTime, num, toast, ROLE_TH } = DESK;
     const $ = (s) => document.querySelector(s);
     const SECTIONS = [
-      ['users', 'ผู้ใช้และบทบาท'], ['org', 'ผังหน่วยงาน'], ['categories', 'ประเภทข่าว'], ['docCategories', 'หมวดเอกสาร'], ['media', 'ภาพและวิดีโอ'],
+      ['users', 'ผู้ใช้และบทบาท'], ['org', 'ผังหน่วยงาน'], ['categories', 'ประเภทข่าว'], ['docCategories', 'หมวดเอกสาร'], ['phoneEditors', 'สิทธิ์แก้ไขสมุดโทรศัพท์'], ['media', 'ภาพและวิดีโอ'],
       ['review', 'เวลาตรวจข่าว'], ['messages', 'ข้อความแจ้งเตือน'], ['mail', 'อีเมลแจ้งเตือน'], ['requests', 'คำขอข้อมูลส่วนบุคคล'], ['retention', 'ระยะเวลาเก็บข้อมูล'], ['backups', 'สำรองข้อมูล'], ['audit', 'ประวัติการใช้งาน'],
     ];
     const PLATFORM = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
@@ -381,6 +381,43 @@
       $('#mailClose').addEventListener('click', () => $('#mailDlg').close());
     }
 
+    // ================= Phone book edit rights (server/phonebook.mjs) =================
+    // A loan ends when its last day ends, so the day shown is the one before expiresAt
+    const lastDay = (at) => day(new Date(new Date(at).getTime() - 1000));
+    async function phoneEditors() {
+      const r = await api('/admin/phonebook-editors').catch((err) => { toast(err.message, true); return null; });
+      if (!r) return;
+      const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+      $('#panel').innerHTML = head('สิทธิ์แก้ไขสมุดโทรศัพท์', 'ผู้ดูแลระบบแก้ไขสมุดโทรศัพท์ได้เสมอ ทีม PR และนักศึกษาฝึกงาน สสอ. แก้ไขได้เฉพาะช่วงที่ได้รับสิทธิ์ สิทธิ์หมดเมื่อสิ้นวันสุดท้ายที่เลือก ยกเลิกก่อนกำหนดได้ทุกเมื่อ') + `
+        <div class="grid gap-4 p-5 sm:px-6">
+          ${r.people.length ? `<form id="peGrant" class="grid gap-2 rounded-card border border-line bg-surface2/50 p-4 sm:grid-cols-[minmax(0,1fr)_200px_auto] sm:items-end">
+            <label class="grid gap-1"><span class="font-display text-[14px] font-semibold">ให้สิทธิ์กับ</span><select name="email" class="field sel h-11 rounded-xl pl-3 pr-9 text-[15px]">${r.people.map((p) => `<option value="${esc(p.email)}">${esc(p.name || p.email)} (${ROLE_TH[p.role] || p.role})</option>`).join('')}</select></label>
+            <label class="grid gap-1"><span class="font-display text-[14px] font-semibold">แก้ไขได้ถึงวันที่</span><input name="until" type="date" required min="${today}" value="${today}" class="field h-11 rounded-xl px-3 text-[15px]"></label>
+            <button class="press t-spring h-11 rounded-xl bg-royal px-5 font-display text-[15px] font-semibold text-white dark:text-bg hover:-translate-y-0.5">ให้สิทธิ์</button>
+          </form>` : '<p class="rounded-card border border-dashed border-line p-4 text-[14px] text-ink2">ยังไม่มีบัญชีทีม PR หรือนักศึกษาฝึกงาน สสอ. กำหนดบทบาทได้ที่หมวดผู้ใช้และบทบาท</p>'}
+          <h2 class="font-display text-[17px] font-semibold">ผู้ที่แก้ไขได้ตอนนี้</h2>
+          <ul class="grid gap-2">${r.items.length ? r.items.map((x) => `
+            <li class="flex flex-wrap items-center gap-3 rounded-2xl border border-line px-4 py-3" data-editor="${esc(x.email)}">
+              <span class="min-w-0 flex-1"><span class="block text-[15px] font-medium">${esc(x.name || x.email)}</span><span class="block text-[13px] text-ink2">${esc(x.email)} · ${ROLE_TH[x.role] || esc(x.role)}</span></span>
+              <span class="text-[14px]">แก้ไขได้ถึง ${lastDay(x.expiresAt)}</span>
+              <button type="button" data-revoke class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium text-brand hover:-translate-y-0.5">ยกเลิกสิทธิ์</button>
+            </li>`).join('') : '<li class="rounded-2xl border border-dashed border-line p-8 text-center text-ink2">ยังไม่มีใครได้รับสิทธิ์ ตอนนี้แก้ไขได้เฉพาะผู้ดูแลระบบ</li>'}</ul>
+        </div>`;
+      $('#peGrant')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = e.currentTarget;
+        try {
+          await api('/admin/phonebook-editors', { method: 'POST', body: { email: f.email.value, until: f.until.value } });
+          toast('ให้สิทธิ์แล้ว');
+          phoneEditors();
+        } catch (err) { toast(Object.values(err.details || {})[0] || err.message, true); }
+      });
+      $('#panel').querySelectorAll('[data-editor]').forEach((li) => li.querySelector('[data-revoke]').addEventListener('click', async (e) => {
+        e.currentTarget.disabled = true;
+        try { await api(`/admin/phonebook-editors/${encodeURIComponent(li.dataset.editor)}`, { method: 'DELETE' }); toast('ยกเลิกสิทธิ์แล้ว'); phoneEditors(); } catch (err) { toast(err.message, true); e.currentTarget.disabled = false; }
+      }));
+    }
+
     // ================= PDPA: requests from users =================
     const REQ = { pending: ['รอดำเนินการ', 'bg-gold-soft text-gold'], done: ['ลบแล้ว', 'bg-sky-soft text-sky'], rejected: ['ไม่ลบ', 'bg-red-soft text-brand'], cancelled: ['ผู้ขอยกเลิก', 'bg-surface2 text-ink2'] };
     async function requests() {
@@ -520,7 +557,7 @@
     }
 
     // ================= Routing (#section) =================
-    const RENDER = { users, org, categories, docCategories, media, review, messages, mail, requests, retention, backups, audit };
+    const RENDER = { users, org, categories, docCategories, phoneEditors, media, review, messages, mail, requests, retention, backups, audit };
     function show() {
       const id = SECTIONS.some(([k]) => k === location.hash.slice(1)) ? location.hash.slice(1) : 'users';
       document.querySelectorAll('#secNav a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.sec === id)));

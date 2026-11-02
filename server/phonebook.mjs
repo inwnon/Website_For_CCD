@@ -10,7 +10,11 @@
 //   One bad row stops the whole file. A unit already here is updated; an empty cell keeps its value.
 //   หน่วยงานหลัก names a unit with no parent, here or in the file; a unit imported before without it moves under it.
 // Telephone numbers are stored as 077-913-333 (landline) or 081-234-5678 (mobile).
-// PR and admin change entries. Unit numbers only: no personal data here.
+// Unit numbers only: no personal data here.
+// Who changes entries: admin at any time; a PR or intern account only while an admin's loan runs (phonebook_editors):
+// - GET    /api/admin/phonebook-editors          loans that run now, and the accounts that may get one
+// - POST   /api/admin/phonebook-editors          { email, until: 'YYYY-MM-DD' } rights end when that day ends (Thai time)
+// - DELETE /api/admin/phonebook-editors/:email   ends a loan now
 import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { Readable } from 'node:stream';
@@ -19,7 +23,8 @@ import { Router } from 'express';
 import multer from 'multer';
 import { requireModule, rightOf } from './access.mjs';
 import { audit } from './audit.mjs';
-import { query, tx } from './db.mjs';
+import { requireAdmin } from './auth.mjs';
+import { one, query, tx } from './db.mjs';
 import { UPLOAD_DIR, removeTemp } from './files.mjs';
 import { HttpError, str } from './http.mjs';
 import { limit, matchesName, sniff } from './security.mjs';
@@ -42,8 +47,22 @@ const ALIASES = {
 const plain = (s) => s.replace(/\s+/g, '');
 const HEADERS = new Map(Object.entries(COLUMNS).flatMap(([k, label]) => [label, ...ALIASES[k]].map((h) => [plain(h), k])));
 
-const edits = (right) => right === 'all' || right === 'edit';
-const writer = requireModule('phonebook', 'all', 'edit');
+const LENDABLE = ['pr', 'intern'];
+const LENDABLE_TH = 'ทีม PR และนักศึกษาฝึกงาน สสอ.';
+
+// { can, until }: admin always; a PR or intern account while its loan runs (until = when it ends)
+async function editRight(u) {
+  const right = rightOf(u, 'phonebook');
+  if (right === 'all') return { can: true, until: null };
+  if (!right || !LENDABLE.includes(u.role)) return { can: false, until: null };
+  const loan = await one('select expires_at from phonebook_editors where email = $1 and expires_at > now()', [u.email]);
+  return { can: Boolean(loan), until: loan?.expires_at ?? null };
+}
+const writer = async (req, res, next) => {
+  if (!req.user) throw new HttpError(401, 'กรุณาเข้าสู่ระบบ');
+  if (!(await editRight(req.user)).can) throw new HttpError(403, 'บัญชีนี้ยังไม่ได้รับสิทธิ์แก้ไขสมุดโทรศัพท์ ติดต่อผู้ดูแลระบบ');
+  next();
+};
 const byName = new Intl.Collator('th');
 const like = (s) => `%${s.replace(/[\\%_]/g, '\\$&')}%`;
 const upload = multer({ dest: join(UPLOAD_DIR, 'tmp'), limits: { fileSize: MAX_FILE, files: 1, fields: 0 }, defParamCharset: 'utf8' }).single('file');
@@ -197,7 +216,8 @@ router.get('/phonebook', requireModule('phonebook'), async (req, res) => {
   const q = str(req.query.q, 100, 'คำค้น') ?? '';
   const rows = (await query(`select * from phonebook limit ${MAX_ROWS * 2}`)).rows;
   rows.sort((a, b) => byName.compare(a.unit_name, b.unit_name));
-  const out = { items: rows.map(entryOut), canEdit: edits(rightOf(req.user, 'phonebook')) };
+  const right = await editRight(req.user);
+  const out = { items: rows.map(entryOut), canEdit: right.can, editUntil: right.until };
   if (q) {
     const { where, params } = matching(q);
     out.matches = (await query(`select id from phonebook ${where}`, params)).rows.map((r) => r.id);
@@ -287,6 +307,48 @@ router.delete('/phonebook/:id', writer, async (req, res) => {
   }).catch((err) => {
     if (err.code === '23503') throw new HttpError(400, 'ลบไม่ได้ เพราะยังมีหน่วยงานย่อย ย้ายหรือลบหน่วยงานย่อยก่อน');
     throw err;
+  });
+  res.json({ ok: true });
+});
+
+// ---- Edit rights an admin lends ----
+const editorOut = (r) => ({ email: r.email, name: r.name, role: r.role, expiresAt: r.expires_at, grantedBy: r.granted_by, grantedAt: r.granted_at });
+const thaiDay = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('th-TH', { dateStyle: 'long', timeZone: 'UTC' });
+
+router.get('/admin/phonebook-editors', requireAdmin, async (req, res) => {
+  // A loan to someone who is no longer PR or intern gives nothing, so it is not listed
+  const items = (await query(`select e.*, u.name, t.role from phonebook_editors e join pr_team t on t.email = e.email left join users u on u.email = e.email
+    where e.expires_at > now() and t.role = any($1) order by e.expires_at, e.email`, [LENDABLE])).rows;
+  const people = (await query(`select t.email, t.role, u.name from pr_team t left join users u on u.email = t.email
+    where t.role = any($1) order by t.role, coalesce(u.name, t.email)`, [LENDABLE])).rows;
+  res.json({ items: items.map(editorOut), people: people.map((p) => ({ email: p.email, name: p.name, role: p.role })) });
+});
+
+router.post('/admin/phonebook-editors', requireAdmin, async (req, res) => {
+  const email = str(req.body?.email, 200, 'อีเมล')?.toLowerCase() ?? '';
+  const until = req.body?.until;
+  const real = typeof until === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(until) && !Number.isNaN(Date.parse(until)) && new Date(`${until}T00:00:00Z`).toISOString().startsWith(until);
+  if (!real) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', { until: 'เลือกวันสุดท้ายที่แก้ไขได้' });
+  const row = await tx(async (c) => {
+    const who = (await c.query('select role from pr_team where email = $1', [email])).rows[0];
+    if (!who || !LENDABLE.includes(who.role)) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', { email: `ให้สิทธิ์ได้เฉพาะ${LENDABLE_TH}` });
+    const r = (await c.query(`insert into phonebook_editors (email, granted_by, expires_at)
+        select $1, $2, ($3::date + 1)::timestamp at time zone 'Asia/Bangkok' where $3::date >= (now() at time zone 'Asia/Bangkok')::date
+      on conflict (email) do update set granted_by = excluded.granted_by, granted_at = now(), expires_at = excluded.expires_at
+      returning *`, [email, req.user.email, until])).rows[0];
+    if (!r) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', { until: 'วันสุดท้ายต้องเป็นวันนี้หรือหลังจากนี้' });
+    await audit(c, req.user, 'phonebook.grant', email, `ให้ ${email} แก้ไขสมุดโทรศัพท์ได้ถึง ${thaiDay(until)}`, { until });
+    return { ...r, role: who.role };
+  });
+  res.status(201).json({ editor: editorOut(row) });
+});
+
+router.delete('/admin/phonebook-editors/:email', requireAdmin, async (req, res) => {
+  const email = String(req.params.email).toLowerCase();
+  await tx(async (c) => {
+    const r = (await c.query('delete from phonebook_editors where email = $1 returning email', [email])).rows[0];
+    if (!r) throw new HttpError(404, 'ไม่พบสิทธิ์แก้ไขของบัญชีนี้');
+    await audit(c, req.user, 'phonebook.revoke', email, `ยกเลิกสิทธิ์แก้ไขสมุดโทรศัพท์ของ ${email}`, {});
   });
   res.json({ ok: true });
 });
