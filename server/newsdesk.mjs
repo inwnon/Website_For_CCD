@@ -40,6 +40,7 @@ const SHOW = {
   imported: 'n.imported and n.withdrawn_at is null',
   withdrawn: 'n.withdrawn_at is not null',
   scheduled: 'n.withdrawn_at is null and n.published_at > now()',
+  nochannel: 'n.withdrawn_at is null and cardinality(n.channels) = 0',
 };
 
 router.get('/pr/news', async (req, res) => {
@@ -132,7 +133,7 @@ router.put('/pr/news/:id', limit('import', { max: 120, windowMs: 10 * 60 * 1000 
     const order = [...new Set(tokens)].filter((t) => (t.startsWith('p:') && had.includes(t.slice(2))) || (/^u:\d+$/.test(t) && Number(t.slice(2)) < uploads.length));
     const max = get('photos').max;
     if (order.length > max) throw new HttpError(400, `แนบภาพได้ไม่เกิน ${max} ภาพ`);
-    const row = checkImport(d, order.length, { imported: n.imported });
+    const row = checkImport(d, order.length, { imported: n.imported, channels: n.channels });
     const paths = await inTurns(order, PARALLEL, async (t) => {
       if (t.startsWith('p:')) return t.slice(2);
       const f = uploads[Number(t.slice(2))];
@@ -150,8 +151,7 @@ router.put('/pr/news/:id', limit('import', { max: 120, windowMs: 10 * 60 * 1000 
          where id = $1`,
         [n.id, row.kind, row.title, row.lead, row.body, row.unit, row.categories, row.audience, paths[0] || null, paths.slice(1),
           row.video_url, row.credit, row.place, row.album_url, row.source_url ?? n.source_url, row.published_at, row.body_size, row.body_leading,
-          row.date, d.titleEn !== undefined || d.bodyEn !== undefined, row.title_en, row.body_en, row.video_links, row.album_links, row.credit_kind,
-          d.channels === undefined ? n.channels : row.channels]);
+          row.date, d.titleEn !== undefined || d.bodyEn !== undefined, row.title_en, row.body_en, row.video_links, row.album_links, row.credit_kind, row.channels]);
       await audit(c, req.user, 'news.update', n.id, `แก้ไขข่าว "${row.title}"`, { before: n.title !== row.title ? n.title : undefined });
     }, req.user);
     await Promise.all(had.filter((p) => !paths.includes(p)).map(removeMedia));
@@ -271,6 +271,7 @@ async function inTurns(list, n, fn) {
 }
 
 // opts.imported: the original date must not be in the future (an edited story that was not imported may be scheduled)
+// opts.channels: the story's own, kept when the request does not send any
 function checkImport(d, photoCount, opts = { imported: true }) {
   if (!d || typeof d !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลข่าว');
   const errors = {};
@@ -285,8 +286,9 @@ function checkImport(d, photoCount, opts = { imported: true }) {
     source_url: d.sourceUrl ? fbUrl(d.sourceUrl) || str(d.sourceUrl, 500, 'ลิงก์ต้นฉบับ') : null,
     album_url: albumUrl(d.albumUrl),
     credit_kind: creditKindOf(d.kind, d.creditKind),
-    channels: Array.isArray(d.channels) ? [...new Set(d.channels)] : [],
+    channels: Array.isArray(d.channels) ? [...new Set(d.channels)] : opts.channels || [],
   };
+  need('channels', row.channels.length > 0, 'เลือกช่องทางเผยแพร่อย่างน้อย 1 ช่องทาง');
   need('channels', row.channels.every((c) => Object.hasOwn(CHANNELS, c)), 'ช่องทางเผยแพร่ไม่ถูกต้อง');
   // ลิงก์ภาพเพิ่มเติม: albumUrl is the first, albumLinks the others
   const albums = albumSet([row.album_url || '', ...(Array.isArray(d.albumLinks) ? d.albumLinks : [])].filter(Boolean));

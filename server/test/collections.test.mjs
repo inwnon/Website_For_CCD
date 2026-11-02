@@ -12,7 +12,7 @@ before(async () => {
   [pr, staff] = await Promise.all([login('pr'), login('staff')]);
   const pic = await img('#468', 400, 300);
   const make = async (d) => {
-    const r = await pr.call('POST', '/api/pr/import', form({ unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'], body: 'ข้อความประกอบทดสอบ', credit: 'ทีมกราฟิกทดสอบ', ...d },
+    const r = await pr.call('POST', '/api/pr/import', form({ channels: ['facebook'], unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'], body: 'ข้อความประกอบทดสอบ', credit: 'ทีมกราฟิกทดสอบ', ...d },
       d.kind === 'video' ? {} : { photo: [['a.jpg', pic, 'image/jpeg']] }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
     return r.body.news.id;

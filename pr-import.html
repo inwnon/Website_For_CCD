@@ -121,7 +121,7 @@
             </fieldset>
 
             <fieldset>
-              <legend class="mb-2 font-display text-[15px] font-semibold">ช่องทางเผยแพร่ <span class="font-sans text-[13px] font-normal text-ink2">เลือกได้หลายช่องทาง ระบบนับเป็นสถิติในหน้ารายงาน</span></legend>
+              <legend class="mb-2 font-display text-[15px] font-semibold">ช่องทางเผยแพร่ <span class="text-brand">*</span> <span class="font-sans text-[13px] font-normal text-ink2">เลือกอย่างน้อย 1 ช่องทาง ระบบนับเป็นสถิติในหน้ารายงาน</span></legend>
               <div id="channels" class="flex flex-wrap gap-2">
                 <label class="opt chip-opt"><input type="checkbox" name="channel" value="facebook"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">Facebook</span></label>
                 <label class="opt chip-opt"><input type="checkbox" name="channel" value="line"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">LINE</span></label>
@@ -129,6 +129,7 @@
                 <label class="opt chip-opt"><input type="checkbox" name="channel" value="tiktok"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">TikTok</span></label>
                 <label class="opt chip-opt"><input type="checkbox" name="channel" value="website"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">เว็บไซต์มหาวิทยาลัย</span></label>
               </div>
+              <span id="channelsErr" class="err" hidden></span>
             </fieldset>
 
             <section aria-labelledby="photosTitle">
@@ -319,6 +320,7 @@
     }
     $('#videoUrl').addEventListener('input', syncCoverNote);
     document.querySelectorAll('input[name=kind], input[name=creditKind]').forEach((r) => r.addEventListener('change', () => { syncKind(); setErr('credit'); }));
+    $('#channels').addEventListener('change', () => setErr('channels'));
     // At most 5 categories
     $('#cats').addEventListener('change', (e) => {
       // A solo category (วิดีโอเสียงตามสาย) clears the others, and another one clears it
@@ -460,6 +462,7 @@
       const badAlbum = d.albumLinks.findIndex((u) => !https(u));
       if (badAlbum >= 0) errs.albumLinks = `ลิงก์ภาพเพิ่มเติมที่ ${badAlbum + 2} ต้องขึ้นต้นด้วย https://`;
       if (!d.categories.length) errs.categories = 'เลือกประเภทข่าวอย่างน้อย 1 ประเภท';
+      if (!d.channels.length) errs.channels = 'เลือกช่องทางเผยแพร่อย่างน้อย 1 ช่องทาง';
       if (d.kind !== 'video' && !on) errs.photos = 'เลือกหรือแนบภาพอย่างน้อย 1 ภาพ';
       if (d.kind === 'video' && !d.videoUrl) errs.videoUrl = 'ใส่ลิงก์วิดีโอ';
       const bad = d.videoLinks.findIndex((u) => !VIDEO_RE.some((r) => r.test(u)));
@@ -510,6 +513,7 @@
       thumbQueue.length = 0;
       paintPhotos();
       clearErrs();
+      setErr('channels');
       sourceUrl = null;
       $('#time').value = '12:00';
       if (ADD) setNow();
