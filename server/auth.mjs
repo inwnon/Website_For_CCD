@@ -26,7 +26,9 @@ import { baseRole, domainRole } from './rules.mjs';
 export { baseRole, domainRole };
 
 const COOKIE = 'sid';
-const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const TTL_MS = 8 * 60 * 60 * 1000; // 8 hours after the last use (SPEC.md §7)
+const TOUCH_MS = 5 * 60 * 1000; // moved at most this often, so most requests write nothing
+const COOKIE_MS = 30 * 24 * 60 * 60 * 1000; // outlives the session: the server decides when it ends, and pictures need no Set-Cookie
 const PROD = process.env.NODE_ENV === 'production';
 const DEV_LOGIN = !PROD && process.env.ALLOW_DEV_LOGIN === '1';
 const google = new OAuth2Client();
@@ -94,7 +96,7 @@ async function startSession(req, res, { email, name, avatarUrl, sub }) {
   await query('insert into sessions (id, user_id, expires_at, user_agent) values ($1, $2, $3, $4)', [
     hash(token), user.id, new Date(Date.now() + TTL_MS), (req.get('user-agent') || '').slice(0, 300),
   ]);
-  res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: TTL_MS, path: '/' });
+  res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: COOKIE_MS, path: '/' });
   return user;
 }
 
@@ -105,13 +107,16 @@ export async function loadUser(req, res, next) {
   if (token) {
     req.sessionId = hash(token);
     req.user = await one(
-      `select u.*, t.unit coord_unit, s.acting_role from sessions s join users u on u.id = s.user_id
+      `select u.*, t.unit coord_unit, s.acting_role, s.expires_at session_ends from sessions s join users u on u.id = s.user_id
        left join pr_team t on t.email = u.email and t.role = 'coordinator'
        where s.id = $1 and s.expires_at > now()`,
       [req.sessionId],
     );
     // A developer works as the role chosen for this session (admin unless switched); nobody else can have one
     if (req.user) {
+      if (new Date(req.user.session_ends).getTime() - Date.now() < TTL_MS - TOUCH_MS) {
+        await query('update sessions set expires_at = $2 where id = $1', [req.sessionId, new Date(Date.now() + TTL_MS)]);
+      }
       req.user.developer = DEVELOPERS.has(req.user.email);
       if (req.user.developer) req.user.role = req.user.acting_role === 'pr' ? 'pr' : 'admin';
     }
