@@ -164,15 +164,6 @@
     @keyframes twinkle { 0%,100% { transform: scale(1) rotate(0); opacity: 1; } 50% { transform: scale(.8) rotate(20deg); opacity: .7; } }
     .twinkle { animation: twinkle 3s ease-in-out infinite; }
 
-    /* Heart (save) button */
-    .save-btn { transition: transform .45s var(--spring); }
-    .save-btn:hover { transform: scale(1.1); }
-    .save-btn:active { transform: scale(.85); }
-    .save-btn:focus-visible { outline-offset: 2px; border-radius: 9999px; }
-    .save-btn[aria-pressed="true"] svg { fill: currentColor; }
-    @keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
-    .save-btn.pop svg { animation: pop .5s var(--spring); }
-
     .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
     @media (prefers-reduced-motion: reduce) {
@@ -181,7 +172,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=dc4538925e">
+  <link rel="stylesheet" href="/assets/app.css?v=f70748e28c">
 </head>
 
 <body class="min-h-screen">
@@ -446,8 +437,6 @@
     </div>
   </footer>
 
-  <p id="liveMsg" class="sr-only" role="status" aria-live="polite"></p>
-
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
   <script src="shortcuts.js" defer></script>
@@ -467,7 +456,6 @@
     const fmtDay = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ });
     const fmtLong = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: TZ });
     const isoDay = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(d)); // YYYY-MM-DD
-    const liveMsg = document.getElementById('liveMsg');
     let me = { user: null };
 
     // Scroll reveal for cards rendered later
@@ -482,7 +470,6 @@
       clock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
       eye: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
       building: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h.01M12 9h.01M16 9h.01M8 13h.01M16 13h.01"/></svg>',
-      heart: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.6 4.5 7.1 4.5c2 0 3.6 1.1 4.9 2.8 1.3-1.7 2.9-2.8 4.9-2.8 3.5 0 5.7 3.5 4.4 6.8-1.8 4.6-9.3 9.2-9.3 9.2Z"/></svg>',
       lock: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     };
     const lang = (en) => `<span class="inline-flex gap-1" aria-label="${en ? 'มีฉบับภาษาไทยและอังกฤษ' : 'ภาษาไทย'}">
@@ -549,11 +536,6 @@
             </div>
           </div>
         </a>
-        <!-- Heart sits outside the link (no nested interactive elements), aligned to the photo's corner -->
-        <div class="pointer-events-none absolute inset-x-0 top-0 aspect-[16/9]">
-          <button type="button" data-save="${n.id}" aria-pressed="false" aria-label="บันทึกข่าวที่ชอบ: ${esc(n.title)}"
-            class="save-btn pointer-events-auto absolute bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-shell text-brand shadow-raised">${ic.heart}</button>
-        </div>
         </div>
       </article>`;
     // Shown while the first page loads
@@ -563,30 +545,6 @@
         <div class="space-y-3 p-[18px]"><div class="h-3 w-1/3 rounded-full bg-surface2"></div><div class="h-4 w-11/12 rounded-full bg-surface2"></div><div class="h-4 w-2/3 rounded-full bg-surface2"></div></div>
       </div>`).join('');
 
-    // ---- Saved (liked) news: stored in the signed-in account ----
-    let saved = new Set();
-    function applySaved(root = document) {
-      root.querySelectorAll('[data-save]').forEach((b) => b.setAttribute('aria-pressed', String(saved.has(b.dataset.save))));
-    }
-    document.addEventListener('click', async (e) => {
-      const b = e.target.closest('[data-save]');
-      if (!b) return;
-      if (!me.user) { location.href = 'login.html'; return; }
-      const id = b.dataset.save;
-      const on = !saved.has(id);
-      on ? saved.add(id) : saved.delete(id);
-      applySaved();
-      if (on) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
-      try {
-        await api(`/news/${id}/save`, { method: on ? 'PUT' : 'DELETE' });
-        liveMsg.textContent = on ? 'บันทึกเป็นข่าวที่ชอบแล้ว' : 'นำออกจากข่าวที่ชอบแล้ว';
-      } catch (err) {
-        on ? saved.delete(id) : saved.add(id);
-        applySaved();
-        liveMsg.textContent = `บันทึกไม่สำเร็จ: ${err.message}`;
-      }
-    });
-
     // ---- Featured ----
     async function loadFeatured() {
       const grid = $('#featuredGrid');
@@ -595,7 +553,6 @@
         const { items } = await api('/news?feed=1&featured=1&limit=4');
         grid.innerHTML = items.map(card).join('');
         $('#featuredEmpty').classList.toggle('hidden', items.length > 0);
-        applySaved(grid);
         reveal(grid);
       } catch (err) {
         grid.innerHTML = '';
@@ -612,7 +569,6 @@
         const { items } = await api(`/news/search?${new URLSearchParams({ cat: 'วิดีโอเสียงตามสาย', sort: 'newest', limit: 4 })}`);
         grid.innerHTML = items.map(card).join('');
         $('#soundEmpty').classList.toggle('hidden', items.length > 0);
-        applySaved(grid);
         reveal(grid);
       } catch (err) {
         grid.innerHTML = '';
@@ -710,7 +666,6 @@
         if (append) grid.insertAdjacentHTML('beforeend', html); else grid.innerHTML = html;
         latest.offset += r.items.length;
         if (r.kinds) paintKindCounts(r.kinds);
-        applySaved(grid);
         reveal(grid);
         paintHeading(r.total);
         paintSeeAll();
@@ -1001,11 +956,10 @@
       try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
     });
 
-    // ---- Start: who is reading decides locked cards and saved hearts ----
+    // ---- Start: who is reading decides locked cards ----
     reveal();
     (async () => {
       [me] = await Promise.all([window.ME, heroShown]);
-      if (me.user) { try { saved = new Set((await api('/me/saved')).ids); } catch (e) {} }
       loadFeatured();
       loadLatest();
       loadSoundline();
