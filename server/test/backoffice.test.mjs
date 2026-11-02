@@ -171,6 +171,40 @@ describe('import (นำเข้าข่าวย้อนหลัง)', () =
   });
 });
 
+describe('ช่องทางเผยแพร่', () => {
+  const counts = async () => (await pr.call('GET', `/api/reports?from=${daysAgo(60)}&to=${today}`)).body.channels.counts;
+  const pic = async () => ({ photo: [['a.jpg', await img('#468'), 'image/jpeg']] });
+
+  test('kept on the story, changed by an edit, unknown ones refused', async () => {
+    const was = await counts();
+    const bad = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, confirmDuplicate: true, channels: ['ช่องที่ไม่มี'] }, await pic()));
+    assert.equal(bad.status, 400);
+    assert.ok(bad.body.details.channels);
+
+    const r = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ทดสอบช่องทางเผยแพร่', confirmDuplicate: true, channels: ['facebook', 'line', 'facebook'] }, await pic()));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const id = r.body.news.id;
+    const s = (await pr.call('GET', `/api/pr/news/${id}`)).body.story;
+    assert.deepEqual(s.channels, ['facebook', 'line']);
+    const now = await counts();
+    assert.equal(now.facebook, (was.facebook || 0) + 1);
+    assert.equal(now.line, (was.line || 0) + 1);
+
+    const edit = { ...IMPORT, title: 'ทดสอบช่องทางเผยแพร่', photos: s.photos.map((p) => `p:${p.path}`) };
+    assert.equal((await pr.call('PUT', `/api/pr/news/${id}`, form(edit))).status, 200);
+    assert.deepEqual((await pr.call('GET', `/api/pr/news/${id}`)).body.story.channels, ['facebook', 'line'], 'an edit without the field leaves them');
+    assert.equal((await pr.call('PUT', `/api/pr/news/${id}`, form({ ...edit, channels: ['website'] }))).status, 200);
+    assert.deepEqual((await pr.call('GET', `/api/pr/news/${id}`)).body.story.channels, ['website']);
+  });
+
+  test('a story with none ticked counts as ยังไม่ระบุ', async () => {
+    const was = await counts();
+    const r = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, title: 'ทดสอบไม่ระบุช่องทาง', confirmDuplicate: true }, await pic()));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    assert.equal((await counts()).none, (was.none || 0) + 1);
+  });
+});
+
 describe('search', () => {
   test('a title match ranks above a body-only match; a small typo still finds it', async () => {
     const term = encodeURIComponent('เกษตรอัจฉริยะ');

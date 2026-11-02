@@ -25,7 +25,7 @@ import { one, query, tx } from './db.mjs';
 import { abs, acceptUpload, publishFile, removeMedia, removeTemp } from './files.mjs';
 import { HttpError, str } from './http.mjs';
 import { allUnits } from './org.mjs';
-import { AUDIENCES, CREDIT_KINDS, MAX_CATS, PLATFORMS, SOLO_MSG, TYPES, albumSet, albumUrl, audienceLabel, bodyLeading, bodySize, categories, creditKindOf, creditMissing, soloOk, videoLinks } from './rules.mjs';
+import { AUDIENCES, CHANNELS, CREDIT_KINDS, MAX_CATS, PLATFORMS, SOLO_MSG, TYPES, albumSet, albumUrl, audienceLabel, bodyLeading, bodySize, categories, creditKindOf, creditMissing, soloOk, videoLinks } from './rules.mjs';
 import { get } from './settings.mjs';
 import { limit } from './security.mjs';
 
@@ -111,7 +111,7 @@ router.get('/pr/news/:id', async (req, res) => {
     story: {
       id: n.id, kind: n.kind, title: n.title, titleEn: n.title_en, lead: n.lead, body: n.body, bodyEn: n.body_en, bodySize: n.body_size, bodyLeading: n.body_leading,
       unit: n.unit, categories: n.categories, audience: n.audience, videoUrl: n.video_url, videoLinks: n.video_links, credit: n.credit, place: n.place,
-      sourceUrl: n.source_url, albumUrl: n.album_url, albumLinks: n.album_links || [], creditKind: n.credit_kind,
+      sourceUrl: n.source_url, albumUrl: n.album_url, albumLinks: n.album_links || [], creditKind: n.credit_kind, channels: n.channels,
       imported: n.imported, publishedAt: n.published_at, withdrawn: !!n.withdrawn_at,
       ref: s?.ref || null, submissionStatus: s?.status || null,
       photos: [n.cover_path, ...n.gallery].filter(Boolean).map((p) => ({ path: p, url: `/media/${p}` })),
@@ -146,11 +146,12 @@ router.put('/pr/news/:id', limit('import', { max: 120, windowMs: 10 * 60 * 1000 
            video_url = $11, credit = $12, place = $13, album_url = $14, source_url = $15, published_at = $16, body_size = $17, body_leading = $18,
            event_date = case when imported then $19::date else event_date end,
            title_en = case when $20 then $21 else title_en end, body_en = case when $20 then $22 else body_en end, video_links = $23,
-           album_links = $24, credit_kind = $25
+           album_links = $24, credit_kind = $25, channels = $26
          where id = $1`,
         [n.id, row.kind, row.title, row.lead, row.body, row.unit, row.categories, row.audience, paths[0] || null, paths.slice(1),
           row.video_url, row.credit, row.place, row.album_url, row.source_url ?? n.source_url, row.published_at, row.body_size, row.body_leading,
-          row.date, d.titleEn !== undefined || d.bodyEn !== undefined, row.title_en, row.body_en, row.video_links, row.album_links, row.credit_kind]);
+          row.date, d.titleEn !== undefined || d.bodyEn !== undefined, row.title_en, row.body_en, row.video_links, row.album_links, row.credit_kind,
+          d.channels === undefined ? n.channels : row.channels]);
       await audit(c, req.user, 'news.update', n.id, `แก้ไขข่าว "${row.title}"`, { before: n.title !== row.title ? n.title : undefined });
     }, req.user);
     await Promise.all(had.filter((p) => !paths.includes(p)).map(removeMedia));
@@ -284,7 +285,9 @@ function checkImport(d, photoCount, opts = { imported: true }) {
     source_url: d.sourceUrl ? fbUrl(d.sourceUrl) || str(d.sourceUrl, 500, 'ลิงก์ต้นฉบับ') : null,
     album_url: albumUrl(d.albumUrl),
     credit_kind: creditKindOf(d.kind, d.creditKind),
+    channels: Array.isArray(d.channels) ? [...new Set(d.channels)] : [],
   };
+  need('channels', row.channels.every((c) => Object.hasOwn(CHANNELS, c)), 'ช่องทางเผยแพร่ไม่ถูกต้อง');
   // ลิงก์ภาพเพิ่มเติม: albumUrl is the first, albumLinks the others
   const albums = albumSet([row.album_url || '', ...(Array.isArray(d.albumLinks) ? d.albumLinks : [])].filter(Boolean));
   row.album_url = albums.url;
@@ -340,11 +343,11 @@ router.post('/pr/import', limit('import', { max: 120, windowMs: 10 * 60 * 1000 }
       const n = (await c.query(
         `insert into news (id, kind, imported, source_url, title, title_en, lead, body, body_en, unit, categories, audience,
            cover_path, gallery, video_url, credit, place, event_date, published_at, created_by, album_url, body_size, body_leading, reviewed_by, video_links,
-           album_links, credit_kind)
-         values ($1, $2, $24, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $19, $23, $25, $26) returning *`,
+           album_links, credit_kind, channels)
+         values ($1, $2, $24, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $19, $23, $25, $26, $27) returning *`,
         [newsId, row.kind, row.source_url, row.title, row.title_en, row.lead, row.body, row.body_en, row.unit, row.categories, row.audience,
           paths[0] || null, paths.slice(1), row.video_url, row.credit, row.place, row.date, row.published_at, req.user.id, row.album_url,
-          row.body_size, row.body_leading, row.video_links, !fresh, row.album_links, row.credit_kind])).rows[0];
+          row.body_size, row.body_leading, row.video_links, !fresh, row.album_links, row.credit_kind, row.channels])).rows[0];
       await audit(c, req.user, 'news.import', n.id, `${fresh ? 'เพิ่มข่าว' : 'นำเข้าข่าวย้อนหลัง'} "${n.title}" (${row.unit}, ${row.date})`,
         { sourceUrl: row.source_url, fresh: fresh || undefined });
       return n;

@@ -120,6 +120,17 @@
               </div>
             </fieldset>
 
+            <fieldset>
+              <legend class="mb-2 font-display text-[15px] font-semibold">ช่องทางเผยแพร่ <span class="font-sans text-[13px] font-normal text-ink2">เลือกได้หลายช่องทาง ระบบนับเป็นสถิติในหน้ารายงาน</span></legend>
+              <div id="channels" class="flex flex-wrap gap-2">
+                <label class="opt chip-opt"><input type="checkbox" name="channel" value="facebook"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">Facebook</span></label>
+                <label class="opt chip-opt"><input type="checkbox" name="channel" value="line"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">LINE</span></label>
+                <label class="opt chip-opt"><input type="checkbox" name="channel" value="youtube"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">YouTube</span></label>
+                <label class="opt chip-opt"><input type="checkbox" name="channel" value="tiktok"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">TikTok</span></label>
+                <label class="opt chip-opt"><input type="checkbox" name="channel" value="website"><span class="opt-box inline-flex h-10 items-center rounded-full border border-line bg-surface px-4 font-display text-[14px] font-medium">เว็บไซต์มหาวิทยาลัย</span></label>
+              </div>
+            </fieldset>
+
             <section aria-labelledby="photosTitle">
               <div class="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 id="photosTitle" class="font-display text-[15px] font-semibold">ภาพ <span id="photoStar" class="text-brand">*</span> <span id="photoHint" class="font-sans text-[13px] font-normal text-ink2">ลากภาพเพื่อจัดลำดับ (หรือกดลูกศรบนคีย์บอร์ด) ภาพแรกที่เลือกเป็นภาพปก</span></h2>
@@ -420,6 +431,7 @@
       return {
         kind: radio('kind'), title: $('#title').value, lead: $('#lead').value, body: $('#body').value,
         unit: $('#unit').value.trim(), date: $('#date').value, time: time24($('#time').value) || '12:00',
+        channels: [...document.querySelectorAll('input[name=channel]:checked')].map((i) => i.value),
         categories: cats(), audience: AUD[radio('aud')], videoUrl: $('#videoUrl').value.trim() || null, videoLinks: moreVideos.get(),
         credit: $('#credit').value, creditKind: radio('kind') === 'video' ? null : radio('creditKind'),
         sourceUrl: sourceUrl || null, albumUrl: $('#albumUrl').value.trim() || null, albumLinks: moreAlbums.get(),
@@ -557,6 +569,7 @@
       sourceUrl = s.sourceUrl || null;
       $('#albumUrl').value = s.albumUrl || '';
       moreAlbums.set(s.albumLinks || []);
+      document.querySelectorAll('input[name=channel]').forEach((i) => { i.checked = s.channels.includes(i.value); });
       $('#titleEn').value = s.titleEn || '';
       $('#bodyEn').value = s.bodyEn || '';
       $('#enBox').open = !!(s.titleEn || s.bodyEn);

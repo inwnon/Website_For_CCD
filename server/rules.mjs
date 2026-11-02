@@ -76,6 +76,9 @@ export function albumUrl(v) {
   return u.href;
 }
 
+// ช่องทางเผยแพร่ ticked on pr-import.html (news.channels) and counted in the report
+export const CHANNELS = { facebook: 'Facebook', line: 'LINE', youtube: 'YouTube', tiktok: 'TikTok', website: 'เว็บไซต์มหาวิทยาลัย' };
+
 // ลิงก์ภาพเพิ่มเติม: more than one album (Facebook albums, Drive folders). The first is album_url, up to MAX_ALBUM_LINKS
 // more go in album_links. albumSet(list) → { url, links, error }: empty boxes dropped, a link given twice kept once.
 export const MAX_ALBUM_LINKS = 5;

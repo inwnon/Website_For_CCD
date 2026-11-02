@@ -9,6 +9,7 @@ import { one, query } from './db.mjs';
 import { HttpError } from './http.mjs';
 import { LOCAL_DAY } from './news.mjs';
 import { unitFamily } from './org.mjs';
+import { CHANNELS } from './rules.mjs';
 import { get } from './settings.mjs';
 
 export const KIND_TH = { news: 'ข่าวพร้อมภาพ', video: 'วิดีโอ', banner: 'แบนเนอร์ / อินโฟกราฟิก' };
@@ -37,7 +38,7 @@ export async function report(sc) {
   const inRange = `${LOCAL_DAY} between $1::date and $2::date and n.withdrawn_at is null and n.published_at <= now() and ($3::text[] is null or n.unit = any($3))`;
   const reads = `r.day between $1::date and $2::date and n.withdrawn_at is null and ($3::text[] is null or n.unit = any($3))`;
 
-  const [matrix, totals, top, sources, devices, byDay, queue, flow, oldest] = await Promise.all([
+  const [matrix, totals, top, sources, devices, byDay, queue, flow, oldest, channels] = await Promise.all([
     query(`select n.unit, n.kind, to_char(${LOCAL_DAY}, 'YYYY-MM') as month, count(*)::int n, count(*) filter (where n.imported)::int imported
       from news n where ${inRange} group by 1, 2, 3 order by 1, 2, 3`, params),
     query(`select count(*)::int stories, count(*) filter (where n.imported)::int imported, count(distinct n.unit)::int units
@@ -63,6 +64,10 @@ export async function report(sc) {
         (select count(*)::int - 1 from generate_series(s.sent_at::date, now()::date, '1 day') d where extract(isodow from d) < 6) work_days
       from submissions s where s.status in ('review', 'writing') and ($1::text[] is null or s.unit = any($1))
       order by s.sent_at`, [units]),
+    // A story counts once per channel; 'none' = nothing ticked
+    query(`select c key, count(*)::int n from news n
+      cross join lateral unnest(case when cardinality(n.channels) = 0 then array['none'] else n.channels end) c
+      where ${inRange} group by 1`, params),
   ]);
 
   const count = (rows) => Object.fromEntries(rows.map((r) => [r.key, r.n]));
@@ -73,6 +78,7 @@ export async function report(sc) {
     range: { from, to }, unit: sc.unit,
     totals: { ...totals.rows[0], reads: readTotal },
     matrix: matrix.rows,
+    channels: { counts: count(channels.rows), labels: { ...CHANNELS, none: 'ยังไม่ระบุ' } },
     reads: {
       top: top.rows.map((r) => ({ id: r.id, title: r.title, unit: r.unit, publishedAt: r.published_at, imported: r.imported, reads: r.reads })),
       sources: count(sources.rows), devices: count(devices.rows), byDay: byDay.rows,
@@ -124,6 +130,7 @@ router.get('/reports/export.xlsx', async (req, res) => {
     { k: 'หน่วยงาน', v: sc.unit || 'ทุกหน่วยงาน' },
     { k: 'ข่าวที่เผยแพร่', v: r.totals.stories },
     { k: '  ในจำนวนนี้ นำเข้าย้อนหลัง', v: r.totals.imported },
+    ...Object.entries(r.channels.labels).map(([key, label]) => ({ k: `  ช่องทางเผยแพร่: ${label}`, v: r.channels.counts[key] || 0 })),
     { k: 'ยอดอ่านรวม', v: r.totals.reads },
     { k: 'ค้างตรวจ (รอ PR ตรวจ)', v: a.review },
     { k: 'PR กำลังเขียนข่าว', v: a.writing },
