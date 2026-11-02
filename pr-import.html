@@ -195,9 +195,9 @@
 
         <div class="flex flex-wrap items-center justify-end gap-2 border-t border-line p-3 sm:px-5">
           <button id="resetBtn" type="button" class="press t-quick mr-auto h-11 rounded-2xl px-4 font-display text-[15px] font-medium text-ink2 hover:-translate-y-0.5 hover:text-ink">ล้างฟอร์ม</button>
-          <p id="importHint" class="basis-full text-right text-[13px] text-ink2 sm:basis-auto">"นำเข้าแล้วเพิ่มข่าวถัดไป" เก็บหน่วยงาน วันที่ เวลา และประเภทเนื้อหาไว้ให้ข่าวถัดไป</p>
-          <button type="submit" data-next="0" data-mode="import" data-label-add="เผยแพร่" class="press t-spring h-11 rounded-2xl border border-line bg-shell px-5 font-display text-[15px] font-semibold shadow-raised hover:-translate-y-0.5 disabled:opacity-60">นำเข้า</button>
-          <button type="submit" data-next="1" data-mode="import" data-label-add="เผยแพร่แล้วเพิ่มข่าวถัดไป" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">นำเข้าแล้วเพิ่มข่าวถัดไป</button>
+          <p id="importHint" class="basis-full text-right text-[13px] text-ink2 sm:basis-auto">หลังกดนำเข้า ฟอร์มจะเก็บหน่วยงาน วันที่ เวลา และประเภทเนื้อหาไว้ให้ข่าวถัดไป</p>
+          <span id="sendStatus" role="status" class="sr-only"></span>
+          <button id="sendBtn" type="submit" data-mode="import" data-label-add="เผยแพร่" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">นำเข้า</button>
           <a id="cancelEdit" href="pr-news.html" data-mode="edit" class="press t-quick mr-auto inline-flex h-11 items-center rounded-2xl px-4 font-display text-[15px] font-medium text-ink2 hover:-translate-y-0.5 hover:text-ink" hidden>กลับไปหน้าจัดการข่าว</a>
           <button type="submit" data-mode="edit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60" hidden>บันทึกการแก้ไข</button>
         </div>
@@ -405,8 +405,6 @@
     drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('is-over'); addFiles(e.dataTransfer.files); });
 
     // ---- Submit ----
-    let nextAfter = false;
-    $('#importForm').addEventListener('click', (e) => { const b = e.target.closest('[data-next]'); if (b) nextAfter = b.dataset.next === '1'; });
     $('#lead').addEventListener('input', () => { $('#leadCount').textContent = $('#lead').value.length; });
     let tools = null; // text-tools.js on the story text
     // ลิงก์วิดีโอเพิ่มเติม: the same platforms as ลิงก์วิดีโอ (rules.mjs PLATFORMS, videoLinks)
@@ -458,24 +456,40 @@
       if (first) (document.getElementById(first) || document.getElementById(first + 'Err')).scrollIntoView({ block: 'center', behavior: 'smooth' });
       return !first;
     }
+    // XHR for the upload progress: the button says how far the pictures have gone, then that the server is working on them
+    function upload(method, url, fd, btn, failed) {
+      const label = btn.textContent;
+      const last = fd.has('photo') ? 'กำลังประมวลผลภาพ' : 'กำลังบันทึก';
+      const status = $('#sendStatus');
+      const say = (text) => { btn.textContent = text; };
+      btn.disabled = true;
+      say(fd.has('photo') ? 'กำลังอัปโหลด 0%' : last);
+      status.textContent = fd.has('photo') ? 'กำลังอัปโหลดภาพ' : last;
+      return new Promise((resolve, reject) => {
+        const x = new XMLHttpRequest();
+        x.open(method, url);
+        x.upload.onprogress = (e) => { if (e.lengthComputable && e.loaded < e.total) say(`กำลังอัปโหลด ${Math.round(e.loaded / e.total * 100)}%`); };
+        x.upload.onload = () => { say(last); status.textContent = last; };
+        x.onload = () => {
+          let r = {};
+          try { r = JSON.parse(x.responseText); } catch (e) {}
+          if (x.status >= 200 && x.status < 300) return resolve(r);
+          Object.entries(r.details || {}).forEach(([k, m]) => setErr(k, m));
+          reject(new Error(r.error || failed));
+        };
+        x.onerror = () => reject(new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง ข้อมูลในฟอร์มยังอยู่ครบ'));
+        x.send(fd);
+      }).finally(() => { btn.disabled = false; say(label); status.textContent = ''; });
+    }
     async function send() {
       const fd = new FormData();
       fd.append('data', JSON.stringify(data()));
       for (const p of photos) if (p.on && p.kind === 'file') fd.append('photo', p.file, p.file.name);
-      const buttons = document.querySelectorAll('#importForm [type=submit]');
-      buttons.forEach((b) => { b.disabled = true; });
       try {
-        const res = await fetch('/api/pr/import', { method: 'POST', body: fd, credentials: 'same-origin' });
-        const r = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          Object.entries(r.details || {}).forEach(([k, m]) => setErr(k, m));
-          throw new Error(r.error || (ADD ? 'เผยแพร่ไม่สำเร็จ' : 'นำเข้าไม่สำเร็จ'));
-        }
+        const r = await upload('POST', '/api/pr/import', fd, $('#sendBtn'), ADD ? 'เผยแพร่ไม่สำเร็จ' : 'นำเข้าไม่สำเร็จ');
         done(r.news);
       } catch (err) {
         toast(err.message, true);
-      } finally {
-        buttons.forEach((b) => { b.disabled = false; });
       }
     }
     function done(n) {
@@ -483,16 +497,15 @@
       if (list.querySelector('.text-ink2')) list.innerHTML = '';
       list.insertAdjacentHTML('afterbegin', `<li class="rounded-2xl bg-surface2 p-3"><a href="${n.url}" target="_blank" rel="noopener" class="font-display font-semibold hover:underline">${esc(n.title)}</a><span class="block text-[13px] text-ink2">${esc(n.unit)}, ${day(n.publishedAt)}</span></li>`);
       toast(ADD ? (new Date(n.publishedAt) > new Date() ? 'บันทึกแล้ว ข่าวจะเผยแพร่ตามเวลาที่ตั้งไว้' : 'เผยแพร่แล้ว') : 'นำเข้าแล้ว ข่าวเผยแพร่ตามวันที่เดิม');
-      // "Import and add the next one" keeps the date, time, unit and kind
-      const keep = nextAfter ? { unit: $('#unit').value, date: $('#date').value, time: $('#time').value } : null;
-      reset();
-      if (keep) Object.entries(keep).forEach(([k, v]) => { $('#' + k).value = v; });
+      // The next story keeps the unit and kind; an import also keeps the date and time (เพิ่มข่าว starts again from now)
+      const keep = { unit: $('#unit').value, ...(ADD ? {} : { date: $('#date').value, time: $('#time').value }) };
+      reset(radio('kind'));
+      Object.entries(keep).forEach(([k, v]) => { $('#' + k).value = v; });
       $('#title').focus();
     }
-    function reset() {
-      const kind = radio('kind');
+    function reset(kind) {
       $('#importForm').reset();
-      if (nextAfter) document.querySelector(`input[name=kind][value=${kind}]`).checked = true;
+      if (kind) document.querySelector(`input[name=kind][value=${kind}]`).checked = true;
       photos.forEach((p) => p.kind === 'file' && p.url && URL.revokeObjectURL(p.url));
       photos = [];
       thumbQueue.length = 0;
@@ -576,25 +589,16 @@
       }
       fd.append('data', JSON.stringify({ ...data(), fresh: undefined, photos: order }));
       const btn = document.querySelector('#importForm [type=submit][data-mode=edit]');
-      btn.disabled = true;
       try {
-        const res = await fetch('/api/pr/news/' + encodeURIComponent(editing.id), { method: 'PUT', body: fd, credentials: 'same-origin' });
-        const r = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          Object.entries(r.details || {}).forEach(([k, m]) => setErr(k, m));
-          throw new Error(r.error || 'บันทึกไม่สำเร็จ');
-        }
+        const r = await upload('PUT', '/api/pr/news/' + encodeURIComponent(editing.id), fd, btn, 'บันทึกไม่สำเร็จ');
         // Back to where the editor was opened from, which says it was saved
         try { sessionStorage.setItem('deskSaved', JSON.stringify({ id: editing.id, msg: `บันทึกการแก้ไขแล้ว: ${r.news.title}` })); } catch (e) {}
         location.href = BACK;
-        return;
       } catch (err) {
         toast(err.message, true);
-      } finally {
-        btn.disabled = false;
       }
     }
-    $('#resetBtn').addEventListener('click', () => { nextAfter = false; reset(); });
+    $('#resetBtn').addEventListener('click', () => reset());
 
     // เพิ่มข่าว: today, now (to the minute)
     function setNow() {
@@ -611,7 +615,7 @@
       $('#doneTitle').textContent = 'เพิ่มในรอบนี้';
       $('#allImported').textContent = 'ไปหน้าจัดการข่าว';
       $('#allImported').href = 'pr-news.html';
-      $('#importHint').textContent = '"เผยแพร่แล้วเพิ่มข่าวถัดไป" เก็บหน่วยงาน วันที่ เวลา และประเภทเนื้อหาไว้ให้ข่าวถัดไป';
+      $('#importHint').textContent = 'หลังกดเผยแพร่ ฟอร์มจะเก็บหน่วยงานและประเภทเนื้อหาไว้ให้ข่าวถัดไป';
       document.querySelectorAll('[data-label-add]').forEach((b) => { b.textContent = b.dataset.labelAdd; });
       setNow();
     }

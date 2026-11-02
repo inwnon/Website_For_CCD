@@ -27,6 +27,8 @@ mkdirSync(TMP, { recursive: true });
 const MAX_FILES = Object.values(UPLOADS).reduce((n, u) => n + u.max, 0);
 const MAX_BYTES = Math.max(...Object.values(UPLOADS).map((u) => u.maxBytes));
 const WEB_SIZE = 1600;
+// Full-size copies: plain JPEG, not mozjpeg, which takes about ten times as long while the PR team waits to publish
+const FULL_JPEG = { quality: 90 };
 
 // multipart/form-data: field "data" (JSON) + files in fields photo / attach / art
 const parser = multer({
@@ -154,7 +156,7 @@ export async function publishImage(newsId, file) {
       .catch(() => { throw new HttpError(400, `แปลงภาพ ${file.name} ไม่สำเร็จ เลือกภาพอื่นแทน`); });
   }
   // Without a full-size copy the page offers the 1600px one instead
-  await sharp(abs(file.path)).rotate().jpeg({ quality: 90, mozjpeg: true }).toFile(abs(join(dir, `${file.id}.full.jpg`))).catch(() => {});
+  await sharp(abs(file.path)).rotate().jpeg(FULL_JPEG).toFile(abs(join(dir, `${file.id}.full.jpg`))).catch(() => {});
   return `${newsId}/${name}`;
 }
 
@@ -167,7 +169,7 @@ export async function publishFile(newsId, srcAbs, name) {
   try {
     const img = sharp(srcAbs).rotate();
     await img.clone().resize(WEB_SIZE, WEB_SIZE, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toFile(abs(join(dir, `${id}.webp`)));
-    await img.clone().jpeg({ quality: 90, mozjpeg: true }).toFile(abs(join(dir, `${id}.full.jpg`)));
+    await img.clone().jpeg(FULL_JPEG).toFile(abs(join(dir, `${id}.full.jpg`)));
   } catch {
     throw new HttpError(400, `${name} ไม่ใช่ไฟล์ภาพที่เปิดได้`);
   }
