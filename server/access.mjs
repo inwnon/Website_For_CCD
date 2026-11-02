@@ -8,7 +8,6 @@ const MATRIX = {
   calendar: { admin: 'all', pr: 'edit', student: 'own', secretary: 'create', executive: 'view' },
   requests: { admin: 'all', pr: 'approve', secretary: 'own', executive: 'view' },
   documents: { admin: 'all', pr: 'all' },
-  equipment: { admin: 'all', pr: 'all', student: 'request' },
   phonebook: { admin: 'all', pr: 'edit', student: 'view', secretary: 'view', executive: 'view', staff: 'view' },
   students: { admin: 'all', pr: 'manage', student: 'own', executive: 'summary' },
   dashboard: { admin: 'all', pr: 'view', executive: 'view' },

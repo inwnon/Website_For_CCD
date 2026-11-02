@@ -8,7 +8,7 @@ import { restore, snapshot } from './cleanup.mjs';
 import { anon, login } from './helpers.mjs';
 
 const at = (role, email = 'x@sru.ac.th') => ({ role, email });
-const MODULES = ['calendar', 'requests', 'documents', 'equipment', 'phonebook', 'students', 'dashboard'];
+const MODULES = ['calendar', 'requests', 'documents', 'phonebook', 'students', 'dashboard'];
 const TEST_EMAILS = ['secretary-test@sru.ac.th', 'executive-test@sru.ac.th'];
 const CONTACT_EMAIL = 'contact-secretary-test@sru.ac.th';
 // A route guard run by hand: the status it refuses with, or 200 when it lets the request through
@@ -31,7 +31,7 @@ describe('module rights (SPEC §2)', () => {
   test('each role gets its modules and no others', () => {
     assert.deepEqual(modulesOf(at('admin')), MODULES);
     assert.deepEqual(modulesOf(at('pr')), MODULES);
-    assert.deepEqual(modulesOf(at('student', 'x@student.sru.ac.th')), ['calendar', 'equipment', 'phonebook', 'students']);
+    assert.deepEqual(modulesOf(at('student', 'x@student.sru.ac.th')), ['calendar', 'phonebook', 'students']);
     assert.deepEqual(modulesOf(at('secretary')), ['calendar', 'requests', 'phonebook']);
     assert.deepEqual(modulesOf(at('executive')), ['calendar', 'requests', 'phonebook', 'students', 'dashboard']);
     assert.deepEqual(modulesOf(at('staff')), ['phonebook']);
@@ -40,7 +40,7 @@ describe('module rights (SPEC §2)', () => {
     assert.equal(rightOf(at('pr'), 'calendar'), 'edit');
     assert.equal(rightOf(at('secretary'), 'calendar'), 'create');
     assert.equal(rightOf(at('executive'), 'calendar'), 'view');
-    assert.equal(rightOf(at('student', 'x@student.sru.ac.th'), 'equipment'), 'request');
+    assert.equal(rightOf(at('student', 'x@student.sru.ac.th'), 'equipment'), null);
     assert.equal(rightOf(at('executive'), 'students'), 'summary');
   });
   test('coordinators and interns count as their domain role', () => {
