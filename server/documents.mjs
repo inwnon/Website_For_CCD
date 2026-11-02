@@ -6,6 +6,7 @@
 //                                                     round: รอบประเมิน 1 (Apr-Sep) or 2 (Oct-Mar). With a year, round 2 runs from October of that year to March of the next
 // - GET  /api/document-works/people?q=                who can be named on a งาน: PR and admin
 // - GET  /api/document-works/:id                      with its documents the user may see, without those taken out
+// - GET  /api/document-works/photo/:id.webp           the profile photo of someone who can be named (pages load nothing from outside)
 // - PUT  /api/document-works/:id                      { workTitle, peopleIds }
 // - GET  /api/documents/:id                           with its versions
 // - POST /api/documents                               multipart: file + data (JSON { title, category, unitName, docDate, tags, accessLevel,
@@ -25,6 +26,7 @@ import { requireModule } from './access.mjs';
 import { audit } from './audit.mjs';
 import { isAdmin } from './auth.mjs';
 import { UUID } from './calendar.mjs';
+import { googlePhoto, photoSource, version as photoVersion } from './contact.mjs';
 import { one, query, tx } from './db.mjs';
 import { UPLOAD_DIR, mimeOf, removeStored, removeTemp, sendMedia, storeDocument } from './files.mjs';
 import { HttpError, str } from './http.mjs';
@@ -119,13 +121,15 @@ function checkDocument(b, user, was = null) {
   const row = { title: str(b.title, 200, 'ชื่อเอกสาร'), category: b.category, unit: str(b.unitName, 200, 'ชื่อหน่วยงาน'), tags: [], level: b.accessLevel ?? was?.access_level ?? 'team' };
   if (!row.title) errors.title = 'กรอกชื่อเอกสาร';
   if (!Object.hasOwn(CATEGORIES, row.category)) errors.category = 'เลือกหมวดเอกสาร';
-  if (b.docDate != null && !validDate(b.docDate)) errors.docDate = 'เลือกวันที่ของเอกสาร';
+  if (b.docDate != null && !validDate(b.docDate)) errors.docDate = 'เลือกวันที่เอกสารลงนาม';
   row.date = b.docDate ?? null;
   if (row.category !== 'unit_order') row.unit = null;
   else if (!row.unit) errors.unitName = 'กรอกชื่อหน่วยงาน';
   if (!LEVELS.includes(row.level)) errors.accessLevel = 'เลือกว่าเป็นเอกสารของทีมหรือส่วนตัว';
-  if (Array.isArray(b.tags ?? [])) {
-    row.tags = [...new Set((b.tags ?? []).map((t) => str(t, 50, 'แท็ก')).filter(Boolean))];
+  // documents.html no longer asks for tags: left out, they stay as they were
+  if (b.tags === undefined) row.tags = was?.tags ?? [];
+  else if (Array.isArray(b.tags)) {
+    row.tags = [...new Set(b.tags.map((t) => str(t, 50, 'แท็ก')).filter(Boolean))];
     if (row.tags.length > MAX_TAGS) errors.tags = `ใส่แท็กได้ไม่เกิน ${MAX_TAGS} คำ`;
   } else errors.tags = 'แท็กไม่ถูกต้อง';
   if (Object.keys(errors).length) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', errors);
@@ -152,9 +156,12 @@ async function setPeople(c, workId, people) {
   await c.query('delete from document_work_people where work_id = $1', [workId]);
   for (const id of people) await c.query('insert into document_work_people (work_id, user_id) values ($1, $2)', [workId, id]);
 }
-const peopleOf = async (ids) => (await query(`select p.work_id, u.id, u.name, u.email from document_work_people p join users u on u.id = p.user_id
+const peopleOf = async (ids) => (await query(`select p.work_id, u.id, u.name, u.email, u.photo_path, u.avatar_url from document_work_people p join users u on u.id = p.user_id
   where p.work_id = any($1::uuid[]) order by u.name`, [ids])).rows;
-const personOut = (p) => ({ id: p.id, name: p.name || p.email });
+const personOut = (p) => {
+  const src = photoSource(p);
+  return { id: p.id, name: p.name || p.email, photo: src ? `/api/document-works/photo/${p.id}.webp?v=${photoVersion(src)}` : null };
+};
 
 // A งาน can be used through a document the user may see. Only someone else's private documents: refused.
 async function workFor(id, user) {
@@ -228,9 +235,22 @@ router.get('/document-works', allowed, async (req, res) => {
 
 router.get('/document-works/people', allowed, async (req, res) => {
   const q = str(req.query.q, 100, 'คำค้น');
-  const rows = (await query(`select id, name, email from users where role in ('pr', 'admin') and erased_at is null
+  const rows = (await query(`select id, name, email, photo_path, avatar_url from users where role in ('pr', 'admin') and erased_at is null
     and ($1::text is null or name ilike $1 or email ilike $1) order by name, email limit 20`, [q ? `%${q.replace(/[\\%_]/g, '\\$&')}%` : null])).rows;
   res.json({ items: rows.map(personOut) });
+});
+
+router.get('/document-works/photo/:file', allowed, async (req, res) => {
+  const id = req.params.file.match(/^(.+)\.webp$/)?.[1];
+  // Only someone who can be named on a งาน (not anyone's photo)
+  const u = id && UUID.test(id) ? await one(`select photo_path, avatar_url from users where id = $1 and role in ('pr', 'admin') and erased_at is null`, [id]) : null;
+  const src = u && photoSource(u);
+  if (!src) return res.status(404).end();
+  try {
+    sendMedia(res, u.photo_path || await googlePhoto(src), 'private, max-age=86400');
+  } catch {
+    res.status(404).end();
+  }
 });
 
 router.get('/document-works/:id', allowed, async (req, res) => {
