@@ -4,11 +4,14 @@
 // - POST   /api/phonebook                { unitName, parentId, phoneNumber, internalNumber, note }
 // - PUT    /api/phonebook/:id            the same fields
 // - DELETE /api/phonebook/:id            not while it has sub-units
-// - GET    /api/phonebook/template.xlsx  the form to fill in
-// - POST   /api/phonebook/import?save=1  multipart: file (.xlsx or .csv). Without save it only counts what would change,
-//   and names a number column it could not find (missing).
+// - GET    /api/phonebook/template.xlsx  the form to fill in (also template.csv)
+// - POST   /api/phonebook/import?save=1&replace=1  multipart: file (.xlsx or .csv). Without save it only counts what would change,
+//   says how each column of the header was read (columns) and names a number column it could not find (missing).
+//   Two layouts: a หน่วยงานหลัก column, or groups as the PR team writes them (a heading row above each group's table).
 //   One bad row stops the whole file. A unit already here is updated; an empty cell keeps its value.
 //   หน่วยงานหลัก names a unit with no parent, here or in the file; a unit imported before without it moves under it.
+//   Units keep the order of the file. replace (admin only) deletes every unit first, so the book is exactly the file.
+// A หน่วยงานหลัก may be only a heading with no number; a sub-unit has at least one.
 // Telephone numbers are stored as 077-913-333 (landline) or 081-234-5678 (mobile).
 // Unit numbers only: no personal data here.
 // Who changes entries: admin at any time; a PR or intern account only while an admin's loan runs (phonebook_editors):
@@ -31,21 +34,24 @@ import { limit, matchesName, sniff } from './security.mjs';
 import { termConditions } from './thai.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const NUMBER = /^\+?[0-9][0-9 ()-]{2,29}$/;
+// Digits with - ( ) and spaces; / or , between two numbers (6010/3400)
+const NUMBER = /^\+?[0-9][0-9 ()/,-]{2,29}$/;
 const MAX_ROWS = 1000;
 const MAX_PROBLEMS = 20;
 const MAX_FILE = 2 * 1024 * 1024;
 const COLUMNS = { parent: 'หน่วยงานหลัก', unitName: 'หน่วยงาน', phoneNumber: 'เบอร์โทรศัพท์', internalNumber: 'เบอร์ภายใน', note: 'หมายเหตุ' };
-// Other headers people write for the same column; spaces do not count
-const ALIASES = {
-  parent: ['หน่วยงานต้นสังกัด', 'สังกัด'],
-  unitName: ['ชื่อหน่วยงาน', 'หน่วยงานย่อย'],
-  phoneNumber: ['เบอร์โทร', 'โทรศัพท์', 'โทร', 'หมายเลขโทรศัพท์', 'เบอร์ติดต่อ'],
-  internalNumber: ['โทรภายใน', 'ภายใน', 'หมายเลขภายใน', 'เบอร์ต่อ'],
-  note: [],
-};
-const plain = (s) => s.replace(/\s+/g, '');
-const HEADERS = new Map(Object.entries(COLUMNS).flatMap(([k, label]) => [label, ...ALIASES[k]].map((h) => [plain(h), k])));
+// The field a header cell names, from the words people write (หมายเลขโทรศัพท์สายตรง, โทรภายใน, ...), or null for
+// other columns (ที่, ลำดับ). Spaces and invisible characters do not count.
+function fieldOf(text) {
+  const t = text.replace(/[\s\u200b-\u200d\ufeff]/g, '');
+  if (!t || t.length > 40) return null;
+  if (t.includes('หมายเหตุ')) return 'note';
+  if (/ภายใน|เบอร์ต่อ/.test(t)) return 'internalNumber';
+  if (/หลัก|สังกัด/.test(t)) return 'parent';
+  if (/โทร|สายตรง|ภายนอก|เบอร์/.test(t)) return 'phoneNumber';
+  if (/^(ชื่อ)?(หน่วยงาน|ส่วนงาน)(ย่อย)?$/.test(t)) return 'unitName';
+  return null;
+}
 
 const LENDABLE = ['pr', 'intern'];
 const LENDABLE_TH = 'ทีม PR และนักศึกษาฝึกงาน สสอ.';
@@ -87,7 +93,8 @@ function checkEntry(b) {
   if (row.parentId && !(typeof row.parentId === 'string' && UUID.test(row.parentId))) errors.parentId = 'เลือกหน่วยงานหลักจากรายการ';
   if (row.phone && !NUMBER.test(row.phone)) errors.phoneNumber = 'กรอกเบอร์โทรศัพท์เป็นตัวเลข เช่น 077-913-333';
   if (row.internal && !NUMBER.test(row.internal)) errors.internalNumber = 'กรอกเบอร์ภายในเป็นตัวเลข เช่น 1234';
-  if (!row.phone && !row.internal) errors.phoneNumber = 'กรอกเบอร์โทรศัพท์หรือเบอร์ภายในอย่างน้อย 1 เบอร์';
+  const sub = row.parentId || (typeof b.parent === 'string' && b.parent.trim());
+  if (sub && !row.phone && !row.internal) errors.phoneNumber = 'หน่วยงานย่อยต้องมีเบอร์โทรศัพท์หรือเบอร์ภายในอย่างน้อย 1 เบอร์';
   if (Object.keys(errors).length) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', errors);
   if (row.phone) row.phone = formatPhone(row.phone);
   return row;
@@ -146,23 +153,46 @@ async function openSheet(f) {
 // Excel drops the leading zero of a phone number typed as a number: 077913333 comes back as 77913333
 const restoreZero = (s) => (/^[1-9]\d{7,8}$/.test(s) ? `0${s}` : s);
 
-// Rows of the sheet as { line, parent, unitName, phoneNumber, internalNumber, note }, found by header text,
-// and the number columns the sheet does not have
+// A header row: field → column number, when it has a unit column and a number column
+function headerOf(texts) {
+  const cols = {};
+  for (const [n, t] of texts) { const k = fieldOf(t); if (k && !cols[k]) cols[k] = n; }
+  return cols.unitName && (cols.phoneNumber || cols.internalNumber) ? cols : null;
+}
+
+// Rows of the sheet as { line, parent, unitName, phoneNumber, internalNumber, note }, how the first header was read
+// (columns) and the number columns no header has (missing). A header may come again in every group. A heading row
+// starts a group: one text in a cell outside the unit column, or the same text across a merged row. The heading
+// right above the first header is a group too; anything higher up is a title of the sheet.
 function readRows(sheet) {
   if (!sheet) throw new HttpError(400, 'ไม่พบข้อมูลในไฟล์');
-  const cols = {};
-  sheet.getRow(1).eachCell((c, n) => { const k = HEADERS.get(plain(c.text)); if (k && !cols[k]) cols[k] = n; });
-  if (!cols.unitName || (!cols.phoneNumber && !cols.internalNumber)) throw new HttpError(400, `ไม่พบหัวตาราง ใช้หัวตาราง ${Object.values(COLUMNS).join(', ')}`);
-  const rows = [];
+  let cols = null, group = '', pending = null;
+  const rows = [], columns = [], found = new Set();
+  const heading = (line, text) => { group = text; rows.push({ line, parent: '', unitName: text, phoneNumber: '', internalNumber: '', note: '' }); };
   sheet.eachRow((r, line) => {
-    if (line === 1) return;
+    const texts = [];
+    r.eachCell((c, n) => { const t = c.text.trim(); if (t) texts.push([n, t]); });
+    if (!texts.length) return;
+    const head = headerOf(texts);
+    if (head) {
+      if (!cols) columns.push(...texts.map(([, t]) => ({ header: t, field: fieldOf(t) ? COLUMNS[fieldOf(t)] : null })));
+      if (pending) heading(pending.line, pending.text);
+      pending = null;
+      cols = head;
+      for (const k of Object.keys(head)) found.add(k);
+      return;
+    }
+    const one = new Set(texts.map(([, t]) => t)).size === 1 && !NUMBER.test(texts[0][1]);
+    if (!cols) { if (one) pending = { line, text: texts[0][1] }; return; }
+    if (one && (texts.length > 1 || texts[0][0] !== cols.unitName)) { heading(line, texts[0][1]); return; }
     const cell = (k) => (cols[k] ? r.getCell(cols[k]).text.trim() : '');
-    const row = { line, parent: cell('parent'), unitName: cell('unitName'), phoneNumber: restoreZero(cell('phoneNumber')), internalNumber: cell('internalNumber'), note: cell('note') };
+    const row = { line, parent: cols.parent ? cell('parent') : group, unitName: cell('unitName'), phoneNumber: restoreZero(cell('phoneNumber')), internalNumber: cell('internalNumber'), note: cell('note') };
     if (row.unitName || row.phoneNumber || row.internalNumber || row.note) rows.push(row);
   });
+  if (!cols) throw new HttpError(400, `ไม่พบหัวตาราง ต้องมีคอลัมน์ ${COLUMNS.unitName} และ ${COLUMNS.phoneNumber} หรือ ${COLUMNS.internalNumber}`);
   if (!rows.length) throw new HttpError(400, 'ไม่พบข้อมูลในไฟล์');
   if (rows.length > MAX_ROWS) throw new HttpError(400, `นำเข้าได้ครั้งละไม่เกิน ${MAX_ROWS} หน่วยงาน`);
-  return { rows, missing: ['phoneNumber', 'internalNumber'].filter((k) => !cols[k]).map((k) => COLUMNS[k]) };
+  return { rows, columns, missing: ['phoneNumber', 'internalNumber'].filter((k) => !found.has(k)).map((k) => COLUMNS[k]) };
 }
 
 const tooMany = (problems) => new HttpError(400, `ไฟล์มีข้อมูลที่ต้องแก้ ${problems.length} แถว ยังไม่ได้นำเข้า`, { problems: problems.slice(0, MAX_PROBLEMS) });
@@ -195,7 +225,7 @@ function planImport(rows, all) {
   const under = new Map(all.map((e) => [`${e.parent_id ?? ''}|${e.unit_name.toLowerCase()}`, e]));
   const parents = new Set(all.map((e) => e.parent_id).filter(Boolean));
   const newTop = new Set(rows.filter((r) => !r.parent && !top.has(r.unit.toLowerCase())).map((r) => r.unit.toLowerCase()));
-  const fresh = [], changed = [], problems = [];
+  const fresh = [], changed = [], problems = [], placed = [];
   for (const r of [...rows].sort((a, b) => Number(Boolean(a.parent)) - Number(Boolean(b.parent)))) {
     const parent = r.parent ? top.get(r.parent.toLowerCase()) : null;
     if (r.parent && !parent && !newTop.has(r.parent.toLowerCase())) {
@@ -204,20 +234,26 @@ function planImport(rows, all) {
     }
     const was = r.parent && !parent ? null : under.get(`${parent?.id ?? ''}|${r.unit.toLowerCase()}`);
     const loose = r.parent && !was && top.get(r.unit.toLowerCase());
-    if (loose && loose.id !== parent?.id && !parents.has(loose.id)) changed.push({ ...r, id: loose.id, move: true });
-    else if (!was) fresh.push(r);
-    else if ((r.phone && r.phone !== was.phone_number) || (r.internal && r.internal !== was.internal_number) || (r.note && r.note !== was.note)) changed.push({ ...r, id: was.id });
+    if (loose && loose.id !== parent?.id && !parents.has(loose.id)) {
+      changed.push({ ...r, id: loose.id, move: true });
+      placed.push({ id: loose.id, position: r.line });
+    } else if (!was) fresh.push(r);
+    else {
+      if ((r.phone && r.phone !== was.phone_number) || (r.internal && r.internal !== was.internal_number) || (r.note && r.note !== was.note)) changed.push({ ...r, id: was.id });
+      placed.push({ id: was.id, position: r.line });
+    }
   }
   if (problems.length) throw tooMany(problems);
-  return { fresh, changed, top };
+  return { fresh, changed, top, placed };
 }
 
 router.get('/phonebook', requireModule('phonebook'), async (req, res) => {
   const q = str(req.query.q, 100, 'คำค้น') ?? '';
   const rows = (await query(`select * from phonebook limit ${MAX_ROWS * 2}`)).rows;
-  rows.sort((a, b) => byName.compare(a.unit_name, b.unit_name));
+  // The order of the imported file; units added by hand after, by name
+  rows.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || byName.compare(a.unit_name, b.unit_name));
   const right = await editRight(req.user);
-  const out = { items: rows.map(entryOut), canEdit: right.can, editUntil: right.until };
+  const out = { items: rows.map(entryOut), canEdit: right.can, editUntil: right.until, canReplace: rightOf(req.user, 'phonebook') === 'all' };
   if (q) {
     const { where, params } = matching(q);
     out.matches = (await query(`select id from phonebook ${where}`, params)).rows.map((r) => r.id);
@@ -240,6 +276,15 @@ router.get('/phonebook/template.xlsx', writer, async (req, res) => {
   res.end();
 });
 
+// UTF-8 with a BOM, so Excel opens the Thai headers correctly
+router.get('/phonebook/template.csv', writer, (req, res) => {
+  res.set({
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': `attachment; filename="phonebook-template.csv"; filename*=UTF-8''${encodeURIComponent('แบบฟอร์มสมุดโทรศัพท์.csv')}`,
+  });
+  res.send(`\ufeff${Object.values(COLUMNS).join(',')}\r\n`);
+});
+
 router.post('/phonebook/import', writer, importLimit, (req, res, next) => upload(req, res, async (err) => {
   const f = req.file;
   try {
@@ -248,24 +293,31 @@ router.post('/phonebook/import', writer, importLimit, (req, res, next) => upload
     const sheet = readRows(await openSheet(f));
     const rows = checkRows(sheet.rows);
     const save = req.query.save === '1';
+    const replace = req.query.replace === '1';
+    if (replace && rightOf(req.user, 'phonebook') !== 'all') throw new HttpError(403, 'แทนที่ข้อมูลทั้งหมดได้เฉพาะผู้ดูแลระบบ');
     const result = await tx(async (c) => {
-      const { fresh, changed, top } = planImport(rows, (await c.query('select * from phonebook for update')).rows);
-      const counts = { added: fresh.length, updated: changed.length, unchanged: rows.length - fresh.length - changed.length };
+      const all = (await c.query('select * from phonebook for update')).rows;
+      const { fresh, changed, top, placed } = planImport(rows, replace ? [] : all);
+      const counts = { added: fresh.length, updated: changed.length, unchanged: rows.length - fresh.length - changed.length, removed: replace ? all.length : 0 };
       if (!save) return counts;
+      if (replace) await c.query('delete from phonebook');
       for (const r of fresh) {
         const parentId = r.parent ? top.get(r.parent.toLowerCase()).id : null;
-        const row = (await c.query('insert into phonebook (unit_name, parent_id, phone_number, internal_number, note) values ($1, $2, $3, $4, $5) returning *',
-          [r.unit, parentId, r.phone, r.internal, r.note])).rows[0];
+        const row = (await c.query('insert into phonebook (unit_name, parent_id, phone_number, internal_number, note, position) values ($1, $2, $3, $4, $5, $6) returning *',
+          [r.unit, parentId, r.phone, r.internal, r.note, r.line])).rows[0];
         if (!parentId) top.set(row.unit_name.toLowerCase(), row);
       }
       for (const r of changed) {
         await c.query(`update phonebook set parent_id = coalesce($5, parent_id), phone_number = coalesce($2, phone_number), internal_number = coalesce($3, internal_number),
           note = coalesce($4, note), updated_at = now() where id = $1`, [r.id, r.phone, r.internal, r.note, r.move ? top.get(r.parent.toLowerCase()).id : null]);
       }
-      await audit(c, req.user, 'phonebook.import', null, `นำเข้าสมุดโทรศัพท์ เพิ่ม ${counts.added} แก้ไข ${counts.updated} หน่วยงาน`, counts);
+      await c.query('update phonebook p set position = v.position from unnest($1::uuid[], $2::int[]) v(id, position) where p.id = v.id',
+        [placed.map((p) => p.id), placed.map((p) => p.position)]);
+      const summary = replace ? `แทนที่สมุดโทรศัพท์ทั้งหมดด้วยไฟล์ ลบ ${counts.removed} เพิ่ม ${counts.added} หน่วยงาน` : `นำเข้าสมุดโทรศัพท์ เพิ่ม ${counts.added} แก้ไข ${counts.updated} หน่วยงาน`;
+      await audit(c, req.user, 'phonebook.import', null, summary, { ...counts, replace });
       return counts;
     });
-    res.json({ ...result, saved: save, ...(sheet.missing.length ? { missing: sheet.missing } : {}) });
+    res.json({ ...result, saved: save, columns: sheet.columns, ...(sheet.missing.length ? { missing: sheet.missing } : {}) });
   } catch (e) {
     next(e);
   } finally {

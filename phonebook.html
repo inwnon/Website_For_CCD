@@ -19,7 +19,7 @@
   <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="desk.css">
-  <link rel="stylesheet" href="/assets/app.css?v=9bf7259741">
+  <link rel="stylesheet" href="/assets/app.css?v=c329506605">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการหมายเลข</a>
@@ -86,7 +86,7 @@
           <input id="fInternal" maxlength="30" inputmode="tel" autocomplete="off" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="numberHint internalErr">
           <span id="internalErr" data-err="internalNumber" class="text-[14px] font-medium text-brand" hidden></span>
         </label>
-        <p id="numberHint" class="text-[14px] text-ink2 sm:col-span-2">กรอกอย่างน้อย 1 เบอร์ เฉพาะเบอร์ของหน่วยงาน ไม่กรอกเบอร์ส่วนตัว</p>
+        <p id="numberHint" class="text-[14px] text-ink2 sm:col-span-2">หน่วยงานย่อยต้องมีอย่างน้อย 1 เบอร์ หน่วยงานหลักที่เป็นแค่ชื่อกลุ่มเว้นได้ เฉพาะเบอร์ของหน่วยงาน ไม่กรอกเบอร์ส่วนตัว</p>
       </div>
       <label class="grid gap-1.5">
         <span class="font-display text-[15px] font-semibold">หมายเหตุ</span>
@@ -103,13 +103,20 @@
   <dialog id="fileDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="fileTitle">
     <form id="fileForm" class="grid gap-4 p-5 sm:p-6" novalidate>
       <h2 id="fileTitle" class="font-display text-[21px] font-semibold">นำเข้าจากไฟล์</h2>
-      <p class="text-[15px] text-ink2">ใช้ไฟล์ Excel (.xlsx) หรือ CSV ขนาดไม่เกิน 2 MB หัวตารางคือ หน่วยงานหลัก, หน่วยงาน, เบอร์โทรศัพท์, เบอร์ภายใน, หมายเหตุ ถ้าหน่วยงานนั้นเป็นหน่วยงานหลักเอง ให้เว้นช่องหน่วยงานหลักว่างไว้</p>
-      <a href="/api/phonebook/template.xlsx" download class="press t-quick inline-flex min-h-11 items-center justify-self-start font-display text-[15px] font-semibold text-royal hover:underline">ดาวน์โหลดแบบฟอร์ม Excel</a>
+      <p class="text-[15px] text-ink2">ใช้ไฟล์ Excel (.xlsx) หรือ CSV ขนาดไม่เกิน 2 MB ได้ 2 แบบ: ตารางแบ่งกลุ่ม (แถวชื่อหน่วยงานหลักอยู่เหนือหัวตารางของแต่ละกลุ่ม) หรือตารางเดียวที่มีคอลัมน์หน่วยงานหลัก ระบบเรียงหน่วยงานตามลำดับในไฟล์</p>
+      <div class="flex flex-wrap gap-x-5">
+        <a href="/api/phonebook/template.xlsx" download class="press t-quick inline-flex min-h-11 items-center font-display text-[15px] font-semibold text-royal hover:underline">ดาวน์โหลดแบบฟอร์ม Excel</a>
+        <a href="/api/phonebook/template.csv" download class="press t-quick inline-flex min-h-11 items-center font-display text-[15px] font-semibold text-royal hover:underline">ดาวน์โหลดแบบฟอร์ม CSV</a>
+      </div>
       <label class="grid gap-1.5">
         <span class="font-display text-[15px] font-semibold">เลือกไฟล์</span>
         <input id="fFile" type="file" accept=".xlsx,.csv" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]">
       </label>
       <p class="text-[14px] text-ink2">ถ้าชื่อหน่วยงานตรงกับที่มีอยู่ ระบบจะอัปเดตเบอร์ให้ ช่องที่เว้นว่างในไฟล์จะคงค่าเดิมไว้</p>
+      <label id="replaceBox" class="flex items-start gap-3 rounded-2xl border border-line px-4 py-3" hidden>
+        <input id="fReplace" type="checkbox" class="mt-1 h-5 w-5 shrink-0 accent-[rgb(var(--red))]">
+        <span class="text-[15px]"><span class="font-display font-semibold">แทนที่ข้อมูลทั้งหมดด้วยไฟล์นี้</span><span class="block text-[14px] text-ink2">ลบหน่วยงานที่มีอยู่ทุกหน่วยงานก่อนนำเข้า ใช้เมื่อข้อมูลเดิมผิดทั้งชุด (เฉพาะผู้ดูแลระบบ)</span></span>
+      </label>
       <div id="fileResult" class="grid gap-1 rounded-2xl bg-surface2 px-4 py-3 text-[15px]" role="status" hidden></div>
       <div id="fileProblems" class="grid gap-1" role="alert" hidden>
         <p id="fileError" class="text-[14px] font-medium text-brand"></p>
@@ -353,7 +360,10 @@
     async function send(save) {
       const body = new FormData();
       body.append('file', $('#fFile').files[0]);
-      const res = await fetch(`/api/phonebook/import${save ? '?save=1' : ''}`, { method: 'POST', credentials: 'same-origin', body });
+      const q = new URLSearchParams();
+      if (save) q.set('save', '1');
+      if ($('#fReplace').checked) q.set('replace', '1');
+      const res = await fetch(`/api/phonebook/import${q.size ? `?${q}` : ''}`, { method: 'POST', credentials: 'same-origin', body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw Object.assign(new Error(data.error || 'นำเข้าไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), { details: data.details });
       return data;
@@ -368,17 +378,23 @@
         const r = await send(state.checked);
         if (r.saved) {
           $('#fileDlg').close();
-          toast(`นำเข้าแล้ว เพิ่ม ${r.added} อัปเดต ${r.updated} หน่วยงาน`);
+          toast(r.removed ? `แทนที่แล้ว ลบ ${r.removed} เพิ่ม ${r.added} หน่วยงาน` : `นำเข้าแล้ว เพิ่ม ${r.added} อัปเดต ${r.updated} หน่วยงาน`);
           await load();
           $('#list').focus();
           return;
         }
-        $('#fileResult').replaceChildren(
+        // How each column of the header was read, so a column the system skips shows before saving
+        $('#fileResult').replaceChildren(...[
+          el('p', { class: 'font-display font-semibold' }, 'อ่านหัวตารางเป็น'),
+          el('ul', { class: 'mb-2 grid gap-0.5 text-[14px]' }, r.columns.map((c) => el('li', { class: c.field ? '' : 'text-ink2' }, `${c.header} → ${c.field || 'ไม่ใช้'}`))),
+          r.removed ? el('p', { class: 'font-medium text-brand' }, `ลบหน่วยงานเดิม ${r.removed} หน่วยงาน`) : null,
           el('p', {}, `เพิ่มใหม่ ${r.added} หน่วยงาน`), el('p', {}, `อัปเดต ${r.updated} หน่วยงาน`), el('p', {}, `เหมือนเดิม ${r.unchanged} หน่วยงาน`),
-          r.missing ? el('p', { class: 'font-medium text-brand' }, `ไม่พบคอลัมน์ ${r.missing.join(', ')} ในไฟล์ ข้อมูลช่องนี้จะไม่ถูกนำเข้า ตรวจหัวตารางก่อนยืนยัน`) : null);
+          r.missing ? el('p', { class: 'font-medium text-brand' }, `ไม่พบคอลัมน์ ${r.missing.join(', ')} ในไฟล์ ข้อมูลช่องนี้จะไม่ถูกนำเข้า ตรวจหัวตารางก่อนยืนยัน`) : null,
+        ].filter(Boolean));
         $('#fileResult').hidden = false;
-        state.checked = r.added + r.updated > 0;
-        btn.textContent = state.checked ? 'ยืนยันนำเข้า' : 'ตรวจไฟล์';
+        // Saving also keeps the file's order, so it is offered even when no number changes
+        state.checked = true;
+        btn.textContent = 'ยืนยันนำเข้า';
       } catch (err) {
         resetFile();
         showProblems(err.message, err.details?.problems);
@@ -423,6 +439,7 @@
       }
       $('#add').hidden = !r.canEdit;
       $('#import').hidden = !r.canEdit;
+      $('#replaceBox').hidden = !r.canReplace;
       $('#app').hidden = false;
       paint('');
 
@@ -436,8 +453,9 @@
       $('#add').addEventListener('click', () => openForm(null));
       $('#entryForm').addEventListener('submit', save);
       $('#entryClose').addEventListener('click', () => $('#entryDlg').close());
-      $('#import').addEventListener('click', () => { $('#fFile').value = ''; resetFile(); $('#fileDlg').showModal(); });
+      $('#import').addEventListener('click', () => { $('#fFile').value = ''; $('#fReplace').checked = false; resetFile(); $('#fileDlg').showModal(); });
       $('#fFile').addEventListener('change', resetFile);
+      $('#fReplace').addEventListener('change', resetFile);
       $('#fileForm').addEventListener('submit', importFile);
       $('#fileClose').addEventListener('click', () => $('#fileDlg').close());
       $('#dropClose').addEventListener('click', () => $('#dropDlg').close());
