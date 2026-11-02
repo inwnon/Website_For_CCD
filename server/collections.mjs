@@ -3,12 +3,14 @@
 // - GET    /api/collections?limit=        the sets with at least one live story, newest change first (index.html, collection.html)
 //          kinds: { news, video, banner } counts the stories the reader may open; locked: the internal ones they may not
 // - GET    /api/collections/:id          the set and its live stories in order; stories the reader may not open are { locked } cards
+// /api/pr/collections is for the PR team and the interns:
 // - GET    /api/pr/collections            every set, newest change first, with its count and cover
+// - GET    /api/pr/collections/stories?q=&limit=&offset=  live stories to add (card fields only)
 // - POST   /api/pr/collections            { title, description, items: [news id] }
 // - PUT    /api/pr/collections/:id        the same fields
 // - DELETE /api/pr/collections/:id        the set only; its stories stay
 import { Router } from 'express';
-import { requirePr } from './auth.mjs';
+import { requireImport } from './auth.mjs';
 import { audit } from './audit.mjs';
 import { one, query, tx } from './db.mjs';
 import { HttpError, str } from './http.mjs';
@@ -17,7 +19,7 @@ import { LIVE, cardOut } from './news.mjs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const MAX_ITEMS = 100;
 export const router = Router();
-router.use('/pr/collections', requirePr);
+router.use('/pr/collections', requireImport);
 
 // Live stories of a set, in its order
 async function liveItems(ids) {
@@ -82,6 +84,32 @@ router.get('/pr/collections', async (req, res) => {
   const rows = (await query('select * from collections order by updated_at desc limit 500')).rows;
   res.json({ items: await Promise.all(rows.map(deskOut)) });
 });
+
+// Its own route: interns work on sets but have no /pr/news
+router.get('/pr/collections/stories', async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const q = str(req.query.q, 100, 'คำค้น');
+  const rows = (await query(`select n.id, n.title, n.unit, n.kind, n.published_at, n.cover_path, count(*) over ()::int total from news n
+    where ${LIVE} and ($1::text is null or n.title ilike $1 or n.unit ilike $1)
+    order by n.published_at desc limit $2 offset $3`, [q ? `%${q.replace(/[\\%_]/g, '\\$&')}%` : null, limit, offset])).rows;
+  res.json({
+    items: rows.map((n) => ({ id: n.id, title: n.title, unit: n.unit, kind: n.kind, publishedAt: n.published_at, cover: n.cover_path ? `/media/${n.cover_path}` : null })),
+    total: rows[0]?.total || 0,
+  });
+});
+
+// เพิ่มเข้าอัลบั้ม on the news form, in the story's own transaction: a set that is gone or full stops the story too
+export async function addToSets(db, user, ids, newsId, title) {
+  for (const id of new Set(Array.isArray(ids) ? ids : [])) {
+    const set = UUID.test(id) && (await db.query('select title, items from collections where id = $1 for update', [id])).rows[0];
+    if (!set) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', { collections: 'ไม่พบอัลบั้มข่าวที่เลือก' });
+    if (set.items.includes(newsId)) continue;
+    if (set.items.length >= MAX_ITEMS) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', { collections: `อัลบั้มข่าว "${set.title}" เต็มแล้ว (${MAX_ITEMS} ข่าว)` });
+    await db.query('update collections set items = array_append(items, $2), updated_at = now() where id = $1', [id, newsId]);
+    await audit(db, user, 'collection.update', id, `เพิ่ม "${title}" เข้าอัลบั้มข่าว "${set.title}"`);
+  }
+}
 
 router.post('/pr/collections', async (req, res) => {
   const s = checkSet(req.body);

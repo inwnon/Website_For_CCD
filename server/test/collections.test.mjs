@@ -1,6 +1,7 @@
 // อัลบั้มข่าว (collections.mjs): the PR team makes a set of stories; collection.html shows it, news.html shows the set a story is in.
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
+import { query } from '../db.mjs';
 import { restore, snapshot } from './cleanup.mjs';
 import { anon, form, img, login } from './helpers.mjs';
 
@@ -25,6 +26,61 @@ before(async () => {
   ];
 });
 after(async () => { await restore(snap); });
+
+describe('เพิ่มเข้าอัลบั้ม จากฟอร์มข่าว', () => {
+  const STORY = { kind: 'video', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'], audience: ['public'], body: 'ข้อความประกอบทดสอบ', date: day(4), videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', confirmDuplicate: true };
+  const create = async (title) => (await pr.call('POST', '/api/pr/collections', { title, items: [] })).body.collection.id;
+  const itemsOf = async (id) => (await query('select items from collections where id = $1', [id])).rows[0].items;
+
+  test('the story joins the set with the import, and an edit can add more', async () => {
+    const [a, b] = [await create('อัลบั้มจากฟอร์ม ก'), await create('อัลบั้มจากฟอร์ม ข')];
+    const r = await pr.call('POST', '/api/pr/import', form({ ...STORY, title: 'ทดสอบเข้าอัลบั้ม', collections: [a] }));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const id = r.body.news.id;
+    assert.deepEqual(await itemsOf(a), [id]);
+    const s = (await pr.call('GET', `/api/pr/news/${id}`)).body.story;
+    assert.deepEqual(s.collections, [a]);
+    const edit = await pr.call('PUT', `/api/pr/news/${id}`, form({ ...STORY, title: 'ทดสอบเข้าอัลบั้ม', photos: [], collections: [a, b] }));
+    assert.equal(edit.status, 200, JSON.stringify(edit.body));
+    assert.deepEqual(await itemsOf(a), [id], 'not twice');
+    assert.deepEqual(await itemsOf(b), [id]);
+    const log = (await query(`select count(*)::int n from audit_log where action = 'collection.update' and target = $1`, [b])).rows[0];
+    assert.equal(log.n, 1);
+  });
+
+  test('an unknown or full set stops the import and nothing is published', async () => {
+    const count = async () => (await query(`select count(*)::int n from news where title = 'ทดสอบอัลบั้มไม่ผ่าน'`)).rows[0].n;
+    const unknown = await pr.call('POST', '/api/pr/import', form({ ...STORY, title: 'ทดสอบอัลบั้มไม่ผ่าน', collections: ['00000000-0000-4000-8000-000000000000'] }));
+    assert.equal(unknown.status, 400);
+    assert.ok(unknown.body.details.collections);
+    const full = await create('อัลบั้มเต็ม');
+    await query(`update collections set items = array(select gen_random_uuid() from generate_series(1, 100)) where id = $1`, [full]);
+    const r = await pr.call('POST', '/api/pr/import', form({ ...STORY, title: 'ทดสอบอัลบั้มไม่ผ่าน', collections: [full] }));
+    assert.equal(r.status, 400);
+    assert.match(r.body.details.collections, /เต็ม/);
+    assert.equal(await count(), 0);
+  });
+
+  test('interns manage sets and find live stories, but stay out of the news desk', async () => {
+    const intern = await login('intern');
+    assert.equal((await intern.call('GET', '/api/pr/collections')).status, 200);
+    const made = await intern.call('POST', '/api/pr/collections', { title: 'อัลบั้มของนักศึกษาฝึกงาน', items: [ids[0]] });
+    assert.equal(made.status, 201, JSON.stringify(made.body));
+    const set = made.body.collection.id;
+    const found = await intern.call('GET', `/api/pr/collections/stories?q=${encodeURIComponent('ชุดทดสอบ วิดีโอ')}`);
+    assert.equal(found.status, 200);
+    assert.deepEqual(found.body.items.map((n) => n.id), [ids[1]]);
+    assert.ok(!('body' in found.body.items[0]));
+    assert.equal(found.body.total, 1);
+    assert.equal((await intern.call('PUT', `/api/pr/collections/${set}`, { title: 'อัลบั้มของนักศึกษาฝึกงาน', items: [ids[0], ids[1]] })).status, 200);
+    const i = await intern.call('POST', '/api/pr/import', form({ ...STORY, title: 'นักศึกษาฝึกงานเข้าอัลบั้ม', collections: [set] }));
+    assert.equal(i.status, 201, JSON.stringify(i.body));
+    assert.equal((await intern.call('DELETE', `/api/pr/collections/${set}`)).status, 200);
+    assert.equal((await intern.call('GET', '/api/pr/news')).status, 403);
+    assert.equal((await staff.call('GET', '/api/pr/collections/stories')).status, 403);
+    assert.equal((await staff.call('POST', '/api/pr/import', form({ ...STORY, title: 'บุคลากรทดลอง', collections: [set] }))).status, 403);
+  });
+});
 
 describe('อัลบั้มข่าว', () => {
   test('PR only; a name is needed; only known stories', async () => {

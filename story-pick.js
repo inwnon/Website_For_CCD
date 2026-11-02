@@ -1,11 +1,12 @@
 // Finding stories to add (pr-news.html ข่าวที่เกี่ยวข้อง, pr-collections.html อัลบั้มข่าว): the newest first, or those whose
 // title or unit has the words typed; 20 at a time with "แสดงเพิ่ม" for the next ones, so every story can be reached.
 // Needs desk.js (DESK) and auth.js (api).
-// StoryPick({ input, list, more, note, has(id), full(), self, onAdd(story) }) → { reset(), paint() }
+// StoryPick({ input, list, more, note, has(id), full(), self, source, onAdd(story) }) → { reset(), paint() }
 //   has(id): already picked · full(): no room for more · self: the story being edited (shown, cannot be added)
+//   source: the API path that lists the stories
 (function () {
   const PAGE = 20;
-  window.StoryPick = function ({ input, list, more, note, has, full = () => false, self = () => null, onAdd }) {
+  window.StoryPick = function ({ input, list, more, note, has, full = () => false, self = () => null, source = '/pr/news', onAdd }) {
     const { esc, day, num } = DESK;
     const KIND = { news: 'ข่าวพร้อมภาพ', video: 'วิดีโอ', banner: 'อินโฟกราฟิก' };
     let items = [], total = 0, seq = 0, timer = null;
@@ -31,7 +32,7 @@
       if (q) p.set('q', q);
       more.disabled = true;
       try {
-        const r = await api('/pr/news?' + p);
+        const r = await api(`${source}?${p}`);
         if (my !== seq) return;
         items = append ? [...items, ...r.items.filter((x) => !items.some((y) => y.id === x.id))] : r.items;
         total = r.total;

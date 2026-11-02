@@ -21,6 +21,7 @@ import { join } from 'node:path';
 import { Router } from 'express';
 import { requireImport, requirePr } from './auth.mjs';
 import { audit } from './audit.mjs';
+import { addToSets } from './collections.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, acceptUpload, publishFile, removeMedia, removeTemp } from './files.mjs';
 import { HttpError, str } from './http.mjs';
@@ -107,13 +108,14 @@ async function story(id) {
 router.get('/pr/news/:id', async (req, res) => {
   const n = await story(req.params.id);
   const s = n.submission_id ? await one('select ref, status from submissions where id = $1', [n.submission_id]) : null;
+  const sets = (await query('select id from collections where $1 = any(items)', [n.id])).rows;
   res.json({
     story: {
       id: n.id, kind: n.kind, title: n.title, titleEn: n.title_en, lead: n.lead, body: n.body, bodyEn: n.body_en, bodySize: n.body_size, bodyLeading: n.body_leading,
       unit: n.unit, categories: n.categories, audience: n.audience, videoUrl: n.video_url, videoLinks: n.video_links, credit: n.credit, place: n.place,
       sourceUrl: n.source_url, albumUrl: n.album_url, albumLinks: n.album_links || [], creditKind: n.credit_kind,
       imported: n.imported, publishedAt: n.published_at, withdrawn: !!n.withdrawn_at,
-      ref: s?.ref || null, submissionStatus: s?.status || null,
+      ref: s?.ref || null, submissionStatus: s?.status || null, collections: sets.map((x) => x.id),
       photos: [n.cover_path, ...n.gallery].filter(Boolean).map((p) => ({ path: p, url: `/media/${p}` })),
     },
   });
@@ -152,6 +154,7 @@ router.put('/pr/news/:id', limit('import', { max: 120, windowMs: 10 * 60 * 1000 
           row.video_url, row.credit, row.place, row.album_url, row.source_url ?? n.source_url, row.published_at, row.body_size, row.body_leading,
           row.date, d.titleEn !== undefined || d.bodyEn !== undefined, row.title_en, row.body_en, row.video_links, row.album_links, row.credit_kind]);
       await audit(c, req.user, 'news.update', n.id, `แก้ไขข่าว "${row.title}"`, { before: n.title !== row.title ? n.title : undefined });
+      await addToSets(c, req.user, d.collections, n.id, row.title);
     }, req.user);
     await Promise.all(had.filter((p) => !paths.includes(p)).map(removeMedia));
     res.json({ news: { id: n.id, title: row.title, url: `news.html?id=${n.id}` } });
@@ -347,6 +350,7 @@ router.post('/pr/import', limit('import', { max: 120, windowMs: 10 * 60 * 1000 }
           row.body_size, row.body_leading, row.video_links, !fresh, row.album_links, row.credit_kind])).rows[0];
       await audit(c, req.user, 'news.import', n.id, `${fresh ? 'เพิ่มข่าว' : 'นำเข้าข่าวย้อนหลัง'} "${n.title}" (${row.unit}, ${row.date})`,
         { sourceUrl: row.source_url, fresh: fresh || undefined });
+      await addToSets(c, req.user, d.collections, n.id, n.title);
       return n;
     }, req.user);
     res.status(201).json({ news: { id: created.id, title: created.title, unit: created.unit, publishedAt: created.published_at, url: `news.html?id=${created.id}` } });

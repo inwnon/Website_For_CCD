@@ -187,7 +187,7 @@
 
     // ---- Adding stories (story-pick.js: every live story, 20 at a time, or by search) ----
     const pick = StoryPick({
-      input: $('#pickQ'), list: $('#pickList'), more: $('#pickMore'), note: $('#pickNote'),
+      input: $('#pickQ'), list: $('#pickList'), more: $('#pickMore'), note: $('#pickNote'), source: '/pr/collections/stories',
       has: (id) => items.some((n) => n.id === id), full: () => items.length >= MAX,
       onAdd(r) {
         if (items.length >= MAX) return;
@@ -273,7 +273,7 @@
       } catch (err) { toast(err.message, true); } finally { btn.disabled = false; }
     });
 
-    DESK.start({ page: 'collections', allow: ['pr', 'admin'] }).then(async (user) => {
+    DESK.start({ page: 'collections', allow: ['pr', 'admin', 'intern'] }).then(async (user) => {
       if (!user) return;
       $('#app').hidden = false;
       await loadSets();
