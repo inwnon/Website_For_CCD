@@ -119,6 +119,7 @@ export async function erase(c, userId) {
   const drafts = (await c.query('delete from submission_drafts where sender_id = $1 returning id', [userId])).rows.map((r) => r.id);
   await c.query(`update messages set display_name = 'ผู้ส่ง (ลบข้อมูลแล้ว)' where author_id = $1 and side = 'sender'`, [userId]);
   await c.query('delete from sessions where user_id = $1', [userId]);
+  await c.query('delete from calendar_feeds where user_id = $1', [userId]);
   await c.query('delete from saved_news where user_id = $1', [userId]);
   await c.query('delete from event_assignments where user_id = $1', [userId]);
   // Service requests stay (the office's record of its work) without the person; one still waiting will not be answered

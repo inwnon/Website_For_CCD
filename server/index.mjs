@@ -19,6 +19,7 @@ import { router as draftsRouter } from './drafts.mjs';
 import { router as contactRouter } from './contact.mjs';
 import { router as collectionsRouter } from './collections.mjs';
 import { router as calendarRouter } from './calendar.mjs';
+import { feeds as icalFeeds, router as icalRouter } from './ical.mjs';
 import { router as documentsRouter } from './documents.mjs';
 import { router as phonebookRouter } from './phonebook.mjs';
 import { router as requestsRouter } from './requests.mjs';
@@ -63,6 +64,7 @@ api.use(authRouter);
 api.use(newsRouter);
 api.use(collectionsRouter);
 api.use(calendarRouter);
+api.use(icalRouter);
 api.use(documentsRouter);
 api.use(phonebookRouter);
 api.use(requestsRouter);
@@ -84,6 +86,8 @@ app.use('/api', api);
 const PUBLIC_FILE = /^\/[\w.-]+\.(html|js|css|png|jpe?g|webp|svg|ico|woff2)$/;
 // Images of published stories (copied out of submissions when PR publishes); internal stories need sign-in
 app.use('/media', loadUser, media);
+// iCal feeds for calendar apps: no cookie, the private ones are found by their token (ical.mjs)
+app.use('/ical', icalFeeds);
 app.use('/brand_assets', express.static(join(ROOT, 'brand_assets')));
 // Built CSS and the self-hosted fonts (npm run build:css). app.css is linked with ?v=<hash>, so both cache for good.
 app.use('/assets/src', (req, res) => res.status(404).end());
