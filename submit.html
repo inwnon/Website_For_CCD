@@ -763,7 +763,7 @@
             </header>
 
             <label id="photoDrop" class="drop grid cursor-pointer place-items-center gap-3 rounded-card border-2 border-dashed border-line px-6 py-10 text-center" aria-describedby="photoHint photoError">
-              <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic" multiple class="sr-only">
+              <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,.heic" multiple class="sr-only">
               <span class="drop-icon bg-grad grid h-14 w-14 place-items-center rounded-2xl text-white shadow-glow" aria-hidden="true">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
               </span>
@@ -847,7 +847,7 @@
               <h3 class="font-display text-[15px] font-semibold">ภาพหน้าปก <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></h3>
               <p id="coverInfo" class="mt-1 text-[13px] text-ink2">ใช้เป็นภาพบนการ์ดข่าวและหน้าข่าว ควรใส่เมื่อวิดีโออยู่บน Facebook, TikTok หรือ Google Drive ถ้าไม่ใส่และเป็นลิงก์ YouTube ระบบใช้ภาพหน้าปกจาก YouTube</p>
               <label id="coverDrop" class="drop mt-3 grid cursor-pointer place-items-center gap-2 rounded-card border-2 border-dashed border-line px-6 py-7 text-center" aria-describedby="coverHint coverInfo">
-                <input id="coverInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic" class="sr-only">
+                <input id="coverInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,.heic" class="sr-only">
                 <span class="drop-icon bg-grad grid h-12 w-12 place-items-center rounded-2xl text-white shadow-glow" aria-hidden="true">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 8"/></svg>
                 </span>
@@ -1265,7 +1265,7 @@
     $('#guestList').addEventListener('input', (e) => {
       const i = e.target.dataset.guest;
       if (i != null) guests[i][e.target.dataset.k] = e.target.value;
-      const other = e.target.dataset.prefixOther?.match(/^guest-(d+)$/);
+      const other = e.target.dataset.prefixOther?.match(/^guest-(\d+)$/);
       if (other) guests[other[1]].prefix = prefixOf(e.target.dataset.prefixOther);
     });
     $('#guestList').addEventListener('click', (e) => {
@@ -1468,16 +1468,19 @@
       };
     }
 
+    // By file name, as the server checks them (UPLOADS in rules.mjs): .jfif, .gif and the like are image/* but refused there
     const isDoc = (f) => /\.(pdf|docx?|pptx?|xlsx?)$/i.test(f.name);
+    const isPhoto = (f) => /\.(jpe?g|png|webp|heic)$/i.test(f.name);
+    const isArt = (f) => /\.(jpe?g|png|webp|pdf)$/i.test(f.name);
     const up = {
       photo: uploader({ key: 'photo', input: $('#photoInput'), drop: $('#photoDrop'), list: $('#photoList'), bar: $('#photoBar'), count: $('#photoCount'), clear: $('#photoClear'),
-        max: PHOTOS.max, maxMB: 15, grid: true, noun: 'ภาพ', hint: 'photoOrderHint', accepts: (f) => f.type.startsWith('image/'), onChange: () => onFiles('photo') }),
+        max: PHOTOS.max, maxMB: 15, grid: true, noun: 'ภาพ', hint: 'photoOrderHint', accepts: isPhoto, onChange: () => onFiles('photo') }),
       attach: uploader({ key: 'attach', input: $('#attachInput'), drop: $('#attachDrop'), list: $('#attachList'),
         max: 10, maxMB: 20, grid: false, noun: 'ไฟล์', accepts: isDoc, onChange: () => onFiles('attach') }),
       art: uploader({ key: 'art', input: $('#artInput'), drop: $('#artDrop'), list: $('#artList'), bar: $('#artBar'), count: $('#artCount'), clear: $('#artClear'),
-        max: 10, maxMB: 100, grid: true, noun: 'ไฟล์', hint: 'artOrderHint', accepts: (f) => f.type.startsWith('image/') || /\.pdf$/i.test(f.name), onChange: () => onFiles('art') }),
+        max: 10, maxMB: 100, grid: true, noun: 'ไฟล์', hint: 'artOrderHint', accepts: isArt, onChange: () => onFiles('art') }),
       cover: uploader({ key: 'cover', input: $('#coverInput'), drop: $('#coverDrop'), list: $('#coverList'),
-        max: 1, maxMB: 15, grid: true, noun: 'ภาพ', hint: 'coverOrderHint', accepts: (f) => f.type.startsWith('image/') || /\.heic$/i.test(f.name), onChange: () => onFiles('cover') }),
+        max: 1, maxMB: 15, grid: true, noun: 'ภาพ', hint: 'coverOrderHint', accepts: isPhoto, onChange: () => onFiles('cover') }),
     };
 
     // ---- Categories: lock the unchosen ones at the limit ----
@@ -1902,7 +1905,9 @@
       const fd = new FormData();
       fd.append('data', JSON.stringify(data));
       appendFiles(fd);
+      // Sending while the draft saves (or in the moment before ข่าวของฉัน opens) would upload the same new files twice
       $('#saveDraft').disabled = true;
+      $('#submitBtn').disabled = true;
       draftBtnLabel('กำลังบันทึก…');
       try {
         const r = await upload(draftId ? 'PUT' : 'POST', draftId ? `/api/drafts/${encodeURIComponent(draftId)}` : '/api/drafts', fd, (p) => draftBtnLabel(p < 1 ? `บันทึก ${Math.round(p * 100)}%` : 'กำลังบันทึก…'));
@@ -1914,6 +1919,7 @@
         setTimeout(() => { location.href = 'inbox.html#drafts'; }, 1500);
       } catch (err) {
         $('#saveDraft').disabled = false;
+        $('#submitBtn').disabled = false;
         draftBtnLabel('บันทึกร่าง');
         if (err.status === 401) { saveDraft(); setupSender(null); }
         toast(err.message, true);
@@ -1994,6 +2000,7 @@
     const SEND_ICON = $('#submitIcon').innerHTML;
     function busy(on, label) {
       $('#submitBtn').disabled = on;
+      $('#saveDraft').disabled = on;
       $('#submitLabel').textContent = label || submitText();
       $('#submitIcon').innerHTML = on ? '<svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg>' : SEND_ICON;
     }
