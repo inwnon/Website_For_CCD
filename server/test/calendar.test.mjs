@@ -1,11 +1,12 @@
 // ปฏิทินงาน (SPEC.md §2, §4, §7): who sees and changes what, the public feed, notifications and PDPA.
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
+import sharp from 'sharp';
 import { one, query, tx } from '../db.mjs';
 import { eventReminders } from '../notify.mjs';
 import { erase } from '../privacy.mjs';
 import { restore, snapshot } from './cleanup.mjs';
-import { anon, login } from './helpers.mjs';
+import { anon, gpsPhoto, img, login } from './helpers.mjs';
 
 const HOUR = 60 * 60 * 1000;
 const later = (hours) => new Date(Date.now() + hours * HOUR).toISOString();
@@ -213,9 +214,74 @@ describe('public calendar', () => {
     const r = await anon.call('GET', `/api/calendar/public?${RANGE}`);
     assert.equal(r.status, 200);
     const row = r.body.items.find((x) => x.title === open.title);
-    assert.deepEqual(Object.keys(row).sort(), ['endAt', 'location', 'startAt', 'title']);
+    assert.deepEqual(Object.keys(row).sort(), ['banners', 'endAt', 'location', 'startAt', 'title']);
     const all = JSON.stringify(r.body);
     for (const hidden of [closed.title, dropped.title, NOTE, 'ช่างภาพ', 'รายละเอียดทดสอบ']) assert.ok(!all.includes(hidden), hidden);
+  });
+});
+
+describe('แบนเนอร์กำหนดการ', () => {
+  const picture = (name, buf, type = 'image/jpeg') => { const fd = new FormData(); fd.append('file', new Blob([buf], { type }), name); return fd; };
+  const attach = (who, id, name, buf, type) => who.call('POST', `/api/calendar/events/${id}/banners`, picture(name, buf, type));
+
+  test('PR attaches up to 2 pictures; they come back as WebP without GPS, and the change is in audit_log', async () => {
+    const e = await create({ visibility: 'public', title: 'กิจกรรมแบนเนอร์ทดสอบ' });
+    const one1 = await attach(pr, e.id, 'a.jpg', await gpsPhoto());
+    assert.equal(one1.status, 201, JSON.stringify(one1.body));
+    assert.equal(one1.body.event.banners.length, 1);
+    const png = await sharp({ create: { width: 64, height: 64, channels: 3, background: '#3c3' } }).png().toBuffer();
+    assert.equal((await attach(pr, e.id, 'b.png', png, 'image/png')).status, 201);
+    const third = await attach(pr, e.id, 'c.jpg', await img('#33c', 64, 64));
+    assert.equal(third.status, 409);
+    assert.ok(third.body.details.banner);
+
+    const [first] = (await pr.call('GET', `/api/calendar/events/${e.id}`)).body.event.banners;
+    const pic = await anon.call('GET', first.url);
+    assert.equal(pic.status, 200);
+    assert.equal(pic.headers.get('content-type'), 'image/webp');
+    assert.equal((await sharp(pic.body).metadata()).exif, undefined);
+    const row = (await anon.call('GET', `/api/calendar/public?${RANGE}`)).body.items.find((x) => x.title === e.title);
+    assert.deepEqual(row.banners.map((b) => b.id).sort(), (await pr.call('GET', `/api/calendar/events/${e.id}`)).body.event.banners.map((b) => b.id).sort());
+    assert.equal((await one(`select count(*)::int n from audit_log where action = 'event.banner.add' and target = $1`, [e.id])).n, 2);
+
+    const gone = await pr.call('DELETE', `/api/calendar/events/${e.id}/banners/${first.id}`);
+    assert.equal(gone.status, 200);
+    assert.equal(gone.body.event.banners.length, 1);
+    assert.equal((await anon.call('GET', first.url)).status, 404);
+    assert.equal((await one(`select count(*)::int n from audit_log where action = 'event.banner.remove' and target = $1`, [e.id])).n, 1);
+  });
+
+  test('wrong, fake and oversized files are refused', async () => {
+    const e = await create();
+    assert.equal((await attach(pr, e.id, 'a.gif', await img('#c33', 8, 8), 'image/gif')).status, 400);
+    assert.equal((await attach(pr, e.id, 'a.pdf', Buffer.from('%PDF-1.4'), 'application/pdf')).status, 400);
+    assert.equal((await attach(pr, e.id, 'fake.jpg', Buffer.from('not a picture'))).status, 400);
+    assert.equal((await attach(pr, e.id, 'big.jpg', Buffer.alloc(10 * 1024 * 1024 + 1))).status, 413);
+    assert.equal((await pr.call('POST', `/api/calendar/events/${e.id}/banners`, new FormData())).status, 400);
+    assert.equal((await pr.call('GET', `/api/calendar/events/${e.id}`)).body.event.banners.length, 0);
+  });
+
+  test('only people who may change the event change its banners; internal banners stay inside', async () => {
+    const e = await create({ title: 'งานภายในแบนเนอร์ทดสอบ', assignees: [{ userId: ids.student, duty: 'ช่างภาพ' }] });
+    for (const who of [student, executive, staff, external, secretary]) assert.equal((await attach(who, e.id, 'a.jpg', await img('#c33', 64, 64))).status, 403);
+    assert.equal((await attach(anon, e.id, 'a.jpg', await img('#c33', 64, 64))).status, 401);
+    const { url, id } = (await attach(pr, e.id, 'a.jpg', await img('#c33', 64, 64))).body.event.banners[0];
+    for (const who of [pr, admin, secretary, executive, student]) assert.equal((await who.call('GET', url)).status, 200);
+    for (const who of [staff, external]) assert.equal((await who.call('GET', url)).status, 403);
+    assert.equal((await anon.call('GET', url)).status, 401);
+    assert.equal((await student.call('DELETE', `/api/calendar/events/${e.id}/banners/${id}`)).status, 403);
+    // A banner id under another event is not found
+    const other = await create();
+    assert.equal((await pr.call('DELETE', `/api/calendar/events/${other.id}/banners/${id}`)).status, 404);
+  });
+
+  test('a cancelled public event takes its banner off the public site and cannot get new ones', async () => {
+    const e = await create({ visibility: 'public', title: 'กิจกรรมแบนเนอร์ยกเลิกทดสอบ' });
+    const { url } = (await attach(pr, e.id, 'a.jpg', await img('#c33', 64, 64))).body.event.banners[0];
+    await pr.call('POST', `/api/calendar/events/${e.id}/cancel`, {});
+    assert.equal((await anon.call('GET', url)).status, 401);
+    assert.equal((await pr.call('GET', url)).status, 200);
+    assert.equal((await attach(pr, e.id, 'b.jpg', await img('#c33', 64, 64))).status, 409);
   });
 });
 
