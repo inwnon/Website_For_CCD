@@ -202,6 +202,12 @@ describe('staff asking for access', () => {
     assert.equal((await external.call('GET', '/api/request-access')).body.canAsk, false);
   });
 
+  test('the menus offer the page to staff who may ask (askable), and to nobody else', async () => {
+    assert.deepEqual((await staff.call('GET', '/api/me')).body.askable, ['requests']);
+    for (const who of [student, external, secretary, executive, pr, admin]) assert.deepEqual((await who.call('GET', '/api/me')).body.askable, []);
+    assert.equal((await anon.call('GET', '/api/me')).body.askable, undefined);
+  });
+
   test('ask → PR is told → reject with a reason → ask again → PR approves → staff submits only their own → admin revokes', async () => {
     assert.equal((await staff.call('POST', '/api/requests', body())).status, 403);
     const asked = await staff.call('POST', '/api/request-access', { reason: 'ขอช่างภาพงานคณะ' });
@@ -225,6 +231,7 @@ describe('staff asking for access', () => {
     assert.equal((await notes(staff, String(id)))[0].kind, 'access.approved');
     assert.ok((await staff.call('GET', '/api/me')).body.modules.includes('requests'));
     assert.ok(!(await staff.call('GET', '/api/me')).body.modules.includes('calendar'));
+    assert.deepEqual((await staff.call('GET', '/api/me')).body.askable, []);
 
     const made = await staff.call('POST', '/api/requests', body());
     assert.equal(made.status, 201);
