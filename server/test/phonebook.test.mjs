@@ -279,6 +279,15 @@ describe('telephone numbers', () => {
       assert.equal((await create({ phoneNumber: typed })).phoneNumber, saved, typed);
     }
   });
+  test('two numbers in one cell stay as typed, by hand and from a file', async () => {
+    for (const typed of ['077-913-333/4', '077913333, 077913334']) {
+      assert.equal((await create({ phoneNumber: typed })).phoneNumber, typed, typed);
+    }
+    const name = unit();
+    const r = await send(pr, await sheet([[name, '077-913-333/4']], ['หน่วยงาน', 'เบอร์โทรศัพท์']), 'phones.xlsx', true);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal((await stored(name)).phone_number, '077-913-333/4');
+  });
 });
 
 describe('importing units under a หน่วยงานหลัก', () => {

@@ -164,14 +164,15 @@
       return n;
     }
 
-    // A number inside the university's exchange cannot be dialled from a mobile, so only the telephone number is a link
+    // A number inside the university's exchange cannot be dialled from a mobile, so only the telephone number is a link.
+    // Of two numbers (077-913-333/4) the link dials the first.
     function number(label, value, dial) {
       const text = 'font-display text-[16px] font-semibold text-royal';
       if (!value) return null;
       return el('div', { class: 'grid leading-[1.6]' },
         el('span', { class: 'text-[13px] text-ink2' }, label),
         dial
-          ? el('a', { href: `tel:${value.replace(/[^+0-9]/g, '')}`, class: `${text} press t-quick inline-flex min-h-7 items-center justify-self-start hover:underline` }, value)
+          ? el('a', { href: `tel:${value.split(/[/,]/)[0].replace(/[^+0-9]/g, '')}`, class: `${text} press t-quick inline-flex min-h-7 items-center justify-self-start hover:underline` }, value)
           : el('span', { class: text }, value));
     }
 
