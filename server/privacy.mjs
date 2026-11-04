@@ -27,7 +27,7 @@ router.get('/me/data', requireUser, limit('export', { max: 10, windowMs: HOUR })
   const t = await loadThread(subs.map((s) => s.id));
   const data = {
     exportedAt: new Date().toISOString(),
-    about: 'ข้อมูลส่วนบุคคลของคุณในระบบคลังข่าว มรส. (มหาวิทยาลัยราชภัฏสุราษฎร์ธานี) ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562',
+    about: 'ข้อมูลส่วนบุคคลของคุณในระบบ SRU News Hub (มหาวิทยาลัยราชภัฏสุราษฎร์ธานี) ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562',
     account: { ...publicUser(u), createdAt: u.created_at, lastLoginAt: u.last_login_at, emailSettings: u.notify },
     sessions: (await query('select created_at, expires_at, user_agent from sessions where user_id = $1 order by created_at desc', [u.id])).rows,
     submissions: subs.map((s) => {
@@ -151,7 +151,7 @@ router.post('/admin/requests/:id/erase', requireAdmin, async (req, res) => {
     // Tell the person first, while their address is still known
     await enqueue(c, {
       kind: 'privacy.done', ref: String(r.id), to: r.email, subject: 'ลบข้อมูลส่วนบุคคลของคุณแล้ว', title: 'ลบข้อมูลส่วนบุคคลของคุณแล้ว',
-      lines: ['บัญชีของคุณในระบบคลังข่าว มรส. ถูกลบข้อมูลส่วนบุคคลตามคำขอแล้ว งานที่ยังไม่ได้เผยแพร่และไฟล์ถูกลบ ข่าวที่เผยแพร่แล้วยังอยู่โดยไม่แสดงชื่อคุณ',
+      lines: ['บัญชีของคุณในระบบ SRU News Hub ถูกลบข้อมูลส่วนบุคคลตามคำขอแล้ว งานที่ยังไม่ได้เผยแพร่และไฟล์ถูกลบ ข่าวที่เผยแพร่แล้วยังอยู่โดยไม่แสดงชื่อคุณ',
         'หากเข้าสู่ระบบด้วยบัญชีเดิมอีกครั้ง ระบบจะสร้างบัญชีใหม่'],
     });
     const out = await erase(c, r.user_id);

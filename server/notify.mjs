@@ -16,7 +16,7 @@ import { get } from './settings.mjs';
 import { limit } from './security.mjs';
 
 const ORIGIN = (process.env.APP_ORIGIN || 'http://localhost:3000').replace(/\/$/, '');
-const FROM = process.env.MAIL_FROM || 'คลังข่าว มรส. <no-reply@sru.ac.th>';
+const FROM = process.env.MAIL_FROM || 'SRU News Hub <no-reply@sru.ac.th>';
 export const SMTP = !!process.env.SMTP_HOST;
 const transport = SMTP ? nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -41,10 +41,10 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 /** @param {{ title?: string, lines?: string[], quote?: string, button?: { label: string, href: string } }} content */
 function render({ title, lines = [], quote, button }) {
   const text = [title, '', ...lines, ...(quote ? ['', `“${quote}”`] : []), ...(button ? ['', `${button.label}: ${button.href}`] : []),
-    '', '—', 'คลังข่าว มรส. งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี', `ตั้งค่าการแจ้งเตือน: ${link('inbox.html#notify')}`].join('\n');
+    '', '—', 'SRU News Hub งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี', `ตั้งค่าการแจ้งเตือน: ${link('inbox.html#notify')}`].join('\n');
   const html = `<!doctype html><html lang="th"><body style="margin:0;background:#F5F4FF;font-family:'Noto Sans Thai',Tahoma,sans-serif;color:#1B2560">
   <div style="max-width:560px;margin:0 auto;padding:24px 16px">
-    <p style="margin:0 0 12px;font-size:15px;font-weight:700"><span style="color:#DE142A">ข่าว</span> <span style="color:#2642C8">มรส.</span></p>
+    <p style="margin:0 0 12px;font-size:15px;font-weight:700"><span style="color:#DE142A">SRU</span> <span style="color:#2642C8">News Hub</span></p>
     <div style="background:#fff;border-radius:20px;padding:24px;box-shadow:0 1px 2px rgba(27,37,96,.06),0 8px 24px rgba(27,37,96,.08)">
       <h1 style="margin:0 0 12px;font-size:20px;line-height:1.4;color:#2642C8">${esc(title)}</h1>
       ${lines.map((l) => `<p style="margin:0 0 10px;font-size:15px;line-height:1.7">${esc(l)}</p>`).join('')}
@@ -60,7 +60,7 @@ export async function enqueue(db, { kind, ref = null, to, subject, ...content })
   if (!to) return;
   const { text, html } = render(content);
   await (db || pool).query('insert into email_outbox (kind, ref, to_email, subject, body, html) values ($1, $2, $3, $4, $5, $6)',
-    [kind, ref, to.toLowerCase(), `[คลังข่าว มรส.] ${subject}`, text, html]);
+    [kind, ref, to.toLowerCase(), `[SRU News Hub] ${subject}`, text, html]);
 }
 
 // The PR team (pr / admin), with what each wants
@@ -259,7 +259,7 @@ router.get('/admin/mail/:id', requireAdmin, async (req, res) => {
 });
 router.post('/admin/mail/test', requireAdmin, mailTest, async (req, res) => {
   await enqueue(null, {
-    kind: 'test', to: req.user.email, subject: 'อีเมลทดสอบ', title: 'อีเมลทดสอบจากระบบคลังข่าว มรส.',
+    kind: 'test', to: req.user.email, subject: 'อีเมลทดสอบ', title: 'อีเมลทดสอบจากระบบ SRU News Hub',
     lines: [SMTP ? 'ถ้าคุณได้รับอีเมลนี้ แปลว่าการตั้งค่า SMTP ใช้งานได้' : 'ยังไม่ได้ตั้งค่า SMTP อีเมลนี้จึงบันทึกไว้ในระบบเท่านั้น'],
     button: { label: 'เปิดหน้าตั้งค่าระบบ', href: link('chanon.html#mail') },
   });

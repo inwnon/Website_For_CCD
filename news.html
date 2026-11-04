@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ข่าว | คลังข่าว มรส.</title>
+  <title>ข่าว | SRU News Hub</title>
   <meta name="description" content="ข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี">
   <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
@@ -208,7 +208,7 @@
       <a href="index.html" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
         <span class="leading-tight">
-          <span class="block font-display text-[21px] font-semibold"><span class="text-brand">คลังข่าว</span> <span class="text-royal">มรส.</span></span>
+          <span class="block font-display text-[21px] font-semibold"><span class="text-brand">SRU</span> <span class="text-royal">News Hub</span></span>
           <span class="hidden text-[12px] text-ink2 sm:block">ข่าวสารและคลังข่าว มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
         </span>
       <span class="sr-only"> หน้าแรก</span></a>
@@ -445,7 +445,7 @@
     <div class="flex flex-col gap-4 border-t border-line pt-8 text-[14px] text-ink2 md:flex-row md:items-center">
       <a href="index.html" class="press t-quick flex items-center gap-3 rounded-xl hover:opacity-80">
         <span class="logo-crop h-9 w-9"><img src="/assets/img/logo-192.webp" alt=""></span>
-        <span class="font-display font-semibold text-purple">คลังข่าว มรส.</span>
+        <span class="font-display font-semibold text-purple">SRU News Hub</span>
       </a>
       <span>คลังข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
       <span class="flex gap-6 md:ml-auto">
@@ -605,7 +605,7 @@
       if (btn) { $('#stateBtn').textContent = btn.label; $('#stateBtn').href = btn.href; }
       $('#state').hidden = false;
       article.hidden = true;
-      document.title = `${title} | คลังข่าว มรส.`;
+      document.title = `${title} | SRU News Hub`;
     }
     $('#stateIcon').innerHTML = ICON.wait;
 
@@ -613,7 +613,7 @@
     function render(s, related, linked = [], sets = [], fromAlbum = 0) {
       story = s;
       photos = [s.cover, ...s.gallery].filter(Boolean);
-      document.title = `${s.title} | คลังข่าว มรส.`;
+      document.title = `${s.title} | SRU News Hub`;
       document.querySelector('meta[name=description]').content = s.lead || `ข่าวจาก${s.unit} มหาวิทยาลัยราชภัฏสุราษฎร์ธานี`;
 
       // Lead photo (video stories may have none: the summary then takes the full width)
