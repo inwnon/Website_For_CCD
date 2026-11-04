@@ -180,7 +180,7 @@
   function paintBanners() {
     const tile = (src, alt, onRemove) => el('li', { class: 'grid gap-1.5 rounded-2xl bg-surface2 p-2' },
       el('img', { src, alt, class: 'aspect-[4/3] w-full rounded-xl object-contain' }),
-      el('button', { type: 'button', class: 'press t-quick h-11 rounded-xl text-[14px] font-medium text-brand', 'aria-label': `เอา${alt} ออก`, onclick: onRemove }, 'เอาออก'));
+      el('button', { type: 'button', class: 'press t-quick h-11 rounded-xl text-[14px] font-medium text-brand', 'aria-label': `เอาออก ${alt}`, onclick: onRemove }, 'เอาออก'));
     let n = 0;
     $('#bnList').replaceChildren(
       ...bn.keep.map((b) => tile(b.url, `แบนเนอร์ภาพที่ ${++n}`, () => { bn.keep = bn.keep.filter((x) => x !== b); bn.drop.push(b.id); paintBanners(); $('#bnPick').focus(); })),
