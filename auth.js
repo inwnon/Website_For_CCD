@@ -225,7 +225,8 @@
         <div class="acct-grp">${themeRow}${item('privacy.html', 'shield', 'นโยบายความเป็นส่วนตัว')}</div>`;
     }
     const aff = affiliation(u);
-    const modules = window.MODULE_PAGES.filter((m) => !m.soon && me.modules?.includes(m.id));
+    // askable: pages the user may ask for (they open on the request form)
+    const modules = window.MODULE_PAGES.filter((m) => !m.soon && (me.modules?.includes(m.id) || me.askable?.includes(m.id)));
     const moduleTools = modules.length ? `<div class="acct-grp"><p class="acct-label">งานสื่อสารองค์กร</p>${modules.map((m) => `<a class="acct-item" href="${m.href}">${svg(m.icon)}<span>${m.label}</span></a>`).join('')}</div>` : '';
     const prTools = u.role === 'pr' || u.role === 'admin'
       ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr.html', 'desk', 'งานที่ส่งเข้ามา')}${item('pr-news.html', 'news', 'จัดการข่าว')}${item('pr-collections.html', 'book', 'อัลบั้มข่าว')}${item('report.html', 'chart', 'รายงาน')}${u.role === 'admin' ? item('chanon.html', 'gear', 'ตั้งค่าระบบ') : ''}</div>`

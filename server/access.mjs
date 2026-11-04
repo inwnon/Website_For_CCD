@@ -32,6 +32,8 @@ export const rightOf = (u, module) => {
 };
 // Only plain university staff may ask for that
 export const mayAskRequests = (u) => !!u && moduleRole(u) === 'staff';
+// Modules this user may ask for (GET /api/me): the menus lead them to the page's request form
+export const askableOf = (u) => (mayAskRequests(u) && !rightOf(u, 'requests') ? ['requests'] : []);
 // The modules this user may open (GET /api/me, for the menus)
 export const modulesOf = (u) => Object.keys(MATRIX).filter((m) => rightOf(u, m));
 

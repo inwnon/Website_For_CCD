@@ -20,7 +20,7 @@ import { HttpError, parseCookies, str } from './http.mjs';
 import { FACULTIES, ORG, STAFF_UNITS, majorsOf, tracksOf } from './org.mjs';
 import { audit } from './audit.mjs';
 import { DEV_ACCOUNTS, limit, matchesName } from './security.mjs';
-import { modulesOf } from './access.mjs';
+import { askableOf, modulesOf } from './access.mjs';
 import { baseRole, domainRole } from './rules.mjs';
 
 export { baseRole, domainRole };
@@ -207,10 +207,10 @@ router.post('/auth/logout', async (req, res) => {
 
 // devLogin tells pages they may offer the development sign-in buttons
 // unread: items in the user's inbox with something new (header badge)
-// modules: the back-office modules for the menus (access.mjs; the routes check again)
+// modules: the back-office modules for the menus (access.mjs; the routes check again); askable: modules the user may ask for
 router.get('/me', async (req, res) => {
   const unread = req.user ? (await one("select count(*)::int n from submissions where sender_id = $1 and sender_unread and status <> 'rejected'", [req.user.id])).n : 0;
-  res.json({ user: publicUser(req.user), unread, ...(req.user ? { modules: modulesOf(req.user) } : {}), ...(isPr(req.user) ? { shortcuts: shortcutsOf(req.user) } : {}), ...(DEV_LOGIN ? { devLogin: true } : {}) });
+  res.json({ user: publicUser(req.user), unread, ...(req.user ? { modules: modulesOf(req.user), askable: askableOf(req.user) } : {}), ...(isPr(req.user) ? { shortcuts: shortcutsOf(req.user) } : {}), ...(DEV_LOGIN ? { devLogin: true } : {}) });
 });
 
 // ---- ทางลัดของฉัน (index.html): the desk pages a PR team member keeps on the home page, in their order ----

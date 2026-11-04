@@ -117,7 +117,8 @@
     const me = await window.ME;
     const role = me.user?.role;
     const ok = !!me.user && allow.includes(role);
-    document.getElementById('side').innerHTML = side(page, ok || role === 'coordinator' || role === 'intern' ? role : null, me.modules);
+    // Pages the user may ask for (askable) show too: they open on the request form
+    document.getElementById('side').innerHTML = side(page, ok || role === 'coordinator' || role === 'intern' ? role : null, [...(me.modules || []), ...(me.askable || [])]);
     const item = MENU.find((m) => m.id === page);
     const mbar = document.getElementById('mbar');
     if (mbar) mbar.innerHTML = `
