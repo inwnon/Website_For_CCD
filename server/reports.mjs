@@ -52,16 +52,18 @@ export async function report(sc) {
     // Queue now (not limited to the range): waiting for PR, PR writing, waiting for the sender's documents
     query(`select s.status, count(*)::int n from submissions s
       where s.status in ('review', 'writing', 'revise') and ($1::text[] is null or s.unit = any($1)) group by 1`, [units]),
-    // Decisions within the range
-    query(`select count(*) filter (where e.status = 'published')::int published, count(*) filter (where e.status = 'rejected')::int rejected,
-        round(avg(extract(epoch from e.at - s.sent_at) / 3600) filter (where e.status = 'published'))::int avg_hours,
-        round(percentile_cont(0.5) within group (order by extract(epoch from e.at - s.sent_at) / 3600) filter (where e.status = 'published'))::int median_hours
-      from submission_events e join submissions s on s.id = e.submission_id
-      where e.status in ('published', 'rejected') and (e.at at time zone 'Asia/Bangkok')::date between $1::date and $2::date
-        and ($3::text[] is null or s.unit = any($3))`, params),
+    // Decisions within the range: each work once, by its first publish (or delete), so publishing again after ยกเลิกการเผยแพร่ adds nothing
+    query(`select count(*) filter (where f.status = 'published')::int published, count(*) filter (where f.status = 'rejected')::int rejected,
+        round(avg(f.hours) filter (where f.status = 'published'))::int avg_hours,
+        round(percentile_cont(0.5) within group (order by f.hours) filter (where f.status = 'published'))::int median_hours
+      from (select distinct on (e.submission_id, e.status) e.status, e.at, extract(epoch from e.at - s.sent_at) / 3600 hours
+        from submission_events e join submissions s on s.id = e.submission_id
+        where e.status in ('published', 'rejected') and ($3::text[] is null or s.unit = any($3))
+        order by e.submission_id, e.status, e.at) f
+      where (f.at at time zone 'Asia/Bangkok')::date between $1::date and $2::date`, params),
     // Oldest item waiting on PR, and how many are past the promised review time (working days)
     query(`select s.ref, s.title, s.unit, s.status, s.sent_at, round(extract(epoch from now() - s.sent_at) / 3600)::int age_hours,
-        (select count(*)::int - 1 from generate_series(s.sent_at::date, now()::date, '1 day') d where extract(isodow from d) < 6) work_days
+        (select greatest(count(*)::int - 1, 0) from generate_series(s.sent_at::date, now()::date, '1 day') d where extract(isodow from d) < 6) work_days
       from submissions s where s.status in ('review', 'writing') and ($1::text[] is null or s.unit = any($1))
       order by s.sent_at`, [units]),
     // A story counts once per channel; 'none' = nothing ticked
@@ -87,7 +89,7 @@ export async function report(sc) {
       review: q.review || 0, writing: q.writing || 0, revise: q.revise || 0,
       published: flow.rows[0].published, rejected: flow.rows[0].rejected,
       avgHours: flow.rows[0].avg_hours, medianHours: flow.rows[0].median_hours,
-      reviewDays, late: oldest.rows.filter((r) => r.work_days > reviewDays).length,
+      reviewDays, late: oldest.rows.filter((r) => r.status === 'review' && r.work_days > reviewDays).length, // as the ค้างตรวจ count
       oldest: oldest.rows[0] ? { ref: oldest.rows[0].ref, title: oldest.rows[0].title, unit: oldest.rows[0].unit, status: oldest.rows[0].status,
         sentAt: oldest.rows[0].sent_at, ageHours: oldest.rows[0].age_hours, workDays: oldest.rows[0].work_days } : null,
     },
@@ -136,7 +138,7 @@ router.get('/reports/export.xlsx', async (req, res) => {
     { k: 'PR กำลังเขียนข่าว', v: a.writing },
     { k: 'รอเอกสาร / รอผู้ส่งแก้ไข', v: a.revise },
     { k: `เกินเวลาตรวจ ${a.reviewDays} วันทำการ`, v: a.late },
-    { k: 'เผยแพร่จากงานที่ส่งในช่วงนี้', v: a.published },
+    { k: 'เผยแพร่ในช่วงนี้', v: a.published },
     { k: 'ทีม PR ลบงาน', v: a.rejected },
     { k: 'เวลาเฉลี่ยตั้งแต่ส่งถึงเผยแพร่', v: hours(a.avgHours) },
     { k: 'มัธยฐานเวลาถึงเผยแพร่', v: hours(a.medianHours) },
