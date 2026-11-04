@@ -1170,7 +1170,7 @@
     const moreBad = () => moreVideos.inputs().findIndex((x) => x.value.trim() && !Object.values(PLATFORMS).some((p) => p.re.test(x.value.trim())));
     const platformNames = () => Object.values(PLATFORMS).map((p) => p.label).join(', ');
     $('#videoLinksInfo').textContent = `วิดีโอที่มีหลายตอน หรือเผยแพร่ไว้หลายที่ ใส่ลิงก์อื่นได้อีกไม่เกิน ${MAX_MORE} ลิงก์ จาก ${platformNames()}`;
-    $('#catList').innerHTML = [...CATEGORIES.map((c) => [c, '']), ...VIDEO_CATS.map((c) => [c, ' data-for="video"'])].map(([c, only]) => `<label class="opt chip-opt"${only}><input type="checkbox" name="category" value="${c}"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">${c}</span></label>`).join('');
+    $('#catList').innerHTML = [...CATEGORIES.map((c) => [c, '']), ...VIDEO_CATS.map((c) => [c, ' data-for="video"'])].map(([c, only]) => `<label class="opt chip-opt"${only}><input type="checkbox" name="category" value="${esc(c)}"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 font-display text-[15px] font-medium">${esc(c)}</span></label>`).join('');
 
     // ---- Platform chips (news link + video link) ----
     document.querySelectorAll('[data-platforms]').forEach((box) => {
@@ -1779,7 +1779,7 @@
         ['news', '#photoError', up.photo.items.length < PHOTOS.min, $('#photoDrop'), '#photoInput'],
         ['news', '#creditError', !val('credit'), $('#credit'), null, radio('photoCredit') === 'source' ? 'กรอกที่มาของภาพ' : 'กรอกเครดิตภาพ'],
         ['news', '#albumError', !albumOk(), $('#albumUrl')],
-        ['news', '#albumLinksError', ab >= 0, moreAlbums.inputs()[ab], null, `ลิงก์ภาพเพิ่มเติมที่ ${ab + 2} ต้องขึ้นต้นด้วย https://`],
+        ['news', '#albumLinksError', ab >= 0, moreAlbums.inputs()[ab], null, `ลิงก์ภาพเพิ่มเติมที่ ${ab + 1} ต้องขึ้นต้นด้วย https://`],
         ['news', '#newsVideoError', !newsVideoOk(), $('#newsVideo'), null, platformErr('newsPlatform')],
         ['video', '#videoError', !videoOk(), $('#videoLink'), '#videoLink', videoMsg],
         ['video', '#videoLinksError', mb >= 0, moreVideos.inputs()[mb], null, `ลิงก์เพิ่มเติมที่ ${mb + 1} ไม่ใช่ลิงก์วิดีโอจาก ${platformNames()}`],
@@ -1826,11 +1826,15 @@
     let draftTimer = null;
     // A draft opened from ข่าวของฉัน (submit.html?draft=ID) lives on the server; "บันทึกร่าง" saves it there
     let draftId = new URLSearchParams(location.search).get('draft');
+    // Whose text it is: the account signed in when it was kept (null: signed out, so it survives signing in).
+    // On a shared computer the next person must not see it: a draft with an owner opens only for that account.
+    let me = null;
+    let waitMe = false; // a draft with an owner is waiting for /me: saving now would overwrite it with this form
     function saveDraft() {
-      if (!type || editing || draftId) return;
+      if (!type || editing || draftId || waitMe) return;
       const d = Object.fromEntries(DRAFT_FIELDS.map((k) => [k, $('#' + k).value]));
       DRAFT_RADIOS.forEach((n) => { d[n] = radio(n); });
-      Object.assign(d, { type, videoLinks: moreVideos.get(), albumLinks: moreAlbums.get(), categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), assigneePrefix: prefixOf('assignee'), guests: guests.filter((g) => g.name || g.pos), ...toolsOut() });
+      Object.assign(d, { owner: me, type, videoLinks: moreVideos.get(), albumLinks: moreAlbums.get(), categories: cats(), en: $('#enToggle').checked, audience: audVals(), chairPrefix: prefixOf('chair'), reporterPrefix: prefixOf('reporter'), assigneePrefix: prefixOf('assignee'), guests: guests.filter((g) => g.name || g.pos), ...toolsOut() });
       try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) { return; }
       const now = new Date();
       const el = $('#draftState');
@@ -1857,12 +1861,22 @@
       moreAlbums.set(Array.isArray(d.albumLinks) ? d.albumLinks : []);
       syncCreditKind();
     }
-    function restoreDraft() {
-      let d = null;
-      try { d = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) {}
-      if (!d) return null;
+    function readDraft() {
+      try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) { return null; }
+    }
+    const restoredNote = () => { $('#draftState').textContent = 'กู้คืนฉบับร่างล่าสุดแล้ว'; announce('กู้คืนฉบับร่างล่าสุดแล้ว'); };
+    // A draft of the signed-in account, once /me has answered: fill the form and open its type (?type= still wins)
+    function restoreOwnDraft(d) {
       applyData(d);
-      return d;
+      renderGuests();
+      setNote(!!val('note'));
+      syncAudience(); syncCats(); syncContentMode(false);
+      syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint');
+      syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint');
+      const t = new URLSearchParams(location.search).get('type');
+      setType(TYPES[t] ? t : d.type, { silent: true });
+      update();
+      restoredNote();
     }
 
     // ---- Small notice at the top of the screen ----
@@ -2114,8 +2128,11 @@
 
     // ---- Init: ?type= wins, then the draft's type ----
     // Editing loads the work from the server instead of the draft
-    const draft = editRef || draftId ? null : restoreDraft();
-    if (draft) { $('#draftState').textContent = 'กู้คืนฉบับร่างล่าสุดแล้ว'; announce('กู้คืนฉบับร่างล่าสุดแล้ว'); }
+    // Kept while signed out: opens now. Kept by an account: opens once /me says it is that account (restoreOwnDraft).
+    const saved = editRef || draftId ? null : readDraft();
+    const draft = saved && !saved.owner ? saved : null;
+    waitMe = !!saved?.owner;
+    if (draft) { applyData(draft); restoredNote(); }
     if (!val('eventDate')) {
       const d = new Date();
       $('#eventDate').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -2134,13 +2151,17 @@
     window.ME.then(async (m) => {
       const u = m.user;
       $('#devSignIn').hidden = !(m.devLogin && !u);
+      const own = !!u && saved?.owner === u.id;
+      me = u?.id ?? null;
+      waitMe = false;
       if (!u) return setupSender(null);
       if (window.baseRole(u) === 'external') return; // sent to status.html?s=domain above
-      // The sender's unit and position come from the profile: set it up first
-      if (!u.onboarded) { saveDraft(); leaving = true; location.replace(window.loginUrl()); return; }
+      // The sender's unit and position come from the profile: set it up first (their own kept draft stays as it is)
+      if (!u.onboarded) { if (!own) saveDraft(); leaving = true; location.replace(window.loginUrl()); return; }
       setupSender(u);
       if (editRef) await startEdit(editRef);
       else if (draftId) await loadServerDraft(draftId);
+      else if (own) restoreOwnDraft(saved);
       else if (type) setType(type, { silent: true });
     });
 
