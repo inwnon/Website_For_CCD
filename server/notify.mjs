@@ -160,6 +160,27 @@ export async function requestDecided(db, r) {
   if (!wants(u.notify, 'status')) return;
   await enqueue(db, { kind, ref: r.id, to: u.email, subject: text, title: approved ? 'ทีม PR อนุมัติคำขอของคุณแล้ว' : 'ทีม PR ไม่อนุมัติคำขอของคุณ', lines: requestLines(r), quote: r.review_note || undefined, button: requestButton(r) });
 }
+// A staff account asks to use คำขอใช้บริการ (a.id is the request_access row), and the answer back
+const accessButton = { label: 'เปิดหน้าคำขอใช้บริการ', href: link('requests.html') };
+export async function accessAsked(db, a, user) {
+  const text = `ขอสิทธิ์ใช้คำขอใช้บริการ: ${user.name || user.email}`;
+  const rows = (await db.query(`select u.id, t.email, u.notify from pr_team t left join users u on u.email = t.email where t.role in ('pr', 'admin')`)).rows;
+  for (const u of rows) {
+    if (u.id) await db.query('insert into notifications (user_id, kind, ref_id, text) values ($1, $2, $3, $4)', [u.id, 'access.new', String(a.id), text]);
+    if (!wants(u.notify, 'prNew')) continue;
+    await enqueue(db, { kind: 'access.new', ref: String(a.id), to: u.email, subject: text, title: 'มีผู้ขอสิทธิ์ใช้คำขอใช้บริการ', lines: [user.name || user.email, user.email], quote: a.reason || undefined, button: accessButton });
+  }
+}
+export async function accessDecided(db, a) {
+  const u = (await db.query('select id, email, notify from users where email = $1 and erased_at is null', [a.email])).rows[0];
+  if (!u) return;
+  const approved = a.status === 'approved';
+  const text = approved ? 'ได้รับสิทธิ์ใช้คำขอใช้บริการแล้ว' : 'ไม่ได้รับสิทธิ์ใช้คำขอใช้บริการ';
+  const kind = `access.${a.status}`;
+  await db.query('insert into notifications (user_id, kind, ref_id, text) values ($1, $2, $3, $4)', [u.id, kind, String(a.id), text]);
+  if (!wants(u.notify, 'status')) return;
+  await enqueue(db, { kind, ref: String(a.id), to: u.email, subject: text, title: text, lines: approved ? ['ตอนนี้คุณส่งคำขอใช้บริการถึงทีม PR ได้แล้ว'] : [], quote: a.review_note || undefined, button: accessButton });
+}
 
 // ---- Daily summary (08:00 Bangkok) ----
 export async function daily() {

@@ -189,3 +189,62 @@ describe('PDPA', () => {
     }
   });
 });
+
+describe('staff asking for access', () => {
+  const STAFF = 'user@sru.ac.th';
+  const mine = async () => (await staff.call('GET', '/api/request-access')).body;
+  before(async () => { await query('delete from request_access where email = $1', [STAFF]); });
+
+  test('only plain university staff may ask; secretary, student and external get 403', async () => {
+    assert.equal((await anon.call('POST', '/api/request-access', {})).status, 401);
+    for (const who of [student, external, secretary, pr]) assert.equal((await who.call('POST', '/api/request-access', { reason: 'x' })).status, 403);
+    assert.equal((await mine()).canAsk, true);
+    assert.equal((await external.call('GET', '/api/request-access')).body.canAsk, false);
+  });
+
+  test('ask → PR is told → reject with a reason → ask again → PR approves → staff submits only their own → admin revokes', async () => {
+    assert.equal((await staff.call('POST', '/api/requests', body())).status, 403);
+    const asked = await staff.call('POST', '/api/request-access', { reason: 'ขอช่างภาพงานคณะ' });
+    assert.equal(asked.status, 201, JSON.stringify(asked.body));
+    const id = asked.body.access.id;
+    assert.equal((await staff.call('POST', '/api/request-access', {})).status, 409);
+    assert.equal((await notes(pr, String(id)))[0].kind, 'access.new');
+    assert.equal((await one(`select count(*)::int n from audit_log where action = 'access.ask' and target = $1`, [STAFF])).n, 1);
+    assert.ok((await pr.call('GET', '/api/request-access/list?status=pending')).body.items.some((a) => a.id === id));
+    for (const who of [staff, secretary, executive]) assert.equal((await who.call('GET', '/api/request-access/list')).status, 403);
+
+    assert.equal((await pr.call('POST', `/api/request-access/${id}/reject`, { note: ' ' })).status, 400);
+    assert.equal((await pr.call('POST', `/api/request-access/${id}/reject`, { note: 'ใช้ผ่านเลขาคณะ' })).body.access.status, 'rejected');
+    assert.equal((await mine()).access.reviewNote, 'ใช้ผ่านเลขาคณะ');
+    assert.equal((await staff.call('POST', '/api/requests', body())).status, 403);
+
+    assert.equal((await staff.call('POST', '/api/request-access', { reason: 'ขออีกครั้ง' })).status, 201);
+    assert.equal((await executive.call('POST', `/api/request-access/${id}/approve`, {})).status, 403);
+    assert.equal((await pr.call('POST', `/api/request-access/${id}/approve`, {})).body.access.status, 'approved');
+    assert.equal((await pr.call('POST', `/api/request-access/${id}/approve`, {})).status, 409);
+    assert.equal((await notes(staff, String(id)))[0].kind, 'access.approved');
+    assert.ok((await staff.call('GET', '/api/me')).body.modules.includes('requests'));
+    assert.ok(!(await staff.call('GET', '/api/me')).body.modules.includes('calendar'));
+
+    const made = await staff.call('POST', '/api/requests', body());
+    assert.equal(made.status, 201);
+    const other = await submit();
+    const list = (await staff.call('GET', '/api/requests')).body.items;
+    assert.ok(list.some((r) => r.id === made.body.request.id) && !list.some((r) => r.id === other.id));
+    assert.equal((await staff.call('GET', `/api/requests/${other.id}`)).status, 403);
+    assert.equal((await staff.call('POST', `/api/requests/${made.body.request.id}/approve`, { assignees: [] })).status, 403);
+
+    assert.equal((await pr.call('POST', `/api/request-access/${id}/revoke`, {})).status, 403);
+    assert.equal((await admin.call('POST', `/api/request-access/${id}/revoke`, {})).status, 204);
+    assert.equal((await staff.call('GET', '/api/requests')).status, 403);
+    assert.equal((await mine()).canAsk, true);
+    for (const action of ['access.approve', 'access.reject', 'access.revoke']) {
+      assert.equal((await one('select count(*)::int n from audit_log where action = $1 and target = $2', [action, STAFF])).n >= 1, true, action);
+    }
+  });
+
+  test('a bad id is 404', async () => {
+    assert.equal((await pr.call('POST', '/api/request-access/abc/approve', {})).status, 404);
+    assert.equal((await pr.call('POST', '/api/request-access/999999999/reject', { note: 'x' })).status, 404);
+  });
+});

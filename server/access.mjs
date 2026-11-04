@@ -23,7 +23,15 @@ function moduleRole(u) {
   return domain !== 'external' && (u.role === 'secretary' || u.role === 'executive') ? u.role : domain;
 }
 
-export const rightOf = (u, module) => (u ? MATRIX[module]?.[moduleRole(u)] ?? null : null);
+export const rightOf = (u, module) => {
+  if (!u) return null;
+  const role = moduleRole(u);
+  // Staff that PR or an admin let in (request_access, read with the session) ask like a secretary
+  if (module === 'requests' && role === 'staff' && u.requester) return 'own';
+  return MATRIX[module]?.[role] ?? null;
+};
+// Only plain university staff may ask for that
+export const mayAskRequests = (u) => !!u && moduleRole(u) === 'staff';
 // The modules this user may open (GET /api/me, for the menus)
 export const modulesOf = (u) => Object.keys(MATRIX).filter((m) => rightOf(u, m));
 
