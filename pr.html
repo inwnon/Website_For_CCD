@@ -937,8 +937,8 @@
       // Bold and sizes as the sender set them (text-tools.js)
       else if (f.body) body = `<div class="tt-show grid gap-2 text-[15px] leading-[1.7]">${TextTools.html(f.body)}</div>`;
       const cover = s.files.find((x) => x.cover && x.thumb);
-      return `<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
-        <div class="grid min-w-0 content-start gap-4">
+      return `<div class="grid gap-6 [overflow-wrap:anywhere] xl:grid-cols-[minmax(0,1fr)_260px]">
+        <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4">
           ${edited}
           ${f.lead ? `<p class="font-display text-[17px] font-medium leading-relaxed">${esc(f.lead)}</p>` : ''}
           ${f.desc ? `<div class="tt-show grid gap-2 text-[15px] leading-[1.7]">${TextTools.html(f.desc)}</div>` : ''}
