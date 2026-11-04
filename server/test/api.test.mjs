@@ -64,6 +64,14 @@ describe('sending work', () => {
     for (const k of ['eventDate', 'categories', 'contentMode', 'photo', 'audience', 'consent']) assert.ok(r.body.details[k], k);
   });
 
+  test('a day that does not exist is a field error, not a server error', async () => {
+    for (const eventDate of ['2026-02-31', '2026-04-31', '0000-01-01']) {
+      const r = await staff.call('POST', '/api/submissions', form({ ...NEWS, eventDate }, { photo: [['a.jpg', await img('#c33'), 'image/jpeg']] }));
+      assert.equal(r.status, 400, eventDate);
+      assert.ok(r.body.details?.eventDate, eventDate);
+    }
+  });
+
   test('external accounts cannot send', async () => {
     const r = await external.call('POST', '/api/submissions', form(NEWS, { photo: [['a.jpg', await img('#c33'), 'image/jpeg']] }));
     assert.equal(r.status, 403);

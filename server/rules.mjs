@@ -120,7 +120,13 @@ export function audienceLabel(a) {
   return 'เฉพาะนักศึกษา';
 }
 
-const isDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+// A real calendar day: Date.parse lets 31 February through (PostgreSQL then refuses it), and year 0 does not exist
+const isDate = (s) => {
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d));
+  return y >= 1900 && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+};
 // { prefix, name, pos }: prefix is a title such as ผศ.ดร. (a list in name-prefixes.js, or typed under "อื่น ๆ")
 const person = (p, label) => {
   if (p == null) return null;
