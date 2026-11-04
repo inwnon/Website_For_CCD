@@ -85,22 +85,22 @@
   }
 
   // ---- Gate: signed out, or a role that may not use this page ----
-  function gate(me, allow) {
+  function gate(me, allow, page) {
     const g = document.getElementById('gate');
     if (!g) return;
     const signedIn = !!me.user;
-    const canReports = signedIn && me.user.role === 'coordinator';
+    const building = signedIn && page === 'report'; // reports: PR team only while in development
     const canImport = signedIn && me.user.role === 'intern';
-    const title = !signedIn ? 'เข้าสู่ระบบเพื่อใช้หลังบ้าน' : allow.includes('admin') && allow.length === 1 ? 'หน้านี้สำหรับผู้ดูแลระบบ' : 'หน้านี้สำหรับทีมงานประชาสัมพันธ์';
+    const title = !signedIn ? 'เข้าสู่ระบบเพื่อใช้หลังบ้าน' : building ? 'หน้ารายงานอยู่ระหว่างการพัฒนา' : allow.includes('admin') && allow.length === 1 ? 'หน้านี้สำหรับผู้ดูแลระบบ' : 'หน้านี้สำหรับทีมงานประชาสัมพันธ์';
     const text = !signedIn ? 'ใช้บัญชีที่ได้รับสิทธิ์ในทีม PR หรือประชาสัมพันธ์หน่วยงาน'
-      : canReports ? 'บัญชีประชาสัมพันธ์หน่วยงานเปิดได้เฉพาะหน้ารายงานของหน่วยงานตน'
+      : building ? 'ตอนนี้เปิดให้เฉพาะทีมงานประชาสัมพันธ์ จะเปิดให้บัญชีอื่นเมื่อผู้ดูแลระบบมอบสิทธิ์'
       : canImport ? 'บัญชีนักศึกษาฝึกงาน สสอ. เปิดได้เฉพาะหน้านำเข้าข่าวย้อนหลัง'
       : `บัญชี ${me.user.email} ยังไม่มีสิทธิ์ใช้หน้านี้ ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์`;
     g.innerHTML = `
       <img src="/assets/img/hawky-480.webp" alt="" class="bob w-[140px] drop-shadow-[0_20px_28px_rgb(38_66_200/.22)]" width="1254" height="1254">
       <h1 class="font-display text-[22px] font-semibold">${title}</h1>
       <p class="max-w-[460px] text-[15px] text-ink2">${esc(text)}</p>
-      <a href="${canReports ? 'report.html' : canImport ? 'pr-import.html' : signedIn ? 'index.html' : 'login.html'}" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">${canReports ? 'ไปหน้ารายงาน' : canImport ? 'ไปหน้านำเข้าข่าวย้อนหลัง' : signedIn ? 'กลับหน้าเว็บไซต์' : 'เข้าสู่ระบบ'}</a>
+      <a href="${canImport ? 'pr-import.html' : signedIn ? 'index.html' : 'login.html'}" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">${canImport ? 'ไปหน้านำเข้าข่าวย้อนหลัง' : signedIn ? 'กลับหน้าเว็บไซต์' : 'เข้าสู่ระบบ'}</a>
       ${me.devLogin && !signedIn ? `<div class="flex flex-wrap justify-center gap-2">
         <span class="w-full text-[13px] text-ink2">โหมดพัฒนา: ทดลองเข้าสู่ระบบโดยไม่ใช้ Google</span>
         ${[['pr', 'ทีม PR'], ['admin', 'ผู้ดูแลระบบ'], ['coordinator', 'ประชาสัมพันธ์หน่วยงาน (คณะครุศาสตร์)'], ['intern', 'นักศึกษาฝึกงาน สสอ.'], ['secretary', 'เลขานุการผู้บริหาร'], ['executive', 'ผู้บริหาร']].map(([k, l]) => `<button type="button" data-dev="${k}" class="press t-spring inline-flex h-11 items-center rounded-full border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">${l}</button>`).join('')}
@@ -158,7 +158,7 @@
       window.mountRoleSwitch?.(document.getElementById('roleSwitch'), me.user);
     }
     window.arrivalsRepaint?.();
-    if (!ok) { gate(me, allow); return null; }
+    if (!ok) { gate(me, allow, page); return null; }
     return me.user;
   }
 
