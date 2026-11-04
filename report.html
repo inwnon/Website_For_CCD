@@ -312,7 +312,7 @@
     $('#report').addEventListener('click', (e) => { const b = e.target.closest('[data-kind]'); if (b && last) { kindFilter = b.dataset.kind; render(last); } });
     $('#xlsx').addEventListener('click', () => { location.href = '/api/reports/export.xlsx?' + query(); });
 
-    DESK.start({ page: 'report', allow: ['pr', 'admin', 'coordinator'] }).then((user) => {
+    DESK.start({ page: 'report', allow: ['pr', 'admin'] }).then((user) => {
       if (!user) return;
       me = user;
       $('#app').hidden = false;

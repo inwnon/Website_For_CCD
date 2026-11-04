@@ -285,11 +285,13 @@ describe('reports', () => {
     assert.ok('review' in r.approval && 'avgHours' in r.approval);
   });
 
-  test('a coordinator sees only their own unit, whatever they ask for', async () => {
+  test('reports are for the PR team only while in development (coordinators too get 403)', async () => {
     assert.equal((await coord.call('GET', '/api/me')).body.user.coordUnit, 'คณะครุศาสตร์');
-    const r = (await coord.call('GET', `/api/reports?from=${daysAgo(60)}&to=${today}&unit=${encodeURIComponent('คณะนิติศาสตร์')}`)).body;
-    assert.equal(r.unit, 'คณะครุศาสตร์');
-    assert.ok(r.matrix.every((m) => m.unit === 'คณะครุศาสตร์'));
+    for (const path of ['/api/reports', '/api/reports/export.xlsx']) {
+      const r = await coord.call('GET', path);
+      assert.equal(r.status, 403);
+      assert.match(r.body.error, /อยู่ระหว่างการพัฒนา/);
+    }
     assert.equal((await staff.call('GET', '/api/reports')).status, 403);
     assert.equal((await coord.call('GET', '/api/pr/news')).status, 403);
   });

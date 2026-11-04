@@ -133,10 +133,10 @@ export const requireAdmin = (req, res, next) => {
   if (!isAdmin(req.user)) throw new HttpError(403, 'เฉพาะผู้ดูแลระบบ');
   next();
 };
-// Reports: PR, admin, and coordinators (their own unit)
+// Reports: PR and admin only while the page is in development (coordinators get 403 for now; reports.mjs still scopes them to their unit)
 export const requireReports = (req, res, next) => {
   if (!req.user) throw new HttpError(401, 'กรุณาเข้าสู่ระบบ');
-  if (!isPr(req.user) && !isCoordinator(req.user)) throw new HttpError(403, 'เฉพาะทีมงานประชาสัมพันธ์และประชาสัมพันธ์หน่วยงาน');
+  if (!isPr(req.user)) throw new HttpError(403, 'หน้ารายงานอยู่ระหว่างการพัฒนา เปิดให้เฉพาะทีมงานประชาสัมพันธ์');
   next();
 };
 export const requirePr = (req, res, next) => {
