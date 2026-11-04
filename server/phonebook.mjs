@@ -2,6 +2,7 @@
 // A unit may sit under another (parentId: หน่วยงานหลัก → หน่วยงานย่อย), at any depth; a name is used once under the same parent.
 // - GET    /api/phonebook?q=             every university role: every unit, and with q the ids that match (words of a Thai name in any order, thai.mjs)
 // - POST   /api/phonebook                { unitName, parentId, phoneNumber, internalNumber, note }
+// - POST   /api/phonebook/move           { ids, parentId } several units into a group at once (parentId null: out of any group)
 // - PUT    /api/phonebook/:id            the same fields
 // - DELETE /api/phonebook/:id            not while it has sub-units
 // - GET    /api/phonebook/template.xlsx  the form to fill in (also template.csv)
@@ -339,6 +340,47 @@ router.post('/phonebook', writer, async (req, res) => {
     return row;
   }).catch(refused);
   res.status(201).json({ entry: entryOut(e) });
+});
+
+// All or nothing: one unit that cannot go under the group stops the whole move. Units already there are skipped.
+router.post('/phonebook/move', writer, async (req, res) => {
+  const ids = req.body?.ids;
+  const parentId = req.body?.parentId ?? null;
+  if (!Array.isArray(ids) || !ids.length || ids.length > MAX_ROWS || !ids.every((id) => typeof id === 'string' && UUID.test(id)) || new Set(ids).size !== ids.length) {
+    throw new HttpError(400, 'เลือกหน่วยงานที่จะย้าย');
+  }
+  if (parentId !== null && !(typeof parentId === 'string' && UUID.test(parentId))) throw new HttpError(400, 'เลือกกลุ่มจากรายการ');
+  const moved = await tx(async (c) => {
+    const units = (await c.query('select * from phonebook where id = any($1) for update', [ids])).rows;
+    if (units.length !== ids.length) throw new HttpError(404, 'ไม่พบบางหน่วยงาน โหลดหน้าใหม่แล้วลองอีกครั้ง');
+    const names = (list) => list.map((u) => u.unit_name).join(', ');
+    let group = null;
+    if (parentId) {
+      // The group and every unit above it: none of them may be one that moves
+      const up = (await c.query(`with recursive up as (select id, parent_id, unit_name from phonebook where id = $1
+        union all select p.id, p.parent_id, p.unit_name from phonebook p join up on p.id = up.parent_id) select * from up`, [parentId])).rows;
+      if (!up.length) throw new HttpError(400, 'ไม่พบกลุ่มนี้ โหลดหน้าใหม่แล้วลองอีกครั้ง');
+      group = up[0];
+      const above = units.filter((u) => up.some((g) => g.id === u.id));
+      if (above.length) throw new HttpError(400, `ย้าย ${names(above)} ไปอยู่ใต้ ${group.unit_name} ไม่ได้ เพราะกลุ่มนี้คือหน่วยงานนั้นหรืออยู่ภายใต้หน่วยงานนั้น`);
+      const bare = units.filter((u) => !u.phone_number && !u.internal_number);
+      if (bare.length) throw new HttpError(400, `${names(bare)} ยังไม่มีเบอร์ หน่วยงานในกลุ่มต้องมีอย่างน้อย 1 เบอร์ เพิ่มเบอร์ก่อนย้าย`);
+    }
+    const moving = units.filter((u) => u.parent_id !== parentId);
+    if (!moving.length) return 0;
+    // A name is used once under the same parent
+    const lower = moving.map((u) => u.unit_name.toLowerCase());
+    const twice = moving.filter((u, i) => lower.indexOf(u.unit_name.toLowerCase()) !== i);
+    const taken = (await c.query('select unit_name from phonebook where parent_id is not distinct from $1 and lower(unit_name) = any($2) and not (id = any($3))',
+      [parentId, lower, moving.map((u) => u.id)])).rows;
+    if (twice.length || taken.length) throw new HttpError(400, `มีหน่วยงานชื่อ ${names([...twice, ...taken])} ใน${group ? `กลุ่ม ${group.unit_name}` : 'หน่วยงานหลัก'}แล้ว เปลี่ยนชื่อก่อนย้าย`);
+    await c.query('update phonebook set parent_id = $1, updated_at = now() where id = any($2)', [parentId, moving.map((u) => u.id)]);
+    for (const u of moving) {
+      await audit(c, req.user, 'phonebook.move', u.id, group ? `ย้าย ${u.unit_name} ไปอยู่ในกลุ่ม ${group.unit_name}` : `ย้าย ${u.unit_name} ออกจากกลุ่ม`, { from: u.parent_id, to: parentId });
+    }
+    return moving.length;
+  });
+  res.json({ moved });
 });
 
 router.put('/phonebook/:id', writer, async (req, res) => {
