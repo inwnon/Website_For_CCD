@@ -33,12 +33,20 @@
     const many = event.banners.length > 1;
     $('#bvList').replaceChildren(...event.banners.map((b, i) => {
       const li = document.createElement('li');
+      li.className = 'grid justify-items-center gap-2';
       const img = document.createElement('img');
       img.src = b.url;
       img.alt = `แบนเนอร์กำหนดการ ${event.title}${many ? ` ภาพที่ ${i + 1}` : ''}`;
       img.decoding = 'async';
-      img.className = 'mx-auto block h-auto max-w-full rounded-2xl bg-surface2';
-      li.append(img);
+      // The whole picture fits the screen, also on a phone turned sideways; the link below opens it full size for zooming
+      img.className = 'block h-auto max-h-[calc(100dvh-140px)] w-auto max-w-full rounded-2xl bg-surface2 object-contain';
+      const full = document.createElement('a');
+      full.href = b.url;
+      full.target = '_blank';
+      full.rel = 'noopener';
+      full.className = 'press t-quick inline-flex min-h-11 items-center rounded-xl px-3 text-[14px] font-medium text-sky underline-offset-4 hover:underline';
+      full.textContent = many ? `เปิดภาพที่ ${i + 1} ขนาดเต็ม` : 'เปิดภาพขนาดเต็ม';
+      li.append(img, full);
       return li;
     }));
     $('#bvDlg').showModal();
