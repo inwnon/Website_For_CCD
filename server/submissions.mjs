@@ -8,6 +8,7 @@
 // - POST /api/submissions/:ref/messages    { text }
 // - POST /api/submissions/:ref/read
 // - GET  /api/files/:id[?v=web]            a file of a submission (sender or PR)
+import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import { isPr, isUniversity, onboarded, requireUser } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
@@ -131,35 +132,39 @@ router.post('/submissions', requireUser, uploads, acceptUpload, async (req, res)
     const remove = new Set(Array.isArray(req.data?.removeFiles) ? req.data.removeFiles : []);
     const fromDraft = draft ? (await query('select * from draft_files where draft_id = $1', [draft.id])).rows.filter((f) => !remove.has(f.id)) : [];
     const row = checkSubmission(user, req.data, countKinds([...fromDraft, ...req.uploads]));
+    // Photos are checked and copied for the web before the transaction: 100 large photos take long, and a
+    // transaction held open that long keeps one of the few database connections from everyone else
+    const id = randomUUID();
     let moved = [];
-    const created = await tx(async (c) => {
-      // The draft is taken once: a second send of the same draft finds it gone
-      if (draft && !(await c.query('delete from submission_drafts where id = $1 returning id', [draft.id])).rows.length) throw new HttpError(409, 'ร่างนี้ถูกส่งไปแล้ว');
-      const values = COLUMNS.map((k) => (k === 'people' ? JSON.stringify(row[k]) : row[k]));
-      const s = (await c.query(
-        `insert into submissions (ref, status, sender_id, ${COLUMNS.join(', ')})
-         values (next_ref($1), $2, $3, ${COLUMNS.map((_, i) => `$${i + 4}`).join(', ')}) returning *`,
-        [row.type, firstStatus(row), user.id, ...values],
-      )).rows[0];
-      await c.query(`insert into submission_events (submission_id, status, actor_id, at) values ($1, 'sent', $3, $4), ($1, $2, $3, $4)`, [s.id, s.status, user.id, s.sent_at]);
-      if (row.note) await c.query(`insert into messages (submission_id, author_id, side, display_name, body) values ($1, $2, 'sender', $3, $4)`, [s.id, user.id, user.name || 'ผู้ส่ง', row.note]);
-      await toPrTeam(c, 'pr.new', s, user, row.note || undefined);
-      try {
-        const files = await storeUploads(s.id, req.uploads);
+    let created;
+    try {
+      const files = await storeUploads(id, req.uploads);
+      created = await tx(async (c) => {
+        // The draft is taken once: a second send of the same draft finds it gone
+        if (draft && !(await c.query('delete from submission_drafts where id = $1 returning id', [draft.id])).rows.length) throw new HttpError(409, 'ร่างนี้ถูกส่งไปแล้ว');
+        const values = COLUMNS.map((k) => (k === 'people' ? JSON.stringify(row[k]) : row[k]));
+        const s = (await c.query(
+          `insert into submissions (id, ref, status, sender_id, ${COLUMNS.join(', ')})
+           values ($1, next_ref($2), $3, $4, ${COLUMNS.map((_, i) => `$${i + 5}`).join(', ')}) returning *`,
+          [id, row.type, firstStatus(row), user.id, ...values],
+        )).rows[0];
+        await c.query(`insert into submission_events (submission_id, status, actor_id, at) values ($1, 'sent', $3, $4), ($1, $2, $3, $4)`, [s.id, s.status, user.id, s.sent_at]);
+        if (row.note) await c.query(`insert into messages (submission_id, author_id, side, display_name, body) values ($1, $2, 'sender', $3, $4)`, [s.id, user.id, user.name || 'ผู้ส่ง', row.note]);
+        await toPrTeam(c, 'pr.new', s, user, row.note || undefined);
         for (const f of fromDraft) { moved.push({ from: f.path, to: await moveStored(f.path, s.id) }); f.path = moved.at(-1).to; }
         const pos = positions(req.data.order, fromDraft, files);
         for (const f of [...fromDraft, ...files]) {
           await c.query('insert into submission_files (id, submission_id, kind, path, name, size, mime, position) values ($1, $2, $3, $4, $5, $6, $7, $8)',
             [f.id, s.id, f.kind, f.path, f.name, f.size, f.mime, pos.get(f.id)]);
         }
-      } catch (err) {
-        // Draft files go back where they were (the draft row comes back with the rollback), the new ones go
-        for (const m of moved) await moveBack(m);
-        await removeSubmissionDir(s.id);
-        throw err;
-      }
-      return s;
-    });
+        return s;
+      });
+    } catch (err) {
+      // Draft files go back where they were (the draft row comes back with the rollback), the new ones go
+      for (const m of moved) await moveBack(m);
+      await removeSubmissionDir(id);
+      throw err;
+    }
     if (draft) await removeDraftDir(draft.id); // what is left: web copies of removed files and the like
     res.status(201).json({ submission: submissionOut(created, await loadThread([created.id]), 'sender') });
   } catch (err) {
@@ -195,6 +200,9 @@ router.put('/submissions/:ref', requireUser, uploads, acceptUpload, async (req, 
     let updated;
     try {
       updated = await tx(async (c) => {
+        // Two resends at once (two tabs): the second waits here and finds the work no longer waiting for changes
+        const now = (await c.query('select status from submissions where id = $1 for update', [s.id])).rows[0];
+        if (now.status !== 'revise') throw new HttpError(409, 'งานนี้ส่งกลับไปแล้ว รีเฟรชหน้าเพื่อดูสถานะล่าสุด');
         const sets = COLUMNS.filter((k) => k !== 'type').map((k, i) => `${k} = $${i + 3}`).join(', ');
         const values = COLUMNS.filter((k) => k !== 'type').map((k) => (k === 'people' ? JSON.stringify(row[k]) : row[k]));
         // The sender's new version replaces what PR had edited (แก้ไขข่าว on pr.html) of the old one
