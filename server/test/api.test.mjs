@@ -212,6 +212,22 @@ describe('full flow: send → PR asks for changes → resend → publish', () =>
   });
 });
 
+describe('resending', () => {
+  test('two resends at once (two tabs): one goes through, the other is refused', async () => {
+    const png = async (bg) => sharp({ create: { width: 800, height: 600, channels: 3, background: bg } }).png().toBuffer();
+    const sent = await staff.call('POST', '/api/submissions', form(NEWS, { photo: [['a.png', await png('#a22'), 'image/png']] }));
+    assert.equal(sent.status, 201, JSON.stringify(sent.body));
+    const { ref } = sent.body.submission;
+    assert.equal((await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'revise', message: 'ขอแก้คำโปรย' })).status, 200);
+    const resend = async () => staff.call('PUT', `/api/submissions/${ref}`, form(NEWS, { photo: [['เพิ่ม.png', await png('#22a'), 'image/png']] }));
+    const [a, b] = await Promise.all([resend(), resend()]);
+    assert.deepEqual([a.status, b.status].sort(), [200, 409]);
+    const s = (await staff.call('GET', `/api/submissions/${ref}`)).body.submission;
+    assert.equal(s.files.length, 2, 'only one resend added its photo');
+    assert.deepEqual(s.history.map((h) => h.status), ['sent', 'review', 'revise', 'resent', 'review']);
+  });
+});
+
 describe('other types', () => {
   test('news written by PR starts as writing', async () => {
     const r = await staff.call('POST', '/api/submissions', form({ ...NEWS, contentMode: 'pr', body: '' }, {
