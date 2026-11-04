@@ -219,12 +219,15 @@ function checkRows(rows) {
 }
 
 // Sorts the rows into new units and changes to units here. Units with no parent come first, so a new หน่วยงานหลัก
-// is saved before the units under it.
+// is saved before the units under it. A unit imported before without a parent moves once, and not when the file
+// also has it as a หน่วยงานหลัก: then the file's row becomes a new unit of the same name.
 function planImport(rows, all) {
   const top = new Map(all.filter((e) => !e.parent_id).map((e) => [e.unit_name.toLowerCase(), e]));
   const under = new Map(all.map((e) => [`${e.parent_id ?? ''}|${e.unit_name.toLowerCase()}`, e]));
   const parents = new Set(all.map((e) => e.parent_id).filter(Boolean));
   const newTop = new Set(rows.filter((r) => !r.parent && !top.has(r.unit.toLowerCase())).map((r) => r.unit.toLowerCase()));
+  const staysTop = new Set(rows.map((r) => (r.parent || r.unit).toLowerCase()));
+  const moved = new Set();
   const fresh = [], changed = [], problems = [], placed = [];
   for (const r of [...rows].sort((a, b) => Number(Boolean(a.parent)) - Number(Boolean(b.parent)))) {
     const parent = r.parent ? top.get(r.parent.toLowerCase()) : null;
@@ -233,8 +236,9 @@ function planImport(rows, all) {
       continue;
     }
     const was = r.parent && !parent ? null : under.get(`${parent?.id ?? ''}|${r.unit.toLowerCase()}`);
-    const loose = r.parent && !was && top.get(r.unit.toLowerCase());
-    if (loose && loose.id !== parent?.id && !parents.has(loose.id)) {
+    const loose = r.parent && !was && !staysTop.has(r.unit.toLowerCase()) && top.get(r.unit.toLowerCase());
+    if (loose && loose.id !== parent?.id && !parents.has(loose.id) && !moved.has(loose.id)) {
+      moved.add(loose.id);
       changed.push({ ...r, id: loose.id, move: true });
       placed.push({ id: loose.id, position: r.line });
     } else if (!was) fresh.push(r);
@@ -249,7 +253,8 @@ function planImport(rows, all) {
 
 router.get('/phonebook', requireModule('phonebook'), async (req, res) => {
   const q = str(req.query.q, 100, 'คำค้น') ?? '';
-  const rows = (await query(`select * from phonebook limit ${MAX_ROWS * 2}`)).rows;
+  // Every unit: a sub-unit whose หน่วยงานหลัก is cut off would not show at all
+  const rows = (await query('select * from phonebook')).rows;
   // The order of the imported file; units added by hand after, by name
   rows.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || byName.compare(a.unit_name, b.unit_name));
   const right = await editRight(req.user);

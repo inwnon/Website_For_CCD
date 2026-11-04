@@ -278,6 +278,17 @@
       paintToggleAll();
     }
 
+    // Edit buttons follow every answer, so they go away when an admin's loan ends while the page is open.
+    // A loan ends when its last day ends: show that day.
+    function rights(r) {
+      state.canEdit = r.canEdit;
+      $('#editUntil').textContent = r.editUntil ? `คุณแก้ไขสมุดโทรศัพท์ได้ถึง ${DESK.day(new Date(r.editUntil).getTime() - 1000)}` : '';
+      $('#editUntil').hidden = !r.editUntil;
+      $('#add').hidden = !r.canEdit;
+      $('#import').hidden = !r.canEdit;
+      $('#replaceBox').hidden = !r.canReplace;
+    }
+
     // Only the latest search paints: an older, slower answer is dropped
     async function load() {
       const q = $('#search').value.trim();
@@ -285,6 +296,7 @@
       try {
         const r = await api(`/phonebook${q ? `?q=${encodeURIComponent(q)}` : ''}`);
         if (asked !== state.asked) return;
+        rights(r);
         state.items = r.items;
         state.matches = r.matches || null;
         paint(q);
@@ -342,6 +354,7 @@
         }
         if (first) first.focus();
         if (!Object.keys(d).length) showError('form', err.message);
+        if (err.status === 403) load();
       } finally { btn.disabled = false; }
     }
 
@@ -420,6 +433,7 @@
       } catch (err) {
         $('#dropErr').textContent = err.message;
         $('#dropErr').hidden = false;
+        if (err.status === 403) load();
       } finally { btn.disabled = false; }
     }
 
@@ -428,20 +442,8 @@
       const me = await window.ME;
       const user = await DESK.start({ page: 'phonebook', allow: me.modules?.includes('phonebook') ? [me.user.role] : ['pr', 'admin'] });
       if (!user) return;
-      const r = await api('/phonebook');
-      state.items = r.items;
-      state.matches = null;
-      state.canEdit = r.canEdit;
-      // A loan ends when its last day ends: show that day
-      if (r.editUntil) {
-        $('#editUntil').textContent = `คุณแก้ไขสมุดโทรศัพท์ได้ถึง ${DESK.day(new Date(r.editUntil).getTime() - 1000)}`;
-        $('#editUntil').hidden = false;
-      }
-      $('#add').hidden = !r.canEdit;
-      $('#import').hidden = !r.canEdit;
-      $('#replaceBox').hidden = !r.canReplace;
       $('#app').hidden = false;
-      paint('');
+      await load();
 
       let wait;
       $('#search').addEventListener('input', () => { clearTimeout(wait); wait = setTimeout(load, 250); });

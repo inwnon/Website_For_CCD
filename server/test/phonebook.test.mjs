@@ -296,6 +296,26 @@ describe('importing units under a หน่วยงานหลัก', () => {
     const moved = await one('select * from phonebook where id = $1', [before.id]);
     assert.deepEqual([moved.parent_id, moved.phone_number, moved.internal_number], [parent.id, '077-913-000', '3102']);
   });
+  test('a unit imported before moves under one หน่วยงานหลัก only; the file names it under another too', async () => {
+    const [a, b, loose] = [unit('คณะ'), unit('คณะ'), unit('สำนักงานคณบดี')];
+    const before = await create({ unitName: loose, phoneNumber: '077913000' });
+    const buf = await sheet([['', a, '', '', ''], ['', b, '', '', ''], [a, loose, '077913201', '', ''], [b, loose, '077913202', '', '']], GROUPED);
+    assert.deepEqual(counts((await send(pr, buf)).body), { added: 3, updated: 1, unchanged: 0, removed: 0, saved: false });
+    assert.equal((await send(pr, buf, 'phones.xlsx', true)).status, 200);
+    const [pa, pb] = [await stored(a), await stored(b)];
+    const units = (await query('select id, parent_id, phone_number from phonebook where unit_name = $1', [loose])).rows;
+    assert.deepEqual(units.map((u) => u.parent_id).sort(), [pa.id, pb.id].sort());
+    assert.equal(units.find((u) => u.id === before.id).parent_id, pa.id);
+  });
+  test('a unit the file also uses as a หน่วยงานหลัก stays one; the file gets its own unit of that name', async () => {
+    const [top, loose, sub] = [unit('คณะ'), unit('สำนัก'), unit('งาน')];
+    const before = await create({ unitName: loose, phoneNumber: '077913000' });
+    const buf = await sheet([['', top, '', '', ''], [top, loose, '077913301', '', ''], [loose, sub, '077913302', '', '']], GROUPED);
+    assert.equal((await send(pr, buf, 'phones.xlsx', true)).status, 200);
+    assert.equal((await one('select parent_id from phonebook where id = $1', [before.id])).parent_id, null);
+    assert.equal((await stored(sub)).parent_id, before.id);
+    assert.ok(await one('select 1 from phonebook where unit_name = $1 and parent_id = $2', [loose, (await stored(top)).id]));
+  });
   test('a หน่วยงานหลัก that is nowhere is a bad row', async () => {
     const r = await send(pr, await sheet([[unit('ไม่มี'), unit(), '1234', '', '']], GROUPED), 'phones.xlsx', true);
     assert.equal(r.status, 400);
