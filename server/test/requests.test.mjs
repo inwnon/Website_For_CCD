@@ -210,12 +210,14 @@ describe('staff asking for access', () => {
 
   test('ask → PR is told → reject with a reason → ask again → PR approves → staff submits only their own → admin revokes', async () => {
     assert.equal((await staff.call('POST', '/api/requests', body())).status, 403);
+    // audit_log keeps the rows of earlier runs for the same account: count only this run's
+    const { started } = await one('select now() started');
     const asked = await staff.call('POST', '/api/request-access', { reason: 'ขอช่างภาพงานคณะ' });
     assert.equal(asked.status, 201, JSON.stringify(asked.body));
     const id = asked.body.access.id;
     assert.equal((await staff.call('POST', '/api/request-access', {})).status, 409);
     assert.equal((await notes(pr, String(id)))[0].kind, 'access.new');
-    assert.equal((await one(`select count(*)::int n from audit_log where action = 'access.ask' and target = $1`, [STAFF])).n, 1);
+    assert.equal((await one(`select count(*)::int n from audit_log where action = 'access.ask' and target = $1 and at >= $2`, [STAFF, started])).n, 1);
     assert.ok((await pr.call('GET', '/api/request-access/list?status=pending')).body.items.some((a) => a.id === id));
     for (const who of [staff, secretary, executive]) assert.equal((await who.call('GET', '/api/request-access/list')).status, 403);
 
@@ -246,7 +248,7 @@ describe('staff asking for access', () => {
     assert.equal((await staff.call('GET', '/api/requests')).status, 403);
     assert.equal((await mine()).canAsk, true);
     for (const action of ['access.approve', 'access.reject', 'access.revoke']) {
-      assert.equal((await one('select count(*)::int n from audit_log where action = $1 and target = $2', [action, STAFF])).n >= 1, true, action);
+      assert.equal((await one('select count(*)::int n from audit_log where action = $1 and target = $2 and at >= $3', [action, STAFF, started])).n, 1, action);
     }
   });
 
