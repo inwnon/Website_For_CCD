@@ -78,10 +78,10 @@ export const router = Router();
 
 const entryOut = (e) => ({ id: e.id, parentId: e.parent_id, unitName: e.unit_name, phoneNumber: e.phone_number, internalNumber: e.internal_number, note: e.note });
 
-// 077913333 → 077-913-333, 0812345678 → 081-234-5678; any other number stays as typed
+// 077913333 → 077-913-333, 0812345678 → 081-234-5678; any other number stays as typed, also two numbers (077-913-333/4)
 function formatPhone(s) {
   const d = s.replace(/\D/g, '');
-  return !s.startsWith('+') && /^0\d{8,9}$/.test(d) ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : s;
+  return /^[0-9 ()-]+$/.test(s) && /^0\d{8,9}$/.test(d) ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : s;
 }
 
 // Throws 400 with a field → message map
