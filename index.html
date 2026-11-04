@@ -659,8 +659,10 @@
       else if (latest.date) p.set('date', latest.date);
       else if (latest.range !== 'all') p.set('range', latest.range);
       if (latest.kind) p.set('kind', latest.kind);
-      // The stories on the ข่าวเด่น shelf are not shown again here; once no longer featured they are back by date
-      if (!latest.date) { p.set('feed', '1'); p.set('skipShelf', '1'); }
+      // Under ทั้งหมด the stories on the ข่าวเด่น shelf are not shown again here; once no longer featured they are back by date.
+      // A time range or a search shows every story it matches, the featured ones too
+      if (!latest.date) p.set('feed', '1');
+      if (!latest.date && !latest.q && latest.range === 'all') p.set('skipShelf', '1');
       if (!append) { p.set('counts', '1'); paintKindCounts(null); }
       moreBtn.disabled = true;
       try {
@@ -691,6 +693,7 @@
       $('#q').value = $('#q2').value = '';
       history.replaceState(null, '', location.pathname + '#latest');
       loadLatest();
+      jumpTo($('#latest')); // the list is below the ข่าวเด่น shelf, out of sight from the buttons
     }));
     // ---- ประเภทเนื้อหา: buttons above the ข่าวล่าสุด cards; the choice applies with the time range ----
     const KIND_ICON = {
