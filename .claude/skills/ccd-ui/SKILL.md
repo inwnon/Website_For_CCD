@@ -1,6 +1,6 @@
 ---
 name: ccd-ui
-description: House design rules for คลังข่าว มรส. pages. Use when designing a new page or changing how an existing page looks; not needed for API work, bug fixes, or copy edits.
+description: House design rules for SRU News Hub pages. Use when designing a new page or changing how an existing page looks; not needed for API work, bug fixes, or copy edits.
 ---
 
 # ccd-ui — design rules for this repo

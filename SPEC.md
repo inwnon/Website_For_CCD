@@ -1,6 +1,6 @@
 # SPEC.md — Corporate Communication Management System (ระบบบริหารงานสื่อสารองค์กร)
 
-Built as new back-office modules inside the existing newsroom codebase (คลังข่าว มรส., repo `inwnon/Website_For_CCD`, live at ccd2569.cloud). Reuse what exists; do not rebuild it.
+Built as new back-office modules inside the existing newsroom codebase (SRU News Hub, repo `inwnon/Website_For_CCD`, live at ccd2569.cloud). Reuse what exists; do not rebuild it.
 
 ## 1. Goal
 One web app for the Corporate Communication office: the existing newsroom plus a work calendar with assignments and reminders, document archive, unit phone book, and student team management.
