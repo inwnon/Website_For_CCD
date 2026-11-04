@@ -19,7 +19,7 @@
   <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="desk.css">
-  <link rel="stylesheet" href="/assets/app.css?v=f4e62a4603">
+  <link rel="stylesheet" href="/assets/app.css?v=4cf4e0ba4f">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการหมายเลข</a>
@@ -40,6 +40,12 @@
               <p id="editUntil" class="mt-1 text-[14px] font-medium text-royal" hidden></p>
             </div>
             <button id="toggleAll" type="button" class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>เปิดทั้งหมด</button>
+            <button id="newGroup" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></svg>สร้างกลุ่มใหม่
+            </button>
+            <button id="move" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6M13 10l3 3-3 3"/></svg>ย้ายเข้ากลุ่ม
+            </button>
             <button id="import" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>นำเข้าไฟล์
             </button>
@@ -70,9 +76,9 @@
         <input id="fUnit" maxlength="200" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="unitErr">
         <span id="unitErr" data-err="unitName" class="text-[14px] font-medium text-brand" hidden></span>
       </label>
-      <label class="grid gap-1.5">
+      <label class="grid min-w-0 gap-1.5">
         <span class="font-display text-[15px] font-semibold">อยู่ภายใต้หน่วยงานหลัก</span>
-        <select id="fParent" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="parentErr"></select>
+        <select id="fParent" class="field h-12 w-full min-w-0 rounded-2xl px-4 text-[15px]" aria-describedby="parentErr"></select>
         <span id="parentErr" data-err="parentId" class="text-[14px] font-medium text-brand" hidden></span>
       </label>
       <div class="grid gap-4 sm:grid-cols-2">
@@ -129,6 +135,45 @@
     </form>
   </dialog>
 
+  <dialog id="groupDlg" class="desk-dlg w-[min(440px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="groupTitle">
+    <form id="groupForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <h2 id="groupTitle" class="font-display text-[21px] font-semibold">สร้างกลุ่มใหม่</h2>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ชื่อกลุ่ม <span class="text-brand">*</span></span>
+        <input id="gName" maxlength="200" autocomplete="off" placeholder="เช่น ผู้บริหารมหาวิทยาลัย" class="field h-12 rounded-2xl px-4 text-[15px]" aria-describedby="gHint gErr">
+        <span id="gErr" class="text-[14px] font-medium text-brand" role="alert" hidden></span>
+      </label>
+      <p id="gHint" class="text-[14px] text-ink2">กลุ่มเป็นหน่วยงานหลักที่มีแค่ชื่อ สร้างแล้วกด "ย้ายเข้ากลุ่ม" เพื่อนำหน่วยงานเข้ามา</p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="groupClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="groupSave" type="submit" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">สร้างกลุ่ม</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="moveDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(560px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="moveTitle">
+    <form id="moveForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <h2 id="moveTitle" class="font-display text-[21px] font-semibold">ย้ายเข้ากลุ่ม</h2>
+      <label class="grid min-w-0 gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ย้ายไปที่กลุ่ม <span class="text-brand">*</span></span>
+        <select id="mTarget" class="field h-12 w-full min-w-0 rounded-2xl px-4 text-[15px]"></select>
+      </label>
+      <fieldset class="grid min-w-0 gap-2">
+        <legend class="font-display text-[15px] font-semibold">เลือกหน่วยงานที่จะย้าย <span id="mCount" class="text-[14px] font-normal text-ink2" aria-live="polite"></span></legend>
+        <label class="block">
+          <span class="sr-only">ค้นหาหน่วยงานในรายการ</span>
+          <input id="mFilter" type="search" maxlength="100" autocomplete="off" placeholder="ค้นหาหน่วยงาน" class="field h-11 w-full rounded-2xl px-4 text-[15px]">
+        </label>
+        <ul id="mList" class="scroll-thin grid max-h-[40dvh] gap-0.5 overflow-y-auto rounded-2xl border border-line p-1.5"></ul>
+      </fieldset>
+      <p id="mErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="moveClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="moveSave" type="submit" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg">ย้าย</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="dropDlg" class="desk-dlg w-[min(440px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="dropTitle" aria-describedby="dropText">
     <div class="grid gap-3 p-5 sm:p-6">
       <h2 id="dropTitle" class="font-display text-[21px] font-semibold">ลบหมายเลขนี้?</h2>
@@ -149,7 +194,7 @@
     const { toast } = DESK;
     const $ = (s) => document.querySelector(s);
     const FIELDS = { unitName: '#fUnit', parentId: '#fParent', phoneNumber: '#fPhone', internalNumber: '#fInternal' };
-    const state = { items: [], matches: null, open: new Set(), canEdit: false, asked: 0, editing: null, dropping: null, checked: false };
+    const state = { items: [], matches: null, open: new Set(), canEdit: false, asked: 0, editing: null, dropping: null, checked: false, picked: new Set() };
     const INDENT = ['', 'pl-5', 'pl-10'];
 
     // Everything from the server goes in as text nodes, never as HTML
@@ -285,8 +330,7 @@
       state.canEdit = r.canEdit;
       $('#editUntil').textContent = r.editUntil ? `คุณแก้ไขสมุดโทรศัพท์ได้ถึง ${DESK.day(new Date(r.editUntil).getTime() - 1000)}` : '';
       $('#editUntil').hidden = !r.editUntil;
-      $('#add').hidden = !r.canEdit;
-      $('#import').hidden = !r.canEdit;
+      for (const b of ['#add', '#newGroup', '#move', '#import']) $(b).hidden = !r.canEdit;
       $('#replaceBox').hidden = !r.canReplace;
     }
 
@@ -438,6 +482,80 @@
       } finally { btn.disabled = false; }
     }
 
+    // ---- Groups: a group is a หน่วยงานหลัก with a name alone; several units move into one at once ----
+    function openGroup() {
+      $('#gName').value = '';
+      $('#gName').removeAttribute('aria-invalid');
+      $('#gErr').hidden = true;
+      $('#groupDlg').showModal();
+    }
+    async function saveGroup(ev) {
+      ev.preventDefault();
+      const btn = $('#groupSave');
+      btn.disabled = true;
+      $('#gErr').hidden = true;
+      try {
+        await api('/phonebook', { method: 'POST', body: { unitName: $('#gName').value } });
+        $('#groupDlg').close();
+        toast('สร้างกลุ่มแล้ว');
+        await load();
+        $('#list').focus();
+      } catch (err) {
+        $('#gErr').textContent = Object.values(err.details || {})[0] || err.message;
+        $('#gErr').hidden = false;
+        $('#gName').setAttribute('aria-invalid', 'true');
+        $('#gName').focus();
+        if (err.status === 403) load();
+      } finally { btn.disabled = false; }
+    }
+
+    const pickCount = () => { $('#mCount').textContent = `(เลือกแล้ว ${state.picked.size})`; };
+    function pick(id, on) {
+      if (on) state.picked.add(id); else state.picked.delete(id);
+      pickCount();
+    }
+    // Every unit in tree order, both as a group to move into and as a unit to tick
+    function openMove() {
+      state.picked = new Set();
+      const tree = under(children(), '');
+      $('#mTarget').replaceChildren(el('option', { value: '' }, 'เลือกกลุ่ม'), el('option', { value: 'none' }, 'ไม่มีกลุ่ม (เป็นหน่วยงานหลัก)'),
+        ...tree.map(([k, depth]) => el('option', { value: k.id }, `${'— '.repeat(depth)}${k.unitName}`)));
+      $('#mList').replaceChildren(...tree.map(([k, depth]) => el('li', { 'data-name': k.unitName.toLowerCase(), class: INDENT[Math.min(depth, 2)] },
+        el('label', { class: 'hover-fill t-quick flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 py-1' },
+          el('input', { type: 'checkbox', class: 'h-5 w-5 shrink-0 accent-[rgb(var(--royal))]', onchange: (ev) => pick(k.id, ev.target.checked) }),
+          el('span', { class: 'text-[15px] leading-[1.6] [overflow-wrap:anywhere]' }, k.unitName)))));
+      $('#mFilter').value = '';
+      $('#mErr').hidden = true;
+      pickCount();
+      $('#moveDlg').showModal();
+    }
+    function filterMove() {
+      const q = $('#mFilter').value.trim().toLowerCase();
+      for (const li of $('#mList').children) li.hidden = Boolean(q) && !li.dataset.name.includes(q);
+    }
+    async function saveMove(ev) {
+      ev.preventDefault();
+      const target = $('#mTarget').value;
+      const fail = (text, field) => { $('#mErr').textContent = text; $('#mErr').hidden = false; field?.focus(); };
+      if (!target) return fail('เลือกกลุ่มที่จะย้ายไป', $('#mTarget'));
+      if (!state.picked.size) return fail('เลือกหน่วยงานที่จะย้ายอย่างน้อย 1 หน่วยงาน', $('#mFilter'));
+      const btn = $('#moveSave');
+      btn.disabled = true;
+      $('#mErr').hidden = true;
+      try {
+        const r = await api('/phonebook/move', { method: 'POST', body: { ids: [...state.picked], parentId: target === 'none' ? null : target } });
+        $('#moveDlg').close();
+        // Open the group, so the units just moved show
+        if (target !== 'none') state.open.add(target);
+        toast(r.moved ? `ย้ายแล้ว ${r.moved} หน่วยงาน` : 'หน่วยงานที่เลือกอยู่ในกลุ่มนี้แล้ว');
+        await load();
+        $('#list').focus();
+      } catch (err) {
+        fail(err.message);
+        if (err.status === 403) load();
+      } finally { btn.disabled = false; }
+    }
+
     // ---- Start ----
     (async () => {
       const me = await window.ME;
@@ -463,6 +581,13 @@
       $('#fileClose').addEventListener('click', () => $('#fileDlg').close());
       $('#dropClose').addEventListener('click', () => $('#dropDlg').close());
       $('#dropGo').addEventListener('click', drop);
+      $('#newGroup').addEventListener('click', openGroup);
+      $('#groupForm').addEventListener('submit', saveGroup);
+      $('#groupClose').addEventListener('click', () => $('#groupDlg').close());
+      $('#move').addEventListener('click', openMove);
+      $('#mFilter').addEventListener('input', filterMove);
+      $('#moveForm').addEventListener('submit', saveMove);
+      $('#moveClose').addEventListener('click', () => $('#moveDlg').close());
     })();
   </script>
 </body>

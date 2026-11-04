@@ -290,6 +290,56 @@ describe('telephone numbers', () => {
   });
 });
 
+describe('moving units into a group', () => {
+  const move = (ids, parentId, who = pr) => who.call('POST', '/api/phonebook/move', { ids, parentId });
+  const parentOf = async (id) => (await one('select parent_id from phonebook where id = $1', [id])).parent_id;
+  test('a new group is a name alone; several units move in at once and back out, each in audit_log', async () => {
+    const group = await create({ unitName: unit('กลุ่ม'), phoneNumber: null, internalNumber: null, note: null });
+    const [a, b] = [await create(), await create()];
+    const r = await move([a.id, b.id], group.id);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.moved, 2);
+    assert.deepEqual([await parentOf(a.id), await parentOf(b.id)], [group.id, group.id]);
+    assert.deepEqual([await logged('phonebook.move', a.id), await logged('phonebook.move', b.id)], [1, 1]);
+    assert.equal((await move([a.id, b.id], group.id)).body.moved, 0, 'already there: nothing to move or log');
+    assert.equal(await logged('phonebook.move', a.id), 1);
+    assert.equal((await move([a.id], null)).body.moved, 1);
+    assert.equal(await parentOf(a.id), null);
+  });
+  test('only those who may edit move units, even with the ids', async () => {
+    const [group, a] = [await create(), await create()];
+    for (const who of [student, staff, secretary, executive, external]) assert.equal((await move([a.id], group.id, who)).status, 403);
+    assert.equal((await move([a.id], group.id, anon)).status, 401);
+    assert.equal(await parentOf(a.id), null);
+  });
+  test('one unit that cannot move stops them all', async () => {
+    const group = await create();
+    const [a, heading] = [await create(), await create({ phoneNumber: null, internalNumber: null })];
+    let r = await move([a.id, heading.id], group.id);
+    assert.equal(r.status, 400);
+    assert.ok(r.body.error.includes(heading.unitName), 'names the unit with no number');
+    assert.equal(await parentOf(a.id), null);
+
+    const sub = await create({ parentId: a.id });
+    r = await move([a.id], sub.id);
+    assert.equal(r.status, 400, 'not under its own sub-unit');
+    assert.equal((await move([group.id], group.id)).status, 400, 'not under itself');
+
+    const taken = await create({ parentId: group.id });
+    const same = await create({ unitName: taken.unitName });
+    r = await move([a.id, same.id], group.id);
+    assert.equal(r.status, 400, 'a name used once under the same group');
+    assert.equal(await parentOf(a.id), null);
+  });
+  test('unknown ids are 404; bad input is 400', async () => {
+    const a = await create();
+    assert.equal((await move([a.id, '00000000-0000-4000-8000-000000000000'], null)).status, 404);
+    assert.equal((await move([a.id], '00000000-0000-4000-8000-000000000000')).status, 400);
+    for (const ids of [[], 'x', ['nope'], [a.id, a.id], null]) assert.equal((await move(ids, null)).status, 400, JSON.stringify(ids));
+    assert.equal((await move([a.id], 'nope')).status, 400);
+  });
+});
+
 describe('importing units under a หน่วยงานหลัก', () => {
   const GROUPED = ['หน่วยงานหลัก', ...HEAD];
   test('a new หน่วยงานหลัก and its units come in together; a unit imported before moves under it', async () => {
