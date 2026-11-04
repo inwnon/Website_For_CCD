@@ -27,7 +27,7 @@
     .st-cancelled { background: rgb(var(--surface-2)); color: rgb(var(--ink-2)); }
     .seg[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=79897f2e40">
+  <link rel="stylesheet" href="/assets/app.css?v=f4e62a4603">
   <script src="thai-date.js" defer></script>
 </head>
 <body class="app">
@@ -39,6 +39,22 @@
 
     <main id="main" class="scroll-thin flex min-h-0 min-w-0 flex-1 p-2 sm:p-3 lg:overflow-y-auto lg:pl-0">
       <section id="gate" class="m-auto flex max-w-[520px] flex-col items-center gap-4 rounded-card border border-line bg-shell p-8 text-center shadow-float" hidden></section>
+
+      <!-- University staff without the right: ask PR for it -->
+      <section id="ask" class="m-auto grid w-full max-w-[560px] gap-4 rounded-card border border-line bg-shell p-6 shadow-float sm:p-8" aria-labelledby="askTitle" hidden>
+        <h1 id="askTitle" class="font-display tight text-[24px] font-bold text-royal">ขอสิทธิ์ส่งคำขอใช้บริการ</h1>
+        <p class="text-[15px] leading-[1.7] text-ink2">บุคลากรของมหาวิทยาลัยขอให้ทีม PR ถ่ายภาพ ถ่ายวิดีโอ หรือเขียนข่าวผ่านหน้านี้ได้ เมื่อทีม PR อนุมัติสิทธิ์แล้ว</p>
+        <div id="askState" class="grid gap-1 rounded-2xl bg-surface2 px-4 py-3 text-[15px] leading-[1.7]" role="status" hidden></div>
+        <form id="askForm" class="grid gap-4" novalidate hidden>
+          <label class="grid gap-1.5">
+            <span class="font-display text-[15px] font-semibold">เหตุผลหรือหน่วยงาน <span class="font-normal text-ink2">(ไม่บังคับ)</span></span>
+            <textarea id="fReason" rows="3" maxlength="500" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
+          </label>
+          <p id="askErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+          <button id="askGo" type="submit" class="bg-grad press t-spring h-12 justify-self-start rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60 max-sm:w-full">ส่งคำขอสิทธิ์</button>
+        </form>
+        <a href="index.html" class="press t-quick inline-flex min-h-11 items-center justify-self-start font-display text-[15px] font-semibold text-royal hover:underline">กลับหน้าเว็บไซต์</a>
+      </section>
 
       <div id="app" class="grid w-full content-start gap-3" hidden>
         <header class="flex flex-wrap items-center gap-3 rounded-card bg-shell p-4 shadow-raised sm:p-5">
@@ -61,6 +77,13 @@
         <section class="rounded-card bg-shell px-2 py-1 shadow-raised sm:px-3" aria-label="รายการคำขอ">
           <ul id="list" tabindex="-1"></ul>
           <p id="empty" class="py-10 text-center text-[15px] text-ink2" hidden></p>
+        </section>
+
+        <!-- PR and admin: staff asking to use this page; admins also see who has it -->
+        <section id="access" class="grid gap-2 rounded-card bg-shell p-4 shadow-raised sm:p-5" aria-labelledby="accessTitle" hidden>
+          <h2 id="accessTitle" class="font-display text-[19px] font-semibold">สิทธิ์ส่งคำขอของบุคลากร</h2>
+          <ul id="accessList" class="grid" tabindex="-1"></ul>
+          <p id="accessEmpty" class="py-4 text-[15px] text-ink2" hidden>ไม่มีคำขอสิทธิ์ที่รอพิจารณา</p>
         </section>
       </div>
     </main>
@@ -184,6 +207,25 @@
     </div>
   </dialog>
 
+  <dialog id="accDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="accTitle" aria-describedby="accName">
+    <form id="accForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <div>
+        <h2 id="accTitle" class="font-display text-[21px] font-semibold"></h2>
+        <p id="accName" class="mt-1 text-[14px] font-medium [overflow-wrap:anywhere]"></p>
+      </div>
+      <label id="accNoteBox" class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">เหตุผล</span>
+        <textarea id="fAccNote" rows="3" maxlength="1000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]" aria-describedby="accHint"></textarea>
+        <span id="accHint" class="text-[14px] text-ink2">ผู้ขอจะเห็นเหตุผลนี้</span>
+      </label>
+      <p id="accErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="accClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="accGo" type="submit" class="press t-spring h-11 rounded-2xl bg-brand px-6 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 disabled:opacity-60 dark:text-bg"></button>
+      </div>
+    </form>
+  </dialog>
+
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
   <script src="arrivals.js"></script>
@@ -195,7 +237,7 @@
     const TYPES = { photo: 'ถ่ายภาพ', video: 'ถ่ายวิดีโอ', news: 'เขียนข่าว', other: 'อื่น ๆ' };
     const STATUS = { pending: 'รอพิจารณา', approved: 'อนุมัติแล้ว', rejected: 'ไม่อนุมัติ', cancelled: 'ยกเลิกแล้ว' };
     const FIELDS = { title: '#fTitle', type: '#fType', location: '#fLocation', startAt: '#fStart', endAt: '#fEnd' };
-    const state = { items: [], status: '', asked: 0, open: null, reviews: false, submits: false, who: null };
+    const state = { items: [], status: '', asked: 0, open: null, reviews: false, admin: false, submits: false, who: null, access: [], acc: null };
 
     // Everything from the server goes in as text nodes, never as HTML
     function el(tag, props = {}, ...kids) {
@@ -343,13 +385,116 @@
       $('#offDlg').showModal();
     }
 
+    // ---- Staff without the right: ask for it (replaces the gate) ----
+    function paintAsk(a, canAsk) {
+      const box = $('#askState');
+      box.hidden = !a;
+      if (a?.status === 'pending') box.replaceChildren(el('p', { class: 'font-display font-semibold' }, `ส่งคำขอสิทธิ์แล้วเมื่อ ${dayTime(a.askedAt)} รอทีม PR พิจารณา`));
+      if (a?.status === 'rejected') {
+        box.replaceChildren(el('p', { class: 'font-display font-semibold' }, `ทีม PR ไม่อนุมัติเมื่อ ${dayTime(a.reviewedAt)}`),
+          el('p', { class: '[overflow-wrap:anywhere] whitespace-pre-line' }, `เหตุผล: ${a.reviewNote}`), el('p', { class: 'text-ink2' }, 'ส่งคำขอใหม่ได้อีกครั้ง'));
+      }
+      $('#askForm').hidden = !canAsk;
+    }
+    async function showAsk() {
+      let mine;
+      try { mine = await api('/request-access'); } catch { return; }
+      if (!mine.canAsk && mine.access?.status !== 'pending') return;
+      $('#gate').hidden = true;
+      $('#ask').hidden = false;
+      paintAsk(mine.access, mine.canAsk);
+      $('#askForm').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const btn = $('#askGo');
+        btn.disabled = true;
+        $('#askErr').hidden = true;
+        try {
+          const r = await api('/request-access', { method: 'POST', body: { reason: $('#fReason').value } });
+          paintAsk(r.access, false);
+          toast('ส่งคำขอสิทธิ์แล้ว ทีม PR จะพิจารณาและแจ้งผลให้ทราบ');
+        } catch (err) {
+          $('#askErr').textContent = err.message;
+          $('#askErr').hidden = false;
+        } finally { btn.disabled = false; }
+      });
+    }
+
+    // ---- PR and admin: staff asking for the right; admins also revoke it ----
+    async function loadAccess() {
+      try {
+        const [waiting, given] = await Promise.all([api('/request-access/list?status=pending'), state.admin ? api('/request-access/list?status=approved') : { items: [] }]);
+        state.access = [...waiting.items, ...given.items];
+        $('#accessList').replaceChildren(...state.access.map(accessRow));
+        $('#access').hidden = !state.access.length;
+      } catch (err) { toast(err.message, true); }
+    }
+    function accessRow(a) {
+      const pending = a.status === 'pending';
+      const btn = (cls, label, onclick) => el('button', { type: 'button', class: `press h-11 rounded-2xl px-5 font-display text-[15px] hover:-translate-y-0.5 ${cls}`, onclick }, label);
+      return el('li', { class: 'flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line py-3 last:border-b-0' },
+        el('span', { class: 'mr-auto grid min-w-0 flex-1 basis-[240px] gap-0.5' },
+          el('span', { class: 'font-display text-[16px] font-semibold [overflow-wrap:anywhere]' }, a.name || a.email),
+          el('span', { class: 'text-[14px] text-ink2 [overflow-wrap:anywhere]' }, pending ? `${a.email} · ขอเมื่อ ${dayTime(a.askedAt)}` : `${a.email} · มีสิทธิ์แล้ว อนุมัติโดย ${a.reviewer || 'ทีม PR'} เมื่อ ${dayTime(a.reviewedAt)}`),
+          pending && a.reason ? el('span', { class: 'text-[14px] [overflow-wrap:anywhere] whitespace-pre-line' }, `เหตุผล: ${a.reason}`) : null),
+        el('span', { class: 'flex flex-wrap gap-2' }, pending ? [
+          btn('hover-fill t-quick border border-line font-medium', 'ไม่อนุมัติ', () => openAcc(a, 'reject')),
+          btn('bg-grad t-spring font-semibold text-white shadow-glow', 'อนุมัติ', (ev) => approveAccess(a, ev.currentTarget)),
+        ] : btn('hover-fill t-quick border border-line font-medium text-brand', 'ถอนสิทธิ์', () => openAcc(a, 'revoke'))));
+    }
+    async function approveAccess(a, btn) {
+      btn.disabled = true;
+      try {
+        await api(`/request-access/${a.id}/approve`, { method: 'POST', body: {} });
+        toast(`ให้สิทธิ์ ${a.name || a.email} แล้ว`);
+        await loadAccess();
+        $('#accessList').focus();
+      } catch (err) {
+        toast(err.message, true);
+        btn.disabled = false;
+        if (err.status === 409) loadAccess();
+      }
+    }
+    function openAcc(a, mode) {
+      state.acc = { a, mode };
+      $('#accTitle').textContent = mode === 'reject' ? 'ไม่อนุมัติคำขอสิทธิ์นี้?' : 'ถอนสิทธิ์ของบัญชีนี้?';
+      $('#accName').textContent = `${a.name || a.email} (${a.email})`;
+      $('#accNoteBox').hidden = mode !== 'reject';
+      $('#fAccNote').value = '';
+      $('#accGo').textContent = mode === 'reject' ? 'ไม่อนุมัติ' : 'ถอนสิทธิ์';
+      $('#accErr').hidden = true;
+      $('#accDlg').showModal();
+    }
+    async function decideAcc(ev) {
+      ev.preventDefault();
+      const { a, mode } = state.acc;
+      const btn = $('#accGo');
+      btn.disabled = true;
+      $('#accErr').hidden = true;
+      try {
+        await api(`/request-access/${a.id}/${mode}`, { method: 'POST', body: mode === 'reject' ? { note: $('#fAccNote').value } : {} });
+        $('#accDlg').close();
+        toast(mode === 'reject' ? 'แจ้งผลไม่อนุมัติแล้ว' : 'ถอนสิทธิ์แล้ว');
+        await loadAccess();
+        $('#accessList').focus();
+      } catch (err) {
+        $('#accErr').textContent = Object.values(err.details || {})[0] || err.message;
+        $('#accErr').hidden = false;
+        if (err.status === 409) loadAccess();
+      } finally { btn.disabled = false; }
+    }
+
     // ---- Start ----
     (async () => {
       const me = await window.ME;
       const user = await DESK.start({ page: 'requests', allow: me.modules?.includes('requests') ? [me.user.role] : ['pr', 'admin'] });
-      if (!user) return;
+      if (!user) {
+        if (me.user) showAsk();
+        return;
+      }
       state.reviews = user.role === 'pr' || user.role === 'admin';
-      state.submits = user.role === 'secretary' || user.role === 'admin';
+      state.admin = user.role === 'admin';
+      // Secretaries, and staff PR let in; an executive only reads
+      state.submits = state.admin || (!state.reviews && user.role !== 'executive');
       if (state.reviews) state.status = 'pending';
       $('#fType').replaceChildren(...Object.entries(TYPES).map(([k, l]) => el('option', { value: k }, l)));
       $('#add').hidden = !state.submits;
@@ -375,7 +520,10 @@
         act($('#noGo'), $('#noErr'), $('#noDlg'), 'reject', { note: $('#fNoNote').value }, 'แจ้งผลไม่อนุมัติแล้ว');
       });
       $('#offGo').addEventListener('click', () => act($('#offGo'), $('#offErr'), $('#offDlg'), 'cancel', {}, 'ยกเลิกคำขอแล้ว'));
+      $('#accForm').addEventListener('submit', decideAcc);
+      $('#accClose').addEventListener('click', () => $('#accDlg').close());
 
+      if (state.reviews) loadAccess();
       await load();
       const id = new URLSearchParams(location.search).get('id');
       if (id) {

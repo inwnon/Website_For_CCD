@@ -14,7 +14,7 @@ const AXE = readFileSync(join(ROOT, 'node_modules', 'axe-core', 'axe.min.js'), '
 const PAGES = [
   ['index.html', null], ['search.html', null], ['contact.html', null], ['privacy.html', null], ['login.html', null], ['status.html', null], ['404.html', null],
   ['submit.html', 'staff'], ['inbox.html', 'pr'], ['pr.html', 'pr'], ['pr-news.html', 'pr'], ['pr-import.html', 'pr'], ['pr-collections.html', 'pr'],
-  ['report.html', 'pr'], ['calendar.html', 'pr'], ['requests.html', 'secretary'], ['documents.html', 'pr'], ['phonebook.html', 'pr'], ['chanon.html', 'admin'],
+  ['report.html', 'pr'], ['calendar.html', 'pr'], ['requests.html', 'secretary'], ['requests.html', 'staff'], ['requests.html', 'pr'], ['documents.html', 'pr'], ['phonebook.html', 'pr'], ['chanon.html', 'admin'],
 ];
 const CHROMES = [
   process.env.CHROME_PATH,

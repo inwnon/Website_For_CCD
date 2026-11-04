@@ -107,7 +107,8 @@ export async function loadUser(req, res, next) {
   if (token) {
     req.sessionId = hash(token);
     req.user = await one(
-      `select u.*, t.unit coord_unit, s.acting_role, s.expires_at session_ends from sessions s join users u on u.id = s.user_id
+      `select u.*, t.unit coord_unit, s.acting_role, s.expires_at session_ends,
+         exists (select 1 from request_access a where a.email = u.email and a.status = 'approved') requester from sessions s join users u on u.id = s.user_id
        left join pr_team t on t.email = u.email and t.role = 'coordinator'
        where s.id = $1 and s.expires_at > now()`,
       [req.sessionId],
