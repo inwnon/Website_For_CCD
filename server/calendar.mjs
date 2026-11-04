@@ -6,14 +6,21 @@
 // - PUT  /api/calendar/events/:id              the same fields
 // - POST /api/calendar/events/:id/cancel       the row stays, marked cancelled
 // - GET  /api/calendar/people?q=               who can be assigned
+// - POST   /api/calendar/events/:id/banners    multipart, one picture in field "file" (JPG, PNG or WebP, 10 MB); at most 2 per event
+// - DELETE /api/calendar/events/:id/banners/:bannerId
+// - GET    /api/calendar/banners/:bannerId     the picture: anyone for a public scheduled event, otherwise whoever may see the event
 // A student sees only the events they are on. internal_note is for PR and admin; cancelled events too, in the list.
 // PR and admin change every event, a secretary only those they created.
+import { extname, join } from 'node:path';
 import { Router } from 'express';
+import multer from 'multer';
 import { requireModule, rightOf } from './access.mjs';
 import { audit } from './audit.mjs';
 import { one, query, tx } from './db.mjs';
+import { UPLOAD_DIR, removeStored, removeTemp, sendMedia, storeBanner } from './files.mjs';
 import { HttpError, str } from './http.mjs';
 import { eventAssigned, eventCancelled } from './notify.mjs';
+import { limit, matchesName } from './security.mjs';
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -21,12 +28,18 @@ const TYPES = ['meeting', 'activity', 'media', 'other'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_RANGE_DAYS = 400;
 const MAX_ASSIGNEES = 30;
+const MAX_BANNERS = 2;
+const MB = 1024 * 1024;
+const MAX_BANNER = 10 * MB;
+const BANNER_EXT = ['.jpg', '.jpeg', '.png', '.webp'];
 
 const edits = (right) => right === 'all' || right === 'edit';
 // A secretary adds events and changes only those they made; internal notes stay with PR and admin
 const manages = (right, e, userId) => edits(right) || (right === 'create' && e.created_by === userId);
 const assignable = (u) => ['all', 'edit', 'own'].includes(rightOf(u, 'calendar'));
 const writer = requireModule('calendar', 'all', 'edit', 'create');
+const upload = multer({ dest: join(UPLOAD_DIR, 'tmp'), limits: { fileSize: MAX_BANNER, files: 1, fields: 0 }, defParamCharset: 'utf8' }).single('file');
+const uploads = limit('event-banners', { max: 60, windowMs: 10 * 60 * 1000 });
 
 export const router = Router();
 
@@ -51,12 +64,14 @@ async function assigneesOf(ids) {
     where a.event_id = any($1) order by u.name`, [ids])).rows;
   return rows;
 }
-function eventOut(e, right, people, userId) {
+const bannersOf = async (ids) => (await query('select id, event_id from event_banners where event_id = any($1) order by created_at, id', [ids])).rows;
+const bannerList = (banners, eventId) => banners.filter((b) => b.event_id === eventId).map((b) => ({ id: b.id, url: `/api/calendar/banners/${b.id}` }));
+function eventOut(e, right, people, userId, banners) {
   const mine = people.find((p) => p.event_id === e.id && p.user_id === userId);
   const canEdit = manages(right, e, userId);
   return {
     id: e.id, title: e.title, type: e.type, location: e.location, startAt: e.start_at, endAt: e.end_at, status: e.status,
-    visibility: e.visibility, description: e.description, myDuty: mine?.duty ?? null, canEdit,
+    visibility: e.visibility, description: e.description, myDuty: mine?.duty ?? null, canEdit, banners: bannerList(banners, e.id),
     assignees: people.filter((p) => p.event_id === e.id).map((p) => ({ ...(canEdit ? { id: p.user_id } : {}), name: p.name, duty: p.duty })),
     ...(edits(right) ? { internalNote: e.internal_note, createdAt: e.created_at, updatedAt: e.updated_at } : {}),
   };
@@ -111,14 +126,51 @@ export async function createEvent(c, d, user) {
 }
 const respond = async (res, req, e, status = 200) => {
   const right = rightOf(req.user, 'calendar');
-  res.status(status).json({ event: eventOut(e, right, await assigneesOf([e.id]), req.user.id) });
+  res.status(status).json({ event: eventOut(e, right, await assigneesOf([e.id]), req.user.id, await bannersOf([e.id])) });
 };
+// May this user see the event at all (the same rule as the list and GET /calendar/events/:id)
+async function sees(user, e) {
+  const right = rightOf(user, 'calendar');
+  if (!right) return false;
+  if (right !== 'own') return edits(right) || e.status === 'scheduled';
+  return !!(await one('select 1 from event_assignments where event_id = $1 and user_id = $2', [e.id, user.id]));
+}
+// The event, locked, for a change of its banners by someone who may change it
+async function changing(c, id, user) {
+  const was = (await c.query('select * from events where id = $1 for update', [id])).rows[0];
+  if (!was) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+  if (!manages(rightOf(user, 'calendar'), was, user.id)) throw new HttpError(403, 'แก้ไขได้เฉพาะกิจกรรมที่คุณสร้าง');
+  if (was.status === 'cancelled') throw new HttpError(409, 'กิจกรรมนี้ยกเลิกแล้ว แก้ไขไม่ได้');
+  return was;
+}
+// Parses the upload and checks the picture; field errors under `banner`
+function receive(req, res, next) {
+  upload(req, res, async (err) => {
+    const f = req.file;
+    const fail = async (status, text) => {
+      if (f) await removeTemp([f]);
+      next(new HttpError(status, text, { banner: text }));
+    };
+    try {
+      if (err) return await fail(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400, err.code === 'LIMIT_FILE_SIZE' ? `ภาพใหญ่เกิน ${MAX_BANNER / MB} MB` : 'อัปโหลดไฟล์ไม่สำเร็จ');
+      if (!f) return await fail(400, 'เลือกภาพแบนเนอร์');
+      if (!BANNER_EXT.includes(extname(f.originalname).toLowerCase())) return await fail(400, 'รับเฉพาะภาพ JPG, PNG และ WebP');
+      // The content must be what the name says (a renamed .exe is not a .png)
+      if (!(await matchesName(f.path, f.originalname))) return await fail(400, `${f.originalname} ไม่ใช่ไฟล์ภาพจริง ตรวจไฟล์แล้วแนบใหม่`);
+      next();
+    } catch (e) {
+      if (f) await removeTemp([f]);
+      next(e);
+    }
+  });
+}
 
 router.get('/calendar/public', async (req, res) => {
   const { from, to } = range(req.query);
-  const rows = (await query(`select title, start_at, end_at, location from events
+  const rows = (await query(`select id, title, start_at, end_at, location from events
     where visibility = 'public' and status = 'scheduled' and start_at < $2 and end_at >= $1 order by start_at limit 500`, [from, to])).rows;
-  res.json({ items: rows.map((e) => ({ title: e.title, startAt: e.start_at, endAt: e.end_at, location: e.location })) });
+  const banners = rows.length ? await bannersOf(rows.map((e) => e.id)) : [];
+  res.json({ items: rows.map((e) => ({ title: e.title, startAt: e.start_at, endAt: e.end_at, location: e.location, banners: bannerList(banners, e.id) })) });
 });
 
 // Email addresses are for PR and admin: a secretary finds people by name
@@ -139,8 +191,9 @@ router.get('/calendar/events', requireModule('calendar'), async (req, res) => {
       and ($3::boolean or e.status = 'scheduled')
       and ($4::uuid is null or exists (select 1 from event_assignments a where a.event_id = e.id and a.user_id = $4))
     order by e.start_at limit 500`, [from, to, edits(right), right === 'own' ? req.user.id : null])).rows;
-  const people = rows.length ? await assigneesOf(rows.map((e) => e.id)) : [];
-  res.json({ items: rows.map((e) => eventOut(e, right, people, req.user.id)) });
+  const ids = rows.map((e) => e.id);
+  const [people, banners] = rows.length ? await Promise.all([assigneesOf(ids), bannersOf(ids)]) : [[], []];
+  res.json({ items: rows.map((e) => eventOut(e, right, people, req.user.id, banners)) });
 });
 
 router.get('/calendar/events/:id', requireModule('calendar'), async (req, res) => {
@@ -194,4 +247,55 @@ router.post('/calendar/events/:id/cancel', writer, async (req, res) => {
     return row;
   });
   await respond(res, req, e);
+});
+
+router.post('/calendar/events/:id/banners', writer, uploads, receive, async (req, res) => {
+  const f = req.file;
+  let stored = null;
+  try {
+    if (!UUID.test(req.params.id)) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+    // Checked before the picture is decoded, so nobody makes the server work for an event they cannot change
+    await tx((c) => changing(c, req.params.id, req.user));
+    stored = await storeBanner(req.params.id, f);
+    const e = await tx(async (c) => {
+      const was = await changing(c, req.params.id, req.user);
+      const { n } = (await c.query('select count(*)::int n from event_banners where event_id = $1', [was.id])).rows[0];
+      if (n >= MAX_BANNERS) throw new HttpError(409, `แนบแบนเนอร์ได้ไม่เกิน ${MAX_BANNERS} ภาพ`, { banner: `แนบแบนเนอร์ได้ไม่เกิน ${MAX_BANNERS} ภาพ` });
+      await c.query('insert into event_banners (id, event_id, file_path, created_by) values ($1, $2, $3, $4)', [stored.id, was.id, stored.path, req.user.id]);
+      await audit(c, req.user, 'event.banner.add', was.id, `แนบแบนเนอร์กิจกรรม ${was.title}`, { banner: stored.id });
+      return was;
+    });
+    stored = null;
+    await respond(res, req, e, 201);
+  } finally {
+    if (stored) await removeStored(stored.path);
+    await removeTemp([f]);
+  }
+});
+
+router.delete('/calendar/events/:id/banners/:bannerId', writer, async (req, res) => {
+  if (!UUID.test(req.params.id) || !UUID.test(req.params.bannerId)) throw new HttpError(404, 'ไม่พบแบนเนอร์นี้');
+  let path = null;
+  const e = await tx(async (c) => {
+    const was = await changing(c, req.params.id, req.user);
+    path = (await c.query('delete from event_banners where id = $1 and event_id = $2 returning file_path', [req.params.bannerId, was.id])).rows[0]?.file_path;
+    if (!path) throw new HttpError(404, 'ไม่พบแบนเนอร์นี้');
+    await audit(c, req.user, 'event.banner.remove', was.id, `ลบแบนเนอร์กิจกรรม ${was.title}`, { banner: req.params.bannerId });
+    return was;
+  });
+  await removeStored(path);
+  await respond(res, req, e);
+});
+
+// Revalidated on every view (ETag), so a picture stops showing as soon as its event is no longer public
+router.get('/calendar/banners/:id', async (req, res) => {
+  if (!UUID.test(req.params.id)) throw new HttpError(404, 'ไม่พบแบนเนอร์นี้');
+  const b = await one('select b.file_path, e.* from event_banners b join events e on e.id = b.event_id where b.id = $1', [req.params.id]);
+  if (!b) throw new HttpError(404, 'ไม่พบแบนเนอร์นี้');
+  const open = b.visibility === 'public' && b.status === 'scheduled';
+  if (!open) {
+    if (!req.user) throw new HttpError(401, 'กรุณาเข้าสู่ระบบ');
+    if (!(await sees(req.user, b))) throw new HttpError(403, 'บัญชีนี้ไม่มีสิทธิ์ดูแบนเนอร์นี้');
+  }
+  sendMedia(res, b.file_path, open ? 'public, no-cache' : 'private, no-cache');
 });

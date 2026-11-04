@@ -2,6 +2,7 @@
 // Needs auth.js (window.api). Dates need thai-date.js. The dialogs are added to the page on first use.
 // EventForm.open({ event, day, showNote, notify, onSaved }): event is null for a new one; day (YYYY-MM-DD) is where a new one starts;
 //   showNote offers the internal note (PR and admin); notify(text) reports success; onSaved(event) runs after saving.
+//   Banners picked in the form are uploaded (and removed ones deleted) right after the event is saved.
 // EventForm.cancel({ event, notify, onDone }): asks first, then cancels.
 // EventForm.picker({ list, search, found, onError }): the people picker alone, for requests.html (selectors of its two <ul>s and <input>).
 // Rights are the server's: this only offers what it was told to.
@@ -9,6 +10,9 @@
   const TZ = 'Asia/Bangkok';
   const TYPES = { meeting: 'ประชุม', activity: 'กิจกรรม', media: 'ถ่ายภาพ/วิดีโอ', other: 'อื่น ๆ' };
   const ROLES = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ' };
+  const MAX_BANNERS = 2;
+  const MAX_BANNER_BYTES = 10 * 1024 * 1024;
+  const BANNER_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   const CSS = `
     .ef-dlg::backdrop { background: rgb(10 11 32 / .55); }
     .ef-field { border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
@@ -57,13 +61,21 @@
       <fieldset class="grid gap-1.5">
         <legend class="${LABEL}">ใครเห็นกิจกรรมนี้</legend>
         <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="visibility" value="internal" class="h-5 w-5" checked>ภายในทีมเท่านั้น</label>
-        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="visibility" value="public" class="h-5 w-5">สาธารณะ แสดงชื่อ เวลา และสถานที่บนหน้าแรก</label>
+        <label class="flex min-h-11 items-center gap-3 text-[15px]"><input type="radio" name="visibility" value="public" class="h-5 w-5">สาธารณะ แสดงชื่อ เวลา สถานที่ และแบนเนอร์บนหน้าแรก</label>
         <span data-err="visibility" class="${ERROR}" hidden></span>
       </fieldset>
       <label class="grid gap-1.5">
         <span class="${LABEL}">รายละเอียด</span>
         <textarea id="fDescription" rows="3" maxlength="2000" class="ef-field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
       </label>
+      <section aria-labelledby="bnTitle" aria-describedby="bnHint" class="grid gap-2">
+        <h3 id="bnTitle" class="${LABEL}">แบนเนอร์กำหนดการ</h3>
+        <p id="bnHint" class="-mt-1 text-[13px] text-ink2">ภาพ JPG, PNG หรือ WebP ไม่เกิน ${MAX_BANNERS} ภาพ ภาพละไม่เกิน 10 MB แสดงคู่กับกิจกรรมให้ทุกคนที่เห็นกิจกรรมนี้</p>
+        <ul id="bnList" class="grid grid-cols-2 gap-2 empty:hidden"></ul>
+        <input id="fBanner" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+        <button id="bnPick" type="button" class="hover-fill press t-quick h-11 justify-self-start rounded-2xl border border-line px-4 font-display text-[15px] font-medium hover:-translate-y-0.5 disabled:opacity-60">เลือกภาพแบนเนอร์</button>
+        <span data-err="banner" class="${ERROR}" role="alert" hidden></span>
+      </section>
       <label id="fNoteBox" class="grid gap-1.5">
         <span class="${LABEL}">โน้ตภายใน <span class="font-sans text-[13px] font-normal text-ink2">(เห็นเฉพาะทีม PR)</span></span>
         <textarea id="fNote" rows="2" maxlength="2000" class="ef-field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
@@ -100,6 +112,8 @@
   const $ = (s) => document.querySelector(s);
   const FIELDS = { title: '#fTitle', type: '#fType', startAt: '#fStart', endAt: '#fEnd' };
   let ready = false, opts = {}, off = {}, who = null;
+  // Banners change only when the event is saved: keep (on the server), drop (ids to delete), add ({ file, url } to upload)
+  let bn = { keep: [], drop: [], add: [] };
 
   // People's names go in as text nodes, never as HTML
   function el(tag, props = {}, ...kids) {
@@ -163,6 +177,67 @@
     };
   }
 
+  function paintBanners() {
+    const tile = (src, alt, onRemove) => el('li', { class: 'grid gap-1.5 rounded-2xl bg-surface2 p-2' },
+      el('img', { src, alt, class: 'aspect-[4/3] w-full rounded-xl object-contain' }),
+      el('button', { type: 'button', class: 'press t-quick h-11 rounded-xl text-[14px] font-medium text-brand', 'aria-label': `เอาออก ${alt}`, onclick: onRemove }, 'เอาออก'));
+    let n = 0;
+    $('#bnList').replaceChildren(
+      ...bn.keep.map((b) => tile(b.url, `แบนเนอร์ภาพที่ ${++n}`, () => { bn.keep = bn.keep.filter((x) => x !== b); bn.drop.push(b.id); paintBanners(); $('#bnPick').focus(); })),
+      ...bn.add.map((a) => tile(a.url, `แบนเนอร์ภาพที่ ${++n}`, () => { URL.revokeObjectURL(a.url); bn.add = bn.add.filter((x) => x !== a); paintBanners(); $('#bnPick').focus(); })));
+    $('#bnPick').disabled = bn.keep.length + bn.add.length >= MAX_BANNERS;
+  }
+  function pickBanners() {
+    const input = $('#fBanner');
+    const files = [...input.files];
+    input.value = '';
+    $('#evForm [data-err="banner"]').hidden = true;
+    for (const file of files) {
+      if (bn.keep.length + bn.add.length >= MAX_BANNERS) return showError('banner', `แนบแบนเนอร์ได้ไม่เกิน ${MAX_BANNERS} ภาพ`);
+      if (!BANNER_TYPES.includes(file.type)) return showError('banner', 'รับเฉพาะภาพ JPG, PNG และ WebP');
+      if (file.size > MAX_BANNER_BYTES) return showError('banner', `${file.name} ใหญ่เกิน 10 MB`);
+      bn.add.push({ file, url: URL.createObjectURL(file) });
+      paintBanners();
+    }
+  }
+  function setBanners(list) {
+    bn.add.forEach((a) => URL.revokeObjectURL(a.url));
+    bn = { keep: [...list], drop: [], add: [] };
+    paintBanners();
+  }
+  async function sendBanner(id, file) {
+    const body = new FormData();
+    body.append('file', file);
+    let res;
+    try { res = await fetch(`/api/calendar/events/${encodeURIComponent(id)}/banners`, { method: 'POST', body, credentials: 'same-origin' }); } catch (e) { throw new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง', { cause: e }); }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.details?.banner || data.error || 'แนบแบนเนอร์ไม่สำเร็จ');
+    return data.event;
+  }
+  // After the event itself is saved; returns the event as it is now. On failure the form stays open on the saved event.
+  async function saveBanners(event) {
+    let now = event;
+    try {
+      while (bn.drop.length) {
+        now = (await window.api(`/calendar/events/${encodeURIComponent(now.id)}/banners/${encodeURIComponent(bn.drop[0])}`, { method: 'DELETE' })).event;
+        bn.drop.shift();
+      }
+      while (bn.add.length) {
+        now = await sendBanner(now.id, bn.add[0].file);
+        URL.revokeObjectURL(bn.add.shift().url);
+      }
+      return now;
+    } catch (err) {
+      opts.event = now;
+      $('#evTitle').textContent = 'แก้ไขกิจกรรม';
+      bn.keep = now.banners || [];
+      paintBanners();
+      showError('banner', `บันทึกกิจกรรมแล้ว แต่${err.message}`);
+      await opts.onSaved?.(now);
+      return null;
+    }
+  }
+
   async function save(ev) {
     ev.preventDefault();
     clearErrors();
@@ -176,7 +251,9 @@
     btn.disabled = true;
     try {
       const was = opts.event;
-      const { event } = await window.api(was ? `/calendar/events/${was.id}` : '/calendar/events', { method: was ? 'PUT' : 'POST', body });
+      const saved = (await window.api(was ? `/calendar/events/${was.id}` : '/calendar/events', { method: was ? 'PUT' : 'POST', body })).event;
+      const event = await saveBanners(saved);
+      if (!event) return;
       $('#evDlg').close();
       opts.notify?.(was ? 'บันทึกการแก้ไขแล้ว' : 'สร้างกิจกรรมแล้ว');
       await opts.onSaved?.(event);
@@ -212,6 +289,8 @@
     who = picker({ list: '#chosen', search: '#fWho', found: '#whoList', onError: (text) => showError('assignees', text) });
     $('#evForm').addEventListener('submit', save);
     $('#evClose').addEventListener('click', () => $('#evDlg').close());
+    $('#bnPick').addEventListener('click', () => $('#fBanner').click());
+    $('#fBanner').addEventListener('change', pickBanners);
     $('#offClose').addEventListener('click', () => $('#offDlg').close());
     $('#offGo').addEventListener('click', confirmCancel);
   }
@@ -232,6 +311,7 @@
     $('#fNote').value = e?.internalNote || '';
     $('#fNoteBox').hidden = !o.showNote;
     who.set(e?.assignees || []);
+    setBanners(e?.banners || []);
     $('#evDlg').showModal();
   }
   function cancel(o) {

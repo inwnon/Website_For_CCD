@@ -15,6 +15,7 @@ interface Window {
   // other shared scripts
   arrivalsRepaint: () => void;
   onArrivals?: (items: any[]) => void;
+  BannerView: any;
   DESK: any;
   EventForm: any;
   NAME_PREFIXES: string[];
@@ -29,6 +30,7 @@ interface Window {
   clipboardData?: DataTransfer;
 }
 declare var api: Window['api'];
+declare var BannerView: Window['BannerView'];
 declare var DESK: Window['DESK'];
 declare var EventForm: Window['EventForm'];
 declare var ORG: Window['ORG'];

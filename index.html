@@ -174,7 +174,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=81dca9d288">
+  <link rel="stylesheet" href="/assets/app.css?v=79897f2e40">
 </head>
 
 <body class="min-h-screen">
@@ -442,6 +442,7 @@
   <script>window.SERVER_AUTH = true;</script>
   <script src="auth.js"></script>
   <script src="shortcuts.js" defer></script>
+  <script src="banner-view.js" defer></script>
   <script>
     // ---- Helpers ----
     const $ = (s) => document.querySelector(s);
@@ -931,6 +932,11 @@
         if (isWork(e)) row.append(make('span', 'mt-1 inline-block rounded-full bg-purple-soft px-2.5 text-[12px] font-semibold leading-[1.7] text-purple', 'งานภายใน'));
         const li = make('li', 'grid gap-2');
         li.append(row);
+        const banner = window.BannerView?.button(e);
+        if (banner) {
+          banner.classList.add('justify-self-start');
+          li.append(banner);
+        }
         if (e.canEdit) {
           const tools = make('div', 'flex flex-wrap gap-2');
           const edit = make('button', 'press t-spring h-9 rounded-xl bg-brand px-4 font-display text-[14px] font-semibold text-white dark:text-bg hover:-translate-y-0.5', 'แก้ไขกิจกรรม');

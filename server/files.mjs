@@ -5,6 +5,7 @@
 //   drafts/{draft id}/...                  the same for a draft (drafts.mjs); moved to submissions/ when it is sent
 //   media/{news id}/...                    published story images (/media/..., audience checked in news.mjs)
 //   documents/{document id}/{random id}.{ext}         every version of a document (documents.mjs)
+//   events/{event id}/{banner id}.webp     แบนเนอร์กำหนดการ of a calendar event (calendar.mjs)
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { copyFile, mkdir, rename, rm } from 'node:fs/promises';
@@ -27,6 +28,7 @@ mkdirSync(TMP, { recursive: true });
 const MAX_FILES = Object.values(UPLOADS).reduce((n, u) => n + u.max, 0);
 const MAX_BYTES = Math.max(...Object.values(UPLOADS).map((u) => u.maxBytes));
 const WEB_SIZE = 1600;
+const BANNER_SIZE = 2400;
 // Full-size copies: plain JPEG, not mozjpeg, which takes about ten times as long while the PR team waits to publish
 const FULL_JPEG = { quality: 90 };
 
@@ -124,6 +126,21 @@ export async function storeDocument(documentId, f) {
   const path = join(dir, randomUUID() + extname(f.originalname).toLowerCase()).replaceAll('\\', '/');
   await rename(f.path, abs(path));
   return path;
+}
+
+// แบนเนอร์กำหนดการ: re-encoded as WebP (which also drops GPS and every other EXIF field), large enough for the small print.
+// Returns { id, path }; a picture that will not decode is refused.
+export async function storeBanner(eventId, f) {
+  const dir = join('events', eventId);
+  await mkdir(abs(dir), { recursive: true });
+  const id = randomUUID();
+  const path = join(dir, `${id}.webp`).replaceAll('\\', '/');
+  try {
+    await sharp(f.path).rotate().resize(BANNER_SIZE, BANNER_SIZE, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 85 }).toFile(abs(path));
+  } catch {
+    throw new HttpError(400, `${f.originalname} ไม่ใช่ไฟล์ภาพที่เปิดได้`, { banner: `${f.originalname} ไม่ใช่ไฟล์ภาพที่เปิดได้` });
+  }
+  return { id, path };
 }
 
 export const removeStored = (path) => Promise.all([rm(abs(path), { force: true }), rm(abs(webPath(path)), { force: true })]);

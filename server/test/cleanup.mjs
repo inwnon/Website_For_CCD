@@ -25,7 +25,7 @@ export async function restore(snap) {
   const subs = (await query('select id from submissions where sender_id = any($1) and sent_at >= $2', [devIds, snap.at])).rows.map((r) => r.id);
   const news = (await query('select id from news where created_at >= $2 and (created_by = any($1) or submission_id = any($3))', [devIds, snap.at, subs])).rows.map((r) => r.id);
   const drafts = (await tableExists('submission_drafts')) ? (await query('select id from submission_drafts where sender_id = any($1) and created_at >= $2', [devIds, snap.at])).rows.map((r) => r.id) : [];
-  let documents = [];
+  let documents = [], events = [];
   const client = await pool.connect();
   try {
     await client.query('begin');
@@ -33,7 +33,7 @@ export async function restore(snap) {
     await client.query('delete from news where id = any($1)', [news]); // saved_news and read counts cascade
     if (await tableExists('service_requests')) await client.query('delete from service_requests where created_at >= $1 and requester_id = any($2)', [snap.at, devIds]);
     if (await tableExists('events')) {
-      await client.query('delete from events where created_at >= $1 and created_by = any($2)', [snap.at, devIds]); // assignments cascade
+      events = (await client.query('delete from events where created_at >= $1 and created_by = any($2) returning id', [snap.at, devIds])).rows.map((r) => r.id); // assignments and banners cascade
       await client.query('delete from notifications where created_at >= $1', [snap.at]);
     }
     if (await tableExists('documents')) {
@@ -80,6 +80,7 @@ export async function restore(snap) {
     ...drafts.map((id) => removeDraftDir(id)),
     ...news.map((id) => rm(abs(join('media', id)), { recursive: true, force: true })),
     ...documents.map((id) => rm(abs(join('documents', id)), { recursive: true, force: true })),
+    ...events.map((id) => rm(abs(join('events', id)), { recursive: true, force: true })),
   ]);
   // Profile photos no account points to any more
   const photos = new Set((await query('select photo_path from users where photo_path is not null')).rows.map((r) => r.photo_path));
