@@ -19,6 +19,10 @@
 // - GET    /api/admin/phonebook-editors          loans that run now, and the accounts that may get one
 // - POST   /api/admin/phonebook-editors          { email, until: 'YYYY-MM-DD' } rights end when that day ends (Thai time)
 // - DELETE /api/admin/phonebook-editors/:email   ends a loan now
+// Who reads it: admin, PR, secretaries and executives by role; a staff or student account only once an admin adds it:
+// - GET    /api/admin/phonebook-viewers          the accounts added
+// - POST   /api/admin/phonebook-viewers          { email } an @sru.ac.th or @student.sru.ac.th address
+// - DELETE /api/admin/phonebook-viewers/:email   takes the right back
 import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { Readable } from 'node:stream';
@@ -27,7 +31,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { requireModule, rightOf } from './access.mjs';
 import { audit } from './audit.mjs';
-import { requireAdmin } from './auth.mjs';
+import { domainRole, requireAdmin } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { UPLOAD_DIR, removeTemp } from './files.mjs';
 import { HttpError, str } from './http.mjs';
@@ -448,6 +452,38 @@ router.delete('/admin/phonebook-editors/:email', requireAdmin, async (req, res) 
     const r = (await c.query('delete from phonebook_editors where email = $1 returning email', [email])).rows[0];
     if (!r) throw new HttpError(404, 'ไม่พบสิทธิ์แก้ไขของบัญชีนี้');
     await audit(c, req.user, 'phonebook.revoke', email, `ยกเลิกสิทธิ์แก้ไขสมุดโทรศัพท์ของ ${email}`, {});
+  });
+  res.json({ ok: true });
+});
+
+// ---- Read rights an admin gives to staff and students ----
+const viewerOut = (r) => ({ email: r.email, name: r.name, grantedBy: r.granted_by, grantedAt: r.granted_at });
+
+router.get('/admin/phonebook-viewers', requireAdmin, async (req, res) => {
+  const items = (await query('select v.*, u.name from phonebook_viewers v left join users u on u.email = v.email order by coalesce(u.name, v.email)')).rows;
+  res.json({ items: items.map(viewerOut) });
+});
+
+router.post('/admin/phonebook-viewers', requireAdmin, async (req, res) => {
+  const email = str(req.body?.email, 200, 'อีเมล')?.toLowerCase() ?? '';
+  if (!/^[^@\s]+@[^@\s]+$/.test(email) || domainRole(email) === 'external') {
+    throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', { email: 'ใช้อีเมล @sru.ac.th หรือ @student.sru.ac.th' });
+  }
+  const row = await tx(async (c) => {
+    const r = (await c.query(`insert into phonebook_viewers (email, granted_by) values ($1, $2)
+      on conflict (email) do update set granted_by = excluded.granted_by, granted_at = now() returning *`, [email, req.user.email])).rows[0];
+    await audit(c, req.user, 'phonebook.view_grant', email, `ให้ ${email} ดูสมุดโทรศัพท์ได้`, {});
+    return r;
+  });
+  res.status(201).json({ viewer: viewerOut(row) });
+});
+
+router.delete('/admin/phonebook-viewers/:email', requireAdmin, async (req, res) => {
+  const email = String(req.params.email).toLowerCase();
+  await tx(async (c) => {
+    const r = (await c.query('delete from phonebook_viewers where email = $1 returning email', [email])).rows[0];
+    if (!r) throw new HttpError(404, 'ไม่พบสิทธิ์ดูของบัญชีนี้');
+    await audit(c, req.user, 'phonebook.view_revoke', email, `ยกเลิกสิทธิ์ดูสมุดโทรศัพท์ของ ${email}`, {});
   });
   res.json({ ok: true });
 });

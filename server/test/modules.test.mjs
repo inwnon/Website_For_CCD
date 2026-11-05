@@ -31,10 +31,15 @@ describe('module rights (SPEC §2)', () => {
   test('each role gets its modules and no others', () => {
     assert.deepEqual(modulesOf(at('admin')), MODULES);
     assert.deepEqual(modulesOf(at('pr')), MODULES);
-    assert.deepEqual(modulesOf(at('student', 'x@student.sru.ac.th')), ['calendar', 'equipment', 'phonebook', 'students']);
+    assert.deepEqual(modulesOf(at('student', 'x@student.sru.ac.th')), ['calendar', 'equipment', 'students']);
     assert.deepEqual(modulesOf(at('secretary')), ['calendar', 'requests', 'phonebook']);
     assert.deepEqual(modulesOf(at('executive')), ['calendar', 'requests', 'phonebook', 'students', 'dashboard']);
-    assert.deepEqual(modulesOf(at('staff')), ['phonebook']);
+    assert.deepEqual(modulesOf(at('staff')), []);
+  });
+  test('staff and students read the phone book only once an admin lets them', () => {
+    assert.equal(rightOf({ ...at('staff'), phonebook_viewer: true }, 'phonebook'), 'view');
+    assert.equal(rightOf({ ...at('student', 'x@student.sru.ac.th'), phonebook_viewer: true }, 'phonebook'), 'view');
+    assert.equal(rightOf({ ...at('external', 'x@gmail.com'), phonebook_viewer: true }, 'phonebook'), null);
   });
   test('the right in a module, not only the module', () => {
     assert.equal(rightOf(at('pr'), 'calendar'), 'edit');
