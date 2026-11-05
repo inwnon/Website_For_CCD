@@ -302,7 +302,7 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=4cf4e0ba4f">
+  <link rel="stylesheet" href="/assets/app.css?v=dc9c6886ef">
 </head>
 
 <body class="min-h-screen">
@@ -943,6 +943,20 @@
               </div>
             </header>
 
+            <!-- ช่องทางการติดต่อ (all, required): a link or a phone number, shown at the end of the published story -->
+            <div class="mb-5">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <label for="contactValue" class="font-display text-[15px] font-semibold">ช่องทางการติดต่อ <span class="text-brand">*</span></label>
+                <div class="seg-switch" role="radiogroup" aria-label="ใส่ลิงก์ หรือเบอร์โทร">
+                  <label><input type="radio" name="contactKind" value="link" checked><span>แนบลิงก์</span></label>
+                  <label><input type="radio" name="contactKind" value="phone"><span>เบอร์โทร</span></label>
+                </div>
+              </div>
+              <input id="contactValue" name="contactValue" type="url" inputmode="url" maxlength="500" autocomplete="off" class="field h-14 w-full rounded-2xl px-4 text-[16px]" aria-describedby="contactHint contactError">
+              <p id="contactHint" class="mt-2 text-[13px] text-ink2">แสดงต่อท้ายข่าวที่เผยแพร่ ให้ผู้อ่านติดต่อสอบถามได้</p>
+              <p id="contactError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
+            </div>
+
             <!-- Note: folded; the sender opens it when there is something to say -->
             <div class="rounded-2xl border border-line bg-surface2/50 p-4">
               <div class="flex items-center gap-3">
@@ -962,7 +976,7 @@
               <input id="consent" type="checkbox" class="mt-0.5 shrink-0 cursor-pointer rounded" aria-describedby="consentError">
               <span class="min-w-0">
                 <span class="block font-display text-[16px] font-semibold leading-[1.6]"><span data-text="consentText"></span> <span class="text-brand">*</span></span>
-                <span class="mt-1 block text-[13px] text-ink2">ติ๊กเพื่อยืนยันก่อนส่ง</span>
+                <span class="mt-1 block text-[13px] text-ink2">คลิกเพื่อยืนยันก่อนส่ง</span>
               </span>
             </label>
             <p id="consentError" class="mt-2 text-[14px] font-medium text-brand" hidden>ติ๊กยืนยันข้อมูลก่อนส่ง</p>
@@ -1101,7 +1115,7 @@
       art: { label: () => 'ไฟล์งาน', checks: ['art'] },
       en: { label: () => 'ฉบับภาษาอังกฤษ', checks: [] },
       aud: { label: () => 'ใครเห็นงานนี้ได้', checks: ['aud'] },
-      confirm: { label: () => 'ยืนยันและส่ง', checks: ['consent'] },
+      confirm: { label: () => 'ยืนยันและส่ง', checks: ['contact', 'consent'] },
     };
     let currentSec = 'details';
     const MAX_CATS = 5;
@@ -1517,6 +1531,21 @@
     const newsVideoOk = () => !val('newsVideo') || linkOk(val('newsVideo'), radio('newsPlatform'));
     const descOk = () => !TYPES[type].descRequired || !!val('desc');
     const albumOk = () => !val('albumUrl') || /^https:\/\/\S+\.\S+/i.test(val('albumUrl'));
+    // Same rules as contact() in rules.mjs
+    const contactMsg = () => {
+      const v = val('contactValue');
+      if (radio('contactKind') === 'phone') return !v ? 'กรอกเบอร์โทรสำหรับติดต่อ' : /^\+?[0-9][0-9 ()/,-]{2,29}$/.test(v) ? '' : 'กรอกเบอร์โทรเป็นตัวเลข เช่น 077-913-333';
+      return !v ? 'กรอกลิงก์ช่องทางการติดต่อ' : /^https:\/\/\S+\.\S+/i.test(v) ? '' : 'ใส่ลิงก์ที่ขึ้นต้นด้วย https:// เช่น เพจ Facebook หรือ LINE OA';
+    };
+    function syncContact() {
+      const phone = radio('contactKind') === 'phone';
+      const el = $('#contactValue');
+      el.type = phone ? 'tel' : 'url';
+      el.inputMode = phone ? 'tel' : 'url';
+      el.maxLength = phone ? 30 : 500;
+      el.placeholder = phone ? 'เช่น 077-913-333 หรือ 081-234-5678' : 'https://www.facebook.com/... หรือ https://line.me/...';
+    }
+    syncContact();
 
     // Each check: which types it applies to, the checklist label, and where to send focus
     const CHECKS = [
@@ -1533,6 +1562,7 @@
       { key: 'video', for: 'video', label: () => 'ลิงก์วิดีโอ', ok: videoOk, focus: '#videoLink' },
       { key: 'art', for: 'banner', label: () => 'ไฟล์งานอย่างน้อย 1 ไฟล์', ok: () => up.art.items.length > 0, focus: '#artInput' },
       { key: 'aud', for: 'news video banner', label: () => 'ใครเห็นงานนี้ได้', ok: () => audVals().length > 0, focus: 'input[name=audience]' },
+      { key: 'contact', for: 'news video banner', label: () => 'ช่องทางการติดต่อ', ok: () => !contactMsg(), focus: '#contactValue' },
       { key: 'consent', for: 'news video banner', label: () => 'ยืนยันข้อมูลและสิทธิ์', ok: () => $('#consent').checked, focus: '#consent' },
     ];
     const activeChecks = () => CHECKS.filter((c) => c.for.split(' ').includes(type));
@@ -1788,6 +1818,7 @@
         ['video', '#videoLinksError', mb >= 0, moreVideos.inputs()[mb], null, `ลิงก์เพิ่มเติมที่ ${mb + 1} ไม่ใช่ลิงก์วิดีโอจาก ${platformNames()}`],
         ['banner', '#artError', !up.art.items.length, $('#artDrop'), '#artInput'],
         ['news video banner', '#audError', !audVals().length, $('#audSet'), 'input[name=audience]'],
+        ['news video banner', '#contactError', !!contactMsg(), $('#contactValue'), null, contactMsg()],
         ['news video banner', '#consentError', !$('#consent').checked, $('#consent')],
       ];
       let first = null;
@@ -1817,6 +1848,8 @@
       if (id === 'credit' && val('credit')) setError('#creditError', false, e.target);
       if (name === 'photoCredit') syncCreditKind();
       if (name === 'creditKind') { syncCreditKind(); if (val('designer')) setError('#designerError', false, $('#designer')); }
+      if (name === 'contactKind') syncContact();
+      if ((id === 'contactValue' || name === 'contactKind') && !contactMsg()) setError('#contactError', false, $('#contactValue'));
       if (id === 'consent' && e.target.checked) setError('#consentError', false, e.target);
       if (name === 'category') { syncCats(); if (cats().length) setError('#catError', false, $('#catSet')); }
       if (name === 'audience' && audVals().length) setError('#audError', false, $('#audSet'));
@@ -1824,8 +1857,8 @@
 
     // ---- Kept in this browser while typing (text only), so a closed tab or a sign-in loses nothing ----
     const DRAFT_KEY = 'newsDraft';
-    const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'designer', 'producer', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'assigneeName', 'assigneePos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl'];
-    const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'newsPlatform', 'creditKind', 'photoCredit'];
+    const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'designer', 'producer', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'assigneeName', 'assigneePos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl', 'contactValue'];
+    const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'newsPlatform', 'creditKind', 'photoCredit', 'contactKind'];
     let draftTimer = null;
     // A draft opened from ข่าวของฉัน (submit.html?draft=ID) lives on the server; "บันทึกร่าง" saves it there
     let draftId = new URLSearchParams(location.search).get('draft');
@@ -1863,6 +1896,7 @@
       moreVideos.set(Array.isArray(d.videoLinks) ? d.videoLinks : []);
       moreAlbums.set(Array.isArray(d.albumLinks) ? d.albumLinks : []);
       syncCreditKind();
+      syncContact();
     }
     function readDraft() {
       try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) { return null; }
@@ -1976,6 +2010,7 @@
       photo: ['#photoError', '#photoDrop'], newsVideo: ['#newsVideoError', '#newsVideo'], videoLink: ['#videoError', '#videoLink'], art: ['#artError', '#artDrop'],
       audience: ['#audError', '#audSet'], consent: ['#consentError', '#consent'], albumUrl: ['#albumError', '#albumUrl'],
       videoLinks: ['#videoLinksError', '#videoLinksBox input'], albumLinks: ['#albumLinksError', '#albumLinksBox input'], designer: ['#designerError', '#designer'], credit: ['#creditError', '#credit'],
+      contact: ['#contactError', '#contactValue'],
     };
     function payload() {
       return {
@@ -1988,6 +2023,7 @@
         assigneePrefix: prefixOf('assignee'), assigneeName: val('assigneeName'), assigneePos: val('assigneePos'),
         guests: guests.filter((g) => g.name.trim() || g.pos.trim()).map((g) => ({ prefix: (g.prefix || '').trim(), name: g.name.trim(), pos: g.pos.trim() })),
         en: $('#enToggle').checked, titleEn: val('titleEn'), bodyEn: val('bodyEn'), audience: audVals(), note: val('note'), consent: $('#consent').checked,
+        contactKind: radio('contactKind'), contactValue: val('contactValue'),
         ...toolsOut(),
         // The order of the pictures as arranged on the page (first = cover), and files already on the server that were removed
         order: { photo: up.photo.order, art: up.art.order, attach: up.attach.order, cover: up.cover.order },
@@ -2094,6 +2130,7 @@
           ['ชื่องาน', sub.title], ['หน่วยงาน', sub.unit], [radio('creditKind') === 'source' ? 'ที่มา' : 'ผู้ออกแบบ', val('designer')], ['ประเภทข่าว', cats().join(', ')], ['ไฟล์งาน', `${n('art')} ไฟล์`], ['ใครเห็นได้', aud],
         ],
       }[type];
+      rows.push([radio('contactKind') === 'phone' ? 'เบอร์โทรติดต่อ' : 'ลิงก์ติดต่อ', val('contactValue')]);
       $('#doneSummary').innerHTML = rows.map(([k, v]) => `<div><dt class="text-[13px] text-ink2">${k}</dt><dd class="font-display text-[16px] font-medium">${esc(v)}</dd></div>`).join('');
       $('#trackLink').href = `inbox.html?ref=${encodeURIComponent(sub.ref)}`;
       $('#trackLink').lastChild.textContent = ' ติดตามสถานะในข่าวของฉัน';
@@ -2200,7 +2237,7 @@
       // Fill the form from what was sent
       const set = (id, v) => { if (v != null) $('#' + id).value = v; };
       set('title', sub.title); set('lead', f.lead); set('desc', f.desc); set('body', f.body); set('eventDate', f.eventDate?.slice(0, 10)); set('place', f.place);
-      set('credit', f.credit); set('newsVideo', f.newsVideo); set('videoLink', f.videoLink); set('titleEn', f.titleEn); set('bodyEn', f.bodyEn); set('albumUrl', f.albumUrl); set('designer', f.designer); set('producer', f.producer);
+      set('credit', f.credit); set('newsVideo', f.newsVideo); set('videoLink', f.videoLink); set('titleEn', f.titleEn); set('bodyEn', f.bodyEn); set('albumUrl', f.albumUrl); set('designer', f.designer); set('producer', f.producer); set('contactValue', f.contactValue);
       set('note', '');
       tools.set({ size: f.bodySize, leading: f.bodyLeading });
       moreVideos.set(f.videoLinks || []);
@@ -2209,7 +2246,9 @@
       $('#unit').value = sub.unit;
       const pick = (name, v) => { const r = v && document.querySelector(`input[name=${name}][value="${CSS.escape(v)}"]`); if (r) r.checked = true; };
       pick('contentMode', f.contentMode); pick('newsPlatform', f.newsPlatform); pick('videoPlatform', f.videoPlatform); if (sub.type === 'news') pick('photoCredit', f.creditKind === 'source' ? 'source' : 'photo'); else pick('creditKind', f.creditKind);
+      pick('contactKind', f.contactKind);
       syncCreditKind();
+      syncContact();
       document.querySelectorAll('input[name=category]').forEach((b) => { b.checked = (f.categories || []).includes(b.value); });
       document.querySelectorAll('input[name=audience]').forEach((b) => { b.checked = (sub.audienceValues || []).includes(b.value); });
       const people = f.people || {};

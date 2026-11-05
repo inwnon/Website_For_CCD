@@ -42,9 +42,10 @@ export const ID_STAFF = { firstName: 'สมชาย', lastName: 'ใจดี'
 export const ID_OTHER = { firstName: 'สมหญิง', lastName: 'รักเรียน', phone: '081-234-5678' };
 export const anon = { call: (method, path, body, headers) => request(method, path, body, headers) };
 
+// Work sent in tests gives a contact unless the test sets contactKind / contactValue itself
 export function form(data, files = {}) {
   const fd = new FormData();
-  fd.append('data', JSON.stringify(data));
+  fd.append('data', JSON.stringify(data?.type ? { contactKind: 'phone', contactValue: '077-913-333', ...data } : data));
   for (const [kind, list] of Object.entries(files)) for (const [name, buf, type] of list) fd.append(kind, new Blob([buf], { type }), name);
   return fd;
 }

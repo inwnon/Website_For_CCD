@@ -253,6 +253,7 @@ export async function storyPayload(req, id) {
       albumUrl: n.album_url, albumHost: n.album_url ? albumHost(n.album_url) : null,
       albumLinks: (n.album_links || []).map((url) => ({ url, host: albumHost(url) })),
       credit: n.credit, creditKind: n.credit_kind, eventDate: n.event_date, place: n.place, featured: n.featured, views: n.views,
+      contact: n.contact_kind ? { kind: n.contact_kind, value: n.contact_value } : null,
       publishedAt: n.published_at, saved, imported: n.imported,
       // byPr: written or imported by the PR team (no work sent), so submittedBy is who published it
       byPr: !n.submission_id, submittedBy: n.submitted_by || null, reviewedBy: n.reviewed_by_name || null, bodySize: n.body_size, bodyLeading: n.body_leading,

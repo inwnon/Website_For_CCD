@@ -258,20 +258,22 @@ router.post('/pr/submissions/:ref/publish', async (req, res) => {
         await c.query(
           `update news set title = $2, title_en = $3, lead = $4, body = $5, body_en = $6, categories = $7, audience = $8, cover_path = $9, gallery = $10,
              video_url = $11, featured = $12, published_at = $13, album_url = $14, withdrawn_at = null, withdrawn_reason = null, withdrawn_by = null,
-             body_size = $15, body_leading = $16, reviewed_by = $17, video_links = $18, album_links = $19
+             body_size = $15, body_leading = $16, reviewed_by = $17, video_links = $18, album_links = $19, contact_kind = $20, contact_value = $21
            where id = $1`,
           [newsId, story.title, story.title_en, story.lead, story.body, story.body_en, story.categories, story.audience, cover, gallery,
-            story.video_url, story.featured, story.published_at, story.album_url, story.body_size, story.body_leading, req.user.id, story.video_links, story.album_links],
+            story.video_url, story.featured, story.published_at, story.album_url, story.body_size, story.body_leading, req.user.id, story.video_links, story.album_links,
+            s.contact_kind, s.contact_value],
         );
       } else await c.query(
         `insert into news (id, kind, submission_id, title, title_en, lead, body, body_en, unit, categories, audience, cover_path, gallery,
            video_url, credit, event_date, place, featured, published_at, created_by, album_url, body_size, body_leading, reviewed_by, video_links,
-           album_links, credit_kind)
-         values ($1, $20, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $21, $22, $23, $19, $24, $25, $26)`,
+           album_links, credit_kind, contact_kind, contact_value)
+         values ($1, $20, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $21, $22, $23, $19, $24, $25, $26, $27, $28)`,
         // The credit line under the picture: photographer (news), producer (video), designer (banner)
         [newsId, s.id, story.title, story.title_en, story.lead, story.body, story.body_en, s.unit, story.categories, story.audience,
           cover, gallery, story.video_url, s.credit || s.producer || s.designer, s.event_date, s.place, story.featured, story.published_at, req.user.id, s.type, story.album_url,
-          story.body_size, story.body_leading, story.video_links, story.album_links, s.type === 'banner' ? s.credit_kind || 'designer' : s.type === 'news' ? s.credit_kind : null],
+          story.body_size, story.body_leading, story.video_links, story.album_links, s.type === 'banner' ? s.credit_kind || 'designer' : s.type === 'news' ? s.credit_kind : null,
+          s.contact_kind, s.contact_value],
       );
       await c.query(`update submissions set status = 'published', news_id = $2, sender_unread = true, pr_unread = false, pr_edit = null where id = $1`, [s.id, newsId]);
       await c.query(`insert into submission_events (submission_id, status, actor_id) values ($1, 'published', $2)`, [s.id, req.user.id]);

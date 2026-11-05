@@ -93,6 +93,20 @@ export function albumSet(list) {
   if (out.length > MAX_ALBUM_LINKS + 1) return { url: out[0], links: out.slice(1, MAX_ALBUM_LINKS + 1), error: `ใส่ลิงก์ภาพเพิ่มเติมได้ไม่เกิน ${MAX_ALBUM_LINKS + 1} ลิงก์` };
   return { url: out[0] || null, links: out.slice(1) };
 }
+// ช่องทางการติดต่อ (every kind of work): a link or a phone number, shown at the end of the published story.
+// contact(kind, value) → { kind, value } or { error }: links start with https://, numbers look like the phone book's.
+export const CONTACT_KINDS = ['link', 'phone'];
+const CONTACT_PHONE = /^\+?[0-9][0-9 ()/,-]{2,29}$/;
+export function contact(kind, value) {
+  const v = typeof value === 'string' ? value.trim() : '';
+  if (!CONTACT_KINDS.includes(kind)) return { error: 'เลือกว่าจะใส่ลิงก์หรือเบอร์โทร' };
+  if (!v) return { error: kind === 'link' ? 'กรอกลิงก์ช่องทางการติดต่อ' : 'กรอกเบอร์โทรสำหรับติดต่อ' };
+  if (kind === 'phone') return CONTACT_PHONE.test(v) ? { kind, value: v } : { error: 'กรอกเบอร์โทรเป็นตัวเลข เช่น 077-913-333' };
+  let u;
+  try { u = new URL(v); } catch { u = null; }
+  if (!u || u.protocol !== 'https:' || u.href.length > 500) return { error: 'ใส่ลิงก์ที่ขึ้นต้นด้วย https:// (ไม่เกิน 500 ตัวอักษร) เช่น เพจ Facebook หรือ LINE OA' };
+  return { kind, value: u.href };
+}
 // Whom the credit line names. แบนเนอร์ / อินโฟกราฟิก: ผู้ออกแบบ (designer) or ที่มา (source);
 // ข่าวพร้อมภาพ: เครดิตภาพ (null) or ที่มา (source). Videos name their producer.
 export const CREDIT_KINDS = { designer: 'ผู้ออกแบบ', source: 'ที่มา', photo: 'เครดิตภาพ' };
@@ -180,6 +194,8 @@ export function checkSubmission(user, d, fileCounts) {
     producer: type === 'video' ? str(d.producer, 120, 'ผู้ผลิต') : null,
     body_size: bodySize(d.bodySize),
     body_leading: bodyLeading(d.bodyLeading),
+    contact_kind: null,
+    contact_value: null,
   };
 
   need('title', row.title, 'กรอกหัวข้อ');
@@ -248,6 +264,10 @@ export function checkSubmission(user, d, fileCounts) {
   // "บุคคลทั่วไป" includes everyone (syncAudience in submit.html)
   row.audience = aud.includes('public') ? [...AUDIENCES] : aud;
 
+  const c = contact(d.contactKind, d.contactValue);
+  if (c.error) need('contact', false, c.error);
+  else { row.contact_kind = c.kind; row.contact_value = c.value; }
+
   need('consent', d.consent === true, 'ยืนยันข้อมูลและสิทธิ์ก่อนส่ง');
 
   for (const [kind, n] of Object.entries(fileCounts)) {
@@ -265,7 +285,7 @@ export function checkSubmission(user, d, fileCounts) {
 const DRAFT_TEXT = { title: MAX_TITLE, lead: MAX_LEAD, desc: 5000, body: 20000, eventDate: 10, place: 120, unit: 200, contentMode: 10, credit: 80,
   newsVideo: 500, newsPlatform: 20, videoLink: 500, videoPlatform: 20, albumUrl: 500, chairPrefix: 60, chairName: 100, chairPos: 120,
   reporterPrefix: 60, reporterName: 100, reporterPos: 120, assigneePrefix: 60, assigneeName: 100, assigneePos: 120, titleEn: 160, bodyEn: 20000, note: 300, designer: 120, producer: 120,
-  bodySize: 2, bodyLeading: 10, creditKind: 10 };
+  bodySize: 2, bodyLeading: 10, creditKind: 10, contactKind: 10, contactValue: 500 };
 export function draftData(d) {
   if (!d || typeof d !== 'object') throw new HttpError(400, 'ไม่พบข้อมูลร่าง');
   if (!TYPES.includes(d.type)) throw new HttpError(400, 'กรุณาเลือกประเภทงาน');
