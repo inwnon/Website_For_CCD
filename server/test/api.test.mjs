@@ -77,6 +77,24 @@ describe('sending work', () => {
     assert.equal(r.status, 403);
   });
 
+  test('signed-out visitors cannot send work or save drafts', async () => {
+    const photo = { photo: [['a.jpg', await img('#c33'), 'image/jpeg']] };
+    for (const [method, path] of [['POST', '/api/submissions'], ['POST', '/api/drafts']]) {
+      const r = await fetch(`${BASE}${path}`, { method, body: form(NEWS, photo), headers: { origin: BASE } });
+      assert.equal(r.status, 401, path);
+    }
+  });
+
+  test('ช่องทางการติดต่อ: a link or a phone number is required', async () => {
+    const send = async (c) => staff.call('POST', '/api/submissions', form({ ...NEWS, ...c }, { photo: [['a.jpg', await img('#c33'), 'image/jpeg']] }));
+    for (const c of [{ contactKind: undefined, contactValue: undefined }, { contactKind: 'line', contactValue: 'x' }, { contactKind: 'link', contactValue: '' },
+      { contactKind: 'link', contactValue: 'http://example.com' }, { contactKind: 'link', contactValue: 'javascript:alert(1)' }, { contactKind: 'phone', contactValue: 'โทรหาเรา' }]) {
+      const r = await send(c);
+      assert.equal(r.status, 400, JSON.stringify(c));
+      assert.ok(r.body.details.contact, JSON.stringify(c));
+    }
+  });
+
   test('students send only for their own faculty', async () => {
     await student.call('PUT', '/api/me/profile', { ...ID_OTHER, unit: 'คณะนิติศาสตร์', major: 'นิติศาสตร์', year: 3, consent: true });
     const r = await student.call('POST', '/api/submissions', form(NEWS, { photo: [['a.jpg', await img('#c33'), 'image/jpeg']] }));
@@ -264,7 +282,7 @@ describe('reading news', () => {
   let id, cover;
 
   before(async () => {
-    const sent = await staff.call('POST', '/api/submissions', form({ ...NEWS, title: 'ประกาศภายในสำหรับบุคลากร', audience: ['staff'] }, {
+    const sent = await staff.call('POST', '/api/submissions', form({ ...NEWS, title: 'ประกาศภายในสำหรับบุคลากร', audience: ['staff'], contactKind: 'link', contactValue: 'https://line.me/R/ti/p/@sru' }, {
       photo: [['ปก.jpg', await img('#3a6'), 'image/jpeg'], ['สอง.jpg', await img('#63a'), 'image/jpeg']],
     }));
     const files = sent.body.submission.files;
@@ -274,6 +292,10 @@ describe('reading news', () => {
     assert.equal(r.status, 201, JSON.stringify(r.body));
     id = r.body.news.id;
     cover = `/media/${r.body.news.cover_path}`;
+  });
+
+  test('the story ends with the sender\'s contact', async () => {
+    assert.deepEqual((await staff.call('GET', `/api/news/${id}`)).body.story.contact, { kind: 'link', value: 'https://line.me/R/ti/p/@sru' });
   });
 
   test('internal story is a locked card for signed-out readers and students', async () => {

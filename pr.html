@@ -275,7 +275,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=4cf4e0ba4f">
+  <link rel="stylesheet" href="/assets/app.css?v=dc9c6886ef">
 </head>
 
 <body class="app">
@@ -930,6 +930,7 @@
       if (f.producer) facts.push(['ผู้ผลิต', f.producer]);
       facts.push(['ใครเห็นได้', s.audience]);
       if (f.credit) facts.push([f.creditKind === 'source' ? 'ที่มาของภาพ' : 'เครดิตภาพ', f.credit]);
+      if (f.contactValue) facts.push([f.contactKind === 'phone' ? 'เบอร์โทรติดต่อ (แสดงท้ายข่าว)' : 'ลิงก์ติดต่อ (แสดงท้ายข่าว)', f.contactValue]);
       const p = f.people || {};
       const ppl = [p.chair && ['ประธาน', p.chair], p.reporter && ['ผู้กล่าวรายงาน', p.reporter], p.assignee && ['ผู้ที่ได้รับมอบหมาย', p.assignee], ...(p.guests || []).map((g) => ['ภายนอก', g])].filter(Boolean);
       let body = '';
