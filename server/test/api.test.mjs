@@ -178,6 +178,12 @@ describe('full flow: send → PR asks for changes → resend → publish', () =>
     assert.ok(r.body.counts.review.total >= 1);
   });
 
+  test('PR gets the count of unread work for the red badges; the sender does not', async () => {
+    assert.ok((await pr.call('GET', '/api/me')).body.prUnread >= 1);
+    assert.ok((await pr.call('GET', '/api/pr/arrivals')).body.unread >= 1);
+    assert.equal((await staff.call('GET', '/api/me')).body.prUnread, undefined);
+  });
+
   test('PR must say why when asking for changes', async () => {
     assert.equal((await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'revise' })).status, 400);
     const r = await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'revise', message: 'ขอภาพต้นฉบับเพิ่ม' });

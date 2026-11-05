@@ -207,10 +207,12 @@ router.post('/auth/logout', async (req, res) => {
 
 // devLogin tells pages they may offer the development sign-in buttons
 // unread: items in the user's inbox with something new (header badge)
+// prUnread (PR team only): work sent in with something new for the PR team (header badge, menu งานที่ส่งเข้ามา)
 // modules: the back-office modules for the menus (access.mjs; the routes check again); askable: modules the user may ask for
+export const prUnreadCount = async () => (await one("select count(*)::int n from submissions where pr_unread and status <> 'rejected'")).n;
 router.get('/me', async (req, res) => {
   const unread = req.user ? (await one("select count(*)::int n from submissions where sender_id = $1 and sender_unread and status <> 'rejected'", [req.user.id])).n : 0;
-  res.json({ user: publicUser(req.user), unread, ...(req.user ? { modules: modulesOf(req.user), askable: askableOf(req.user) } : {}), ...(isPr(req.user) ? { shortcuts: shortcutsOf(req.user) } : {}), ...(DEV_LOGIN ? { devLogin: true } : {}) });
+  res.json({ user: publicUser(req.user), unread, ...(req.user ? { modules: modulesOf(req.user), askable: askableOf(req.user) } : {}), ...(isPr(req.user) ? { shortcuts: shortcutsOf(req.user), prUnread: await prUnreadCount() } : {}), ...(DEV_LOGIN ? { devLogin: true } : {}) });
 });
 
 // ---- ทางลัดของฉัน (index.html): the desk pages a PR team member keeps on the home page, in their order ----

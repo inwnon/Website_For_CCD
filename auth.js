@@ -1,6 +1,6 @@
 // Signed-in state shared by every page
 // - window.api(path, { method, body }): calls /api, returns the JSON or throws an Error with .status and .details
-// - window.ME: Promise of { user, unread, devLogin } from the server session (user is null when signed out)
+// - window.ME: Promise of { user, unread, prUnread, devLogin } from the server session (user is null when signed out)
 // - Header: an element with id="login" becomes the account menu (profile, inbox, PR tools, settings, theme, sign out)
 // - window.loginUrl(next), window.devLogin(as)
 // Pages not yet connected to the server (submit, inbox, login) still use the prototype parts below:
@@ -229,7 +229,7 @@
     const modules = window.MODULE_PAGES.filter((m) => !m.soon && (me.modules?.includes(m.id) || me.askable?.includes(m.id)));
     const moduleTools = modules.length ? `<div class="acct-grp"><p class="acct-label">งานสื่อสารองค์กร</p>${modules.map((m) => `<a class="acct-item" href="${m.href}">${svg(m.icon)}<span>${m.label}</span></a>`).join('')}</div>` : '';
     const prTools = u.role === 'pr' || u.role === 'admin'
-      ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr.html', 'desk', 'งานที่ส่งเข้ามา')}${item('pr-news.html', 'news', 'จัดการข่าว')}${item('pr-collections.html', 'book', 'อัลบั้มข่าว')}${item('report.html', 'chart', 'รายงาน')}${u.role === 'admin' ? item('chanon.html', 'gear', 'ตั้งค่าระบบ') : ''}</div>`
+      ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr.html', 'desk', 'งานที่ส่งเข้ามา', me.prUnread ? `<span class="acct-n">${me.prUnread}<span class="sr-only"> งานใหม่</span></span>` : '')}${item('pr-news.html', 'news', 'จัดการข่าว')}${item('pr-collections.html', 'book', 'อัลบั้มข่าว')}${item('report.html', 'chart', 'รายงาน')}${u.role === 'admin' ? item('chanon.html', 'gear', 'ตั้งค่าระบบ') : ''}</div>`
       : u.role === 'coordinator' ? `<div class="acct-grp">${item('report.html', 'chart', 'รายงานของหน่วยงาน')}</div>`
       : u.role === 'intern' ? `<div class="acct-grp"><p class="acct-label">งานประชาสัมพันธ์</p>${item('pr-import.html', 'news', 'นำเข้าข่าวย้อนหลัง')}</div>` : '';
     return `<div class="acct-id"><span class="acct-av">${avatar(u)}</span><div style="min-width:0"><p class="acct-name">${esc(u.name || u.email)}</p>${u.name ? `<p class="acct-mail">${esc(u.email)}</p>` : ''}<span class="acct-role">${esc(roleName(u))}${aff ? ` ${esc(aff)}` : ''}</span></div></div>
@@ -259,8 +259,10 @@
     const btn = /** @type {HTMLElement} */ (wrap.querySelector('#login'));
     const panel = /** @type {HTMLElement} */ (wrap.querySelector('#acctPanel'));
     addNewsButtons(u);
-    btn.innerHTML = (u ? `<span class="acct-av">${avatar(u)}</span>` : svg(IC.person, 20)) + (u && me.unread ? `<span class="acct-dot" aria-hidden="true">${me.unread}</span>` : '');
-    btn.setAttribute('aria-label', u ? `บัญชีของ ${u.name || u.email}${me.unread ? ` มีข้อความใหม่ ${me.unread} รายการ` : ''}` : 'เมนูบัญชี ยังไม่ได้เข้าสู่ระบบ');
+    // The red dot: news of the user's own work plus, for the PR team, work sent in with something new
+    const fresh = u ? (me.unread || 0) + (me.prUnread || 0) : 0;
+    btn.innerHTML = (u ? `<span class="acct-av">${avatar(u)}</span>` : svg(IC.person, 20)) + (fresh ? `<span class="acct-dot" aria-hidden="true">${fresh}</span>` : '');
+    btn.setAttribute('aria-label', u ? `บัญชีของ ${u.name || u.email}${fresh ? ` มีรายการใหม่ ${fresh} รายการ` : ''}` : 'เมนูบัญชี ยังไม่ได้เข้าสู่ระบบ');
     panel.innerHTML = menuHtml(me);
     if (wired) return;
     wired = true;

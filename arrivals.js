@@ -3,7 +3,8 @@
 // a notice with the work's title and a "ดูงาน" link, the count in the tab title while the tab is in the background,
 // and a system notification if the browser allows it. Needs auth.js (window.api, window.ME).
 //   <div id="alertSlot"></div> in the side bar gets the on/off switch (kept in this browser)
-//   [data-arrivals-badge] gets the number of new work since the page opened (the menu item งานที่ส่งเข้ามา)
+//   [data-arrivals-badge] gets the number of work the PR team has not read yet (the menu item งานที่ส่งเข้ามา);
+//   the red dot on the account button follows the same number
 //   window.onArrivals(items) is called with the new work (pr.html refreshes its list)
 (function () {
   const KEY = 'deskAlerts';
@@ -11,7 +12,7 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let on = true;
   try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) {}
-  let since = null, unseen = 0, timer = null;
+  let since = null, unseen = 0, unread = 0, timer = null;
   const TYPE = { news: 'ข่าวพร้อมภาพ', video: 'วิดีโอ', banner: 'แบนเนอร์ / อินโฟกราฟิก' };
 
   // ---- Chime: two soft notes made in the browser (no sound file). Browsers allow sound only after the page was used
@@ -69,12 +70,13 @@
   }
   const BELL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>';
 
-  // ---- Count: the badge in the menu and, while the tab is in the background, the tab title ----
+  // ---- Count: the unread work in the menu badge and, while the tab is in the background, the work that came in
+  // since the page opened in the tab title ----
   function paintCount() {
     /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('[data-arrivals-badge]')).forEach((b) => {
-      b.textContent = String(unseen);
-      b.hidden = !unseen;
-      b.setAttribute('aria-label', `งานใหม่ ${unseen} งาน`);
+      b.textContent = String(unread);
+      b.hidden = !unread;
+      b.setAttribute('aria-label', `งานใหม่ ${unread} งาน`);
     });
     const plain = document.title.replace(/^\(\d+\) /, '');
     document.title = unseen && document.hidden ? `(${unseen}) ${plain}` : plain;
@@ -90,6 +92,12 @@
       const r = await api('/pr/arrivals' + (since ? `?since=${encodeURIComponent(since)}` : ''));
       const fresh = since ? r.items : []; // the first answer only sets the time to ask from
       since = r.now;
+      if (r.unread !== unread) {
+        unread = r.unread;
+        paintCount();
+        const me = await window.ME;
+        if (me && me.prUnread !== unread) { me.prUnread = unread; window.renderAccountButton?.(); }
+      }
       if (fresh.length) {
         unseen += fresh.length;
         paintCount();
