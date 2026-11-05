@@ -16,7 +16,7 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Router } from 'express';
-import { domainRole, publicUser, requirePr } from './auth.mjs';
+import { domainRole, prUnreadCount, publicUser, requirePr } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, publishImage, removeMedia } from './files.mjs';
 import { HttpError, str } from './http.mjs';
@@ -36,7 +36,8 @@ export const router = Router();
 router.use('/pr', (req, res, next) => (/^\/(import|collections)(\/|$)/.test(req.path) ? next() : requirePr(req, res, next)));
 
 // แจ้งเตือนงานใหม่ (arrivals.js): work sent or sent again since `since` (at most a day back), newest first, and the
-// server's time to ask from next. The back-office pages ask every 20 seconds.
+// server's time to ask from next, and unread: all work with something new for the PR team (the red badges).
+// The back-office pages ask every 20 seconds.
 router.get('/pr/arrivals', async (req, res) => {
   const now = new Date();
   const asked = new Date(String(req.query.since || ''));
@@ -46,7 +47,7 @@ router.get('/pr/arrivals', async (req, res) => {
      from submission_events e join submissions s on s.id = e.submission_id join users u on u.id = s.sender_id
      where e.status in ('sent', 'resent') and e.at > $1 and e.at <= $2 and s.status <> 'rejected'
      order by s.id, e.at desc limit 50`, [since, now])).rows.sort((a, b) => b.at - a.at);
-  res.json({ now, items: rows.map((r) => ({ ref: r.ref, type: r.type, title: r.title, unit: r.unit, again: r.kind === 'resent', at: r.at, sender: r.sender })) });
+  res.json({ now, unread: await prUnreadCount(), items: rows.map((r) => ({ ref: r.ref, type: r.type, title: r.title, unit: r.unit, again: r.kind === 'resent', at: r.at, sender: r.sender })) });
 });
 
 router.get('/pr/submissions', async (req, res) => {
