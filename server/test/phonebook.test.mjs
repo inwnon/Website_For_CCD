@@ -17,6 +17,8 @@ const entry = (over = {}) => ({ unitName: unit(), phoneNumber: '0-7791-3333', in
 
 let snap, pr, admin, student, secretary, executive, staff, coordinator, external, intern;
 const EDITORS = ['pr@sru.ac.th', 'intern@student.sru.ac.th'];
+// staff, student, coordinator: let in by an admin in the first tests
+const VIEWERS = ['user@sru.ac.th', 'user@student.sru.ac.th', 'coord@sru.ac.th'];
 // A day in Thai time, n days from today, as YYYY-MM-DD
 const thaiDay = (n) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 /** @param {string} email @param {any} [until] anything, to test what the server refuses */
@@ -52,11 +54,50 @@ before(async () => {
 after(async () => {
   await query('delete from phonebook where unit_name like $1', [`${UNIT}%`]);
   await query('delete from phonebook_editors where email = any($1)', [EDITORS]);
+  await query('delete from phonebook_viewers where email = any($1)', [VIEWERS]);
   await restore(snap);
 });
 
 describe('who may do what', () => {
-  test('every university role reads; only PR and admin may edit', async () => {
+  test('staff and students get 403 until an admin lets them read; only admin does that, logged', async () => {
+    await create();
+    for (const who of [staff, student, coordinator]) {
+      assert.equal((await who.call('GET', '/api/phonebook')).status, 403);
+      assert.ok(!(await who.call('GET', '/api/me')).body.modules.includes('phonebook'));
+    }
+    for (const who of [pr, intern, staff, secretary, executive, external]) {
+      assert.equal((await who.call('GET', '/api/admin/phonebook-viewers')).status, 403);
+      assert.equal((await who.call('POST', '/api/admin/phonebook-viewers', { email: VIEWERS[0] })).status, 403);
+      assert.equal((await who.call('DELETE', `/api/admin/phonebook-viewers/${VIEWERS[0]}`)).status, 403);
+    }
+    for (const email of ['user@gmail.com', 'not-an-email', '']) {
+      const r = await admin.call('POST', '/api/admin/phonebook-viewers', { email });
+      assert.equal(r.status, 400, email);
+      assert.ok(r.body.details.email);
+    }
+    for (const email of VIEWERS) assert.equal((await admin.call('POST', '/api/admin/phonebook-viewers', { email: email.toUpperCase() })).status, 201);
+    const list = (await admin.call('GET', '/api/admin/phonebook-viewers')).body.items.map((x) => x.email);
+    assert.ok(VIEWERS.every((e) => list.includes(e)));
+    assert.equal((await staff.call('GET', '/api/phonebook')).status, 200);
+    assert.ok((await staff.call('GET', '/api/me')).body.modules.includes('phonebook'));
+    assert.equal(await logged('phonebook.view_grant', VIEWERS[0]) >= 1, true);
+  });
+  test('taking the right back closes the page again', async () => {
+    const email = VIEWERS[0];
+    assert.equal((await admin.call('DELETE', `/api/admin/phonebook-viewers/${email}`)).status, 200);
+    assert.equal((await staff.call('GET', '/api/phonebook')).status, 403);
+    assert.equal(await logged('phonebook.view_revoke', email), 1);
+    assert.equal((await admin.call('DELETE', `/api/admin/phonebook-viewers/${email}`)).status, 404);
+    assert.equal((await admin.call('POST', '/api/admin/phonebook-viewers', { email })).status, 201);
+  });
+  test('an intern reads while an edit loan runs', async () => {
+    assert.equal((await intern.call('GET', '/api/phonebook')).status, 403);
+    assert.equal((await lend(EDITORS[1])).status, 201);
+    assert.equal((await intern.call('GET', '/api/phonebook')).status, 200);
+    await query("update phonebook_editors set expires_at = now() - interval '1 second' where email = $1", [EDITORS[1]]);
+    assert.equal((await intern.call('GET', '/api/phonebook')).status, 403);
+  });
+  test('admin, PR, secretaries and executives read by role; the others once let in; only PR and admin may edit', async () => {
     await create();
     for (const who of [pr, admin]) assert.equal((await who.call('GET', '/api/phonebook')).body.canEdit, true);
     for (const who of [student, secretary, executive, staff, coordinator]) {

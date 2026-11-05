@@ -52,7 +52,7 @@
     const { esc, day, dayTime, num, toast, ROLE_TH } = DESK;
     const $ = (s) => document.querySelector(s);
     const SECTIONS = [
-      ['users', 'ผู้ใช้และบทบาท'], ['org', 'ผังหน่วยงาน'], ['categories', 'ประเภทข่าว'], ['docCategories', 'หมวดเอกสาร'], ['phoneEditors', 'สิทธิ์แก้ไขสมุดโทรศัพท์'], ['media', 'ภาพและวิดีโอ'],
+      ['users', 'ผู้ใช้และบทบาท'], ['org', 'ผังหน่วยงาน'], ['categories', 'ประเภทข่าว'], ['docCategories', 'หมวดเอกสาร'], ['phoneEditors', 'สิทธิ์แก้ไขสมุดโทรศัพท์'], ['phoneViewers', 'สิทธิ์ดูสมุดโทรศัพท์'], ['media', 'ภาพและวิดีโอ'],
       ['review', 'เวลาตรวจข่าว'], ['messages', 'ข้อความแจ้งเตือน'], ['mail', 'อีเมลแจ้งเตือน'], ['requests', 'คำขอข้อมูลส่วนบุคคล'], ['retention', 'ระยะเวลาเก็บข้อมูล'], ['backups', 'สำรองข้อมูล'], ['audit', 'ประวัติการใช้งาน'],
     ];
     const PLATFORM = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
@@ -418,6 +418,38 @@
       }));
     }
 
+    // ================= Phone book read rights (server/phonebook.mjs) =================
+    async function phoneViewers() {
+      const r = await api('/admin/phonebook-viewers').catch((err) => { toast(err.message, true); return null; });
+      if (!r) return;
+      $('#panel').innerHTML = head('สิทธิ์ดูสมุดโทรศัพท์', 'ผู้ดูแลระบบ ทีม PR เลขานุการผู้บริหาร และผู้บริหาร ดูสมุดโทรศัพท์ได้ตามบทบาท บุคลากรและนักศึกษาดูได้เมื่อเพิ่มอีเมลที่นี่ ยกเลิกได้ทุกเมื่อ') + `
+        <div class="grid gap-4 p-5 sm:px-6">
+          <form id="pvGrant" class="grid gap-2 rounded-card border border-line bg-surface2/50 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <label class="grid gap-1"><span class="font-display text-[14px] font-semibold">อีเมลมหาวิทยาลัย</span><input name="email" type="email" required autocomplete="off" placeholder="name@sru.ac.th" class="field h-11 rounded-xl px-3 text-[15px]"></label>
+            <button class="press t-spring h-11 rounded-xl bg-royal px-5 font-display text-[15px] font-semibold text-white dark:text-bg hover:-translate-y-0.5">ให้สิทธิ์ดู</button>
+          </form>
+          <h2 class="font-display text-[17px] font-semibold">ผู้ที่ได้รับสิทธิ์ดู</h2>
+          <ul class="grid gap-2">${r.items.length ? r.items.map((x) => `
+            <li class="flex flex-wrap items-center gap-3 rounded-2xl border border-line px-4 py-3" data-viewer="${esc(x.email)}">
+              <span class="min-w-0 flex-1"><span class="block text-[15px] font-medium">${esc(x.name || x.email)}</span><span class="block text-[13px] text-ink2">${esc(x.email)} · ให้สิทธิ์เมื่อ ${day(x.grantedAt)}</span></span>
+              <button type="button" data-revoke class="press t-quick h-10 rounded-full border border-line px-4 font-display text-[14px] font-medium text-brand hover:-translate-y-0.5">ยกเลิกสิทธิ์</button>
+            </li>`).join('') : '<li class="rounded-2xl border border-dashed border-line p-8 text-center text-ink2">ยังไม่มีบุคลากรหรือนักศึกษาที่ได้รับสิทธิ์</li>'}</ul>
+        </div>`;
+      $('#pvGrant').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = e.currentTarget;
+        try {
+          await api('/admin/phonebook-viewers', { method: 'POST', body: { email: f.email.value } });
+          toast('ให้สิทธิ์แล้ว');
+          phoneViewers();
+        } catch (err) { toast(Object.values(err.details || {})[0] || err.message, true); }
+      });
+      $('#panel').querySelectorAll('[data-viewer]').forEach((li) => li.querySelector('[data-revoke]').addEventListener('click', async (e) => {
+        e.currentTarget.disabled = true;
+        try { await api(`/admin/phonebook-viewers/${encodeURIComponent(li.dataset.viewer)}`, { method: 'DELETE' }); toast('ยกเลิกสิทธิ์แล้ว'); phoneViewers(); } catch (err) { toast(err.message, true); e.currentTarget.disabled = false; }
+      }));
+    }
+
     // ================= PDPA: requests from users =================
     const REQ = { pending: ['รอดำเนินการ', 'bg-gold-soft text-gold'], done: ['ลบแล้ว', 'bg-sky-soft text-sky'], rejected: ['ไม่ลบ', 'bg-red-soft text-brand'], cancelled: ['ผู้ขอยกเลิก', 'bg-surface2 text-ink2'] };
     async function requests() {
@@ -557,7 +589,7 @@
     }
 
     // ================= Routing (#section) =================
-    const RENDER = { users, org, categories, docCategories, phoneEditors, media, review, messages, mail, requests, retention, backups, audit };
+    const RENDER = { users, org, categories, docCategories, phoneEditors, phoneViewers, media, review, messages, mail, requests, retention, backups, audit };
     function show() {
       const id = SECTIONS.some(([k]) => k === location.hash.slice(1)) ? location.hash.slice(1) : 'users';
       document.querySelectorAll('#secNav a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.sec === id)));

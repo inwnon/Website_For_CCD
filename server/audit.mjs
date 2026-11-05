@@ -51,6 +51,8 @@ export const ACTIONS = {
   'phonebook.import': 'นำเข้าสมุดโทรศัพท์จากไฟล์',
   'phonebook.grant': 'ให้สิทธิ์แก้ไขสมุดโทรศัพท์',
   'phonebook.revoke': 'ยกเลิกสิทธิ์แก้ไขสมุดโทรศัพท์',
+  'phonebook.view_grant': 'ให้สิทธิ์ดูสมุดโทรศัพท์',
+  'phonebook.view_revoke': 'ยกเลิกสิทธิ์ดูสมุดโทรศัพท์',
   'role.set': 'กำหนดบทบาท',
   'role.remove': 'ยกเลิกบทบาท',
   'role.switch': 'สลับบทบาท (ผู้พัฒนาระบบ)',

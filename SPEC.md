@@ -16,7 +16,7 @@ Base role comes from the Google email domain (existing `rules.mjs`): `sru.ac.th`
 | `student` (domain) | student team members | own assignments, own hours |
 | `secretary` (new) | executive secretaries | view calendar, submit service requests |
 | `executive` (new) | executives | view calendar and dashboard |
-| `staff` (domain) | other university staff | phone book only |
+| `staff` (domain) | other university staff | phone book, once an admin adds their email |
 | `coordinator`, `intern` | existing newsroom roles | as their base (domain) role |
 | `external` | non-university Google accounts | **none** — newsroom submit only, 403 on every new module |
 | public (no login) | anyone | newsroom + public calendar |
@@ -27,7 +27,7 @@ Base role comes from the Google email domain (existing `rules.mjs`): `sru.ac.th`
 | Calendar | all | create/edit/assign | own + team | view + create, edit and assign own (no internal notes) | view | — | public events only |
 | Service requests | all | approve/reject | — | create + track own | view | — | — |
 | Documents | all | all | — | — | — | — | — |
-| Phone book | all | view; edit while an admin's time-limited grant runs (also interns) | view | view | view | view | — |
+| Phone book | all | view; edit while an admin's time-limited grant runs (also interns) | view once an admin adds their email | view | view | view once an admin adds their email | — |
 | Students | all | manage/approve | own record | — | summary | — | — |
 | Dashboard | all | view | — | — | view | — | — |
 
@@ -42,7 +42,7 @@ Existing pages are unchanged. New pages follow the repo pattern (one `.html` per
 | `calendar.html` | work calendar (main back-office page) | per matrix |
 | `requests.html` | service requests (e.g. photographer) | secretary, pr, admin |
 | `documents.html` | document archive & search | pr, admin |
-| `phonebook.html` | unit phone numbers | any university role |
+| `phonebook.html` | unit phone numbers | admin, pr, secretary, executive; staff and students an admin adds |
 | `students.html` | student team | per matrix |
 | `report.html` (extend) | dashboard | executive, pr, admin |
 | `chanon.html` (renamed from `admin.html`) | system admin, roles, audit, backups | admin |

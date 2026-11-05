@@ -9,8 +9,9 @@ const MATRIX = {
   requests: { admin: 'all', pr: 'approve', secretary: 'own', executive: 'view' },
   documents: { admin: 'all', pr: 'all' },
   equipment: { admin: 'all', pr: 'all', student: 'request' },
-  // PR and interns edit only while an admin lends them the right (phonebook.mjs)
-  phonebook: { admin: 'all', pr: 'view', student: 'view', secretary: 'view', executive: 'view', staff: 'view' },
+  // PR and interns edit only while an admin lends them the right (phonebook.mjs); staff and students read only
+  // while an admin lets them (phonebook_viewers, or a running edit loan; read with the session)
+  phonebook: { admin: 'all', pr: 'view', secretary: 'view', executive: 'view' },
   students: { admin: 'all', pr: 'manage', student: 'own', executive: 'summary' },
   dashboard: { admin: 'all', pr: 'view', executive: 'view' },
 };
@@ -28,6 +29,7 @@ export const rightOf = (u, module) => {
   const role = moduleRole(u);
   // Staff that PR or an admin let in (request_access, read with the session) ask like a secretary
   if (module === 'requests' && role === 'staff' && u.requester) return 'own';
+  if (module === 'phonebook' && (role === 'staff' || role === 'student') && u.phonebook_viewer) return 'view';
   return MATRIX[module]?.[role] ?? null;
 };
 // Only plain university staff may ask for that
@@ -37,10 +39,10 @@ export const askableOf = (u) => (mayAskRequests(u) && !rightOf(u, 'requests') ? 
 // The modules this user may open (GET /api/me, for the menus)
 export const modulesOf = (u) => Object.keys(MATRIX).filter((m) => rightOf(u, m));
 
-// Anyone with at least one module (notifications): external accounts have none
+// Any university account (notifications): external accounts have none
 export const requireBackOffice = (req, res, next) => {
   if (!req.user) throw new HttpError(401, 'กรุณาเข้าสู่ระบบ');
-  if (!modulesOf(req.user).length) throw new HttpError(403, 'บัญชีนี้ไม่มีสิทธิ์ใช้งานส่วนนี้');
+  if (moduleRole(req.user) === 'external') throw new HttpError(403, 'บัญชีนี้ไม่มีสิทธิ์ใช้งานส่วนนี้');
   next();
 };
 
