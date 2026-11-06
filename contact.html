@@ -29,7 +29,7 @@
     .postcode span { display: grid; place-items: center; width: 2.4rem; height: 2.9rem; border: 1.5px solid rgb(var(--line)); border-radius: .6rem; background: rgb(var(--shell)); font: 600 22px/1 Kanit, sans-serif; color: rgb(var(--royal)); }
     .ext { font-variant-numeric: tabular-nums; }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=dc9c6886ef">
+  <link rel="stylesheet" href="/assets/app.css?v=135255ff22">
 </head>
 
 <body class="min-h-screen">
@@ -153,8 +153,8 @@
           <p id="facCount" class="text-[15px] text-ink2"></p>
         </div>
         <p class="mt-2 max-w-[72ch] text-[16px] text-ink2">บุคลากรของคณะและหน่วยงานที่ระบุตำแหน่งงานประชาสัมพันธ์ในโปรไฟล์ เรียงตามจำนวนข่าวที่ส่งเข้าระบบ</p>
-        <div id="facList" class="mt-6 min-h-[160px] border-b border-line">
-          <p class="border-t border-line py-8 text-center text-[15px] text-ink2">กำลังโหลดรายชื่อ…</p>
+        <div id="facList" class="mt-6 grid min-h-[120px] items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">กำลังโหลดรายชื่อ…</p>
         </div>
       </section>
     </div>
@@ -214,22 +214,26 @@
     function faculties(list) {
       const people = list.reduce((n, f) => n + f.people.length, 0);
       $('#facCount').textContent = people ? `${num(list.length)} คณะ/หน่วยงาน ${num(people)} คน` : '';
+      // One small card per unit; each person is one slim row: photo, name, position · how many sent, extension on the right
       $('#facList').innerHTML = list.length
-        ? list.map((f) => `<section class="grid gap-3 border-t border-line py-5 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8" aria-label="${esc(f.unit)}">
-            <h3 class="font-display text-[19px] font-semibold leading-snug text-royal">${esc(f.unit)}</h3>
-            <ul class="grid gap-3 md:grid-cols-2">
-              ${f.people.map((p) => `<li class="flex items-start gap-3 rounded-2xl bg-surface2 p-4">
-                ${avatar(p, 44)}
+        ? list.map((f) => `<section class="overflow-hidden rounded-card border border-line bg-surface shadow-raised" aria-label="${esc(f.unit)}">
+            <h3 class="flex items-baseline gap-2 border-b border-line bg-surface2 px-4 py-2.5 font-display text-[16px] font-semibold leading-[1.6] text-royal">
+              <span class="min-w-0 flex-1">${esc(f.unit)}</span><span class="shrink-0 font-sans text-[13px] font-normal text-ink2">${num(f.people.length)} คน</span>
+            </h3>
+            <ul class="divide-y divide-line">
+              ${f.people.map((p) => `<li class="flex items-center gap-3 px-4 py-2.5">
+                ${avatar(p, 36)}
                 <div class="min-w-0 flex-1">
-                  <p class="font-display text-[16px] font-semibold leading-snug">${esc(p.name)}</p>
-                  ${p.position ? `<p class="text-[14px] leading-[1.6] text-ink2">${esc(p.position)}</p>` : ''}
-                  <p class="mt-2 inline-flex rounded-full bg-purple-soft px-3 py-0.5 text-[13px] font-medium text-purple">ส่งข่าวแล้ว ${num(p.sent)} ชิ้น</p>
+                  <p class="font-display text-[15px] font-semibold leading-[1.6]">${esc(p.name)}</p>
+                  <p class="text-[13px] leading-[1.6] text-ink2">${p.position ? `${esc(p.position)} · ` : ''}ส่งข่าว ${num(p.sent)} ชิ้น</p>
                 </div>
-                <div class="shrink-0 text-right">${ext(p, false)}</div>
+                ${p.ext
+                  ? `<p class="shrink-0 text-right"><span class="sr-only">โทรภายใน </span><span class="ext font-display text-[18px] font-semibold leading-tight text-purple">${esc(p.ext)}</span></p>`
+                  : '<p class="shrink-0 text-[13px] text-ink2"><span aria-hidden="true">–</span><span class="sr-only">ยังไม่ได้ระบุเบอร์ภายใน</span></p>'}
               </li>`).join('')}
             </ul>
           </section>`).join('')
-        : '<p class="border-t border-line py-8 text-center text-[15px] text-ink2">ยังไม่มีบุคลากรคณะหรือหน่วยงานที่ระบุตำแหน่งงานประชาสัมพันธ์ในโปรไฟล์ ข่าวของคณะหรือหน่วยงานส่งผ่านงานประชาสัมพันธ์ส่วนกลางได้</p>';
+        : '<p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">ยังไม่มีบุคลากรคณะหรือหน่วยงานที่ระบุตำแหน่งงานประชาสัมพันธ์ในโปรไฟล์ ข่าวของคณะหรือหน่วยงานส่งผ่านงานประชาสัมพันธ์ส่วนกลางได้</p>';
     }
 
     // Loading (again after "โหลดอีกครั้ง"): the waiting text in both lists, counts cleared, a second press ignored
@@ -240,7 +244,7 @@
       $('#team').setAttribute('aria-busy', 'true'); $('#fac').setAttribute('aria-busy', 'true');
       $('#teamCount').textContent = ''; $('#facCount').textContent = '';
       $('#teamList').innerHTML = '<li class="col-span-full grid place-items-center bg-surface p-8 text-[15px] text-ink2">กำลังโหลดรายชื่อ…</li>';
-      $('#facList').innerHTML = '<p class="border-t border-line py-8 text-center text-[15px] text-ink2">กำลังโหลดรายชื่อ…</p>';
+      $('#facList').innerHTML = '<p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">กำลังโหลดรายชื่อ…</p>';
       try {
         const r = await fetch('/api/contact', { credentials: 'same-origin' });
         if (!r.ok) throw new Error();
@@ -249,7 +253,7 @@
       } catch (e) {
         const msg = 'โหลดรายชื่อไม่สำเร็จ <button type="button" data-retry class="press t-quick ml-2 rounded-xl bg-purple-soft px-3 py-1 font-display text-[14px] font-medium text-purple hover:opacity-90">โหลดอีกครั้ง</button>';
         $('#teamList').innerHTML = `<li class="col-span-full grid place-items-center bg-surface p-8 text-[15px] text-ink2"><p>${msg}</p></li>`;
-        $('#facList').innerHTML = '<p class="border-t border-line py-8 text-center text-[15px] text-ink2">โหลดรายชื่อไม่สำเร็จ</p>';
+        $('#facList').innerHTML = '<p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">โหลดรายชื่อไม่สำเร็จ</p>';
       }
       loading = false;
       $('#team').removeAttribute('aria-busy'); $('#fac').removeAttribute('aria-busy');
