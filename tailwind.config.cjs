@@ -14,7 +14,7 @@ module.exports = {
         'sky-soft': c('sky-soft'), 'gold-soft': c('gold-soft'),
       },
       fontFamily: {
-        display: ['Kanit', '"Noto Sans Thai"', 'sans-serif'],
+        display: ['Prompt', '"Noto Sans Thai"', 'sans-serif'],
         sans: ['"Noto Sans Thai"', 'system-ui', 'sans-serif'],
       },
       spacing: {

@@ -43,14 +43,14 @@
     .scx-trigger[aria-expanded="true"] { background: rgb(var(--purple-soft)); color: rgb(var(--purple)); }
     .scx-trigger .scx-chev { transition: transform .35s var(--spring); }
     .scx-trigger[aria-expanded="true"] .scx-chev { transform: rotate(180deg); }
-    .scx-dot { min-width: 20px; border-radius: 9999px; background: rgb(var(--red)); padding: 0 6px; color: rgb(var(--shell)); font: 600 12px/20px Kanit, sans-serif; text-align: center; }
+    .scx-dot { min-width: 20px; border-radius: 9999px; background: rgb(var(--red)); padding: 0 6px; color: rgb(var(--shell)); font: 600 12px/20px Prompt, sans-serif; text-align: center; }
     .scx-panel { position: fixed; z-index: 70; width: 320px; max-width: calc(100vw - 24px); max-height: min(70dvh, 560px); overflow-y: auto; padding: 8px;
       border-radius: 22px; border: 1px solid rgb(var(--line)); background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-float);
       transform-origin: top; animation: scxIn .3s var(--spring); }
     @keyframes scxIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
-    .scx-label { padding: 8px 12px 6px; font: 600 13px Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); }
+    .scx-label { padding: 8px 12px 6px; font: 600 13px Prompt, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); }
     .scx-item { position: relative; isolation: isolate; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 10px; border-radius: 14px;
-      font: 500 15px/1.3 Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink)); text-align: left; width: 100%; transition: transform .35s var(--spring); }
+      font: 500 15px/1.3 Prompt, "Noto Sans Thai", sans-serif; color: rgb(var(--ink)); text-align: left; width: 100%; transition: transform .35s var(--spring); }
     .scx-item:hover, .scx-item:focus-visible { background: rgb(var(--surface-2)); }
     .scx-item:active { transform: scale(.98); }
     .scx-item:focus-visible { outline: 3px solid rgb(var(--focus)); outline-offset: 1px; }
@@ -68,7 +68,7 @@
     .scx-move:active { transform: scale(.9); }
     .scx-move:disabled { opacity: .3; pointer-events: none; }
     .scx-move:focus-visible, .scx-btn:focus-visible { outline: 3px solid rgb(var(--focus)); outline-offset: 2px; }
-    .scx-btn { display: inline-flex; height: 44px; align-items: center; border-radius: 16px; padding: 0 20px; font: 500 15px Kanit, "Noto Sans Thai", sans-serif; transition: transform .4s var(--spring); }
+    .scx-btn { display: inline-flex; height: 44px; align-items: center; border-radius: 16px; padding: 0 20px; font: 500 15px Prompt, "Noto Sans Thai", sans-serif; transition: transform .4s var(--spring); }
     .scx-btn:hover { background: rgb(var(--surface-2)); }
     .scx-btn:active { transform: scale(.96); }
     .scx-btn.go { background: var(--grad); color: #fff; font-weight: 600; box-shadow: var(--shadow-glow); }

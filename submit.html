@@ -22,7 +22,7 @@
   </script>
 
   <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Prompt-700.woff2" as="font" type="font/woff2" crossorigin>
 
 
   <style>
@@ -268,7 +268,7 @@
     .fold-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
 
     /* Key people: the role stands out a little; prefix · name · position (one row on wide screens) */
-    .role-tag { display: inline-flex; align-items: center; border-radius: 10px; padding: 2px 10px; background: rgb(var(--purple-soft)); color: rgb(var(--purple)); font-family: Kanit, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.6; }
+    .role-tag { display: inline-flex; align-items: center; border-radius: 10px; padding: 2px 10px; background: rgb(var(--purple-soft)); color: rgb(var(--purple)); font-family: Prompt, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.6; }
     .person-row { display: grid; gap: 12px; }
     .person-row .guest-remove { order: 9; justify-self: end; }
     @media (min-width: 640px) {
@@ -309,7 +309,7 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=0bd501b8bf">
+  <link rel="stylesheet" href="/assets/app.css?v=1b5e5222c6">
 </head>
 
 <body class="min-h-screen">
@@ -391,7 +391,7 @@
             </p>
             <article class="flex flex-col overflow-hidden rounded-card border border-line bg-shell" aria-label="ตัวอย่างการ์ด">
               <div class="pv-img relative aspect-[16/9] overflow-hidden bg-surface2">
-                <img id="pvImg" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22640%22%20height%3D%22360%22%3E%3Crect%20width%3D%22640%22%20height%3D%22360%22%20fill%3D%22%232A3B9C%22%2F%3E%3Ctext%20x%3D%22320%22%20y%3D%22196%22%20font-family%3D%22Kanit%2Csans-serif%22%20font-size%3D%2244%22%20font-weight%3D%22600%22%20fill%3D%22%23C8A6FF%22%20text-anchor%3D%22middle%22%3ECover%3C%2Ftext%3E%3C%2Fsvg%3E" alt="" class="h-full w-full object-cover" width="640" height="360">
+                <img id="pvImg" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22640%22%20height%3D%22360%22%3E%3Crect%20width%3D%22640%22%20height%3D%22360%22%20fill%3D%22%232A3B9C%22%2F%3E%3Ctext%20x%3D%22320%22%20y%3D%22196%22%20font-family%3D%22Prompt%2Csans-serif%22%20font-size%3D%2244%22%20font-weight%3D%22600%22%20fill%3D%22%23C8A6FF%22%20text-anchor%3D%22middle%22%3ECover%3C%2Ftext%3E%3C%2Fsvg%3E" alt="" class="h-full w-full object-cover" width="640" height="360">
                 <div class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></div>
                 <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-50"></div>
                 <span id="pvPlay" class="absolute left-1/2 top-1/2 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-shell/90 text-brand shadow-float" hidden>
@@ -1765,7 +1765,7 @@
       $('#pvAudience').className = `rounded-full px-2.5 text-[12px] leading-6 ${aud.cls}`;
 
       // Preview placeholders drawn here (no image service): background, text colour, label
-      const ph = (bg, fg, t) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="${bg}"/><text x="320" y="196" font-family="Kanit,sans-serif" font-size="44" font-weight="600" fill="${fg}" text-anchor="middle">${esc(t)}</text></svg>`);
+      const ph = (bg, fg, t) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="${bg}"/><text x="320" y="196" font-family="Prompt,sans-serif" font-size="44" font-weight="600" fill="${fg}" text-anchor="middle">${esc(t)}</text></svg>`);
       let img = ph('#2A3B9C', '#C8A6FF', 'Cover'), badge, play = false;
       if (type === 'news') {
         const c = up.photo.coverItem; if (c) img = c.url;

@@ -141,10 +141,10 @@
     .acct-btn:active { transform: scale(.94); }
     .acct-btn:focus-visible, .acct-item:focus-visible, .acct-seg button:focus-visible, .acct-cta:focus-visible { outline: 2px solid rgb(var(--focus)); outline-offset: 2px; }
     .acct-btn[aria-expanded="true"] { box-shadow: 0 0 0 2px rgb(var(--shell)), 0 0 0 4px rgb(var(--purple) / .55); }
-    .acct-av { display: grid; place-items: center; overflow: hidden; border-radius: 999px; font-family: Kanit, "Noto Sans Thai", sans-serif; font-weight: 600; color: #fff; background: var(--grad); }
+    .acct-av { display: grid; place-items: center; overflow: hidden; border-radius: 999px; font-family: Prompt, "Noto Sans Thai", sans-serif; font-weight: 600; color: #fff; background: var(--grad); }
     .acct-av img { height: 100%; width: 100%; object-fit: cover; }
     .acct-btn .acct-av { height: 38px; width: 38px; font-size: 16px; }
-    .acct-dot { position: absolute; right: -3px; top: -3px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: rgb(var(--red)); color: rgb(var(--shell)); font: 600 12px/1 Kanit, sans-serif; box-shadow: 0 0 0 2px rgb(var(--shell)); }
+    .acct-dot { position: absolute; right: -3px; top: -3px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: rgb(var(--red)); color: rgb(var(--shell)); font: 600 12px/1 Prompt, sans-serif; box-shadow: 0 0 0 2px rgb(var(--shell)); }
     .acct-panel { position: absolute; right: 0; top: calc(100% + 10px); z-index: 70; width: min(336px, calc(100vw - 24px)); max-height: calc(100dvh - 96px); overflow-y: auto; overscroll-behavior: contain; text-align: left;
       border: 1px solid rgb(var(--line)); border-radius: 22px; background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-float);
       transform-origin: calc(100% - 22px) -6px; opacity: 0; transform: translateY(-6px) scale(.96); pointer-events: none; visibility: hidden;
@@ -152,28 +152,28 @@
     .acct-panel.open { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity .18s ease-out, transform .4s var(--spring), visibility 0s; }
     .acct-id { display: flex; gap: 12px; align-items: center; padding: 16px; background: rgb(var(--surface-2) / .7); border-bottom: 1px solid rgb(var(--line)); }
     .acct-id .acct-av { height: 48px; width: 48px; flex-shrink: 0; font-size: 20px; }
-    .acct-name { font: 600 16px/1.35 Kanit, "Noto Sans Thai", sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .acct-name { font: 600 16px/1.35 Prompt, "Noto Sans Thai", sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .acct-mail { font-size: 13px; color: rgb(var(--ink-2)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .acct-role { margin-top: 6px; display: inline-block; max-width: 100%; border-radius: 999px; background: rgb(var(--purple-soft)); color: rgb(var(--purple)); padding: 0 10px; font: 600 12px/22px Kanit, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
+    .acct-role { margin-top: 6px; display: inline-block; max-width: 100%; border-radius: 999px; background: rgb(var(--purple-soft)); color: rgb(var(--purple)); padding: 0 10px; font: 600 12px/22px Prompt, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
     .acct-grp { padding: 6px; }
     .acct-grp + .acct-grp { border-top: 1px solid rgb(var(--line)); }
     .acct-label { padding: 8px 10px 4px; font-size: 12px; color: rgb(var(--ink-2)); }
-    .acct-item { position: relative; display: flex; width: 100%; align-items: center; gap: 12px; min-height: 42px; padding: 0 10px; border-radius: 12px; font: 500 15px/1.3 Kanit, "Noto Sans Thai", sans-serif; text-align: left; color: rgb(var(--ink)); isolation: isolate; transition: transform .3s var(--spring); }
+    .acct-item { position: relative; display: flex; width: 100%; align-items: center; gap: 12px; min-height: 42px; padding: 0 10px; border-radius: 12px; font: 500 15px/1.3 Prompt, "Noto Sans Thai", sans-serif; text-align: left; color: rgb(var(--ink)); isolation: isolate; transition: transform .3s var(--spring); }
     .acct-item::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: rgb(var(--surface-2)); opacity: 0; transition: opacity .2s ease-out; }
     .acct-item:hover::before, .acct-item:focus-visible::before { opacity: 1; }
     .acct-item:active { transform: scale(.98); }
     .acct-item > svg { flex-shrink: 0; color: rgb(var(--ink-2)); }
-    .acct-n { margin-left: auto; min-width: 22px; border-radius: 999px; background: rgb(var(--red)); color: rgb(var(--shell)); padding: 0 7px; font: 600 12px/22px Kanit, sans-serif; text-align: center; }
+    .acct-n { margin-left: auto; min-width: 22px; border-radius: 999px; background: rgb(var(--red)); color: rgb(var(--shell)); padding: 0 7px; font: 600 12px/22px Prompt, sans-serif; text-align: center; }
     .acct-item[aria-current="page"], .acct-item[aria-current="page"] > svg { color: rgb(var(--purple)); }
     .acct-item.danger, .acct-item.danger > svg { color: rgb(var(--red)); }
-    .acct-theme { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px 8px; font: 500 15px Kanit, "Noto Sans Thai", sans-serif; }
+    .acct-theme { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px 8px; font: 500 15px Prompt, "Noto Sans Thai", sans-serif; }
     .acct-seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line-strong)); }
     .acct-seg button { height: 44px; min-width: 44px; padding: 0 12px; border-radius: 999px; font-size: 13px; color: rgb(var(--ink-2)); transition: transform .35s var(--spring); }
     .acct-seg button:hover { color: rgb(var(--ink)); }
     .acct-seg button:active { transform: scale(.94); }
     .acct-seg button[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
     .acct-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 2px 4px 6px; padding: 4px; border-radius: 16px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
-    .acct-roles button { min-height: 44px; padding: 6px 8px; border-radius: 12px; font: 500 13px/1.35 Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); transition: transform .35s var(--spring); }
+    .acct-roles button { min-height: 44px; padding: 6px 8px; border-radius: 12px; font: 500 13px/1.35 Prompt, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); transition: transform .35s var(--spring); }
     .acct-roles button:hover { color: rgb(var(--ink)); }
     .acct-roles button:active { transform: scale(.96); }
     .acct-roles button:focus-visible { outline: 2px solid rgb(var(--focus)); outline-offset: 2px; }
@@ -181,7 +181,7 @@
     .acct-roles button:disabled { opacity: .6; }
     .acct-intro { padding: 18px 16px 4px; }
     .acct-intro p + p { font-size: 14px; line-height: 1.6; color: rgb(var(--ink-2)); margin-top: 4px; }
-    .acct-cta { margin: 12px 16px 14px; display: flex; height: 46px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: var(--grad); color: #fff; font: 600 15px Kanit, sans-serif; box-shadow: var(--shadow-glow); transition: transform .45s var(--spring); }
+    .acct-cta { margin: 12px 16px 14px; display: flex; height: 46px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: var(--grad); color: #fff; font: 600 15px Prompt, sans-serif; box-shadow: var(--shadow-glow); transition: transform .45s var(--spring); }
     .acct-cta:hover { transform: translateY(-2px); }
     .acct-cta:active { transform: scale(.97); }
     @media (prefers-reduced-motion: reduce) { .acct-panel, .acct-panel.open, .acct-btn, .acct-cta, .acct-item, .acct-seg button, .acct-roles button { transition: none; } }

@@ -1,6 +1,6 @@
-/* Self-hosted fonts (npm run build:fonts): Kanit for headings, Noto Sans Thai for text. Thai + Latin in one file per face.
+/* Self-hosted fonts (npm run build:fonts): Prompt for headings, Noto Sans Thai for text. Thai + Latin in one file per face.
    SIL Open Font License. Characters outside these (e.g. Vietnamese) fall back to the system font. */
-@font-face { font-family: 'Kanit'; font-style: normal; font-weight: 500; font-display: swap; src: url(/assets/fonts/Kanit-500.woff2) format('woff2'); }
-@font-face { font-family: 'Kanit'; font-style: normal; font-weight: 600; font-display: swap; src: url(/assets/fonts/Kanit-600.woff2) format('woff2'); }
-@font-face { font-family: 'Kanit'; font-style: normal; font-weight: 700; font-display: swap; src: url(/assets/fonts/Kanit-700.woff2) format('woff2'); }
+@font-face { font-family: 'Prompt'; font-style: normal; font-weight: 500; font-display: swap; src: url(/assets/fonts/Prompt-500.woff2) format('woff2'); }
+@font-face { font-family: 'Prompt'; font-style: normal; font-weight: 600; font-display: swap; src: url(/assets/fonts/Prompt-600.woff2) format('woff2'); }
+@font-face { font-family: 'Prompt'; font-style: normal; font-weight: 700; font-display: swap; src: url(/assets/fonts/Prompt-700.woff2) format('woff2'); }
 @font-face { font-family: 'Noto Sans Thai'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(/assets/fonts/NotoSansThai.woff2) format('woff2'); }

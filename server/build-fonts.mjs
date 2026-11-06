@@ -1,6 +1,6 @@
 // npm run build:fonts — the site's fonts in assets/fonts, one WOFF2 per face with Thai and Latin together
 // (fewer files than Google Fonts' per-script subsets: fewer downloads and fewer re-layouts while a page loads).
-//   Kanit-500/600/700.woff2   headings (Google Fonts TTF, subset)
+//   Prompt-500/600/700.woff2  headings (Google Fonts TTF, subset)
 //   NotoSansThai.woff2        text, variable weight 400–700 (google/fonts repository, width axis fixed at 100)
 // Needs internet once; the result is kept in assets/fonts. SIL Open Font License (both families).
 import { writeFileSync } from 'node:fs';
@@ -16,12 +16,12 @@ const TEXT = RANGES.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, i)
 const get = async (url, ua) => Buffer.from(await (await fetch(url, { headers: ua ? { 'user-agent': ua } : {} })).arrayBuffer());
 
 // An old browser's user agent gets whole TTF files (one per weight) instead of subsets
-const css = await (await fetch('https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700', { headers: { 'user-agent': 'Mozilla/4.0' } })).text();
+const css = await (await fetch('https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700', { headers: { 'user-agent': 'Mozilla/4.0' } })).text();
 for (const block of css.split('@font-face').slice(1)) {
   const w = block.match(/font-weight: (\d+);/)[1];
   const out = await subsetFont(await get(block.match(/url\((https:[^)]+)\)/)[1]), TEXT, { targetFormat: 'woff2' });
-  writeFileSync(join(OUT, `Kanit-${w}.woff2`), out);
-  console.log(`Kanit-${w}.woff2 ${Math.round(out.length / 1024)} KB`);
+  writeFileSync(join(OUT, `Prompt-${w}.woff2`), out);
+  console.log(`Prompt-${w}.woff2 ${Math.round(out.length / 1024)} KB`);
 }
 for (const [name, file] of [['NotoSansThai', 'notosansthai/NotoSansThai']]) {
   const ttf = await get(`https://raw.githubusercontent.com/google/fonts/main/ofl/${file}%5Bwdth,wght%5D.ttf`);
