@@ -116,7 +116,26 @@ describe('SEO', () => {
     assert.match(html, /<script type="application\/ld\+json">\{"@context":"https:\/\/schema.org","@type":"NewsArticle"/);
     assert.ok(html.includes(`data-i18n="title">${n.title.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</h1>`), 'title in the markup');
     assert.match(html, /<article id="article" lang="th">/);
+    if (html.includes('<img id="leadImg" alt="" src=')) assert.fail('the lead photo has the story title as its alt text');
     assert.doesNotMatch(html, /window\.__NEWS = [^;]*<\/script/i, 'no </script> inside the inline JSON');
+  });
+  test('a story body leaves out separator-only and punctuation-only lines (copied from Facebook)', async () => {
+    const { body } = (await query('select body from news where id = $1', [publicId])).rows[0];
+    try {
+      await query('update news set body = $2 where id = $1', [publicId, 'ย่อหน้าแรก\n---------------\n.\nย่อหน้าสอง - ต่อ\n=====\n…\nจบ.']);
+      const html = String((await request('GET', `/news.html?id=${publicId}`)).body);
+      assert.ok(html.includes('<p>ย่อหน้าแรก</p><p>ย่อหน้าสอง - ต่อ</p><p>จบ.</p>'), 'only the text paragraphs');
+    } finally {
+      await query('update news set body = $2 where id = $1', [publicId, body]);
+    }
+  });
+  test('the home page has Open Graph tags with an image', async () => {
+    const html = String((await request('GET', '/')).body);
+    assert.match(html, /<title>SRU News Hub \| งานประชาสัมพันธ์ มรส\.<\/title>/);
+    assert.match(html, /<meta property="og:image" content="https?:\/\/[^"]+\/assets\/img\/og-default\.jpg">/);
+    assert.match(html, /<meta property="og:title" content="[^"]+">/);
+    assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
+    assert.match(html, /<link rel="canonical" href="https?:\/\/[^"]+\/">/);
   });
   test('internal stories: noindex and no content for readers who may not read them; 404 / noindex for missing ones', async () => {
     if (internalId) {

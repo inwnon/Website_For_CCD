@@ -168,7 +168,6 @@
     /* A paragraph's own line spacing ([lh=…]), over the story's */
     .news-body p[data-leading="tight"] { line-height: 1.6; margin-bottom: .5em; }
     .news-body p[data-leading="loose"] { line-height: 2.3; margin-bottom: 1.7em; }
-    .news-body p:first-child::first-letter { color: rgb(var(--red)); font-weight: 700; font-size: 22px; }
     /* Thai text justified the Thai way ("กระจายแบบไทย"): the extra space goes between characters, the last line stays left */
     article:lang(th) .news-body p { text-align: justify; text-justify: inter-character; text-align-last: start; }
     .news-body blockquote {
@@ -531,8 +530,8 @@
 
     // Plain text from the PR desk → paragraphs (blank line or new line = new paragraph)
     // **…** is bold, [size=18]…[/size] a font size, [lh=loose] at the start a paragraph's line spacing (text-tools.js);
-    // the same as paragraphs() in server/pages.mjs
-    const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter(Boolean)
+    // the same as paragraphs() in server/pages.mjs (also leaves out separator-only and punctuation-only lines)
+    const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter((p) => p && !/^[-–—_=~*.·•…,\s]+$/.test(p))
       .map((p) => { const lh = p.match(/^\[lh=(tight|normal|loose)\]\s*/); return `<p${lh && lh[1] !== 'normal' ? ` data-leading="${lh[1]}"` : ''}>${esc(lh ? p.slice(lh[0].length) : p).replace(/\[size=(1[6-9]|20)\]([\s\S]*?)\[\/size\]/g, '<span data-size="$1">$2</span>').replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '<strong>$1</strong>')}</p>`; }).join('');
     // The credit line under the picture names who made it: the photographer, the producer of a video, the designer of a banner
     const CREDIT = { news: ['ภาพ', 'Photos'], video: ['ผลิตโดย', 'Produced by'], banner: ['ออกแบบโดย', 'Designed by'], source: ['ที่มา', 'Source'] };
@@ -634,6 +633,7 @@
         if (photos[0].set) { $('#leadImg').srcset = photos[0].set; $('#leadImg').sizes = '(min-width: 1024px) 900px, 100vw'; }
         $('#leadImg').src = photos[0].web;
       }
+      $('#leadImg').alt = s.title;
       $('#tagFeatured').hidden = !s.featured;
       $('#tagInternal').hidden = !s.internal;
       $('#tagVideo').hidden = !s.videoUrl;

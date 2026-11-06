@@ -57,8 +57,8 @@ const LS = new RegExp(String.fromCharCode(0x2028), 'g'), PS = new RegExp(String.
 const BS = String.fromCharCode(92); // a backslash, so "<" and the separators become JSON escape sequences
 const scriptJson = (v) => JSON.stringify(v).replace(/</g, BS + 'u003c').replace(LS, BS + 'u2028').replace(PS, BS + 'u2029');
 // The same as paragraphs() in news.html: a line is a paragraph, **…** is bold, [size=18]…[/size] a font size,
-// [lh=loose] at the start its line spacing
-const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter(Boolean)
+// [lh=loose] at the start its line spacing; lines of only dashes or punctuation (separators copied from Facebook) are left out
+const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter((p) => p && !/^[-–—_=~*.·•…,\s]+$/.test(p))
   .map((p) => { const lh = p.match(/^\[lh=(tight|normal|loose)\]\s*/); return `<p${lh && lh[1] !== 'normal' ? ` data-leading="${lh[1]}"` : ''}>${esc(lh ? p.slice(lh[0].length) : p).replace(/\[size=(1[6-9]|20)\]([\s\S]*?)\[\/size\]/g, '<span data-size="$1">$2</span>').replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '<strong>$1</strong>')}</p>`; }).join('');
 const clip = (t, n) => { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > n ? `${s.slice(0, n - 1)}…` : s; };
 const TH_DATE = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' });
@@ -67,7 +67,7 @@ const TH_TIME = new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-d
 // Replaces `from` once; a template change that drops an anchor shows up as a page without that part, not an error
 const swap = (html, from, to) => (html.includes(from) ? html.replace(from, to) : html);
 
-function head(html, { title, description, url, image, type = 'website', robots, extra = '' }) {
+function head(html, { title, description, url, image, type = 'website', robots, extra = '', keepTitle = false }) {
   const tags = [
     `<link rel="canonical" href="${esc(url)}">`,
     robots ? `<meta name="robots" content="${robots}">` : '',
@@ -81,7 +81,7 @@ function head(html, { title, description, url, image, type = 'website', robots, 
     '<meta name="twitter:card" content="summary_large_image">',
     extra,
   ].filter(Boolean).join('\n  ');
-  html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(title)} | ${SITE}</title>`);
+  if (!keepTitle) html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(title)} | ${SITE}</title>`);
   html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${esc(description)}">\n  ${tags}`);
   return html;
 }
@@ -135,7 +135,7 @@ router.get('/news.html', loadUser, async (req, res, next) => {
   html = swap(html, 'data-i18n="unit"></a>', `data-i18n="unit">${esc(s.unit)}</a>`);
   html = swap(html, 'data-i18n-html="body"></div>', `data-i18n-html="body"${s.bodySize ? ` data-size="${s.bodySize}"` : ''}${s.bodyLeading ? ` data-leading="${s.bodyLeading}"` : ''}>${paragraphs(s.body)}</div>`);
   if (lead) {
-    html = swap(html, '<img id="leadImg" alt=""', `<img id="leadImg" alt="" src="${esc(lead.web)}"${lead.set ? ` srcset="${esc(lead.set)}" sizes="(min-width: 1024px) 900px, 100vw"` : ''} fetchpriority="high"`);
+    html = swap(html, '<img id="leadImg" alt=""', `<img id="leadImg" alt="${esc(s.title)}" src="${esc(lead.web)}"${lead.set ? ` srcset="${esc(lead.set)}" sizes="(min-width: 1024px) 900px, 100vw"` : ''} fetchpriority="high"`);
   } else {
     html = swap(html, '<figure id="leadFig" class="', '<figure id="leadFig" hidden class="');
   }
@@ -199,8 +199,17 @@ router.get('/search.html', loadUser, async (req, res, next) => {
     `<script>window.SERVER_AUTH = true; window.__SEARCH = ${scriptJson({ query: p.toString(), result })};</script>`));
 });
 
+// The home page: Open Graph tags so a shared link shows a preview picture (LINE, Facebook); the page keeps its own <title>
+const HOME_DESC = 'ระบบส่งข่าวและคลังข่าวสาร มหาวิทยาลัยราชภัฏสุราษฎร์ธานี โดยงานประชาสัมพันธ์'; // the same as the page's own description
+for (const route of ['/', '/index.html']) {
+  router.get(route, async (req, res) => {
+    const html = head(await readerPage('index.html'), { title: `${SITE} | งานประชาสัมพันธ์ มรส.`, description: HOME_DESC, url: `${ORIGIN}/`, image: ORIGIN + OG_DEFAULT, robots: '', keepTitle: true });
+    res.set('Cache-Control', 'no-cache').type('html').send(html);
+  });
+}
+
 // The other reader pages: CSS in the page, nothing else changes
-for (const [route, rel] of [['/', 'index.html'], ['/index.html', 'index.html'], ['/privacy.html', 'privacy.html'], ['/contact.html', 'contact.html']]) {
+for (const [route, rel] of [['/privacy.html', 'privacy.html'], ['/contact.html', 'contact.html']]) {
   router.get(route, async (req, res) => { res.set('Cache-Control', 'no-cache').type('html').send(await readerPage(rel)); });
 }
 
