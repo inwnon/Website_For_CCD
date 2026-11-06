@@ -174,7 +174,7 @@
           <h2 id="facTitle" class="font-display tight text-[clamp(24px,2.6vw,32px)] font-semibold text-royal">ทีมประชาสัมพันธ์คณะและหน่วยงาน</h2>
           <p id="facCount" class="text-[15px] text-ink2"></p>
         </div>
-        <p class="mt-2 max-w-[72ch] text-[16px] text-ink2">บุคลากรของคณะและหน่วยงานที่ระบุตำแหน่งงานประชาสัมพันธ์ในโปรไฟล์ เรียงตามจำนวนข่าวที่ส่งเข้าระบบ</p>
+        <p class="mt-2 max-w-[72ch] text-[16px] text-ink2">บุคลากรของคณะและหน่วยงานที่เลือก “ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน” ในโปรไฟล์ เรียงตามจำนวนข่าวที่ส่งเข้าระบบ</p>
         <div id="facList" class="mt-6 grid min-h-[120px] items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
           <p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">กำลังโหลดรายชื่อ…</p>
         </div>
@@ -259,7 +259,7 @@
               </li>`).join('')}
             </ul>
           </section>`).join('')
-        : '<p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">ยังไม่มีบุคลากรคณะหรือหน่วยงานที่ระบุตำแหน่งงานประชาสัมพันธ์ในโปรไฟล์ ข่าวของคณะหรือหน่วยงานส่งผ่านงานประชาสัมพันธ์ส่วนกลางได้</p>';
+        : '<p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">ยังไม่มีบุคลากรคณะหรือหน่วยงานที่เลือก “ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน” ในโปรไฟล์ ข่าวของคณะหรือหน่วยงานส่งผ่านงานประชาสัมพันธ์ส่วนกลางได้</p>';
     }
 
     // Loading (again after "โหลดอีกครั้ง"): the waiting text in both lists, counts cleared, a second press ignored

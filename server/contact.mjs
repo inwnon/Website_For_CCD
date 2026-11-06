@@ -3,7 +3,8 @@
 // - GET /api/contact/photo/:id.webp    the profile photo of someone on that list: the one they uploaded, else their Google
 //                                      photo, fetched once by this server and kept small (the page loads nothing from outside)
 // team: the central PR team (role pr, and ผู้พัฒนาระบบ, who works in it).
-// faculties: staff of a faculty or unit whose profile position says they do PR, and every ประชาสัมพันธ์หน่วยงาน (coordinator)
+// faculties: staff of a faculty or unit who ticked "ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน" in their profile (users.unit_pr),
+// and every ประชาสัมพันธ์หน่วยงาน (coordinator)
 // under the unit an admin gave them, with how many pieces they have sent. A sub-unit shows in its main unit's card.
 // Only work details: name, position, internal extension and the profile photo. Never the email.
 import { createHash } from 'node:crypto';
@@ -23,8 +24,6 @@ const units = () => [...new Set(ORG.staffGroups.flatMap((g) => g.units))];
 // The card a unit goes in: a main unit is its own card, a sub-unit (ศูนย์ภาษา) goes in its parent's (สำนักวิทยบริการฯ)
 const mainUnit = (unit) => (units().includes(unit) ? unit : Object.entries(ORG.subUnits).find(([, s]) => s.units.includes(unit))?.[0] || null);
 
-// Positions that mean "does PR for the faculty or unit" (the free-text position from login.html step 2)
-export const PR_POSITION = '(ประชาสัมพันธ์|สื่อสารองค์กร|\\mPR\\M)';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GOOGLE_PHOTO = /^https:\/\/lh\d\.googleusercontent\.com\//;
 
@@ -33,7 +32,7 @@ const NAMED = 'u.consent_at is not null and u.first_name is not null and u.last_
 const onTeam = (devs) => `(u.role = 'pr' or u.email = any(${devs}::text[]))`;
 // ประชาสัมพันธ์หน่วยงาน: the unit an admin gave them on chanon.html (pr_team.unit), whatever their profile position says
 const COORD_UNIT = "(select t.unit from pr_team t where t.email = u.email and u.role = 'coordinator')";
-const onFaculty = (units, pos, all) => `((u.role in ('staff', 'coordinator', 'secretary', 'executive') and u.unit = any(${units}::text[]) and u.position ~* ${pos})
+const onFaculty = (units, all) => `((u.role in ('staff', 'coordinator', 'secretary', 'executive') and u.unit = any(${units}::text[]) and u.unit_pr)
   or ${COORD_UNIT} = any(${all}::text[]))`;
 
 // A version in the photo link, so a new photo is not hidden by the browser's cache (also used by documents.mjs)
@@ -58,8 +57,8 @@ router.get('/contact', async (req, res) => {
     query(`select u.id, u.first_name, u.last_name, u.position, u.phone, u.photo_path, u.avatar_url, coalesce(${COORD_UNIT}, u.unit) unit,
                   (select count(*) from submissions s where s.sender_id = u.id)::int sent
              from users u
-            where ${onFaculty('$1', '$2', '$3')} and ${NAMED}
-            order by sent desc, u.first_name, u.last_name`, [units(), PR_POSITION, allUnits()]),
+            where ${onFaculty('$1', '$2')} and ${NAMED}
+            order by sent desc, u.first_name, u.last_name`, [units(), allUnits()]),
   ]);
   res.json({
     team: team.rows.map(person),
@@ -89,8 +88,8 @@ router.get('/contact/photo/:file', async (req, res) => {
   const id = req.params.file.match(/^(.+)\.webp$/)?.[1];
   if (!id || !UUID.test(id)) return res.status(404).end();
   // Only someone the contact list shows (not anyone's photo)
-  const u = await one(`select u.photo_path, u.avatar_url from users u where u.id = $1 and ${NAMED} and (${onTeam('$2')} or ${onFaculty('$3', '$4', '$5')})`,
-    [id, [...DEVELOPERS], units(), PR_POSITION, allUnits()]);
+  const u = await one(`select u.photo_path, u.avatar_url from users u where u.id = $1 and ${NAMED} and (${onTeam('$2')} or ${onFaculty('$3', '$4')})`,
+    [id, [...DEVELOPERS], units(), allUnits()]);
   const src = u && photoSource(u);
   if (!src) return res.status(404).end();
   try {

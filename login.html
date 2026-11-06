@@ -394,6 +394,12 @@
               <label for="position" id="positionLabel" class="mb-2 block font-display text-[15px] font-semibold lg:mb-1.5">ตำแหน่ง</label>
               <input id="position" type="text" maxlength="120" autocomplete="organization-title" placeholder="เช่น อาจารย์, นักวิชาการคอมพิวเตอร์, หัวหน้างาน" class="h-14 lg:h-[clamp(44px,5.6vh,56px)] w-full rounded-2xl border border-line-strong bg-surface2 px-4 text-[16px] text-ink placeholder:text-ink2/80 hover:border-[rgb(var(--purple)/.45)] fld" aria-describedby="positionError">
               <p id="positionError" class="mt-2 text-[14px] font-medium text-brand" hidden>กรุณากรอกตำแหน่ง</p>
+              <!-- Staff only: ticked → name, position, extension and photo on contact.html -->
+              <label id="unitPrField" class="mt-3 flex cursor-pointer items-start gap-3 rounded-2xl p-1" hidden>
+                <input id="unitPr" type="checkbox" class="chk mt-1 h-5 w-5 shrink-0 cursor-pointer rounded accent-[rgb(122,60,226)]" aria-describedby="unitPrHint">
+                <span class="text-[15px] leading-[1.6]">ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน
+                  <span id="unitPrHint" class="block text-[13px] text-ink2">ชื่อ ตำแหน่ง เบอร์ภายใน และรูปโปรไฟล์ของคุณจะแสดงในหน้าติดต่อเรา</span></span>
+              </label>
             </div>
 
             <div id="studentFields" class="grid gap-6 lg:gap-[clamp(12px,2vh,24px)]" hidden>
@@ -678,6 +684,7 @@
       });
       $('#firstName').value = state.firstName; $('#lastName').value = state.lastName; $('#phone').value = state.phone;
       $('#position').value = state.position; $('#org').value = state.org;
+      $('#unitPr').checked = !!user.unitPr;
       document.querySelectorAll('input[name=year]').forEach((r) => { r.checked = r.value === state.year; });
       $('#consent').checked = !!user.consentAt;
       showPhoto(user);
@@ -694,6 +701,7 @@
     document.querySelectorAll('[data-signout]').forEach((btn) => btn.addEventListener('click', async () => {
       Object.assign(state, { user: null, role: null, firstName: '', lastName: '', phone: '', unit: '', subUnit: '', major: '', track: '', year: '', position: '', org: '' });
       ['#firstName', '#lastName', '#phone', '#position', '#org'].forEach((s) => { $(s).value = ''; });
+      $('#unitPr').checked = false;
       document.querySelectorAll('input[name=year]').forEach((r) => { r.checked = false; });
       await api('/auth/logout', { method: 'POST' }).catch(() => {});
       window.google?.accounts.id.disableAutoSelect();
@@ -878,6 +886,7 @@
       $('#unitField').hidden = external;
       $('#orgField').hidden = !external;
       $('#positionField').hidden = student;
+      $('#unitPrField').hidden = student || external;
       // Staff: the 4-digit internal extension. Students and external users: a number to call
       const ext = !student && !external;
       $('#phoneLabel').textContent = ext ? 'เบอร์โทรศัพท์ภายใน (4 หลัก)' : 'เบอร์โทรศัพท์ที่ติดต่อได้';
@@ -1006,6 +1015,7 @@
           firstName: state.firstName, lastName: state.lastName, phone: state.phone,
           unit: state.unit, subUnit: state.subUnit || null, position: state.position || null, major: state.major || null,
           track: state.track || null, year: state.year ? Number(state.year) : null, org: state.org || null, consent: true,
+          unitPr: $('#unitPr').checked,
         } });
         state.user = r.user;
         showPhoto(r.user);
@@ -1039,6 +1049,7 @@
         p.role === 'external' ? ['หน่วยงาน / องค์กร', p.org] : [p.role === 'student' ? 'คณะ' : 'หน่วยงาน', p.unit],
         ...(p.subUnit ? [[ORG.subUnits[p.unit]?.label || 'หน่วยงานย่อย', p.subUnit]] : []),
         ...(p.position ? [['ตำแหน่ง', p.position]] : []),
+        ...(p.unitPr ? [['หน้าติดต่อเรา', 'แสดงเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน']] : []),
         ...(p.role === 'student' ? [
           [ORG.faculties[p.unit]?.majorLabel || 'สาขาวิชา', p.major],
           ...(p.track ? [['วิชาเอก', p.track]] : []),
