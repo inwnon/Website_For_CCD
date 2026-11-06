@@ -168,13 +168,9 @@
         </ul>
       </section>
 
-      <!-- ===== Faculty and unit PR (from each person's profile position) ===== -->
+      <!-- ===== Faculty and unit PR (who ticked "ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน" in their profile) ===== -->
       <section class="mt-shelf" aria-labelledby="facTitle" aria-busy="true" id="fac">
-        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h2 id="facTitle" class="font-display tight text-[clamp(24px,2.6vw,32px)] font-semibold text-royal">ทีมประชาสัมพันธ์คณะและหน่วยงาน</h2>
-          <p id="facCount" class="text-[15px] text-ink2"></p>
-        </div>
-        <p class="mt-2 max-w-[72ch] text-[16px] text-ink2">บุคลากรของคณะและหน่วยงานที่เลือก “ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน” ในโปรไฟล์ เรียงตามจำนวนข่าวที่ส่งเข้าระบบ</p>
+        <h2 id="facTitle" class="font-display tight text-[clamp(24px,2.6vw,32px)] font-semibold text-royal">ทีมประชาสัมพันธ์คณะและหน่วยงาน</h2>
         <div id="facList" class="mt-6 grid min-h-[120px] items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
           <p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">กำลังโหลดรายชื่อ…</p>
         </div>
@@ -234,8 +230,6 @@
     }
 
     function faculties(list) {
-      const people = list.reduce((n, f) => n + f.people.length, 0);
-      $('#facCount').textContent = people ? `${num(list.length)} คณะ/หน่วยงาน ${num(people)} คน` : '';
       // One small card per unit; each person is one slim row: photo, name, the unit they belong to, extension on the right
       $('#facList').innerHTML = list.length
         ? list.map((f, i) => `<section class="unit overflow-hidden rounded-card border border-line bg-surface shadow-raised" aria-label="${esc(f.unit)}">
@@ -268,7 +262,7 @@
       if (loading) return;
       loading = true;
       $('#team').setAttribute('aria-busy', 'true'); $('#fac').setAttribute('aria-busy', 'true');
-      $('#teamCount').textContent = ''; $('#facCount').textContent = '';
+      $('#teamCount').textContent = '';
       $('#teamList').innerHTML = '<li class="col-span-full grid place-items-center bg-surface p-8 text-[15px] text-ink2">กำลังโหลดรายชื่อ…</li>';
       $('#facList').innerHTML = '<p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">กำลังโหลดรายชื่อ…</p>';
       try {
