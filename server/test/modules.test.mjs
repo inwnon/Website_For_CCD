@@ -100,8 +100,8 @@ describe('secretary and executive roles', () => {
     }
   });
   test('ติดต่อเรา: a faculty PR person given one of the roles stays on the page', async () => {
-    await query(`insert into users (email, name, role, unit, position, first_name, last_name, phone, consent_at)
-      values ($1, 'เลขาคณะ ทดสอบ', 'secretary', 'คณะครุศาสตร์', 'นักประชาสัมพันธ์', 'เลขาคณะ', 'ทดสอบ', '2299', now())`, [CONTACT_EMAIL]);
+    await query(`insert into users (email, name, role, unit, position, first_name, last_name, phone, consent_at, unit_pr)
+      values ($1, 'เลขาคณะ ทดสอบ', 'secretary', 'คณะครุศาสตร์', 'นักประชาสัมพันธ์', 'เลขาคณะ', 'ทดสอบ', '2299', now(), true)`, [CONTACT_EMAIL]);
     const people = (await anon.call('GET', '/api/contact')).body.faculties.flatMap((f) => f.people);
     assert.ok(people.some((p) => p.name === 'เลขาคณะ ทดสอบ'));
   });
