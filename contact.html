@@ -236,7 +236,7 @@
     function faculties(list) {
       const people = list.reduce((n, f) => n + f.people.length, 0);
       $('#facCount').textContent = people ? `${num(list.length)} คณะ/หน่วยงาน ${num(people)} คน` : '';
-      // One small card per unit; each person is one slim row: photo, name, position · how many sent, extension on the right
+      // One small card per unit; each person is one slim row: photo, name, the unit they belong to, extension on the right
       $('#facList').innerHTML = list.length
         ? list.map((f, i) => `<section class="unit overflow-hidden rounded-card border border-line bg-surface shadow-raised" aria-label="${esc(f.unit)}">
             <h3 class="unit-head relative flex items-center gap-2 border-b border-line bg-surface2 px-4 py-2.5 font-display text-[16px] font-semibold leading-[1.6] text-royal">
@@ -251,7 +251,7 @@
                 ${avatar(p, 36)}
                 <div class="min-w-0 flex-1">
                   <p class="font-display text-[15px] font-semibold leading-[1.6]">${esc(p.name)}</p>
-                  <p class="text-[13px] leading-[1.6] text-ink2">${p.position ? `${esc(p.position)} · ` : ''}ส่งข่าว ${num(p.sent)} ชิ้น</p>
+                  <p class="text-[13px] leading-[1.6] text-ink2">${esc(p.unit)}</p>
                 </div>
                 ${p.ext
                   ? `<p class="shrink-0 text-right"><span class="sr-only">โทรภายใน </span><span class="ext font-display text-[18px] font-semibold leading-tight text-purple">${esc(p.ext)}</span></p>`

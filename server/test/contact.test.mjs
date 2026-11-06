@@ -1,5 +1,5 @@
 // ติดต่อเรา (GET /api/contact): the central PR team, and faculty staff who ticked "ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน"
-// in their profile (users.unit_pr), with how many pieces they sent.
+// in their profile (users.unit_pr), each with the unit they belong to (most active senders first; the count is not shown).
 // Work details and the profile photo (served by this server, only for people on the list). Video submissions keep ผู้ผลิต.
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
@@ -53,7 +53,7 @@ after(async () => {
 });
 
 describe('contact page', () => {
-  test('anyone may read it; central team, then faculty PR who ticked the box, with what they sent', async () => {
+  test('anyone may read it; central team, then faculty PR who ticked the box, with their unit', async () => {
     const r = await anon.call('GET', '/api/contact');
     assert.equal(r.status, 200);
     const c = r.body.team.find((p) => p.name === 'ทีมกลาง ทดสอบ');
@@ -61,16 +61,16 @@ describe('contact page', () => {
     assert.match(c.photo, new RegExp(`^/api/contact/photo/${central}\\.webp\\?v=[0-9a-f]{10}$`), 'the photo, through this server');
     const units = r.body.faculties.map((f) => f.unit);
     assert.ok(units.indexOf('คณะครุศาสตร์') < units.indexOf('คณะนิติศาสตร์'), 'faculties in org order');
-    const people = r.body.faculties.flatMap((f) => f.people.map((p) => ({ ...p, unit: f.unit })));
+    const people = r.body.faculties.flatMap((f) => f.people.map((p) => ({ ...p, card: f.unit })));
     const kru = people.find((p) => p.name === 'คณะครุ ทดสอบ');
-    assert.equal(kru.unit, 'คณะครุศาสตร์');
-    assert.equal(kru.sent, 2);
-    assert.equal(kru.ext, '2202');
-    assert.ok(people.some((p) => p.name === 'คณะนิติ ทดสอบ' && p.sent === 0), 'every unit PR who ticked the box');
-    assert.equal(people.find((p) => p.name === 'สาธิต ทดสอบ')?.unit, 'โรงเรียนสาธิตแห่งมหาวิทยาลัยราชภัฏสุราษฎร์ธานี', 'a unit in คณะ / วิทยาลัย that is not a faculty');
-    assert.equal(people.find((p) => p.name === 'ศูนย์วิทย์ ทดสอบ')?.unit, 'ศูนย์วิทยาศาสตร์', 'units outside the faculties too');
+    assert.deepEqual({ ...kru, photo: undefined }, { name: 'คณะครุ ทดสอบ', position: 'นักประชาสัมพันธ์คณะ', ext: '2202', photo: undefined, unit: 'คณะครุศาสตร์', card: 'คณะครุศาสตร์' }, 'no count of what they sent');
+    assert.ok(people.some((p) => p.name === 'คณะนิติ ทดสอบ'), 'every unit PR who ticked the box');
+    assert.equal(people.find((p) => p.name === 'สาธิต ทดสอบ')?.card, 'โรงเรียนสาธิตแห่งมหาวิทยาลัยราชภัฏสุราษฎร์ธานี', 'a unit in คณะ / วิทยาลัย that is not a faculty');
+    assert.equal(people.find((p) => p.name === 'ศูนย์วิทย์ ทดสอบ')?.card, 'ศูนย์วิทยาศาสตร์', 'units outside the faculties too');
     assert.ok(units.indexOf('คณะนิติศาสตร์') < units.indexOf('ศูนย์วิทยาศาสตร์'), 'faculties first, then units');
-    assert.equal(people.find((p) => p.name === 'ผู้ประสาน ทดสอบ')?.unit, 'สำนักวิทยบริการและเทคโนโลยีสารสนเทศ', 'a coordinator of a sub-unit, in the main unit');
+    const coord = people.find((p) => p.name === 'ผู้ประสาน ทดสอบ');
+    assert.equal(coord?.card, 'สำนักวิทยบริการและเทคโนโลยีสารสนเทศ', 'a coordinator of a sub-unit, in the main unit');
+    assert.equal(coord.unit, 'ศูนย์ภาษา', 'with the sub-unit they belong to');
     for (const n of ['อาจารย์ ทดสอบ', 'กองกลาง ทดสอบ', 'ยังไม่ยินยอม ทดสอบ', 'ไม่ได้ติ๊ก ทดสอบ']) assert.ok(!people.some((p) => p.name === n), `${n} not listed`);
     assert.ok(!JSON.stringify(r.body).includes('@'), 'no email addresses');
     assert.ok(!JSON.stringify(r.body).includes('googleusercontent'), 'no link to Google');

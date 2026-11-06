@@ -1,11 +1,12 @@
 // ติดต่อเรา (contact.html): who to call about news. Anyone may read it.
-// - GET /api/contact                   { team: [person], faculties: [{ unit, people: [person + sent] }] } (faculties and other units)
+// - GET /api/contact                   { team: [person], faculties: [{ unit, people: [person + unit] }] } (faculties and other units)
 // - GET /api/contact/photo/:id.webp    the profile photo of someone on that list: the one they uploaded, else their Google
 //                                      photo, fetched once by this server and kept small (the page loads nothing from outside)
 // team: the central PR team (role pr, and ผู้พัฒนาระบบ, who works in it).
 // faculties: staff of a faculty or unit who ticked "ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน" in their profile (users.unit_pr),
 // and every ประชาสัมพันธ์หน่วยงาน (coordinator)
-// under the unit an admin gave them, with how many pieces they have sent. A sub-unit shows in its main unit's card.
+// under the unit an admin gave them, each with the unit they belong to (sub-unit if any). A sub-unit shows in its main unit's card.
+// Most active senders first; how many they sent is not shown.
 // Only work details: name, position, internal extension and the profile photo. Never the email.
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -55,15 +56,15 @@ router.get('/contact', async (req, res) => {
             where ${onTeam('$1')} and ${NAMED}
             order by u.first_name, u.last_name`, [[...DEVELOPERS]]),
     query(`select u.id, u.first_name, u.last_name, u.position, u.phone, u.photo_path, u.avatar_url, coalesce(${COORD_UNIT}, u.unit) unit,
-                  (select count(*) from submissions s where s.sender_id = u.id)::int sent
+                  coalesce(${COORD_UNIT}, u.sub_unit, u.unit) affiliation
              from users u
             where ${onFaculty('$1', '$2')} and ${NAMED}
-            order by sent desc, u.first_name, u.last_name`, [units(), allUnits()]),
+            order by (select count(*) from submissions s where s.sender_id = u.id) desc, u.first_name, u.last_name`, [units(), allUnits()]),
   ]);
   res.json({
     team: team.rows.map(person),
     faculties: units()
-      .map((unit) => ({ unit, people: staff.rows.filter((u) => mainUnit(u.unit) === unit).map((u) => ({ ...person(u), sent: u.sent })) }))
+      .map((unit) => ({ unit, people: staff.rows.filter((u) => mainUnit(u.unit) === unit).map((u) => ({ ...person(u), unit: u.affiliation })) }))
       .filter((f) => f.people.length),
   });
 });
