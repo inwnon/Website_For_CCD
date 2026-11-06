@@ -37,7 +37,10 @@
     @media (max-width: 767.98px) {
       .unit:not(.open) .unit-list { display: none; }
       .unit:not(.open) .unit-head { border-bottom-color: transparent; }
+      /* The central team list folds too, so the faculty teams are not far down the page */
+      #team:not(.open) #teamList { display: none; }
     }
+    #team.open .unit-chev { transform: rotate(180deg); }
     @media (prefers-reduced-motion: reduce) { .unit-chev { transition: none; } }
   </style>
   <link rel="stylesheet" href="/assets/app.css?v=0bd501b8bf">
@@ -163,6 +166,10 @@
           <p id="teamCount" class="text-[15px] text-ink2"></p>
         </div>
         <p class="mt-2 max-w-[62ch] text-[16px] text-ink2">ตรวจ เขียน และเผยแพร่ข่าวของทุกหน่วยงาน โทรจากเบอร์ภายในของมหาวิทยาลัยได้เลย</p>
+        <button id="teamMore" type="button" aria-controls="teamList" aria-expanded="false" class="press t-spring mt-5 inline-flex h-12 items-center gap-2 rounded-2xl border border-line-strong bg-shell px-6 font-display text-[16px] font-medium text-ink shadow-raised hover:-translate-y-0.5 md:hidden">
+          <span id="teamMoreText">แสดงเพิ่มเติม</span>
+          <svg class="unit-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
         <ul id="teamList" class="mt-6 grid min-h-[96px] min-[460px]:min-h-[208px] grid-cols-1 gap-px overflow-hidden rounded-card border border-line bg-line shadow-raised min-[460px]:grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
           <li class="col-span-full grid place-items-center bg-surface p-8 text-[15px] text-ink2">กำลังโหลดรายชื่อ…</li>
         </ul>
@@ -218,6 +225,13 @@
     const ext = (p, big) => p.ext
       ? `<p class="${big ? 'text-right min-[460px]:mt-auto min-[460px]:pt-4 min-[460px]:text-left' : ''}"><span class="block text-[12px] text-ink2">โทรภายใน</span><span class="ext font-display ${big ? 'text-[24px]' : 'text-[19px]'} font-semibold leading-tight text-purple">${esc(p.ext)}</span></p>`
       : `<p class="${big ? 'hidden min-[460px]:mt-auto min-[460px]:block min-[460px]:pt-4' : ''} text-[13px] text-ink2">ยังไม่ได้ระบุเบอร์ภายใน</p>`;
+
+    // Phones: the central team list opens and closes with แสดงเพิ่มเติม
+    $('#teamMore').addEventListener('click', () => {
+      const open = $('#team').classList.toggle('open');
+      $('#teamMore').setAttribute('aria-expanded', String(open));
+      $('#teamMoreText').textContent = open ? 'ซ่อนรายชื่อ' : 'แสดงเพิ่มเติม';
+    });
 
     function team(list) {
       $('#teamCount').textContent = list.length ? `${num(list.length)} คน` : '';
