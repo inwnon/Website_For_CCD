@@ -144,7 +144,7 @@
     .acct-av { display: grid; place-items: center; overflow: hidden; border-radius: 999px; font-family: Kanit, "Noto Sans Thai", sans-serif; font-weight: 600; color: #fff; background: var(--grad); }
     .acct-av img { height: 100%; width: 100%; object-fit: cover; }
     .acct-btn .acct-av { height: 38px; width: 38px; font-size: 16px; }
-    .acct-dot { position: absolute; right: -3px; top: -3px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: rgb(var(--red)); color: rgb(var(--shell)); font: 600 11px/1 Kanit, sans-serif; box-shadow: 0 0 0 2px rgb(var(--shell)); }
+    .acct-dot { position: absolute; right: -3px; top: -3px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: rgb(var(--red)); color: rgb(var(--shell)); font: 600 12px/1 Kanit, sans-serif; box-shadow: 0 0 0 2px rgb(var(--shell)); }
     .acct-panel { position: absolute; right: 0; top: calc(100% + 10px); z-index: 70; width: min(336px, calc(100vw - 24px)); max-height: calc(100dvh - 96px); overflow-y: auto; overscroll-behavior: contain; text-align: left;
       border: 1px solid rgb(var(--line)); border-radius: 22px; background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-float);
       transform-origin: calc(100% - 22px) -6px; opacity: 0; transform: translateY(-6px) scale(.96); pointer-events: none; visibility: hidden;
@@ -168,7 +168,7 @@
     .acct-item.danger, .acct-item.danger > svg { color: rgb(var(--red)); }
     .acct-theme { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px 8px; font: 500 15px Kanit, "Noto Sans Thai", sans-serif; }
     .acct-seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line-strong)); }
-    .acct-seg button { height: 30px; padding: 0 10px; border-radius: 999px; font-size: 13px; color: rgb(var(--ink-2)); transition: transform .35s var(--spring); }
+    .acct-seg button { height: 44px; min-width: 44px; padding: 0 12px; border-radius: 999px; font-size: 13px; color: rgb(var(--ink-2)); transition: transform .35s var(--spring); }
     .acct-seg button:hover { color: rgb(var(--ink)); }
     .acct-seg button:active { transform: scale(.94); }
     .acct-seg button[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }

@@ -42,7 +42,7 @@
     .err { color: rgb(var(--red)); font-size: 13px; font-weight: 500; margin-top: 4px; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=e6d07d5b44">
+  <link rel="stylesheet" href="/assets/app.css?v=0bd501b8bf">
 </head>
 <body class="app">
   <a href="#importForm" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่ฟอร์ม</a>
@@ -412,8 +412,8 @@
           <input type="checkbox" data-i="${i}" ${p.on ? 'checked' : ''} aria-label="ใช้ภาพที่ ${i + 1} จาก ${photos.length}${on[0] === p ? ' (ภาพปก)' : ''}" aria-describedby="photoHint">
           <span class="box relative block aspect-square overflow-hidden rounded-2xl bg-surface2">
             <img src="${p.ready === false ? '' : esc(p.url)}" alt="" draggable="false" decoding="async" class="h-full w-full object-cover" referrerpolicy="no-referrer"${p.ready === false ? ' hidden' : ''}>
-            ${on[0] === p ? '<span class="absolute bottom-2 left-1.5 rounded-lg bg-shell px-2 font-display text-[11px] font-semibold leading-5 text-royal shadow-raised">ภาพปก</span>' : ''}
-            <span class="absolute right-1.5 top-1.5 rounded-lg bg-black/45 px-1.5 text-[11px] font-medium leading-5 text-white">${SOURCE[p.kind]}</span>
+            ${on[0] === p ? '<span class="absolute bottom-2 left-1.5 rounded-lg bg-shell px-2 font-display text-[12px] font-semibold leading-5 text-royal shadow-raised">ภาพปก</span>' : ''}
+            <span class="absolute right-1.5 top-1.5 rounded-lg bg-black/45 px-1.5 text-[12px] font-medium leading-5 text-white">${SOURCE[p.kind]}</span>
             <span class="tick absolute left-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-grad text-white"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span>
           </span>
         </label>
