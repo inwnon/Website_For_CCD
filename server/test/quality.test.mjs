@@ -129,6 +129,11 @@ describe('SEO', () => {
       await query('update news set body = $2 where id = $1', [publicId, body]);
     }
   });
+  test('the contact page gives people outside the university a phone link and the Facebook page', async () => {
+    const html = String((await request('GET', '/contact.html')).body);
+    assert.match(html, /<a href="tel:\+6677913333"/);
+    assert.match(html, /<a href="https:\/\/www\.facebook\.com\/ccd\.sru\.ac\.th" target="_blank" rel="noopener"/);
+  });
   test('the home page has Open Graph tags with an image', async () => {
     const html = String((await request('GET', '/')).body);
     assert.match(html, /<title>SRU News Hub \| งานประชาสัมพันธ์ มรส\.<\/title>/);
