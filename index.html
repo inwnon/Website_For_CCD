@@ -19,6 +19,8 @@
       if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       document.documentElement.classList.toggle('dark', t === 'dark');
       document.documentElement.classList.add('js');
+      // วิดีโอเสียงตามสาย folded by this reader (index.html), before paint so the page does not jump
+      try { if (localStorage.getItem('soundline') === 'off') document.documentElement.classList.add('sound-off'); } catch (e) {}
     })();
   </script>
 
@@ -165,6 +167,11 @@
     .no-scrollbar { scrollbar-width: none; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
 
+    /* วิดีโอเสียงตามสาย folded: only its heading and the แสดง button stay */
+    .sound-off #soundline > :not(:first-child) { display: none; }
+    .sound-chev { transition: transform .35s var(--spring); }
+    .sound-off .sound-chev { transform: rotate(-90deg); }
+
     .js .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--ease-out), transform .7s var(--spring); }
     .js .reveal.in { opacity: 1; transform: none; }
 
@@ -181,7 +188,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=0bd501b8bf">
+  <link rel="stylesheet" href="/assets/app.css?v=7afc04ee5c">
 </head>
 
 <body class="min-h-screen">
@@ -363,14 +370,19 @@
 
       <!-- Shelf: วิดีโอเสียงตามสาย (the newest four of that category) -->
       <section id="soundline" class="cv-auto mt-shelf" aria-labelledby="soundline-title">
-        <div class="reveal mb-6 flex items-end justify-between gap-4">
+        <div class="reveal mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <div>
             <p class="font-display text-[14px] font-medium text-brand">ฟังข่าวสารประจำวันของมหาวิทยาลัย</p>
             <h2 id="soundline-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">วิดีโอเสียงตามสาย</h2>
           </div>
+          <div class="flex shrink-0 items-center gap-1">
+          <button id="soundToggle" type="button" aria-controls="soundGrid" aria-expanded="true" class="hover-fill press t-quick inline-flex h-11 items-center gap-1.5 rounded-full px-3 font-display text-[15px] font-medium text-ink2 hover:text-ink">
+            <svg class="sound-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg><span id="soundToggleText">ซ่อน</span><span class="sr-only">วิดีโอเสียงตามสาย</span>
+          </button>
           <a href="search.html?cat=%E0%B8%A7%E0%B8%B4%E0%B8%94%E0%B8%B5%E0%B9%82%E0%B8%AD%E0%B9%80%E0%B8%AA%E0%B8%B5%E0%B8%A2%E0%B8%87%E0%B8%95%E0%B8%B2%E0%B8%A1%E0%B8%AA%E0%B8%B2%E0%B8%A2&amp;sort=newest" class="press t-spring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2 font-display text-[15px] font-medium text-purple hover:translate-x-0.5">ดูทั้งหมด<span class="sr-only">วิดีโอเสียงตามสาย</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
+          </div>
         </div>
         <div id="soundGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="soundEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ยังไม่มีวิดีโอเสียงตามสาย</p>
@@ -395,6 +407,7 @@
         <div class="reveal mb-6">
           <p class="font-display text-[14px] font-medium text-brand">ข่าวและกิจกรรมรายวัน</p>
           <h2 id="archive-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ปฏิทินกิจกรรม</h2>
+          <p class="mt-2 max-w-[68ch] text-[16px] leading-[1.7] text-ink2">รวมข่าวที่เผยแพร่และกิจกรรมของมหาวิทยาลัยไว้ตามวัน จุดสีแดงคือวันที่มีข่าว สี่เหลี่ยมสีน้ำเงินคือวันที่มีกิจกรรมที่เปิดให้ทุกคนร่วมได้ กดที่วันเพื่อดูข่าว กำหนดการ และแบนเนอร์ของกิจกรรมวันนั้น</p>
         </div>
         <div>
           <div class="reveal overflow-hidden rounded-card border border-line bg-surface shadow-raised">
@@ -570,7 +583,24 @@
     }
 
     // ---- วิดีโอเสียงตามสาย: the newest stories of that category the reader may open ----
+    // The reader folds or opens the shelf; remembered in this browser only. A folded shelf loads nothing until opened.
+    const soundOff = () => document.documentElement.classList.contains('sound-off');
+    let soundLoaded = false;
+    function paintSoundToggle() {
+      $('#soundToggle').setAttribute('aria-expanded', String(!soundOff()));
+      $('#soundToggleText').textContent = soundOff() ? 'แสดง' : 'ซ่อน';
+    }
+    paintSoundToggle();
+    $('#soundToggle').addEventListener('click', () => {
+      const off = document.documentElement.classList.toggle('sound-off');
+      try { if (off) localStorage.setItem('soundline', 'off'); else localStorage.removeItem('soundline'); } catch (e) {}
+      paintSoundToggle();
+      if (!off && !soundLoaded) loadSoundline();
+    });
+
     async function loadSoundline() {
+      if (soundOff()) return;
+      soundLoaded = true;
       const grid = $('#soundGrid');
       grid.innerHTML = skeleton(4);
       try {
