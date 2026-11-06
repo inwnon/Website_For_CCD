@@ -206,7 +206,7 @@
       *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=3f1d2721a9">
+  <link rel="stylesheet" href="/assets/app.css?v=e6d07d5b44">
 </head>
 
 <body class="flex min-h-screen flex-col lg:h-dvh lg:min-h-0 lg:overflow-hidden">
@@ -286,7 +286,7 @@
           <p id="signinError" class="mt-6 flex gap-3 rounded-2xl border border-[rgb(var(--red)/.35)] bg-red-soft p-4 text-[14px] font-medium text-brand" role="alert" hidden></p>
 
           <!-- Google's own button (rendered by Google Identity Services) -->
-          <div id="gsiBox" class="mt-[clamp(20px,3vh,32px)] grid min-h-[44px] justify-items-center" hidden></div>
+          <div id="gsiBox" class="mt-[clamp(20px,3vh,32px)] grid min-h-[44px] justify-items-center [color-scheme:light]" hidden></div>
           <p id="gsiNote" class="mt-3 text-center text-[13px] text-ink2" hidden>ไม่ต้องเลือกบทบาท ระบบรู้จากอีเมลที่คุณใช้เข้าสู่ระบบ</p>
 
           <!-- Development sign-in: shown while GOOGLE_CLIENT_ID is not set and the server allows it -->
@@ -618,7 +618,8 @@
         sc.async = true;
         sc.onload = () => {
           google.accounts.id.initialize({ client_id: id, callback: onCredential, ux_mode: 'popup', context: 'signin' });
-          google.accounts.id.renderButton($('#gsiBox'), { theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: 'th', width: Math.min(400, $('#gsiBox').clientWidth || 400) });
+          // Dark page: Google's black button; #gsiBox keeps color-scheme: light so the button's frame is not painted as a white square
+          google.accounts.id.renderButton($('#gsiBox'), { theme: document.documentElement.classList.contains('dark') ? 'filled_black' : 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: 'th', width: Math.min(400, $('#gsiBox').clientWidth || 400) });
           gsiReady = true;
         };
         sc.onerror = () => signinError('โหลดปุ่ม Google ไม่ได้ ตรวจอินเทอร์เน็ตแล้วรีเฟรชหน้านี้');

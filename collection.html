@@ -33,7 +33,7 @@
     #grid.is-loading { opacity: .55; transition: opacity .2s; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=3f1d2721a9">
+  <link rel="stylesheet" href="/assets/app.css?v=e6d07d5b44">
 </head>
 
 <body class="min-h-screen">
@@ -95,7 +95,7 @@
       <a href="search.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>คลังข่าว
       </a>
-      <a href="collection.html" aria-current="page" class="press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-red-soft px-4 font-display text-[15px] font-medium text-brand hover:opacity-90">
+      <a href="collection.html" aria-current="page" class="press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-royal-soft px-4 font-display text-[15px] font-semibold text-royal hover:opacity-90">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6M4 6l2-3h12l2 3"/><path d="M9 11h6M9 15h4"/></svg>อัลบั้มข่าว
       </a>
       <a href="contact.html" class="hover-fill press t-quick inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium">
@@ -248,7 +248,7 @@
         ${c.cover ? `<img src="${esc(c.cover.url)}"${c.cover.set ? ` srcset="${esc(c.cover.set)}" sizes="(min-width: 1280px) 300px, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"` : ''} alt="" loading="lazy" decoding="async" class="t-spring absolute inset-0 h-full w-full object-cover group-hover:scale-[1.05]" width="640" height="480">`
           : '<span class="absolute inset-0 bg-grad"></span>'}
         <span class="absolute inset-0 bg-[rgb(38_66_200/.25)] mix-blend-multiply"></span>
-        <span class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></span>
+        <span class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 via-45% to-transparent to-80%"></span>
         <span class="absolute left-3 top-3 rounded-full bg-shell px-2.5 font-display text-[12px] font-semibold leading-6 text-purple shadow-raised">${c.count} ชิ้น</span>
         <span class="relative p-[18px]">
           <span class="clamp-2 block font-display text-[19px] font-semibold leading-snug text-white">${esc(c.title)}</span>
