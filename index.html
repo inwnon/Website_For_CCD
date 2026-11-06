@@ -174,7 +174,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=86e4b42ac7">
+  <link rel="stylesheet" href="/assets/app.css?v=76bcbc88a2">
 </head>
 
 <body class="min-h-screen">
@@ -258,12 +258,12 @@
           radial-gradient(45% 80% at 0% 0%, rgb(var(--red-soft)), transparent 70%),
           linear-gradient(100deg, rgb(var(--shell)) 30%, rgb(var(--surface-2)) 100%);"></div>
         <div class="relative grid items-center gap-4 min-[900px]:grid-cols-[1.15fr_1fr]">
-          <div class="px-6 pb-2 pt-10 sm:px-10 min-[900px]:py-14 lg:px-12">
+          <div class="px-6 pb-2 pt-10 sm:px-10 min-[900px]:py-10 lg:px-12">
             <p class="mb-4 inline-flex items-center gap-2 font-display text-[14px] font-medium text-purple">
               <svg class="twinkle text-gold" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 3 6.6 7 .8-5.2 4.8 1.4 7L12 17.7 5.8 21.2l1.4-7L2 9.4l7-.8z"/></svg>
               ข่าวสาร กิจกรรม และความสำเร็จของชาว มรส.
             </p>
-            <h1 id="hero-title" class="font-display tight text-[clamp(34px,4.6vw,56px)] font-bold">
+            <h1 id="hero-title" class="font-display tight text-[clamp(34px,4.6vw,48px)] font-bold">
               <span class="block text-royal"><span class="inline-block">เรื่องราวสำคัญ</span></span>
               <span class="block text-brand"><span class="inline-block">ในมหาวิทยาลัย</span><span class="inline-block">ของเรา</span></span>
             </h1>
@@ -277,17 +277,27 @@
               <a href="search.html" class="press t-spring inline-flex h-12 items-center rounded-2xl border border-line bg-shell px-6 font-display text-[16px] font-medium text-ink shadow-raised hover:-translate-y-0.5">เปิดคลังข่าว</a>
             </div>
           </div>
-          <div class="relative flex h-[260px] items-end justify-center sm:h-[320px] min-[900px]:h-[400px]">
+          <div class="relative flex h-[220px] items-end justify-center sm:h-[240px] min-[900px]:h-[320px]">
             <div class="absolute bottom-6 h-[70%] w-[70%] rounded-full bg-[rgb(var(--purple)/.18)] blur-3xl"></div>
-            <img fetchpriority="high" src="/assets/img/hawky-960.webp" srcset="/assets/img/hawky-480.webp 480w, /assets/img/hawky-640.webp 640w, /assets/img/hawky-960.webp 960w" sizes="(min-width: 900px) 380px, (min-width: 640px) 300px, 245px" alt="Hawky มาสคอตงานประชาสัมพันธ์ มรส. ถือจดหมายข่าว" class="bob relative h-[94%] w-auto max-w-none object-contain drop-shadow-[0_20px_28px_rgb(38_66_200/.22)]" width="1254" height="1254">
+            <img fetchpriority="high" src="/assets/img/hawky-960.webp" srcset="/assets/img/hawky-480.webp 480w, /assets/img/hawky-640.webp 640w, /assets/img/hawky-960.webp 960w" sizes="(min-width: 900px) 300px, (min-width: 640px) 230px, 210px" alt="Hawky มาสคอตงานประชาสัมพันธ์ มรส. ถือจดหมายข่าว" class="bob relative h-[94%] w-auto max-w-none object-contain drop-shadow-[0_20px_28px_rgb(38_66_200/.22)]" width="1254" height="1254">
             <svg class="twinkle absolute bottom-6 right-6 text-shell drop-shadow" width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c.6 4.7 2.6 7.4 8 8-5.4.6-7.4 3.3-8 8-.6-4.7-2.6-7.4-8-8 5.4-.6 7.4-3.3 8-8Z"/></svg>
             <svg class="twinkle absolute right-[22%] top-10 text-gold [animation-delay:1.2s]" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 3 6.6 7 .8-5.2 4.8 1.4 7L12 17.7 5.8 21.2l1.4-7L2 9.4l7-.8z"/></svg>
           </div>
         </div>
       </section>
 
+      <!-- Shelf: featured (right under the hero so a story shows in the first screen) -->
+      <section id="featured" class="mt-8" aria-labelledby="featured-title">
+        <div class="reveal mb-6">
+          <p class="font-display text-[14px] font-medium text-brand">ช่วงนี้มีอะไรเกิดขึ้นบ้างนะ</p>
+          <h2 id="featured-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวเด่นสัปดาห์นี้</h2>
+        </div>
+        <div id="featuredGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <p id="featuredEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ทีม PR ยังไม่ได้เลือกข่าวเด่น</p>
+      </section>
+
       <!-- Time filter -->
-      <div class="reveal mt-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="reveal mt-shelf flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 class="font-display text-[19px] font-semibold text-royal">วันนี้อยากอ่านข่าวช่วงไหน?</h2>
           <p class="text-[13px] text-ink2">เลือกช่วงเวลาเพื่อกรองข่าวล่าสุด</p>
@@ -321,16 +331,6 @@
           <span class="min-w-0"><span class="block text-center font-display text-[clamp(17px,2vw,24px)] font-bold text-royal sm:whitespace-nowrap sm:text-left">ปฏิทินกิจกรรม</span><span class="hidden text-[13px] text-ink2 sm:block">ข่าวและกิจกรรมรายวัน</span></span>
         </a>
       </div>
-
-      <!-- Shelf: featured -->
-      <section id="featured" class="cv-auto mt-shelf" aria-labelledby="featured-title">
-        <div class="reveal mb-6">
-          <p class="font-display text-[14px] font-medium text-brand">ช่วงนี้มีอะไรเกิดขึ้นบ้างนะ</p>
-          <h2 id="featured-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวเด่นสัปดาห์นี้</h2>
-        </div>
-        <div id="featuredGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
-        <p id="featuredEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ทีม PR ยังไม่ได้เลือกข่าวเด่น</p>
-      </section>
 
       <!-- Shelf: latest -->
       <section id="latest" class="cv-auto mt-shelf" aria-labelledby="latest-title">
@@ -471,7 +471,6 @@
       photo: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg>',
       play: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
       clock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-      eye: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
       building: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h.01M12 9h.01M16 9h.01M8 13h.01M16 13h.01"/></svg>',
       lock: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     };
@@ -535,7 +534,6 @@
             <div class="mt-auto flex items-center gap-3 pt-3 text-[12px] text-ink2">
               ${lang(n.en)}
               <span class="inline-flex min-w-0 items-center gap-1 text-sky">${ic.building}<span class="truncate">${esc(n.unit)}</span></span>
-              <span class="ml-auto inline-flex shrink-0 items-center gap-1" aria-label="อ่าน ${n.views} ครั้ง">${ic.eye}${n.views.toLocaleString('th-TH')}</span>
             </div>
           </div>
         </a>
