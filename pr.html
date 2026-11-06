@@ -282,7 +282,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=e6d07d5b44">
+  <link rel="stylesheet" href="/assets/app.css?v=0bd501b8bf">
 </head>
 
 <body class="app">
@@ -294,7 +294,7 @@
       <button id="menuBtn" type="button" class="hover-fill press t-quick grid h-11 w-11 shrink-0 place-items-center rounded-full" aria-label="เปิดเมนู" aria-controls="side" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
-      <span class="logo-crop h-9 w-9 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
+      <span class="logo-crop h-9 w-9 shrink-0"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
       <span id="mTitle" class="min-w-0 truncate font-display text-[17px] font-semibold">งานที่ส่งเข้ามา</span>
     </header>
     <div id="scrim" class="fixed inset-0 z-40 bg-[rgb(10_11_32/.45)] lg:hidden" aria-hidden="true"></div>
@@ -302,7 +302,7 @@
     <!-- ===== Side menu ===== -->
     <aside id="side" class="scroll-thin fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto bg-bg px-4 pb-4 pt-5 shadow-float lg:static lg:z-auto lg:w-[248px] lg:shrink-0 lg:bg-transparent lg:shadow-none" aria-label="เมนูหลังบ้าน">
       <a href="index.html" class="press t-quick flex items-center gap-3 rounded-2xl px-2 hover:opacity-90"><span class="sr-only">ไปหน้าเว็บไซต์ </span>
-        <span class="logo-crop h-11 w-11 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
+        <span class="logo-crop h-11 w-11 shrink-0"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
         <span class="leading-tight">
           <span class="block font-display text-[19px] font-semibold"><span class="text-brand">SRU</span> <span class="text-royal">News Hub</span></span>
           <span class="block text-[12px] text-ink2">หลังบ้านทีม PR</span>
@@ -748,7 +748,7 @@
         return `<button type="button" data-status="${k}" aria-current="${on}" class="nav-item t-quick ${gap} flex h-11 items-center gap-3 rounded-2xl px-3 text-left font-display text-[15px] font-medium">
           ${k ? `<span class="dot ${STATUS[k].dot}" aria-hidden="true"></span>` : `<span class="text-ink2">${ic.all}</span>`}
           <span class="min-w-0 flex-1 truncate">${label}</span>
-          ${c.unread ? `<span class="rounded-full bg-brand px-1.5 text-[11px] font-semibold leading-5 text-white dark:text-bg" aria-label="ยังไม่อ่าน ${c.unread}">${c.unread}</span>` : ''}
+          ${c.unread ? `<span class="rounded-full bg-brand px-1.5 text-[12px] font-semibold leading-5 text-white dark:text-bg" aria-label="ยังไม่อ่าน ${c.unread}">${c.unread}</span>` : ''}
           <span class="min-w-[2ch] text-right text-[14px] ${on ? '' : 'text-ink2'}">${c.total.toLocaleString('th-TH')}</span>
         </button>`;
       }).join('');
@@ -825,8 +825,8 @@
               </span>
               <span class="clamp-2 block font-display text-[15px] ${s.unread ? 'font-semibold' : 'font-medium text-ink/90'} leading-snug">${esc(s.title)}</span>
               <span class="mt-1 flex items-center gap-1.5">
-                ${state.status ? '' : `<span class="shrink-0 whitespace-nowrap rounded-full ${S.cls} px-2 font-display text-[11px] font-semibold leading-5">${S.label}</span>`}
-                ${s.prWrites && s.status === 'review' ? '<span class="shrink-0 whitespace-nowrap rounded-full bg-gold-soft px-2 font-display text-[11px] font-semibold leading-5 text-gold">ให้ PR เขียน</span>' : ''}
+                ${state.status ? '' : `<span class="shrink-0 whitespace-nowrap rounded-full ${S.cls} px-2 font-display text-[12px] font-semibold leading-5">${S.label}</span>`}
+                ${s.prWrites && s.status === 'review' ? '<span class="shrink-0 whitespace-nowrap rounded-full bg-gold-soft px-2 font-display text-[12px] font-semibold leading-5 text-gold">ให้ PR เขียน</span>' : ''}
                 <span class="min-w-0 truncate text-[12px] text-ink2">${lm ? `${lm.side === 'pr' ? 'PR: ' : ''}${esc(lm.text)}` : esc(s.sender.name || s.sender.email)}</span>
               </span>
             </span>
@@ -976,8 +976,8 @@
           <li><a href="${esc(f.url)}" target="_blank" rel="noopener" class="photo-tile press t-quick relative block aspect-[4/3] overflow-hidden rounded-xl bg-surface2" aria-label="เปิดไฟล์ต้นฉบับ ${esc(f.name)} (${fmtSize(f.size)})">
             <img src="${esc(f.thumb)}" alt="" loading="lazy" class="h-full w-full object-cover">
             <span class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" aria-hidden="true"></span>
-            ${f.cover ? '<span class="absolute left-1.5 top-1.5 rounded-full bg-shell/90 px-2 font-display text-[11px] font-semibold leading-5 text-ink">ปก</span>' : ''}
-            <span class="absolute inset-x-2 bottom-1 truncate text-[11px] text-white">${fmtSize(f.size)}</span>
+            ${f.cover ? '<span class="absolute left-1.5 top-1.5 rounded-full bg-shell/90 px-2 font-display text-[12px] font-semibold leading-5 text-ink">ปก</span>' : ''}
+            <span class="absolute inset-x-2 bottom-1 truncate text-[12px] text-white">${fmtSize(f.size)}</span>
           </a></li>`).join('')}</ul>
           <p class="mt-2 text-[12px] text-ink2">กดที่ภาพเพื่อเปิดไฟล์ต้นฉบับความละเอียดเต็ม</p>` : ''}
         ${others.length ? `<ul class="mt-4 grid gap-2 sm:grid-cols-2">${others.map((f) => `

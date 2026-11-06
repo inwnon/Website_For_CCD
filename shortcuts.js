@@ -43,7 +43,7 @@
     .scx-trigger[aria-expanded="true"] { background: rgb(var(--purple-soft)); color: rgb(var(--purple)); }
     .scx-trigger .scx-chev { transition: transform .35s var(--spring); }
     .scx-trigger[aria-expanded="true"] .scx-chev { transform: rotate(180deg); }
-    .scx-dot { min-width: 20px; border-radius: 9999px; background: rgb(var(--red)); padding: 0 6px; color: rgb(var(--shell)); font: 600 11px/20px Kanit, sans-serif; text-align: center; }
+    .scx-dot { min-width: 20px; border-radius: 9999px; background: rgb(var(--red)); padding: 0 6px; color: rgb(var(--shell)); font: 600 12px/20px Kanit, sans-serif; text-align: center; }
     .scx-panel { position: fixed; z-index: 70; width: 320px; max-width: calc(100vw - 24px); max-height: min(70dvh, 560px); overflow-y: auto; padding: 8px;
       border-radius: 22px; border: 1px solid rgb(var(--line)); background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-float);
       transform-origin: top; animation: scxIn .3s var(--spring); }

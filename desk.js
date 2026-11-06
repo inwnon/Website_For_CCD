@@ -37,7 +37,7 @@
     const items = MENU.filter((m) => m.sep || (m.module ? !m.soon && modules.includes(m.id) : role && m.roles.includes(role)));
     return `
       <a href="index.html" class="press t-quick flex items-center gap-3 rounded-2xl px-2 hover:opacity-90"><span class="sr-only">ไปหน้าเว็บไซต์ </span>
-        <span class="logo-crop h-11 w-11 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
+        <span class="logo-crop h-11 w-11 shrink-0"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
         <span class="leading-tight">
           <span class="block font-display text-[19px] font-semibold"><span class="text-brand">SRU</span> <span class="text-royal">News Hub</span></span>
           <span class="block text-[12px] text-ink2">${role === 'coordinator' ? 'รายงานของหน่วยงาน' : ['student', 'secretary', 'executive', 'staff'].includes(role) ? 'งานสื่อสารองค์กร' : 'หลังบ้านทีม PR'}</span>
@@ -45,7 +45,7 @@
       </a>
       <nav class="mt-7 grid gap-1" aria-label="เมนูหลังบ้าน">
         ${role ? items.map((m) => m.sep ? '<span class="my-3 border-t border-line" aria-hidden="true"></span>' : `
-          <a href="${m.href}" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 font-display text-[15px] font-medium" ${m.id === page ? 'aria-current="true"' : ''}>${icon(m.id)}<span class="flex-1">${m.label}</span>${m.id === 'inbox' ? '<span data-arrivals-badge class="rounded-full bg-brand px-1.5 text-[11px] font-semibold leading-5 text-white dark:text-bg" hidden></span>' : ''}</a>`).join('') : ''}
+          <a href="${m.href}" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 font-display text-[15px] font-medium" ${m.id === page ? 'aria-current="true"' : ''}>${icon(m.id)}<span class="flex-1">${m.label}</span>${m.id === 'inbox' ? '<span data-arrivals-badge class="rounded-full bg-brand px-1.5 text-[12px] font-semibold leading-5 text-white dark:text-bg" hidden></span>' : ''}</a>`).join('') : ''}
       </nav>
       <div class="mt-auto grid gap-3 pt-6">
         <div id="alertSlot"></div>
@@ -125,7 +125,7 @@
       <button id="menuBtn" type="button" class="hover-fill press t-quick grid h-11 w-11 shrink-0 place-items-center rounded-full" aria-label="เปิดเมนู" aria-controls="side" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
-      <span class="logo-crop h-9 w-9 shrink-0"><img src="/assets/img/logo-192.webp" alt=""></span>
+      <span class="logo-crop h-9 w-9 shrink-0"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
       <span class="min-w-0 truncate font-display text-[17px] font-semibold">${item?.label || ''}</span>`;
 
     // Theme
