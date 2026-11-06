@@ -173,6 +173,15 @@
     @keyframes twinkle { 0%,100% { transform: scale(1) rotate(0); opacity: 1; } 50% { transform: scale(.8) rotate(20deg); opacity: .7; } }
     .twinkle { animation: twinkle 3s ease-in-out infinite; }
 
+    /* Phones: a shelf shows its first data-limit cards until "แสดงเพิ่มเติม"; no endless motion while scrolling */
+    @media (max-width: 767.98px) {
+      [data-limit="1"]:not(.open) > :nth-child(n+2),
+      [data-limit="2"]:not(.open) > :nth-child(n+3),
+      [data-limit="4"]:not(.open) > :nth-child(n+5),
+      #latestGrid:not(.open) ~ #moreWrap { display: none; }
+      .bob, .twinkle { animation: none; }
+    }
+
     .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
     @media (prefers-reduced-motion: reduce) {
@@ -181,14 +190,14 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=0bd501b8bf">
+  <link rel="stylesheet" href="/assets/app.css?v=340275a238">
 </head>
 
 <body class="min-h-screen">
   <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปเนื้อหา</a>
 
   <!-- ===== Header: brand · search · actions / tab nav ===== -->
-  <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
+  <header class="sticky top-0 z-50 border-b border-line bg-shell shadow-raised md:bg-shell/95 md:backdrop-blur-xl">
     <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
       <a href="/" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
@@ -299,7 +308,7 @@
           <p class="font-display text-[14px] font-medium text-brand">ช่วงนี้มีอะไรเกิดขึ้นบ้างนะ</p>
           <h2 id="featured-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวเด่นสัปดาห์นี้</h2>
         </div>
-        <div id="featuredGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <div id="featuredGrid" data-limit="2" data-more="แสดงข่าวเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="featuredEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ทีม PR ยังไม่ได้เลือกข่าวเด่น</p>
       </section>
 
@@ -354,9 +363,9 @@
           <span id="kindLabel" class="mr-1 font-display text-[14px] font-medium text-ink2">ประเภทเนื้อหา</span>
           <div id="kindChips" class="flex flex-wrap gap-2" role="group" aria-labelledby="kindLabel"></div>
         </div>
-        <div id="latestGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <div id="latestGrid" data-limit="4" data-more="แสดงข่าวเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="emptyMsg" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2" role="status">ยังไม่มีข่าวในช่วงเวลานี้</p>
-        <div class="mt-8 flex justify-center">
+        <div id="moreWrap" class="mt-8 flex justify-center">
           <button id="moreBtn" type="button" hidden class="press t-spring inline-flex h-12 items-center gap-2 rounded-2xl border border-line-strong bg-shell px-6 font-display text-[16px] font-medium text-ink shadow-raised hover:-translate-y-0.5">แสดงข่าวเพิ่ม</button>
         </div>
       </section>
@@ -372,7 +381,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
         </div>
-        <div id="soundGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <div id="soundGrid" data-limit="1" data-more="แสดงเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="soundEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ยังไม่มีวิดีโอเสียงตามสาย</p>
       </section>
 
@@ -387,7 +396,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
         </div>
-        <div id="setsGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <div id="setsGrid" data-limit="2" data-more="แสดงเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
       </section>
 
       <!-- Shelf: archive -->
@@ -473,6 +482,29 @@
       entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
     }, { rootMargin: '0px 0px -6% 0px' });
     const reveal = (root = document) => root.querySelectorAll('.reveal:not(.in)').forEach((el) => io.observe(el));
+
+    // Phones: a [data-limit] shelf gets a "แสดงเพิ่มเติม" button under it while it holds more cards than the limit (CSS hides the rest)
+    document.querySelectorAll('[data-limit]').forEach((shelf) => {
+      const el = /** @type {HTMLElement} */ (shelf);
+      const limit = Number(el.dataset.limit);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.hidden = true;
+      btn.className = 'press t-spring mx-auto mt-6 flex h-12 items-center gap-2 rounded-2xl border border-line-strong bg-shell px-6 font-display text-[16px] font-medium text-ink shadow-raised hover:-translate-y-0.5 md:hidden';
+      btn.textContent = el.dataset.more || 'แสดงเพิ่มเติม';
+      btn.setAttribute('aria-controls', el.id);
+      btn.setAttribute('aria-expanded', 'false');
+      el.after(btn);
+      // Skeleton cards (aria-hidden) are not counted
+      const sync = () => { btn.hidden = el.classList.contains('open') || el.querySelectorAll(':scope > :not([aria-hidden="true"])').length <= limit; };
+      btn.addEventListener('click', () => {
+        el.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+        sync();
+        /** @type {HTMLElement | null} */ (el.children[limit]?.querySelector('a, button'))?.focus({ preventScroll: true });
+      });
+      new MutationObserver(sync).observe(el, { childList: true });
+    });
 
     const ic = {
       photo: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg>',
