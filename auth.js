@@ -303,4 +303,44 @@
   }
   window.renderAccountButton = renderAccountButton;
   renderAccountButton();
+
+  // ---- Public-page header (pages with nav[aria-label="เมนูหลัก"]) ----
+  // The menu row fades at an edge while it can scroll that way; on phones (CSS < 768px) the header slides away
+  // while scrolling down and comes back on scrolling up, or when anything in it has focus.
+  const nav = /** @type {HTMLElement | null} */ (document.querySelector('header nav[aria-label="เมนูหลัก"]'));
+  const header = nav?.closest('header');
+  if (nav && header) {
+    nav.classList.add('nav-scroll');
+    const fade = () => {
+      const max = nav.scrollWidth - nav.clientWidth;
+      nav.classList.toggle('fade-l', nav.scrollLeft > 4);
+      nav.classList.toggle('fade-r', nav.scrollLeft < max - 4);
+    };
+    const current = /** @type {HTMLElement | null} */ (nav.querySelector('[aria-current="page"]'));
+    if (current) {
+      const r = current.getBoundingClientRect(), n = nav.getBoundingClientRect();
+      if (r.right > n.right) nav.scrollLeft += r.left - n.left - 16;
+    }
+    nav.addEventListener('scroll', fade, { passive: true });
+    addEventListener('resize', fade, { passive: true });
+    fade();
+
+    header.classList.add('hdr-auto');
+    let lastY = scrollY;
+    let ticking = false;
+    addEventListener('scroll', () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = scrollY;
+        if (Math.abs(y - lastY) > 8) {
+          const away = y > lastY && y > header.offsetHeight && !header.contains(document.activeElement);
+          header.classList.toggle('hdr-away', away);
+          lastY = y;
+        }
+        ticking = false;
+      });
+    }, { passive: true });
+    header.addEventListener('focusin', () => header.classList.remove('hdr-away'));
+  }
 })();

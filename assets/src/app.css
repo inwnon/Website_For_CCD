@@ -106,3 +106,17 @@
   transition: opacity .2s cubic-bezier(.22, 1, .36, 1), transform .35s cubic-bezier(.34, 1.56, .64, 1);
 }
 .hover-fill:hover::before { opacity: 1; transform: none; }
+
+/* Main menu row (public pages): on narrow screens it scrolls sideways; a fade at the edge shows there is more (auth.js sets the classes) */
+.nav-scroll { scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
+.nav-scroll > * { scroll-snap-align: start; }
+.nav-scroll.fade-r { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); }
+.nav-scroll.fade-l { -webkit-mask-image: linear-gradient(90deg, transparent, #000 48px); mask-image: linear-gradient(90deg, transparent, #000 48px); }
+.nav-scroll.fade-l.fade-r { -webkit-mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent); }
+
+/* Phones: the header slides away while scrolling down and comes back on scrolling up (auth.js toggles .hdr-away) */
+@media (max-width: 767px) {
+  .hdr-auto { transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
+  .hdr-auto.hdr-away { transform: translateY(-100%); box-shadow: none; }
+}
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) { .hdr-auto { transition: none; } }
