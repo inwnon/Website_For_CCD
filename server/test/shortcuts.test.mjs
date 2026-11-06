@@ -36,6 +36,15 @@ describe('ทางลัดของฉัน', () => {
     assert.deepEqual((await pr.call('PUT', '/api/me/shortcuts', { ids: [] })).body.shortcuts, []);
     assert.equal((await pr.call('PUT', '/api/me/shortcuts', { ids: 'news' })).status, 400);
   });
+
+  test('back-office pages may be shortcuts too', async () => {
+    const ids = ['calendar', 'requests', 'documents', 'phonebook', 'review'];
+    const r = await pr.call('PUT', '/api/me/shortcuts', { ids });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.deepEqual(r.body.shortcuts, ids);
+    assert.deepEqual((await pr.call('GET', '/api/me')).body.shortcuts, ids);
+    assert.deepEqual((await admin.call('PUT', '/api/me/shortcuts', { ids: ['phonebook', 'admin'] })).body.shortcuts, ['phonebook', 'admin']);
+  });
 });
 
 describe('ข่าวล่าสุด: how many of each kind', () => {

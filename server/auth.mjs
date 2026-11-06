@@ -20,7 +20,7 @@ import { HttpError, parseCookies, str } from './http.mjs';
 import { FACULTIES, ORG, STAFF_UNITS, majorsOf, tracksOf } from './org.mjs';
 import { audit } from './audit.mjs';
 import { DEV_ACCOUNTS, limit, matchesName } from './security.mjs';
-import { askableOf, modulesOf } from './access.mjs';
+import { askableOf, modulesOf, rightOf } from './access.mjs';
 import { baseRole, domainRole } from './rules.mjs';
 
 export { baseRole, domainRole };
@@ -219,10 +219,13 @@ router.get('/me', async (req, res) => {
 });
 
 // ---- ทางลัดของฉัน (index.html): the desk pages a PR team member keeps on the home page, in their order ----
-// The pages themselves (names, links, icons) are in index.html; here only which ones exist and who may have them.
-export const SHORTCUTS = ['review', 'inbox', 'add', 'import', 'news', 'scheduled', 'collections', 'report', 'admin'];
+// The pages themselves (names, links, icons) are in shortcuts.js; here only which ones exist and who may have them.
+// Back-office pages (calendar, requests, documents, phonebook) only for someone the module lets in (access.mjs).
+export const SHORTCUTS = ['review', 'inbox', 'add', 'import', 'news', 'scheduled', 'collections', 'report', 'calendar', 'requests', 'documents', 'phonebook', 'admin'];
+const SHORTCUT_MODULES = ['calendar', 'requests', 'documents', 'phonebook'];
 const SHORTCUT_DEFAULT = ['review', 'add', 'news', 'collections'];
-const shortcutOk = (u) => (id) => SHORTCUTS.includes(id) && (id !== 'admin' || u.role === 'admin');
+const shortcutOk = (u) => (id) => SHORTCUTS.includes(id) && (id !== 'admin' || u.role === 'admin')
+  && (!SHORTCUT_MODULES.includes(id) || !!rightOf(u, id));
 const shortcutsOf = (u) => (u.shortcuts || SHORTCUT_DEFAULT).filter(shortcutOk(u));
 router.put('/me/shortcuts', requireUser, limit('shortcuts', { max: 60, windowMs: 10 * 60 * 1000 }), async (req, res) => {
   if (!isPr(req.user)) throw new HttpError(403, 'ทางลัดมีเฉพาะทีม PR');
