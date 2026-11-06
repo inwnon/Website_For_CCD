@@ -29,6 +29,8 @@ before(async () => {
   facPr = await add('fac@sru.ac.th', { unit: 'คณะครุศาสตร์', position: 'นักประชาสัมพันธ์คณะ', first: 'คณะครุ', last: 'ทดสอบ', phone: '2202' });
   await add('fac2@sru.ac.th', { unit: 'คณะนิติศาสตร์', position: 'เจ้าหน้าที่ PR', first: 'คณะนิติ', last: 'ทดสอบ', phone: '2203' });
   teacher = await add('teacher@sru.ac.th', { unit: 'คณะครุศาสตร์', position: 'อาจารย์', first: 'อาจารย์', last: 'ทดสอบ', phone: '2204' });
+  await add('school@sru.ac.th', { unit: 'โรงเรียนสาธิตแห่งมหาวิทยาลัยราชภัฏสุราษฎร์ธานี', position: 'นักประชาสัมพันธ์', first: 'สาธิต', last: 'ทดสอบ', phone: '2206' });
+  await add('center@sru.ac.th', { unit: 'ศูนย์วิทยาศาสตร์', position: 'เจ้าหน้าที่ประชาสัมพันธ์', first: 'ศูนย์วิทย์', last: 'ทดสอบ', phone: '2207' });
   await add('office@sru.ac.th', { unit: 'กองกลาง', position: 'นักประชาสัมพันธ์', first: 'กองกลาง', last: 'ทดสอบ', phone: '2205' });
   await add('new@sru.ac.th', { unit: 'คณะครุศาสตร์', position: 'นักประชาสัมพันธ์', first: 'ยังไม่ยินยอม', last: 'ทดสอบ', consent: false });
   for (const n of [1, 2]) {
@@ -57,6 +59,9 @@ describe('contact page', () => {
     assert.equal(kru.sent, 2);
     assert.equal(kru.ext, '2202');
     assert.ok(people.some((p) => p.name === 'คณะนิติ ทดสอบ' && p.sent === 0), '"PR" in the position counts too');
+    assert.equal(people.find((p) => p.name === 'สาธิต ทดสอบ')?.unit, 'โรงเรียนสาธิตแห่งมหาวิทยาลัยราชภัฏสุราษฎร์ธานี', 'a unit in คณะ / วิทยาลัย that is not a faculty');
+    assert.equal(people.find((p) => p.name === 'ศูนย์วิทย์ ทดสอบ')?.unit, 'ศูนย์วิทยาศาสตร์', 'units outside the faculties too');
+    assert.ok(units.indexOf('คณะนิติศาสตร์') < units.indexOf('ศูนย์วิทยาศาสตร์'), 'faculties first, then units');
     for (const n of ['อาจารย์ ทดสอบ', 'กองกลาง ทดสอบ', 'ยังไม่ยินยอม ทดสอบ']) assert.ok(!people.some((p) => p.name === n), `${n} not listed`);
     assert.ok(!JSON.stringify(r.body).includes('@'), 'no email addresses');
     assert.ok(!JSON.stringify(r.body).includes('googleusercontent'), 'no link to Google');

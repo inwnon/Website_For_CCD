@@ -1,5 +1,5 @@
 // ติดต่อเรา (contact.html): who to call about news. Anyone may read it.
-// - GET /api/contact                   { team: [person], faculties: [{ unit, people: [person + sent] }] }
+// - GET /api/contact                   { team: [person], faculties: [{ unit, people: [person + sent] }] } (faculties and other units)
 // - GET /api/contact/photo/:id.webp    the profile photo of someone on that list: the one they uploaded, else their Google
 //                                      photo, fetched once by this server and kept small (the page loads nothing from outside)
 // team: the central PR team (role pr, and ผู้พัฒนาระบบ, who works in it).
@@ -17,7 +17,10 @@ import { ORG } from './org.mjs';
 
 export const router = Router();
 
-// Positions that mean "does PR for the faculty" (the free-text position from login.html step 2)
+// Every unit a staff member can belong to (คณะ / วิทยาลัย, สำนัก / สถาบัน, ศูนย์), in org order; read per call since the org can change
+const units = () => [...new Set(ORG.staffGroups.flatMap((g) => g.units))];
+
+// Positions that mean "does PR for the faculty or unit" (the free-text position from login.html step 2)
 export const PR_POSITION = '(ประชาสัมพันธ์|สื่อสารองค์กร|\\mPR\\M)';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GOOGLE_PHOTO = /^https:\/\/lh\d\.googleusercontent\.com\//;
@@ -50,11 +53,11 @@ router.get('/contact', async (req, res) => {
                   (select count(*) from submissions s where s.sender_id = u.id)::int sent
              from users u
             where ${onFaculty('$1', '$2')} and ${NAMED}
-            order by sent desc, u.first_name, u.last_name`, [Object.keys(ORG.faculties), PR_POSITION]),
+            order by sent desc, u.first_name, u.last_name`, [units(), PR_POSITION]),
   ]);
   res.json({
     team: team.rows.map(person),
-    faculties: Object.keys(ORG.faculties)
+    faculties: units()
       .map((unit) => ({ unit, people: staff.rows.filter((u) => u.unit === unit).map((u) => ({ ...person(u), sent: u.sent })) }))
       .filter((f) => f.people.length),
   });
@@ -81,7 +84,7 @@ router.get('/contact/photo/:file', async (req, res) => {
   if (!id || !UUID.test(id)) return res.status(404).end();
   // Only someone the contact list shows (not anyone's photo)
   const u = await one(`select u.photo_path, u.avatar_url from users u where u.id = $1 and ${NAMED} and (${onTeam('$2')} or ${onFaculty('$3', '$4')})`,
-    [id, [...DEVELOPERS], Object.keys(ORG.faculties), PR_POSITION]);
+    [id, [...DEVELOPERS], units(), PR_POSITION]);
   const src = u && photoSource(u);
   if (!src) return res.status(404).end();
   try {
