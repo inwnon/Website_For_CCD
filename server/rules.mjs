@@ -94,14 +94,19 @@ export function albumSet(list) {
   return { url: out[0] || null, links: out.slice(1) };
 }
 // ช่องทางการติดต่อ (every kind of work): a link or a phone number, shown at the end of the published story.
-// contact(kind, value) → { kind, value } or { error }: links start with https://, numbers look like the phone book's.
+// contact(kind, value) → { kind, value } or { error }: links start with https://; a phone number is kept as digits only,
+// 9 (landline, 077913333) or 10 (mobile, 0812345678) starting with 0. Spaces and dashes are dropped first, so a number
+// saved before this rule (077-913-333) still passes when the PR team saves the work again.
 export const CONTACT_KINDS = ['link', 'phone'];
-const CONTACT_PHONE = /^\+?[0-9][0-9 ()/,-]{2,29}$/;
+const CONTACT_PHONE = /^0\d{8,9}$/;
 export function contact(kind, value) {
   const v = typeof value === 'string' ? value.trim() : '';
   if (!CONTACT_KINDS.includes(kind)) return { error: 'เลือกว่าจะใส่ลิงก์หรือเบอร์โทร' };
   if (!v) return { error: kind === 'link' ? 'กรอกลิงก์ช่องทางการติดต่อ' : 'กรอกเบอร์โทรสำหรับติดต่อ' };
-  if (kind === 'phone') return CONTACT_PHONE.test(v) ? { kind, value: v } : { error: 'กรอกเบอร์โทรเป็นตัวเลข เช่น 077-913-333' };
+  if (kind === 'phone') {
+    const n = v.replace(/[\s-]/g, '');
+    return CONTACT_PHONE.test(n) ? { kind, value: n } : { error: 'เบอร์โทรเป็นตัวเลข 9–10 หลัก ขึ้นต้นด้วย 0 เช่น 077913333 หรือ 0812345678' };
+  }
   let u;
   try { u = new URL(v); } catch { u = null; }
   if (!u || u.protocol !== 'https:' || u.href.length > 500) return { error: 'ใส่ลิงก์ที่ขึ้นต้นด้วย https:// (ไม่เกิน 500 ตัวอักษร) เช่น เพจ Facebook หรือ LINE OA' };

@@ -88,11 +88,16 @@ describe('sending work', () => {
   test('ช่องทางการติดต่อ: a link or a phone number is required', async () => {
     const send = async (c) => staff.call('POST', '/api/submissions', form({ ...NEWS, ...c }, { photo: [['a.jpg', await img('#c33'), 'image/jpeg']] }));
     for (const c of [{ contactKind: undefined, contactValue: undefined }, { contactKind: 'line', contactValue: 'x' }, { contactKind: 'link', contactValue: '' },
-      { contactKind: 'link', contactValue: 'http://example.com' }, { contactKind: 'link', contactValue: 'javascript:alert(1)' }, { contactKind: 'phone', contactValue: 'โทรหาเรา' }]) {
+      { contactKind: 'link', contactValue: 'http://example.com' }, { contactKind: 'link', contactValue: 'javascript:alert(1)' }, { contactKind: 'phone', contactValue: 'โทรหาเรา' },
+      { contactKind: 'phone', contactValue: '08123456789' }, { contactKind: 'phone', contactValue: '1812345678' }, { contactKind: 'phone', contactValue: '07791333' },
+      { contactKind: 'phone', contactValue: '+66812345678' }]) {
       const r = await send(c);
       assert.equal(r.status, 400, JSON.stringify(c));
       assert.ok(r.body.details.contact, JSON.stringify(c));
     }
+    const ok = await send({ contactKind: 'phone', contactValue: '081-234-5678' });
+    assert.equal(ok.status, 201);
+    assert.equal(ok.body.submission.fields.contactValue, '0812345678', 'a phone number is kept as digits only');
   });
 
   test('students send only for their own faculty', async () => {

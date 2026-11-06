@@ -1534,18 +1534,25 @@
     // Same rules as contact() in rules.mjs
     const contactMsg = () => {
       const v = val('contactValue');
-      if (radio('contactKind') === 'phone') return !v ? 'กรอกเบอร์โทรสำหรับติดต่อ' : /^\+?[0-9][0-9 ()/,-]{2,29}$/.test(v) ? '' : 'กรอกเบอร์โทรเป็นตัวเลข เช่น 077-913-333';
+      if (radio('contactKind') === 'phone') return !v ? 'กรอกเบอร์โทรสำหรับติดต่อ' : /^0\d{8,9}$/.test(v.replace(/[\s-]/g, '')) ? '' : 'เบอร์โทรเป็นตัวเลข 9–10 หลัก ขึ้นต้นด้วย 0 เช่น 077913333 หรือ 0812345678';
       return !v ? 'กรอกลิงก์ช่องทางการติดต่อ' : /^https:\/\/\S+\.\S+/i.test(v) ? '' : 'ใส่ลิงก์ที่ขึ้นต้นด้วย https:// เช่น เพจ Facebook หรือ LINE OA';
     };
     function syncContact() {
       const phone = radio('contactKind') === 'phone';
       const el = $('#contactValue');
       el.type = phone ? 'tel' : 'url';
-      el.inputMode = phone ? 'tel' : 'url';
-      el.maxLength = phone ? 30 : 500;
-      el.placeholder = phone ? 'เช่น 077-913-333 หรือ 081-234-5678' : 'https://www.facebook.com/... หรือ https://line.me/...';
+      el.inputMode = phone ? 'numeric' : 'url';
+      el.maxLength = phone ? 10 : 500;
+      el.placeholder = phone ? 'ตัวเลข 9–10 หลัก เช่น 0812345678' : 'https://www.facebook.com/... หรือ https://line.me/...';
+      if (phone) el.value = el.value.replace(/\D/g, '').slice(0, 10);
     }
     syncContact();
+    // A phone number takes digits only (a pasted 081-234-5678 becomes 0812345678)
+    $('#contactValue').addEventListener('input', (e) => {
+      if (radio('contactKind') !== 'phone') return;
+      const d = e.target.value.replace(/\D/g, '').slice(0, 10);
+      if (d !== e.target.value) e.target.value = d;
+    });
 
     // Each check: which types it applies to, the checklist label, and where to send focus
     const CHECKS = [
