@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111332" media="(prefers-color-scheme: dark)">
   <title>หลังบ้าน | SRU News Hub</title>
   <meta name="description" content="หลังบ้านทีมงานประชาสัมพันธ์ ตรวจงานที่หน่วยงานและนักศึกษาส่งเข้ามา ตอบผู้ส่ง และเผยแพร่ขึ้นเว็บไซต์">
   <meta name="robots" content="noindex">
@@ -30,13 +33,15 @@
       --surface: 255 255 255;
       --surface-2: 244 242 255;
       --ink: 27 37 96;
-      --ink-2: 92 102 148;
+      --ink-2: 74 84 128;
       --line: 224 226 250;
+
+      --line-strong: 128 134 186;
       --royal: 38 66 200;
-      --red: 209 19 39;
+      --red: 190 18 36;
       --purple: 122 60 226;
-      --sky: 0 112 161;
-      --gold: 148 94 0;
+      --sky: 0 98 142;
+      --gold: 122 78 0;
       --royal-soft: 232 237 255;
       --red-soft: 255 232 236;
       --purple-soft: 241 233 255;
@@ -63,9 +68,11 @@
       --shell: 17 19 50;
       --surface: 24 27 66;
       --surface-2: 32 36 82;
-      --ink: 240 240 255;
+      --ink: 232 233 250;
       --ink-2: 178 184 222;
       --line: 50 56 110;
+
+      --line-strong: 110 118 184;
       --royal: 146 166 255;
       --red: 255 110 124;
       --purple: 188 156 255;
@@ -136,7 +143,7 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
 
     /* Text fields */
-    .field { border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
+    .field { border: 1px solid rgb(var(--line-strong)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
     .field::placeholder { color: rgb(var(--ink-2) / .8); }
     .field:hover { border-color: rgb(var(--purple) / .45); }
     .field:focus { border-color: rgb(var(--purple)); outline: none; }
@@ -275,7 +282,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=76bcbc88a2">
+  <link rel="stylesheet" href="/assets/app.css?v=3f1d2721a9">
 </head>
 
 <body class="app">
@@ -357,7 +364,7 @@
 
       <div class="mt-auto grid gap-3 pt-6">
         <div id="alertSlot"></div>
-        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
+        <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="โหมดมืด" class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line-strong bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
           <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
           <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
           <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
@@ -384,8 +391,8 @@
         <a id="gateBtn" href="login.html" class="bg-grad press t-spring inline-flex h-12 items-center rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5">เข้าสู่ระบบ</a>
         <div id="devLogin" class="flex flex-wrap justify-center gap-2" hidden>
           <span class="w-full text-[13px] text-ink2">โหมดพัฒนา: ทดลองเข้าสู่ระบบโดยไม่ใช้ Google</span>
-          <button type="button" data-dev="pr" class="press t-spring inline-flex h-11 items-center rounded-full border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">ทีม PR</button>
-          <button type="button" data-dev="admin" class="press t-spring inline-flex h-11 items-center rounded-full border border-line bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">ผู้ดูแลระบบ</button>
+          <button type="button" data-dev="pr" class="press t-spring inline-flex h-11 items-center rounded-full border border-line-strong bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">ทีม PR</button>
+          <button type="button" data-dev="admin" class="press t-spring inline-flex h-11 items-center rounded-full border border-line-strong bg-shell px-5 font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5">ผู้ดูแลระบบ</button>
         </div>
       </section>
 
@@ -409,7 +416,7 @@
               <option value="video">วิดีโอ</option>
               <option value="banner">แบนเนอร์ / อินโฟกราฟิก</option>
             </select>
-            <label class="opt chip-opt shrink-0"><input id="unreadOnly" type="checkbox"><span class="opt-box inline-flex h-10 items-center gap-2 rounded-full border border-line bg-surface px-3.5 font-display text-[14px] font-medium">ยังไม่อ่าน<span id="unreadCount" class="rounded-full bg-surface2 px-2 text-[12px] leading-5 text-ink2">0</span></span></label>
+            <label class="opt chip-opt shrink-0"><input id="unreadOnly" type="checkbox"><span class="opt-box inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-surface px-3.5 font-display text-[14px] font-medium">ยังไม่อ่าน<span id="unreadCount" class="rounded-full bg-surface2 px-2 text-[12px] leading-5 text-ink2">0</span></span></label>
           </div>
         </div>
         <div id="listScroll" class="scroll-thin min-h-0 flex-1 overflow-y-auto p-3">
@@ -418,7 +425,7 @@
             <p id="emptyTitle" class="font-display text-[17px] font-semibold"></p>
             <p id="emptyText" class="text-[14px] text-ink2"></p>
           </div>
-          <button id="more" type="button" class="press t-spring mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-line bg-shell font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5" hidden>โหลดเพิ่ม</button>
+          <button id="more" type="button" class="press t-spring mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-line-strong bg-shell font-display text-[15px] font-medium shadow-raised hover:-translate-y-0.5" hidden>โหลดเพิ่ม</button>
         </div>
       </section>
 
@@ -547,8 +554,8 @@
             <fieldset class="min-w-0">
               <legend class="font-display text-[14px] font-medium">เวลาเผยแพร่</legend>
               <div class="mt-2 flex flex-wrap gap-1.5">
-                <label class="opt chip-opt"><input type="radio" name="when" value="now" checked><span class="opt-box inline-flex h-9 items-center rounded-full border border-line bg-surface px-3.5 font-display text-[13px] font-medium">ทันที</span></label>
-                <label class="opt chip-opt"><input type="radio" name="when" value="later"><span class="opt-box inline-flex h-9 items-center rounded-full border border-line bg-surface px-3.5 font-display text-[13px] font-medium">ตั้งเวลา</span></label>
+                <label class="opt chip-opt"><input type="radio" name="when" value="now" checked><span class="opt-box inline-flex h-9 items-center rounded-full border border-line-strong bg-surface px-3.5 font-display text-[13px] font-medium">ทันที</span></label>
+                <label class="opt chip-opt"><input type="radio" name="when" value="later"><span class="opt-box inline-flex h-9 items-center rounded-full border border-line-strong bg-surface px-3.5 font-display text-[13px] font-medium">ตั้งเวลา</span></label>
               </div>
               <label for="pAt" class="sr-only">วันและเวลาเผยแพร่</label>
               <input id="pAt" type="datetime-local" class="field mt-2 h-10 w-full rounded-2xl px-3 text-[14px]" hidden aria-describedby="err-publishAt">
@@ -895,21 +902,21 @@
 
     const btn = (attrs, label, primary) => primary
       ? `<button type="button" ${attrs} class="bg-grad press t-spring inline-flex h-10 items-center gap-2 rounded-full px-5 font-display text-[14px] font-semibold text-white shadow-glow hover:-translate-y-0.5">${label}</button>`
-      : `<button type="button" ${attrs} class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${label}</button>`;
+      : `<button type="button" ${attrs} class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${label}</button>`;
     function actionsFor(s) {
       const a = [];
       // Work taken back with ยกเลิกการเผยแพร่ goes out again into the same story
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="publish"', s.newsId ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่', true));
       // แก้ไขข่าว: PR edits the work itself (kept until it is published), or the story once it is on the site
       if (['review', 'writing', 'revise'].includes(s.status)) a.push(btn('data-act="edit"', `${ic.pen}แก้ไขข่าว`));
-      if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}&amp;back=${encodeURIComponent(`pr.html?ref=${s.ref}`)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
+      if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}&amp;back=${encodeURIComponent(`pr.html?ref=${s.ref}`)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
       if (s.status === 'review' && s.type === 'news') a.push(btn('data-act="writing"', 'รับไปเขียนข่าว'));
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="revise"', 'ขอให้แก้ไข'));
       if (s.status === 'revise') a.push(btn('data-act="review"', 'ตรวจต่อโดยไม่รอแก้ไข'));
       if (s.status !== 'published' && s.status !== 'rejected') a.push(btn('data-act="delete"', `${ic.trash}ลบข่าว`));
       if (s.status === 'rejected') a.push(btn('data-act="review"', 'กู้คืนไปที่รอตรวจ'));
       if (s.status === 'published') a.push(btn('data-act="unpublish"', 'ยกเลิกการเผยแพร่'));
-      if (s.status === 'published' && s.url) a.push(`<a href="${esc(s.url)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ดูข่าวที่เผยแพร่ ${ic.out}</a>`);
+      if (s.status === 'published' && s.url) a.push(`<a href="${esc(s.url)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ดูข่าวที่เผยแพร่ ${ic.out}</a>`);
       return a.join('');
     }
 
@@ -1171,7 +1178,7 @@
 
     // ---- Publish ----
     function chip(name, value, label, checked, type = 'checkbox') {
-      return `<label class="opt chip-opt"><input type="${type}" name="${name}" value="${esc(value)}"${checked ? ' checked' : ''}><span class="opt-box inline-flex h-9 items-center rounded-full border border-line bg-surface px-3 font-display text-[13px] font-medium">${esc(label)}</span></label>`;
+      return `<label class="opt chip-opt"><input type="${type}" name="${name}" value="${esc(value)}"${checked ? ' checked' : ''}><span class="opt-box inline-flex h-9 items-center rounded-full border border-line-strong bg-surface px-3 font-display text-[13px] font-medium">${esc(label)}</span></label>`;
     }
     // Picture tiles of the publish dialog, in pubImgs order. Each carries both choices: "ปก" (cover) and ✓ (gallery)
     let pubImgs = [];

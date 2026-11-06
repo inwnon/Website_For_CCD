@@ -5,13 +5,14 @@
   --surface: 255 255 255;
   --surface-2: 244 242 255;
   --ink: 27 37 96;
-  --ink-2: 92 102 148;
+  --ink-2: 74 84 128;
   --line: 224 226 250;
+  --line-strong: 128 134 186;
   --royal: 38 66 200;
-  --red: 209 19 39;
+  --red: 190 18 36;
   --purple: 122 60 226;
-  --sky: 0 112 161;
-  --gold: 148 94 0;
+  --sky: 0 98 142;
+  --gold: 122 78 0;
   --royal-soft: 232 237 255;
   --red-soft: 255 232 236;
   --purple-soft: 241 233 255;
@@ -38,9 +39,10 @@
   --shell: 17 19 50;
   --surface: 24 27 66;
   --surface-2: 32 36 82;
-  --ink: 240 240 255;
+  --ink: 232 233 250;
   --ink-2: 178 184 222;
   --line: 50 56 110;
+  --line-strong: 110 118 184;
   --royal: 146 166 255;
   --red: 255 110 124;
   --purple: 188 156 255;
@@ -111,7 +113,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Text fields */
-.field { border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
+.field { border: 1px solid rgb(var(--line-strong)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
 .field::placeholder { color: rgb(var(--ink-2) / .8); }
 .field:hover { border-color: rgb(var(--purple) / .45); }
 .field:focus { border-color: rgb(var(--purple)); outline: none; }

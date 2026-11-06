@@ -60,7 +60,7 @@
         <p class="mt-0.5 pl-2 text-[13px] text-ink2">${esc(TYPE[first.type] || '')} จาก ${esc(first.unit)} โดย ${esc(first.sender)}</p>
         <div class="mt-3 flex gap-2 pl-2">
           <a href="${href}" class="bg-grad press t-spring inline-flex h-10 items-center rounded-full px-5 font-display text-[14px] font-semibold text-white shadow-glow hover:-translate-y-0.5">ดูงาน</a>
-          ${more > 0 ? '<a href="pr.html?status=review" class="press t-spring inline-flex h-10 items-center rounded-full border border-line px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">ดูทั้งหมด</a>' : ''}
+          ${more > 0 ? '<a href="pr.html?status=review" class="press t-spring inline-flex h-10 items-center rounded-full border border-line-strong px-4 font-display text-[14px] font-medium hover:-translate-y-0.5">ดูทั้งหมด</a>' : ''}
         </div>
         <button type="button" data-close-arrivals class="icon-btn absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full text-ink2 hover:text-ink" aria-label="ปิดการแจ้งเตือน">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -124,7 +124,7 @@
   function paintSwitch() {
     const slot = document.getElementById('alertSlot');
     if (!slot) return;
-    slot.innerHTML = `<button type="button" id="alertSwitch" role="switch" aria-checked="${on}" class="alert-switch press t-quick flex min-h-11 w-full items-center gap-3 rounded-2xl border border-line bg-surface2 px-3 py-1 text-left font-display text-[14px] font-medium">
+    slot.innerHTML = `<button type="button" id="alertSwitch" role="switch" aria-checked="${on}" class="alert-switch press t-quick flex min-h-11 w-full items-center gap-3 rounded-2xl border border-line-strong bg-surface2 px-3 py-1 text-left font-display text-[14px] font-medium">
       <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full ${on ? 'bg-red-soft text-brand' : 'bg-shell text-ink2'}" aria-hidden="true">${BELL}</span>
       <span class="min-w-0 flex-1 leading-tight">แจ้งเตือนงานใหม่<span class="block text-[12px] font-normal text-ink2">${on ? 'เปิดอยู่ มีเสียงเตือน' : 'ปิดอยู่'}</span></span>
       <span class="alert-track relative h-6 w-10 shrink-0 rounded-full ${on ? 'bg-grad' : 'bg-line'}" aria-hidden="true"><span class="t-spring absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-raised ${on ? 'translate-x-4' : ''}"></span></span>

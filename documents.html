@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111332" media="(prefers-color-scheme: dark)">
   <title>คลังเอกสาร | หลังบ้าน SRU News Hub</title>
   <meta name="robots" content="noindex">
   <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
@@ -44,7 +47,7 @@
     .doc-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235C6694' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=76bcbc88a2">
+  <link rel="stylesheet" href="/assets/app.css?v=3f1d2721a9">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการเอกสาร</a>
@@ -77,7 +80,7 @@
               <label class="min-w-0"><span class="sr-only">ปีของเอกสาร</span><select id="filterYear" data-filter="year" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
               <label class="min-w-0"><span class="sr-only">รอบประเมิน</span><select id="filterRound" data-filter="round" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
               <label class="min-w-0"><span class="sr-only">เอกสารของทีมหรือส่วนตัว</span><select id="filterLevel" data-filter="level" class="field doc-sel h-11 w-full rounded-2xl pl-3 pr-8 text-[14px]"></select></label>
-              <button id="clear" type="button" class="hover-fill press t-quick h-11 whitespace-nowrap rounded-2xl border border-line px-4 font-display text-[15px] font-medium" hidden>ล้างตัวกรอง</button>
+              <button id="clear" type="button" class="hover-fill press t-quick h-11 whitespace-nowrap rounded-2xl border border-line-strong px-4 font-display text-[15px] font-medium" hidden>ล้างตัวกรอง</button>
             </div>
           </div>
         </header>

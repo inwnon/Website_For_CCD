@@ -167,7 +167,7 @@
     .acct-item[aria-current="page"], .acct-item[aria-current="page"] > svg { color: rgb(var(--purple)); }
     .acct-item.danger, .acct-item.danger > svg { color: rgb(var(--red)); }
     .acct-theme { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px 8px; font: 500 15px Kanit, "Noto Sans Thai", sans-serif; }
-    .acct-seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
+    .acct-seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line-strong)); }
     .acct-seg button { height: 30px; padding: 0 10px; border-radius: 999px; font-size: 13px; color: rgb(var(--ink-2)); transition: transform .35s var(--spring); }
     .acct-seg button:hover { color: rgb(var(--ink)); }
     .acct-seg button:active { transform: scale(.94); }
@@ -303,6 +303,14 @@
   }
   window.renderAccountButton = renderAccountButton;
   renderAccountButton();
+
+  // The browser bar takes the header colour of the theme in use (the page's switch may differ from the system setting)
+  const themeMetas = /** @type {NodeListOf<HTMLMetaElement>} */ (document.querySelectorAll('meta[name="theme-color"]'));
+  const syncThemeColor = () => themeMetas.forEach((m) => { m.removeAttribute('media'); m.content = document.documentElement.classList.contains('dark') ? '#111332' : '#ffffff'; });
+  if (themeMetas.length) {
+    syncThemeColor();
+    new MutationObserver(syncThemeColor).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  }
 
   // ---- Public-page header (pages with nav[aria-label="เมนูหลัก"]) ----
   // The menu row fades at an edge while it can scroll that way; on phones (CSS < 768px) the header slides away

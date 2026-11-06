@@ -13,7 +13,7 @@
     box.innerHTML = `
       <ol class="grid gap-2" data-vl-list></ol>
       <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <button type="button" data-vl-add class="press t-spring inline-flex h-11 items-center gap-2 rounded-2xl border border-dashed border-line bg-surface px-4 font-display text-[15px] font-medium text-purple hover:-translate-y-0.5 hover:border-[rgb(var(--purple)/.5)]">${PLUS}${addText}</button>
+        <button type="button" data-vl-add class="press t-spring inline-flex h-11 items-center gap-2 rounded-2xl border border-dashed border-line-strong bg-surface px-4 font-display text-[15px] font-medium text-purple hover:-translate-y-0.5 hover:border-[rgb(var(--purple)/.5)]">${PLUS}${addText}</button>
         <span data-vl-count class="text-[13px] text-ink2"></span>
       </div>`;
     const list = box.querySelector('[data-vl-list]'), add = /** @type {HTMLButtonElement} */ (box.querySelector('[data-vl-add]')), count = box.querySelector('[data-vl-count]');

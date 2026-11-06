@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111332" media="(prefers-color-scheme: dark)">
   <title>สมุดโทรศัพท์ | หลังบ้าน SRU News Hub</title>
   <meta name="robots" content="noindex">
   <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
@@ -19,7 +22,7 @@
   <link rel="preload" href="/assets/fonts/NotoSansThai.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="desk.css">
-  <link rel="stylesheet" href="/assets/app.css?v=76bcbc88a2">
+  <link rel="stylesheet" href="/assets/app.css?v=3f1d2721a9">
 </head>
 <body class="app">
   <a href="#list" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่รายการหมายเลข</a>
@@ -39,14 +42,14 @@
               <p id="count" class="mt-1 text-[14px] text-ink2" aria-live="polite"></p>
               <p id="editUntil" class="mt-1 text-[14px] font-medium text-royal" hidden></p>
             </div>
-            <button id="toggleAll" type="button" class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>เปิดทั้งหมด</button>
-            <button id="newGroup" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
+            <button id="toggleAll" type="button" class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl border border-line-strong px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>เปิดทั้งหมด</button>
+            <button id="newGroup" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line-strong px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></svg>สร้างกลุ่มใหม่
             </button>
-            <button id="move" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
+            <button id="move" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line-strong px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 13h6M13 10l3 3-3 3"/></svg>ย้ายเข้ากลุ่ม
             </button>
-            <button id="import" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
+            <button id="import" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line-strong px-5 font-display text-[15px] font-medium max-sm:w-full max-sm:justify-center" hidden>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>นำเข้าไฟล์
             </button>
             <button id="add" type="button" class="press t-spring inline-flex h-11 items-center gap-2 rounded-2xl bg-brand px-5 font-display text-[15px] font-semibold text-white hover:-translate-y-0.5 dark:text-bg max-sm:w-full max-sm:justify-center" hidden>

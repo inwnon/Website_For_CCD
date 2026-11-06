@@ -19,7 +19,7 @@
         return `<li class="flex items-center gap-3 rounded-2xl border border-line px-3 py-2">
           <span class="min-w-0 flex-1 text-[14px]"><span class="clamp-2 font-medium">${esc(r.title)}</span>
             <span class="block text-[12px] text-ink2">${esc(r.unit)}, ${day(r.publishedAt)}, ${KIND[r.kind] || ''}</span></span>
-          <button type="button" data-add="${r.id}" class="press t-quick h-9 shrink-0 rounded-full border border-line px-4 font-display text-[13px] font-medium hover:-translate-y-0.5 disabled:opacity-40" aria-label="${label}: ${esc(r.title)}"${off ? ' disabled' : ''}>${label}</button>
+          <button type="button" data-add="${r.id}" class="press t-quick h-9 shrink-0 rounded-full border border-line-strong px-4 font-display text-[13px] font-medium hover:-translate-y-0.5 disabled:opacity-40" aria-label="${label}: ${esc(r.title)}"${off ? ' disabled' : ''}>${label}</button>
         </li>`;
       }).join('') : `<li class="px-1 text-[14px] text-ink2">${q ? 'ไม่พบข่าวที่ตรงกับคำค้น ลองใช้คำที่สั้นลง' : 'ยังไม่มีข่าวที่เผยแพร่'}</li>`;
       note.textContent = items.length ? `แสดง ${num(items.length)} จาก ${num(total)} ข่าว${q ? ` ที่ตรงกับ “${q}”` : ' เรียงจากใหม่ไปเก่า'}` : '';

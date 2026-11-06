@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111332" media="(prefers-color-scheme: dark)">
   <title>ปฏิทินงาน | หลังบ้าน SRU News Hub</title>
   <meta name="robots" content="noindex">
   <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
@@ -37,7 +40,7 @@
     .seg[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
     @media (prefers-reduced-motion: reduce) { .cal-chip:active { transform: none; } }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=76bcbc88a2">
+  <link rel="stylesheet" href="/assets/app.css?v=3f1d2721a9">
   <script src="thai-date.js" defer></script>
 </head>
 <body class="app">
@@ -62,19 +65,19 @@
             <button type="button" data-view="month" class="seg press t-quick h-11 rounded-xl px-4 font-display text-[15px] font-medium text-ink2 max-sm:hidden">เดือน</button>
           </div>
           <div class="flex gap-1 max-sm:order-4">
-            <button id="prev" type="button" aria-label="ช่วงก่อนหน้า" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-2xl border border-line">
+            <button id="prev" type="button" aria-label="ช่วงก่อนหน้า" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-2xl border border-line-strong">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
             </button>
-            <button id="today" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line px-4 font-display text-[15px] font-medium">วันนี้</button>
-            <button id="next" type="button" aria-label="ช่วงถัดไป" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-2xl border border-line">
+            <button id="today" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line-strong px-4 font-display text-[15px] font-medium">วันนี้</button>
+            <button id="next" type="button" aria-label="ช่วงถัดไป" class="hover-fill press t-quick grid h-11 w-11 place-items-center rounded-2xl border border-line-strong">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
             </button>
           </div>
-          <button id="feedBtn" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line px-3 font-display text-[15px] font-medium max-sm:order-2 sm:px-4">
+          <button id="feedBtn" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line-strong px-3 font-display text-[15px] font-medium max-sm:order-2 sm:px-4">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M12 13v5M9.5 15.5 12 18l2.5-2.5"/></svg>
             <span class="max-sm:sr-only">ติดตามใน Google Calendar</span>
           </button>
-          <button id="bell" type="button" aria-label="การแจ้งเตือน" class="hover-fill press t-quick relative grid h-11 w-11 place-items-center rounded-2xl border border-line max-sm:order-2">
+          <button id="bell" type="button" aria-label="การแจ้งเตือน" class="hover-fill press t-quick relative grid h-11 w-11 place-items-center rounded-2xl border border-line-strong max-sm:order-2">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
             <span id="bellDot" class="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-brand" aria-hidden="true" hidden></span>
           </button>
@@ -119,14 +122,14 @@
         </div>
         <div class="flex flex-wrap gap-2">
           <button id="feedCreate" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5"></button>
-          <button id="feedRevoke" type="button" class="press t-quick h-11 rounded-2xl border border-line px-4 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5" hidden>ยกเลิกลิงก์</button>
+          <button id="feedRevoke" type="button" class="press t-quick h-11 rounded-2xl border border-line-strong px-4 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5" hidden>ยกเลิกลิงก์</button>
         </div>
       </section>
       <section class="grid gap-2" aria-labelledby="feedPublicTitle">
         <h3 id="feedPublicTitle" class="font-display text-[16px] font-semibold">ปฏิทินกิจกรรมสาธารณะ (ส่งต่อได้)</h3>
         <div class="flex gap-2">
           <label class="min-w-0 flex-1"><span class="sr-only">ลิงก์ปฏิทินสาธารณะ</span><input id="feedPublic" readonly class="field h-11 w-full rounded-xl px-3 text-[14px]"></label>
-          <button id="feedPublicCopy" type="button" class="hover-fill press t-quick h-11 rounded-xl border border-line px-4 font-display text-[15px] font-medium">คัดลอก</button>
+          <button id="feedPublicCopy" type="button" class="hover-fill press t-quick h-11 rounded-xl border border-line-strong px-4 font-display text-[15px] font-medium">คัดลอก</button>
         </div>
       </section>
       <p class="text-[14px] leading-[1.7] text-ink2">วิธีเพิ่ม: เปิด Google Calendar บนคอมพิวเตอร์ ที่ "ปฏิทินอื่นๆ" กด + แล้วเลือก "จาก URL" วางลิงก์ แล้วกด "เพิ่มปฏิทิน" ปฏิทินในมือถือจะตามมาเอง Google อัปเดตทุกสองสามชั่วโมง งานที่เพิ่งแก้จึงอาจขึ้นช้ากว่าในหน้านี้</p>
