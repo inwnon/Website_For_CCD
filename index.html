@@ -19,6 +19,8 @@
       if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       document.documentElement.classList.toggle('dark', t === 'dark');
       document.documentElement.classList.add('js');
+      // วิดีโอเสียงตามสาย folded by this reader (index.html), before paint so the page does not jump
+      try { if (localStorage.getItem('soundline') === 'off') document.documentElement.classList.add('sound-off'); } catch (e) {}
     })();
   </script>
 
@@ -165,6 +167,11 @@
     .no-scrollbar { scrollbar-width: none; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
 
+    /* วิดีโอเสียงตามสาย folded: only its heading and the แสดง button stay */
+    .sound-off #soundline > :not(:first-child) { display: none; }
+    .sound-chev { transition: transform .35s var(--spring); }
+    .sound-off .sound-chev { transform: rotate(-90deg); }
+
     .js .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--ease-out), transform .7s var(--spring); }
     .js .reveal.in { opacity: 1; transform: none; }
 
@@ -172,6 +179,15 @@
     .bob { animation: bob 6s ease-in-out infinite; }
     @keyframes twinkle { 0%,100% { transform: scale(1) rotate(0); opacity: 1; } 50% { transform: scale(.8) rotate(20deg); opacity: .7; } }
     .twinkle { animation: twinkle 3s ease-in-out infinite; }
+
+    /* Phones: a shelf shows its first data-limit cards until "แสดงเพิ่มเติม"; no endless motion while scrolling */
+    @media (max-width: 767.98px) {
+      [data-limit="1"]:not(.open) > :nth-child(n+2),
+      [data-limit="2"]:not(.open) > :nth-child(n+3),
+      [data-limit="4"]:not(.open) > :nth-child(n+5),
+      #latestGrid:not(.open) ~ #moreWrap { display: none; }
+      .bob, .twinkle { animation: none; }
+    }
 
     .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
@@ -181,14 +197,14 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=0bd501b8bf">
+  <link rel="stylesheet" href="/assets/app.css?v=deeabde0a6">
 </head>
 
 <body class="min-h-screen">
   <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปเนื้อหา</a>
 
   <!-- ===== Header: brand · search · actions / tab nav ===== -->
-  <header class="sticky top-0 z-50 border-b border-line bg-shell/95 shadow-raised backdrop-blur-xl">
+  <header class="sticky top-0 z-50 border-b border-line bg-shell shadow-raised md:bg-shell/95 md:backdrop-blur-xl">
     <div class="mx-auto flex max-w-page items-center gap-4 px-shell pt-3 lg:gap-8">
       <a href="/" class="press t-quick flex shrink-0 items-center gap-3 rounded-2xl hover:opacity-90">
         <span class="logo-crop h-12 w-12 shrink-0"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
@@ -299,7 +315,7 @@
           <p class="font-display text-[14px] font-medium text-brand">ช่วงนี้มีอะไรเกิดขึ้นบ้างนะ</p>
           <h2 id="featured-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวเด่นสัปดาห์นี้</h2>
         </div>
-        <div id="featuredGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <div id="featuredGrid" data-limit="2" data-more="แสดงข่าวเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="featuredEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ทีม PR ยังไม่ได้เลือกข่าวเด่น</p>
       </section>
 
@@ -354,25 +370,30 @@
           <span id="kindLabel" class="mr-1 font-display text-[14px] font-medium text-ink2">ประเภทเนื้อหา</span>
           <div id="kindChips" class="flex flex-wrap gap-2" role="group" aria-labelledby="kindLabel"></div>
         </div>
-        <div id="latestGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <div id="latestGrid" data-limit="4" data-more="แสดงข่าวเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="emptyMsg" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2" role="status">ยังไม่มีข่าวในช่วงเวลานี้</p>
-        <div class="mt-8 flex justify-center">
+        <div id="moreWrap" class="mt-8 flex justify-center">
           <button id="moreBtn" type="button" hidden class="press t-spring inline-flex h-12 items-center gap-2 rounded-2xl border border-line-strong bg-shell px-6 font-display text-[16px] font-medium text-ink shadow-raised hover:-translate-y-0.5">แสดงข่าวเพิ่ม</button>
         </div>
       </section>
 
       <!-- Shelf: วิดีโอเสียงตามสาย (the newest four of that category) -->
       <section id="soundline" class="cv-auto mt-shelf" aria-labelledby="soundline-title">
-        <div class="reveal mb-6 flex items-end justify-between gap-4">
+        <div class="reveal mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <div>
             <p class="font-display text-[14px] font-medium text-brand">ฟังข่าวสารประจำวันของมหาวิทยาลัย</p>
             <h2 id="soundline-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">วิดีโอเสียงตามสาย</h2>
           </div>
+          <div class="flex shrink-0 items-center gap-1">
+          <button id="soundToggle" type="button" aria-controls="soundGrid" aria-expanded="true" class="hover-fill press t-quick inline-flex h-11 items-center gap-1.5 rounded-full px-3 font-display text-[15px] font-medium text-ink2 hover:text-ink">
+            <svg class="sound-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg><span id="soundToggleText">ซ่อน</span><span class="sr-only">วิดีโอเสียงตามสาย</span>
+          </button>
           <a href="search.html?cat=%E0%B8%A7%E0%B8%B4%E0%B8%94%E0%B8%B5%E0%B9%82%E0%B8%AD%E0%B9%80%E0%B8%AA%E0%B8%B5%E0%B8%A2%E0%B8%87%E0%B8%95%E0%B8%B2%E0%B8%A1%E0%B8%AA%E0%B8%B2%E0%B8%A2&amp;sort=newest" class="press t-spring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2 font-display text-[15px] font-medium text-purple hover:translate-x-0.5">ดูทั้งหมด<span class="sr-only">วิดีโอเสียงตามสาย</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
+          </div>
         </div>
-        <div id="soundGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <div id="soundGrid" data-limit="1" data-more="แสดงเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
         <p id="soundEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ยังไม่มีวิดีโอเสียงตามสาย</p>
       </section>
 
@@ -387,7 +408,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
         </div>
-        <div id="setsGrid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <div id="setsGrid" data-limit="2" data-more="แสดงเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
       </section>
 
       <!-- Shelf: archive -->
@@ -395,6 +416,7 @@
         <div class="reveal mb-6">
           <p class="font-display text-[14px] font-medium text-brand">ข่าวและกิจกรรมรายวัน</p>
           <h2 id="archive-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ปฏิทินกิจกรรม</h2>
+          <p class="mt-2 max-w-[68ch] text-[16px] leading-[1.7] text-ink2">รวมข่าวที่เผยแพร่และกิจกรรมของมหาวิทยาลัยไว้ตามวัน จุดสีแดงคือวันที่มีข่าว สี่เหลี่ยมสีน้ำเงินคือวันที่มีกิจกรรมที่เปิดให้ทุกคนร่วมได้ กดที่วันเพื่อดูข่าว กำหนดการ และแบนเนอร์ของกิจกรรมวันนั้น</p>
         </div>
         <div>
           <div class="reveal overflow-hidden rounded-card border border-line bg-surface shadow-raised">
@@ -441,7 +463,7 @@
       <span class="flex gap-6 md:ml-auto">
         <a href="contact.html" class="press t-quick rounded hover:text-ink hover:underline">ติดต่อเรา</a>
         <a href="privacy.html" class="press t-quick rounded hover:text-ink hover:underline">นโยบายความเป็นส่วนตัว</a>
-        <span>โดยงานประชาสัมพันธ์ มรส.</span>
+        <span>เสถียรพงษ์ นิสัยกล้า : ผู้พัฒนาระบบ</span>
       </span>
     </div>
   </footer>
@@ -473,6 +495,29 @@
       entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
     }, { rootMargin: '0px 0px -6% 0px' });
     const reveal = (root = document) => root.querySelectorAll('.reveal:not(.in)').forEach((el) => io.observe(el));
+
+    // Phones: a [data-limit] shelf gets a "แสดงเพิ่มเติม" button under it while it holds more cards than the limit (CSS hides the rest)
+    document.querySelectorAll('[data-limit]').forEach((shelf) => {
+      const el = /** @type {HTMLElement} */ (shelf);
+      const limit = Number(el.dataset.limit);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.hidden = true;
+      btn.className = 'press t-spring mx-auto mt-6 flex h-12 items-center gap-2 rounded-2xl border border-line-strong bg-shell px-6 font-display text-[16px] font-medium text-ink shadow-raised hover:-translate-y-0.5 md:hidden';
+      btn.textContent = el.dataset.more || 'แสดงเพิ่มเติม';
+      btn.setAttribute('aria-controls', el.id);
+      btn.setAttribute('aria-expanded', 'false');
+      el.after(btn);
+      // Skeleton cards (aria-hidden) are not counted
+      const sync = () => { btn.hidden = el.classList.contains('open') || el.querySelectorAll(':scope > :not([aria-hidden="true"])').length <= limit; };
+      btn.addEventListener('click', () => {
+        el.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+        sync();
+        /** @type {HTMLElement | null} */ (el.children[limit]?.querySelector('a, button'))?.focus({ preventScroll: true });
+      });
+      new MutationObserver(sync).observe(el, { childList: true });
+    });
 
     const ic = {
       photo: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg>',
@@ -570,7 +615,24 @@
     }
 
     // ---- วิดีโอเสียงตามสาย: the newest stories of that category the reader may open ----
+    // The reader folds or opens the shelf; remembered in this browser only. A folded shelf loads nothing until opened.
+    const soundOff = () => document.documentElement.classList.contains('sound-off');
+    let soundLoaded = false;
+    function paintSoundToggle() {
+      $('#soundToggle').setAttribute('aria-expanded', String(!soundOff()));
+      $('#soundToggleText').textContent = soundOff() ? 'แสดง' : 'ซ่อน';
+    }
+    paintSoundToggle();
+    $('#soundToggle').addEventListener('click', () => {
+      const off = document.documentElement.classList.toggle('sound-off');
+      try { if (off) localStorage.setItem('soundline', 'off'); else localStorage.removeItem('soundline'); } catch (e) {}
+      paintSoundToggle();
+      if (!off && !soundLoaded) loadSoundline();
+    });
+
     async function loadSoundline() {
+      if (soundOff()) return;
+      soundLoaded = true;
       const grid = $('#soundGrid');
       grid.innerHTML = skeleton(4);
       try {

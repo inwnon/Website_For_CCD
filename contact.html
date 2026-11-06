@@ -37,10 +37,16 @@
     @media (max-width: 767.98px) {
       .unit:not(.open) .unit-list { display: none; }
       .unit:not(.open) .unit-head { border-bottom-color: transparent; }
+      /* The central team list folds too, so the faculty teams are not far down the page */
+      #team:not(.open) #teamList { display: none; }
     }
+    #team.open .unit-chev { transform: rotate(180deg); }
+    #team.open #teamFaces { display: none; }
+    #team.open #teamMore { justify-content: center; }
+    #team.open #teamMoreText { margin-left: 0; }
     @media (prefers-reduced-motion: reduce) { .unit-chev { transition: none; } }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=0bd501b8bf">
+  <link rel="stylesheet" href="/assets/app.css?v=deeabde0a6">
 </head>
 
 <body class="min-h-screen">
@@ -163,18 +169,19 @@
           <p id="teamCount" class="text-[15px] text-ink2"></p>
         </div>
         <p class="mt-2 max-w-[62ch] text-[16px] text-ink2">ตรวจ เขียน และเผยแพร่ข่าวของทุกหน่วยงาน โทรจากเบอร์ภายในของมหาวิทยาลัยได้เลย</p>
+        <button id="teamMore" type="button" aria-controls="teamList" aria-expanded="false" class="press t-spring mt-5 flex min-h-14 w-full items-center gap-3 rounded-2xl border border-line-strong bg-shell py-2 pl-3 pr-5 font-display text-[16px] font-medium text-ink shadow-raised hover:-translate-y-0.5 md:hidden">
+          <span id="teamFaces" class="flex items-center" aria-hidden="true"></span>
+          <span id="teamMoreText" class="ml-auto whitespace-nowrap">แสดงเพิ่มเติม</span>
+          <svg class="unit-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
         <ul id="teamList" class="mt-6 grid min-h-[96px] min-[460px]:min-h-[208px] grid-cols-1 gap-px overflow-hidden rounded-card border border-line bg-line shadow-raised min-[460px]:grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
           <li class="col-span-full grid place-items-center bg-surface p-8 text-[15px] text-ink2">กำลังโหลดรายชื่อ…</li>
         </ul>
       </section>
 
-      <!-- ===== Faculty and unit PR (from each person's profile position) ===== -->
+      <!-- ===== Faculty and unit PR (who ticked "ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน" in their profile) ===== -->
       <section class="mt-shelf" aria-labelledby="facTitle" aria-busy="true" id="fac">
-        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h2 id="facTitle" class="font-display tight text-[clamp(24px,2.6vw,32px)] font-semibold text-royal">ทีมประชาสัมพันธ์คณะและหน่วยงาน</h2>
-          <p id="facCount" class="text-[15px] text-ink2"></p>
-        </div>
-        <p class="mt-2 max-w-[72ch] text-[16px] text-ink2">บุคลากรของคณะและหน่วยงานที่ระบุตำแหน่งงานประชาสัมพันธ์ในโปรไฟล์ เรียงตามจำนวนข่าวที่ส่งเข้าระบบ</p>
+        <h2 id="facTitle" class="font-display tight text-[clamp(24px,2.6vw,32px)] font-semibold text-royal">ทีมประชาสัมพันธ์คณะและหน่วยงาน</h2>
         <div id="facList" class="mt-6 grid min-h-[120px] items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
           <p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">กำลังโหลดรายชื่อ…</p>
         </div>
@@ -219,7 +226,22 @@
       ? `<p class="${big ? 'text-right min-[460px]:mt-auto min-[460px]:pt-4 min-[460px]:text-left' : ''}"><span class="block text-[12px] text-ink2">โทรภายใน</span><span class="ext font-display ${big ? 'text-[24px]' : 'text-[19px]'} font-semibold leading-tight text-purple">${esc(p.ext)}</span></p>`
       : `<p class="${big ? 'hidden min-[460px]:mt-auto min-[460px]:block min-[460px]:pt-4' : ''} text-[13px] text-ink2">ยังไม่ได้ระบุเบอร์ภายใน</p>`;
 
+    // Phones: the central team list opens and closes with แสดงเพิ่มเติม
+    $('#teamMore').addEventListener('click', () => {
+      const open = $('#team').classList.toggle('open');
+      $('#teamMore').setAttribute('aria-expanded', String(open));
+      $('#teamMoreText').textContent = open ? 'ซ่อนรายชื่อ' : 'แสดงเพิ่มเติม';
+    });
+
+    // The folded button shows the first few faces, then +N for the rest
+    const FACES = 5;
+    function faces(list) {
+      $('#teamFaces').innerHTML = list.slice(0, FACES).map((p, i) => `<span class="${i ? '-ml-3' : ''} flex shrink-0 rounded-full ring-2 ring-shell">${avatar(p, 40)}</span>`).join('')
+        + (list.length > FACES ? `<span class="-ml-3 grid h-10 min-w-10 shrink-0 place-items-center rounded-full bg-surface2 px-1.5 text-[14px] font-semibold text-ink2 ring-2 ring-shell">+${num(list.length - FACES)}</span>` : '');
+    }
+
     function team(list) {
+      faces(list);
       $('#teamCount').textContent = list.length ? `${num(list.length)} คน` : '';
       $('#teamList').innerHTML = list.length
         ? list.map((p) => `<li class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 bg-surface p-4 min-[460px]:flex min-[460px]:min-h-[208px] min-[460px]:flex-col min-[460px]:items-start min-[460px]:p-5">
@@ -234,9 +256,7 @@
     }
 
     function faculties(list) {
-      const people = list.reduce((n, f) => n + f.people.length, 0);
-      $('#facCount').textContent = people ? `${num(list.length)} คณะ/หน่วยงาน ${num(people)} คน` : '';
-      // One small card per unit; each person is one slim row: photo, name, position · how many sent, extension on the right
+      // One small card per unit; each person is one slim row: photo, name, the unit they belong to, extension on the right
       $('#facList').innerHTML = list.length
         ? list.map((f, i) => `<section class="unit overflow-hidden rounded-card border border-line bg-surface shadow-raised" aria-label="${esc(f.unit)}">
             <h3 class="unit-head relative flex items-center gap-2 border-b border-line bg-surface2 px-4 py-2.5 font-display text-[16px] font-semibold leading-[1.6] text-royal">
@@ -251,7 +271,7 @@
                 ${avatar(p, 36)}
                 <div class="min-w-0 flex-1">
                   <p class="font-display text-[15px] font-semibold leading-[1.6]">${esc(p.name)}</p>
-                  <p class="text-[13px] leading-[1.6] text-ink2">${p.position ? `${esc(p.position)} · ` : ''}ส่งข่าว ${num(p.sent)} ชิ้น</p>
+                  <p class="text-[13px] leading-[1.6] text-ink2">${esc(p.unit)}</p>
                 </div>
                 ${p.ext
                   ? `<p class="shrink-0 text-right"><span class="sr-only">โทรภายใน </span><span class="ext font-display text-[18px] font-semibold leading-tight text-purple">${esc(p.ext)}</span></p>`
@@ -259,7 +279,7 @@
               </li>`).join('')}
             </ul>
           </section>`).join('')
-        : '<p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">ยังไม่มีบุคลากรคณะหรือหน่วยงานที่ระบุตำแหน่งงานประชาสัมพันธ์ในโปรไฟล์ ข่าวของคณะหรือหน่วยงานส่งผ่านงานประชาสัมพันธ์ส่วนกลางได้</p>';
+        : '<p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">ยังไม่มีบุคลากรคณะหรือหน่วยงานที่เลือก “ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน” ในโปรไฟล์ ข่าวของคณะหรือหน่วยงานส่งผ่านงานประชาสัมพันธ์ส่วนกลางได้</p>';
     }
 
     // Loading (again after "โหลดอีกครั้ง"): the waiting text in both lists, counts cleared, a second press ignored
@@ -268,7 +288,7 @@
       if (loading) return;
       loading = true;
       $('#team').setAttribute('aria-busy', 'true'); $('#fac').setAttribute('aria-busy', 'true');
-      $('#teamCount').textContent = ''; $('#facCount').textContent = '';
+      $('#teamCount').textContent = '';
       $('#teamList').innerHTML = '<li class="col-span-full grid place-items-center bg-surface p-8 text-[15px] text-ink2">กำลังโหลดรายชื่อ…</li>';
       $('#facList').innerHTML = '<p class="col-span-full rounded-card border border-line py-8 text-center text-[15px] text-ink2">กำลังโหลดรายชื่อ…</p>';
       try {

@@ -60,7 +60,7 @@ export function publicUser(u) {
   if (!u) return null;
   return {
     id: u.id, email: u.email, name: u.name, firstName: u.first_name, lastName: u.last_name, phone: u.phone, avatarUrl: photoUrl(u), ownPhoto: !!u.photo_path, googlePhoto: u.avatar_url || null, role: u.role,
-    unit: u.unit, subUnit: u.sub_unit, position: u.position, major: u.major, track: u.track,
+    unit: u.unit, subUnit: u.sub_unit, position: u.position, unitPr: !!u.unit_pr, major: u.major, track: u.track,
     year: u.year, org: u.org, consentAt: u.consent_at, onboarded: onboarded(u),
     ...(u.coord_unit ? { coordUnit: u.coord_unit } : {}),
     ...(baseRole(u) !== u.role ? { baseRole: baseRole(u) } : {}),
@@ -241,7 +241,7 @@ router.put('/me/profile', requireUser, limit('profile', { max: 30, windowMs: 10 
   const b = req.body || {};
   const role = baseRole(req.user);
   const errors = {};
-  const p = { unit: null, sub_unit: null, position: null, major: null, track: null, year: null, org: null };
+  const p = { unit: null, sub_unit: null, position: null, unit_pr: false, major: null, track: null, year: null, org: null };
 
   // Name and phone, for every role
   const first = str(b.firstName, 80, 'ชื่อ');
@@ -277,6 +277,8 @@ router.put('/me/profile', requireUser, limit('profile', { max: 30, windowMs: 10 
     p.unit = str(b.unit, 200, 'หน่วยงาน');
     p.sub_unit = str(b.subUnit, 200, 'หน่วยงานย่อย');
     p.position = str(b.position, 120, 'ตำแหน่ง');
+    // "ฉันเป็นประชาสัมพันธ์ของคณะ/หน่วยงาน": listed on contact.html (contact.mjs)
+    p.unit_pr = b.unitPr === true;
     const sub = ORG.subUnits[p.unit];
     if (!STAFF_UNITS.has(p.unit)) errors.unit = 'กรุณาเลือกหน่วยงาน';
     else if (sub?.required && !p.sub_unit) errors.subUnit = 'กรุณาเลือกหน่วยงานย่อย';
@@ -288,9 +290,9 @@ router.put('/me/profile', requireUser, limit('profile', { max: 30, windowMs: 10 
 
   const user = await one(
     `update users set unit = $2, sub_unit = $3, position = $4, major = $5, track = $6, year = $7, org = $8,
-       first_name = $9, last_name = $10, name = $9 || ' ' || $10, phone = $11, consent_at = coalesce(consent_at, now())
+       first_name = $9, last_name = $10, name = $9 || ' ' || $10, phone = $11, consent_at = coalesce(consent_at, now()), unit_pr = $12
      where id = $1 returning *`,
-    [req.user.id, p.unit, p.sub_unit, p.position, p.major, p.track, p.year, p.org, first, last, phone],
+    [req.user.id, p.unit, p.sub_unit, p.position, p.major, p.track, p.year, p.org, first, last, phone, p.unit_pr],
   );
   res.json({ user: publicUser(user) });
 });
