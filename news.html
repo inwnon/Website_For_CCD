@@ -196,7 +196,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=86e4b42ac7">
+  <link rel="stylesheet" href="/assets/app.css?v=76bcbc88a2">
 </head>
 
 <body class="min-h-screen">
@@ -821,7 +821,6 @@
       photo: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 7"/></svg>',
       play: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
       clock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-      eye: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
       building: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h.01M12 9h.01M16 9h.01M8 13h.01M16 13h.01"/></svg>',
     };
     const lang = (en) => `<span class="inline-flex gap-1" aria-label="${en ? 'มีฉบับภาษาไทยและอังกฤษ' : 'ภาษาไทย'}">
@@ -857,7 +856,6 @@
             <div class="mt-auto flex items-center gap-3 pt-3 text-[12px] text-ink2">
               ${lang(n.en)}
               <span class="inline-flex min-w-0 items-center gap-1 text-sky">${ic.building}<span class="truncate">${esc(n.unit)}</span></span>
-              <span class="ml-auto inline-flex shrink-0 items-center gap-1" aria-label="อ่าน ${n.views} ครั้ง">${ic.eye}${n.views.toLocaleString('th-TH')}</span>
             </div>
           </div>
         </a>
