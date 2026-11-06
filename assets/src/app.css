@@ -34,15 +34,15 @@
   .tt-label { font-size: 13px; color: rgb(var(--ink-2)); }
   .tt-note { margin-left: auto; font-size: 12px; color: rgb(var(--ink-2)); }
   .tt-btn, .tt-select, .tt-seg span { transition-property: transform, opacity; transition-duration: .35s; transition-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
-  .tt-btn { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; border: 1px solid rgb(var(--line));
+  .tt-btn { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; border: 1px solid rgb(var(--line-strong));
     background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
   .tt-btn:hover { transform: translateY(-1px); border-color: rgb(var(--purple) / .55); color: rgb(var(--purple)); }
   .tt-btn:active { transform: scale(.92); }
-  .tt-select { height: 36px; border-radius: 12px; border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); color: rgb(var(--ink));
+  .tt-select { height: 36px; border-radius: 12px; border: 1px solid rgb(var(--line-strong)); background: rgb(var(--surface-2)); color: rgb(var(--ink));
     padding: 0 8px; font-size: 14px; }
   .tt-select:hover { border-color: rgb(var(--purple) / .55); }
   .tt-select:active { transform: scale(.97); }
-  .tt-seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 12px; border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); }
+  .tt-seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 12px; border: 1px solid rgb(var(--line-strong)); background: rgb(var(--surface-2)); }
   .tt-seg label { position: relative; cursor: pointer; }
   .tt-seg input { position: absolute; opacity: 0; pointer-events: none; }
   .tt-seg span { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 9px; font-size: 13px; color: rgb(var(--ink-2)); }
@@ -86,7 +86,7 @@
 .kchip { background: rgb(var(--k)); color: rgb(var(--shell)); }
 
 /* ผู้ออกแบบ / ที่มา (submit.html, pr-import.html): a two-way switch, the chosen side raised */
-.seg-switch { display: inline-flex; padding: 3px; border-radius: 9999px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
+.seg-switch { display: inline-flex; padding: 3px; border-radius: 9999px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line-strong)); }
 .seg-switch label { position: relative; cursor: pointer; }
 .seg-switch input { position: absolute; opacity: 0; pointer-events: none; }
 .seg-switch span { display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 9999px; font: 500 14px/1 Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), color .2s ease-out; }

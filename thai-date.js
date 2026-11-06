@@ -38,7 +38,7 @@
     .tdp-pop.right { left: auto; right: 0; }
     @keyframes tdpIn { from { opacity: 0; transform: translateY(-4px) scale(.97); } to { opacity: 1; transform: none; } }
     .tdp-head { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
-    .tdp-head select { min-width: 0; height: 36px; border-radius: 10px; border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); padding: 0 6px; font: 600 14px Kanit, "Noto Sans Thai", sans-serif; }
+    .tdp-head select { min-width: 0; height: 36px; border-radius: 10px; border: 1px solid rgb(var(--line-strong)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); padding: 0 6px; font: 600 14px Kanit, "Noto Sans Thai", sans-serif; }
     .tdp-head .tdp-m { flex: 1; }
     .tdp-nav { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 999px; color: rgb(var(--ink-2)); transition: transform .3s var(--spring, ease); }
     .tdp-nav:hover { color: rgb(var(--ink)); background: rgb(var(--surface-2)); }

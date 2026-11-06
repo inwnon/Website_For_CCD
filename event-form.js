@@ -15,7 +15,7 @@
   const BANNER_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   const CSS = `
     .ef-dlg::backdrop { background: rgb(10 11 32 / .55); }
-    .ef-field { border: 1px solid rgb(var(--line)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
+    .ef-field { border: 1px solid rgb(var(--line-strong)); background: rgb(var(--surface-2)); color: rgb(var(--ink)); }
     .ef-field::placeholder { color: rgb(var(--ink-2) / .8); }
     .ef-field:hover { border-color: rgb(var(--purple) / .45); }
     .ef-field:focus { border-color: rgb(var(--purple)); outline: none; }
@@ -73,7 +73,7 @@
         <p id="bnHint" class="-mt-1 text-[13px] text-ink2">ภาพ JPG, PNG หรือ WebP ไม่เกิน ${MAX_BANNERS} ภาพ ภาพละไม่เกิน 10 MB แสดงคู่กับกิจกรรมให้ทุกคนที่เห็นกิจกรรมนี้</p>
         <ul id="bnList" class="grid grid-cols-2 gap-2 empty:hidden"></ul>
         <input id="fBanner" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
-        <button id="bnPick" type="button" class="hover-fill press t-quick h-11 justify-self-start rounded-2xl border border-line px-4 font-display text-[15px] font-medium hover:-translate-y-0.5 disabled:opacity-60">เลือกภาพแบนเนอร์</button>
+        <button id="bnPick" type="button" class="hover-fill press t-quick h-11 justify-self-start rounded-2xl border border-line-strong px-4 font-display text-[15px] font-medium hover:-translate-y-0.5 disabled:opacity-60">เลือกภาพแบนเนอร์</button>
         <span data-err="banner" class="${ERROR}" role="alert" hidden></span>
       </section>
       <label id="fNoteBox" class="grid gap-1.5">

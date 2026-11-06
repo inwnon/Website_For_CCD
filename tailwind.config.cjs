@@ -8,7 +8,7 @@ module.exports = {
     extend: {
       colors: {
         bg: c('bg'), shell: c('shell'), surface: c('surface'), surface2: c('surface-2'),
-        ink: c('ink'), ink2: c('ink-2'), line: c('line'),
+        ink: c('ink'), ink2: c('ink-2'), line: c('line'), 'line-strong': c('line-strong'),
         royal: c('royal'), brand: c('red'), purple: c('purple'), sky: c('sky'), gold: c('gold'),
         'royal-soft': c('royal-soft'), 'red-soft': c('red-soft'), 'purple-soft': c('purple-soft'),
         'sky-soft': c('sky-soft'), 'gold-soft': c('gold-soft'),
