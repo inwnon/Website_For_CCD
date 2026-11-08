@@ -215,3 +215,19 @@ describe('edit history of stories', () => {
     for (const a of ['digest.reset', 'digest.file', 'mail.test', 'news.withdraw', 'privacy.erase']) assert.ok(ACTIONS[a], a);
   });
 });
+
+describe('Speed on phones: versioned scripts', () => {
+  test('pages link top-level scripts with ?v=<hash>; that URL is cached for a year, a stale or missing ?v is revalidated', async () => {
+    for (const page of ['/', '/calendar.html', '/news.html']) {
+      const html = await (await fetch(BASE + page)).text();
+      assert.match(html, /<script src="auth\.js\?v=[0-9a-f]{10}"/, page);
+      assert.doesNotMatch(html, /<script src="(site-config|org-data)\.js\?v=/, page);
+    }
+    const v = (await (await fetch(`${BASE}/calendar.html`)).text()).match(/desk\.js\?v=([0-9a-f]{10})/)[1];
+    const hit = await fetch(`${BASE}/desk.js?v=${v}`);
+    assert.equal(hit.status, 200);
+    assert.match(hit.headers.get('cache-control'), /max-age=31536000.*immutable/);
+    for (const q of ['?v=0000000000', '']) assert.doesNotMatch((await fetch(`${BASE}/desk.js${q}`)).headers.get('cache-control'), /immutable/, q);
+    assert.doesNotMatch((await fetch(`${BASE}/site-config.js?v=${v}`)).headers.get('cache-control') || '', /immutable/);
+  });
+});
