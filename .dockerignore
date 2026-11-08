@@ -17,3 +17,7 @@ screenshots
 *.log
 Dockerfile
 docker-compose.yml
+# Not needed at runtime: brand image originals (npm run build:images), notes and source lists
+brand_assets
+*.md
+name_*.txt

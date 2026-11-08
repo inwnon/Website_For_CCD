@@ -83,14 +83,13 @@ api.use((req, res) => res.status(404).json({ error: 'ไม่พบ API นี�
 app.use('/api', api);
 
 // ---- Pages ----
-// Only the site's own files are public: top-level pages/scripts and brand_assets/.
-// server/, uploads/, node_modules/, .env etc. are never served.
+// Only the site's own files are public: top-level pages/scripts and assets/.
+// server/, uploads/, brand_assets/ (originals for npm run build:images), node_modules/, .env etc. are never served.
 const PUBLIC_FILE = /^\/[\w.-]+\.(html|js|css|png|jpe?g|webp|svg|ico|woff2)$/;
 // Images of published stories (copied out of submissions when PR publishes); internal stories need sign-in
 app.use('/media', loadUser, media);
 // iCal feeds for calendar apps: no cookie, the private ones are found by their token (ical.mjs)
 app.use('/ical', icalFeeds);
-app.use('/brand_assets', express.static(join(ROOT, 'brand_assets')));
 // Built CSS and the self-hosted fonts (npm run build:css). app.css is linked with ?v=<hash>, so both cache for good.
 app.use('/assets/src', (req, res) => res.status(404).end());
 app.use('/assets', express.static(join(ROOT, 'assets'), { index: false, immutable: true, maxAge: '365d', fallthrough: false }));

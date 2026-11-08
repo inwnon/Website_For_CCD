@@ -44,6 +44,11 @@ describe('headers', () => {
   test('HSTS only over HTTPS', async () => {
     assert.equal((await fetch(`${BASE}/index.html`)).headers.get('strict-transport-security'), null);
   });
+  test('brand image originals and project notes are not served', async () => {
+    for (const path of ['/brand_assets/Logo-CCD.png', '/CLAUDE.md', '/name_personnel.txt', '/.env']) {
+      assert.equal((await fetch(BASE + path)).status, 404, path);
+    }
+  });
 });
 
 describe('rate limits', () => {
