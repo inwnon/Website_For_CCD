@@ -66,4 +66,5 @@ export const ACTIONS = {
   'mail.test': 'ส่งอีเมลทดสอบ',
   'privacy.erase': 'ลบข้อมูลส่วนบุคคล',
   'privacy.reject': 'ไม่ลบข้อมูลตามคำขอ',
+  'feedback.status': 'เปลี่ยนสถานะเรื่องแจ้งปัญหา',
 };
