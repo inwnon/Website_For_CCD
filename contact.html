@@ -23,13 +23,12 @@
   <link rel="preload" href="/assets/fonts/Kanit-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="desk.css">
   <style>
-    /* The address, set like the front of a Thai envelope: airmail edge, a stamp, the postcode in its five boxes */
+    /* แจ้งปัญหา, set like the front of a Thai envelope: airmail edge and a stamp */
     .envelope { position: relative; isolation: isolate; }
     .envelope::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; padding: 6px;
       background: repeating-linear-gradient(135deg, rgb(var(--red)) 0 14px, rgb(var(--shell)) 14px 22px, rgb(var(--royal)) 22px 36px, rgb(var(--shell)) 36px 44px);
       -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
     .stamp { background: radial-gradient(circle at 4px 4px, transparent 3px, rgb(var(--surface-2)) 3.5px) -4px -4px / 10px 10px; }
-    .postcode span { display: grid; place-items: center; width: 2.4rem; height: 2.9rem; border: 1.5px solid rgb(var(--line)); border-radius: .6rem; background: rgb(var(--shell)); font: 600 22px/1 Kanit, sans-serif; color: rgb(var(--royal)); }
     .ext { font-variant-numeric: tabular-nums; }
     /* Unit cards fold on phones (the header button opens one); from md every list shows and the button is hidden */
     .unit-chev { transition: transform .35s var(--spring); }
@@ -46,7 +45,7 @@
     #team.open #teamMoreText { margin-left: 0; }
     @media (prefers-reduced-motion: reduce) { .unit-chev { transition: none; } }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=deeabde0a6">
+  <link rel="stylesheet" href="/assets/app.css?v=359f3490a6">
 </head>
 
 <body class="min-h-screen">
@@ -129,7 +128,7 @@
         <div class="relative grid items-center gap-8 px-5 py-8 sm:px-10 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] lg:px-12 lg:py-12">
           <div>
             <h1 id="pageTitle" class="font-display tight text-[clamp(34px,4.6vw,56px)] font-bold text-royal">ติดต่อเรา</h1>
-            <p class="mt-4 max-w-[46ch] text-[17px] leading-[1.75] text-ink2">สอบถามเรื่องการส่งข่าว การเผยแพร่ หรือขอแก้ไขข่าว ติดต่องานสื่อสารองค์กรและประชาสัมพันธ์ได้ทางโทรศัพท์ เพจ Facebook หรือที่อยู่ด้านล่าง ข่าวของคณะหรือหน่วยงาน ติดต่อทีมประชาสัมพันธ์ของคณะหรือหน่วยงานนั้นได้โดยตรง</p>
+            <p class="mt-4 max-w-[46ch] text-[17px] leading-[1.75] text-ink2">สอบถามเรื่องการส่งข่าว การเผยแพร่ หรือขอแก้ไขข่าว ติดต่องานสื่อสารองค์กรและประชาสัมพันธ์ได้ทางโทรศัพท์ เพจ Facebook หรือที่อยู่ด้านล่าง ใช้งานระบบแล้วติดปัญหา แจ้งได้ในกล่องข้างนี้ ข่าวของคณะหรือหน่วยงาน ติดต่อทีมประชาสัมพันธ์ของคณะหรือหน่วยงานนั้นได้โดยตรง</p>
             <!-- Public channels, for people outside the university too (one tap on a phone) -->
             <div class="mt-6 flex flex-wrap gap-3">
               <a href="tel:+6677913333" class="bg-grad press t-spring inline-flex h-12 items-center gap-2 rounded-2xl px-5 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5" aria-label="โทร 0 7791 3333">
@@ -141,22 +140,48 @@
                 Facebook
               </a>
             </div>
+            <address class="mt-6 max-w-[46ch] border-t border-line pt-4 text-[15px] not-italic leading-[1.7] text-ink2">
+              <span class="block font-display font-medium text-ink">งานสื่อสารองค์กรและประชาสัมพันธ์</span>
+              สำนักวิทยบริการและเทคโนโลยีฯ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี 272 หมู่ 9 ตำบลขุนทะเล อำเภอเมืองสุราษฎร์ธานี จังหวัดสุราษฎร์ธานี 84100
+            </address>
           </div>
 
+          <!-- แจ้งปัญหาการใช้งานระบบ: goes to the PR team's box in pr.html -->
           <div class="envelope rounded-card bg-shell p-[6px] shadow-float">
-            <div class="relative rounded-[15px] bg-shell px-5 pb-5 pt-6 sm:px-8 sm:pb-6 sm:pt-7">
+            <div class="relative rounded-[15px] bg-shell px-5 pb-5 pt-6 sm:px-8 sm:pb-7 sm:pt-7">
               <div class="stamp absolute right-4 top-4 grid h-[60px] w-[52px] place-items-center rounded-md p-1.5 sm:right-5 sm:top-5 sm:h-[76px] sm:w-[64px] sm:p-2" aria-hidden="true">
                 <span class="logo-crop h-9 w-9 sm:h-11 sm:w-11"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
               </div>
-              <h2 class="pr-16 sm:pr-20 font-display text-[15px] font-medium text-ink2">ที่อยู่</h2>
-              <address class="mt-2 not-italic">
-                <span class="block pr-14 sm:pr-20 font-display text-[clamp(21px,2.4vw,26px)] font-semibold leading-[1.35] text-royal">งานสื่อสารองค์กรและประชาสัมพันธ์</span>
-                <span class="mt-1 block text-[16px] leading-[1.75]">สำนักวิทยบริการและเทคโนโลยีฯ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี</span>
-                <span class="block text-[16px] leading-[1.75]">272 หมู่ 9 ตำบลขุนทะเล อำเภอเมืองสุราษฎร์ธานี</span>
-                <span class="block text-[16px] leading-[1.75]">จังหวัดสุราษฎร์ธานี</span>
-                <span class="sr-only">รหัสไปรษณีย์ 84100</span>
-              </address>
-              <div class="postcode mt-4 flex justify-end gap-1.5" aria-hidden="true"><span>8</span><span>4</span><span>1</span><span>0</span><span>0</span></div>
+              <h2 id="fbTitle" class="pr-16 sm:pr-20 font-display text-[clamp(21px,2.4vw,26px)] font-semibold leading-[1.35] text-royal">แจ้งปัญหาการใช้งานระบบ</h2>
+              <p class="mt-1 pr-14 sm:pr-20 text-[15px] leading-[1.7] text-ink2">เข้าระบบไม่ได้ ส่งข่าวไม่ผ่าน หรือหน้าเว็บแสดงผิด บอกเราได้ที่นี่ ทีมงานจะได้รับทันที</p>
+              <form id="fbForm" class="mt-4 grid gap-3" novalidate aria-labelledby="fbTitle">
+                <div>
+                  <label for="fbMessage" class="block font-display text-[15px] font-medium">ปัญหาที่พบ <span class="text-brand" aria-hidden="true">*</span></label>
+                  <textarea id="fbMessage" rows="4" maxlength="2000" required aria-describedby="fbError" placeholder="เช่น กดส่งข่าวแล้วขึ้นข้อความผิดพลาด" class="field scroll-thin mt-1.5 w-full rounded-2xl px-4 py-3 text-[16px] leading-[1.7]"></textarea>
+                </div>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label for="fbPage" class="block font-display text-[15px] font-medium">หน้าที่พบปัญหา <span class="font-sans text-[13px] font-normal text-ink2">(ถ้ามี)</span></label>
+                    <input id="fbPage" type="text" maxlength="200" placeholder="เช่น หน้าส่งข่าว" class="field mt-1.5 h-12 w-full rounded-2xl px-4 text-[16px]">
+                  </div>
+                  <div>
+                    <label for="fbContact" class="block font-display text-[15px] font-medium">ติดต่อกลับทาง <span class="font-sans text-[13px] font-normal text-ink2">(ถ้ามี)</span></label>
+                    <input id="fbContact" type="text" maxlength="200" autocomplete="email" placeholder="อีเมลหรือเบอร์โทร" class="field mt-1.5 h-12 w-full rounded-2xl px-4 text-[16px]">
+                  </div>
+                </div>
+                <!-- Left empty by people; bots fill it -->
+                <div class="absolute -left-[9999px] h-px w-px overflow-hidden" aria-hidden="true">
+                  <label for="fbWebsite">เว็บไซต์</label><input id="fbWebsite" type="text" tabindex="-1" autocomplete="off">
+                </div>
+                <p id="fbError" class="text-[14px] text-brand" role="alert" hidden></p>
+                <div class="flex flex-wrap items-center justify-end gap-3">
+                  <p id="fbDone" class="mr-auto text-[15px] font-medium text-royal" role="status"></p>
+                  <button id="fbSend" type="submit" class="bg-grad press t-spring inline-flex h-12 items-center gap-2 rounded-2xl px-6 font-display text-[16px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+                    ส่งแจ้งปัญหา
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -211,6 +236,21 @@
     const $ = (s) => document.querySelector(s);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const num = (n) => n.toLocaleString('th-TH');
+
+    // ---- แจ้งปัญหาการใช้งานระบบ → the PR team's box in pr.html ----
+    $('#fbForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = $('#fbMessage'), err = $('#fbError'), btn = $('#fbSend');
+      const fail = (text) => { err.textContent = text; err.hidden = false; msg.setAttribute('aria-invalid', 'true'); msg.focus(); };
+      err.hidden = true; msg.removeAttribute('aria-invalid'); $('#fbDone').textContent = '';
+      if (msg.value.trim().length < 10) return fail('เล่าปัญหาที่พบอย่างน้อย 10 ตัวอักษร');
+      btn.disabled = true;
+      try {
+        await api('/feedback', { method: 'POST', body: { message: msg.value, page: $('#fbPage').value, contact: $('#fbContact').value, website: $('#fbWebsite').value } });
+        e.target.reset();
+        $('#fbDone').textContent = 'ส่งแล้ว ขอบคุณที่แจ้งให้ทราบ';
+      } catch (ex) { fail(ex.message); } finally { btn.disabled = false; }
+    });
 
     // First letter of the name for the photo circle. Thai names can start with a vowel written before the consonant
     // (เ แ โ ใ ไ): take the consonant with its marks, so "เสถียร" shows ส, not เ

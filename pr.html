@@ -282,7 +282,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=deeabde0a6">
+  <link rel="stylesheet" href="/assets/app.css?v=359f3490a6">
 </head>
 
 <body class="app">
@@ -355,6 +355,11 @@
         <button id="teamBtn" type="button" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 text-left font-display text-[15px] font-medium">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>
           ทีม PR
+        </button>
+        <button id="fbBtn" type="button" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 text-left font-display text-[15px] font-medium">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <span class="min-w-0 flex-1 truncate">แจ้งปัญหาการใช้งาน</span>
+          <span id="fbCount" class="rounded-full bg-brand px-1.5 text-[12px] font-semibold leading-5 text-white dark:text-bg" hidden></span>
         </button>
         <a href="index.html" class="nav-item t-quick flex h-11 items-center gap-3 rounded-2xl px-3 font-display text-[15px] font-medium">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
@@ -610,6 +615,28 @@
     </div>
   </dialog>
 
+  <!-- แจ้งปัญหาการใช้งานระบบ: sent from contact.html -->
+  <dialog id="fbDlg" class="desk-dlg w-[min(640px,calc(100vw-32px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="fbDlgTitle">
+    <div class="p-6 sm:p-7">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="fbDlgTitle" class="font-display text-[22px] font-semibold">แจ้งปัญหาการใช้งาน</h2>
+          <p class="mt-1 text-[14px] text-ink2">ส่งมาจากหน้าติดต่อเรา ทำเครื่องหมายว่าแก้แล้วเมื่อจัดการเสร็จ</p>
+        </div>
+        <button type="button" data-close class="icon-btn grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface2 text-ink2 hover:text-ink" aria-label="ปิด">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="mt-4 flex gap-1 border-b border-line" role="tablist" aria-label="สถานะเรื่องที่แจ้ง">
+        <button type="button" role="tab" id="fbTab-new" data-fb="new" aria-selected="true" aria-controls="fbPanel" class="tab t-quick inline-flex h-11 items-center rounded-xl px-3 font-display text-[14px] font-medium text-ink2 hover:text-ink">เรื่องใหม่</button>
+        <button type="button" role="tab" id="fbTab-done" data-fb="done" aria-selected="false" aria-controls="fbPanel" tabindex="-1" class="tab t-quick inline-flex h-11 items-center rounded-xl px-3 font-display text-[14px] font-medium text-ink2 hover:text-ink">แก้แล้ว</button>
+      </div>
+      <div id="fbPanel" role="tabpanel" aria-labelledby="fbTab-new">
+        <ul id="fbList" class="scroll-thin mt-4 grid max-h-[58dvh] gap-3 overflow-y-auto"></ul>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast" class="pointer-events-none fixed inset-x-0 bottom-6 z-[90] flex justify-center px-4" role="status" aria-live="polite"></div>
 
   <!-- auth.js: the role names and the role switch of developer accounts (this page keeps its own api()) -->
@@ -708,6 +735,7 @@
       $('#statusNav').hidden = false;
       $('#toolNav').hidden = false;
       $('#adminLink').hidden = me.role !== 'admin';
+      if (new URLSearchParams(location.search).has('feedback')) { $('#fbDlg').showModal(); fbTab('new'); } else loadFeedback();
       api('/pr/config').then((c) => { TEMPLATES = c.messages; CATEGORIES = c.categories || CATEGORIES; VIDEO_CATEGORIES = c.videoCategories || VIDEO_CATEGORIES; }).catch(() => {});
       $('#who').hidden = false;
       $('#listPane').hidden = false;
@@ -1331,6 +1359,50 @@
       } catch (err) { toast(err.message, true); }
     }
     $('#teamBtn').addEventListener('click', () => { closeMenu(); loadTeam(); $('#teamDlg').showModal(); });
+
+    // ---- แจ้งปัญหาการใช้งาน (sent from contact.html). Built with textContent: the text comes from anyone ----
+    let fbStatus = 'new';
+    const node = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+    function fbCount(n) { $('#fbCount').hidden = !n; $('#fbCount').textContent = n; $('#fbCount').setAttribute('aria-label', `เรื่องใหม่ ${n}`); }
+    async function loadFeedback() {
+      try {
+        const { items, unread } = await api(`/pr/feedback?status=${fbStatus}`);
+        fbCount(unread);
+        if (!$('#fbDlg').open) return;
+        $('#fbList').replaceChildren(...(items.length ? items.map((f) => {
+          const li = node('li', 'rounded-2xl border border-line p-4');
+          const head = node('p', 'text-[13px] text-ink2', [when(f.createdAt), f.sender || 'ไม่ได้เข้าสู่ระบบ', f.page && `หน้า: ${f.page}`].filter(Boolean).join(' · '));
+          const msg = node('p', 'mt-1.5 whitespace-pre-wrap break-words text-[15px] leading-[1.7]', f.message);
+          li.append(head, msg);
+          if (f.contact) li.append(node('p', 'mt-2 break-words text-[14px]', `ติดต่อกลับ: ${f.contact}`));
+          if (f.userAgent) li.append(node('p', 'mt-1 break-words text-[12px] text-ink2', f.userAgent));
+          const foot = node('div', 'mt-3 flex flex-wrap items-center justify-end gap-2');
+          if (f.doneAt) foot.append(node('span', 'mr-auto text-[13px] text-ink2', `แก้แล้ว ${when(f.doneAt)}${f.doneBy ? ` โดย ${f.doneBy}` : ''}`));
+          const b = node('button', 'press t-quick inline-flex h-10 items-center rounded-full border border-line-strong px-4 font-display text-[14px] font-medium hover:bg-surface2', f.status === 'new' ? 'แก้แล้ว' : 'ย้ายกลับเป็นเรื่องใหม่');
+          b.type = 'button';
+          b.addEventListener('click', async () => {
+            b.disabled = true;
+            try { await api(`/pr/feedback/${f.id}/status`, { method: 'POST', body: { status: f.status === 'new' ? 'done' : 'new' } }); toast(f.status === 'new' ? 'ย้ายไปแก้แล้ว' : 'ย้ายกลับเป็นเรื่องใหม่แล้ว'); loadFeedback(); } catch (err) { b.disabled = false; toast(err.message, true); }
+          });
+          foot.append(b);
+          li.append(foot);
+          return li;
+        }) : [node('li', 'rounded-2xl bg-surface2 p-6 text-center text-[15px] text-ink2', fbStatus === 'new' ? 'ไม่มีเรื่องใหม่' : 'ยังไม่มีเรื่องที่แก้แล้ว')]));
+      } catch (err) { toast(err.message, true); }
+    }
+    function fbTab(k) {
+      fbStatus = k;
+      $$('[data-fb]').forEach((t) => { const on = t.dataset.fb === k; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+      $('#fbPanel').setAttribute('aria-labelledby', `fbTab-${k}`);
+      loadFeedback();
+    }
+    $('#fbBtn').addEventListener('click', () => { closeMenu(); $('#fbDlg').showModal(); fbTab('new'); });
+    $('[role=tablist][aria-label="สถานะเรื่องที่แจ้ง"]').addEventListener('click', (e) => { const t = e.target.closest('[data-fb]'); if (t) fbTab(t.dataset.fb); });
+    $('[role=tablist][aria-label="สถานะเรื่องที่แจ้ง"]').addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const k = fbStatus === 'new' ? 'done' : 'new';
+      fbTab(k); $(`#fbTab-${k}`).focus();
+    });
     $('#teamList').addEventListener('click', async (e) => {
       const b = e.target.closest('[data-remove]');
       if (!b || !confirm(`นำ ${b.dataset.remove} ออกจากทีม PR?`)) return;
