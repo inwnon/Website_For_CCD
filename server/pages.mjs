@@ -7,6 +7,7 @@
 // - GET /sitemap.xml       reader pages and every live public story
 // - GET /robots.txt        back office, API and sign-in pages are not for crawlers
 // - noindex()              X-Robots-Tag on pages that are not for search results
+import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { Router } from 'express';
@@ -29,16 +30,39 @@ export function noindex(req, res, next) {
   next();
 }
 
-// Files read once, again when they change
+// Files read once, again when they change; v = first 10 hex of the sha256 of the content
 const files = new Map();
-async function read(rel) {
+async function load(rel) {
   const file = join(ROOT, rel);
   const { mtimeMs } = await stat(file);
   const c = files.get(rel);
-  if (c?.at === mtimeMs) return c.text;
+  if (c?.at === mtimeMs) return c;
   const text = await readFile(file, 'utf8');
-  files.set(rel, { at: mtimeMs, text });
-  return text;
+  const entry = { at: mtimeMs, text, v: createHash('sha256').update(text).digest('hex').slice(0, 10) };
+  files.set(rel, entry);
+  return entry;
+}
+const read = async (rel) => (await load(rel)).text;
+
+// Top-level scripts and desk.css get ?v=<hash of the file> in every page, so a phone keeps them for a year
+// instead of asking the server again on every page (assetCache). A changed file gets a new URL at once.
+// site-config.js and org-data.js are built per request (index.mjs), so they keep no-cache.
+const DYNAMIC = new Set(['site-config.js', 'org-data.js']);
+const STAMP = /(<script src="|<link rel="stylesheet" href=")([\w-]+\.(?:js|css))"/g;
+async function stamp(html) {
+  const names = [...new Set([...html.matchAll(STAMP)].map((m) => m[2]).filter((n) => !DYNAMIC.has(n)))];
+  const v = new Map();
+  await Promise.all(names.map(async (n) => { try { v.set(n, (await load(n)).v); } catch { /* missing file: left as it is */ } }));
+  return html.replace(STAMP, (all, pre, n) => (v.has(n) ? `${pre}${n}?v=${v.get(n)}"` : all));
+}
+// Cache options for a top-level .js/.css: a year when ?v= is the file's current hash, otherwise the default (revalidate)
+export async function assetCache(rel, v) {
+  if (!v || DYNAMIC.has(rel)) return {};
+  try { return (await load(rel)).v === v ? { maxAge: '365d', immutable: true } : {}; } catch { return {}; }
+}
+// Any other page: scripts versioned, revalidated on each visit (ETag)
+export async function sendPage(res, rel) {
+  res.set('Cache-Control', 'no-cache').type('html').send(await stamp(await read(rel)));
 }
 // Reader pages carry their CSS in the page (about 11 KB gzipped): the first paint does not wait for another request.
 // Fonts in app.css use /assets/fonts/ paths, so they resolve the same from the page.
@@ -47,7 +71,7 @@ async function readerPage(rel) {
   let html = await read(rel);
   if (INLINE.app.test(html)) { const css = await read('assets/app.css'); html = html.replace(INLINE.app, () => `<style>${css}</style>`); }
   if (html.includes(INLINE.desk)) { const css = await read('desk.css'); html = html.replace(INLINE.desk, () => `<style>${css}</style>`); }
-  return html;
+  return stamp(html);
 }
 const template = () => readerPage('news.html');
 

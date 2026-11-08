@@ -9,7 +9,7 @@ import { query, registerEnumArrays } from './db.mjs';
 import { errorHandler, sameOrigin } from './http.mjs';
 import { media, router as newsRouter } from './news.mjs';
 import { router as newsdeskRouter } from './newsdesk.mjs';
-import { noindex, router as pagesRouter } from './pages.mjs';
+import { assetCache, noindex, router as pagesRouter, sendPage } from './pages.mjs';
 import { ORG, ORG_HELPERS } from './org.mjs';
 import { router as reportsRouter } from './reports.mjs';
 import { get as setting, load as loadSettings, publicSite } from './settings.mjs';
@@ -107,11 +107,14 @@ app.get('/org-data.js', (req, res, next) => {
 app.use(pagesRouter);
 app.use(noindex);
 app.get('/', (req, res) => res.sendFile(join(ROOT, 'index.html')));
-app.get(/^\/[^/]+$/, (req, res, next) => {
-  if (!PUBLIC_FILE.test(req.path)) return next();
+app.get(/^\/[^/]+$/, async (req, res, next) => {
+  if (!PUBLIC_FILE.test(req.path) || req.path.startsWith('/.')) return next();
   const file = join(ROOT, req.path);
   if (!existsSync(file)) return next();
-  res.sendFile(file, { dotfiles: 'deny' });
+  const rel = req.path.slice(1);
+  if (rel.endsWith('.html')) return sendPage(res, rel);
+  const v = typeof req.query.v === 'string' ? req.query.v : '';
+  res.sendFile(file, { dotfiles: 'deny', ...(/\.(js|css)$/.test(rel) ? await assetCache(rel, v) : {}) });
 });
 // Unknown pages: the 404 page for browsers, plain text for anything else
 app.use((req, res) => {
