@@ -40,7 +40,7 @@ services:
       # Coolify's proxy runs in its own container on a private Docker network
       TRUST_PROXY: uniquelocal
       PGHOST: db
-      PGPORT: 5432
+      PGPORT: 5433
       PGDATABASE: ${PGDATABASE:-prsru}
       PGUSER: ${PGUSER:-prsru}
       PGPASSWORD: ${PGPASSWORD:?Set PGPASSWORD in Coolify}
