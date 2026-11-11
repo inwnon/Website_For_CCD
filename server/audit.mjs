@@ -57,6 +57,7 @@ export const ACTIONS = {
   'role.remove': 'ยกเลิกบทบาท',
   'role.switch': 'สลับบทบาท (ผู้พัฒนาระบบ)',
   'settings.update': 'ตั้งค่าระบบ',
+  'data.export': 'ส่งออกข้อมูลเป็น Excel',
   // เล่มสรุปข่าว (removed): kept for the history it left
   'digest.update': 'จัดเล่มสรุปข่าว (ยกเลิกแล้ว)',
   'digest.publish': 'เผยแพร่เล่มสรุปข่าว (ยกเลิกแล้ว)',

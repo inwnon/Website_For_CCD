@@ -105,7 +105,7 @@ const thDate = (d) => new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 
 const thMonth = (m) => new Intl.DateTimeFormat('th-TH', { month: 'short', year: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(`${m}-15T12:00:00+07:00`));
 const hours = (h) => (h == null ? '—' : h < 48 ? `${h} ชั่วโมง` : `${Math.round(h / 24)} วัน`);
 
-function sheet(wb, name, columns, rows) {
+export function sheet(wb, name, columns, rows) {
   const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
   ws.columns = columns;
   ws.addRows(rows);
