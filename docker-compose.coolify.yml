@@ -63,6 +63,33 @@ services:
       db:
         condition: service_healthy
 
+  # Off-site copy: idles until a Coolify scheduled task runs rclone in it (ops/COOLIFY.md §5).
+  # Remote "sru" is defined only by environment variables, so no config file or secret lives in the repo.
+  offsite:
+    image: rclone/rclone:1.68.2
+    restart: unless-stopped
+    init: true
+    entrypoint: ["sleep", "infinity"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      TZ: Asia/Bangkok
+      HOME: /tmp
+      RCLONE_CONFIG: /tmp/rclone.conf
+      RCLONE_CACHE_DIR: /tmp/rclone-cache
+      RCLONE_CONFIG_SRU_TYPE: drive
+      RCLONE_CONFIG_SRU_SCOPE: drive.file
+      RCLONE_CONFIG_SRU_TOKEN: ${RCLONE_DRIVE_TOKEN:-}
+      RCLONE_CONFIG_SRU_TEAM_DRIVE: ${RCLONE_DRIVE_SHARED_ID:-}
+    volumes:
+      - backups:/backups:ro
+      - uploads:/uploads:ro
+
 volumes:
   pgdata:
   uploads:
