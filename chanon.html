@@ -548,7 +548,7 @@
         </div>`;
     }
 
-    // ================= Export (server/transfer.mjs) =================
+    // ================= Export and import (server/transfer.mjs) =================
     async function transfer() {
       const r = await api('/admin/export').catch((err) => { toast(err.message, true); return null; });
       if (!r) return;
@@ -562,13 +562,60 @@
           </section>
           <section class="rounded-card border border-line p-4" aria-labelledby="imTitle">
             <h2 id="imTitle" class="font-display text-[17px] font-semibold">นำเข้าข้อมูล</h2>
-            <ul class="mt-2 grid gap-1 text-[14px]">
-              <li><a href="/pr-import.html" class="underline underline-offset-2 hover:text-brand focus-visible:text-brand active:opacity-70">นำเข้าข่าวย้อนหลัง</a></li>
-              <li><a href="/phonebook.html" class="underline underline-offset-2 hover:text-brand focus-visible:text-brand active:opacity-70">นำเข้าสมุดโทรศัพท์จาก Excel / CSV</a></li>
-            </ul>
+            <p class="mt-1 text-[13px] text-ink2">ตรวจไฟล์ก่อน ระบบจะบอกจำนวนที่จะเพิ่ม แล้วจึงกดยืนยันนำเข้า ไฟล์ที่ส่งออกจากหน้านี้นำเข้ากลับได้</p>
+            <form id="imForm" class="mt-3 grid gap-3" novalidate>
+              <div class="flex flex-wrap items-end gap-3">
+                <label class="grid gap-1 text-[13px]">ข้อมูล<select id="imKind" class="field sel h-10 rounded-xl pl-3 pr-9 text-[14px]">${Object.entries(IMPORTS).map(([k, m]) => `<option value="${k}">${m.label}</option>`).join('')}</select></label>
+                <label class="grid min-w-0 flex-1 gap-1 text-[13px]">ไฟล์ Excel (.xlsx) หรือ CSV ไม่เกิน 2 MB<input id="imFile" type="file" accept=".xlsx,.csv" class="field h-10 min-w-0 rounded-xl px-3 py-1.5 text-[14px]"></label>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="imGo" type="submit" class="press t-spring h-10 rounded-full bg-brand px-4 font-display text-[14px] font-semibold text-white dark:text-bg hover:-translate-y-0.5 disabled:opacity-40">ตรวจไฟล์</button>
+                <a id="imTemplate" download class="press t-quick inline-flex h-9 items-center rounded-full border border-line-strong px-4 font-display text-[14px] hover:bg-line">ดาวน์โหลดแบบฟอร์ม</a>
+              </div>
+              <div id="imResult" class="rounded-2xl bg-sky-soft p-3 text-[14px]" role="status" hidden></div>
+              <div id="imProblems" class="rounded-2xl bg-red-soft p-3 text-[14px] text-brand" role="alert" hidden></div>
+            </form>
+            <p class="mt-3 text-[13px] text-ink2">นำเข้าข่าวย้อนหลังใช้หน้า <a href="/pr-import.html" class="underline underline-offset-2 hover:text-brand focus-visible:text-brand active:opacity-70">นำเข้าข่าว</a></p>
           </section>
         </div>`;
+      let checked = false;
+      const reset = () => { checked = false; $('#imGo').textContent = 'ตรวจไฟล์'; $('#imResult').hidden = true; };
+      const kind = () => IMPORTS[$('#imKind').value];
+      const sync = () => { $('#imTemplate').href = kind().template; reset(); $('#imProblems').hidden = true; };
+      $('#imKind').addEventListener('change', sync);
+      $('#imFile').addEventListener('change', () => { reset(); $('#imProblems').hidden = true; });
+      sync();
+      $('#imForm').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const file = $('#imFile').files[0];
+        $('#imProblems').hidden = true;
+        if (!file) { $('#imProblems').textContent = 'เลือกไฟล์ที่จะนำเข้า'; $('#imProblems').hidden = false; $('#imFile').focus(); return; }
+        const btn = $('#imGo');
+        btn.disabled = true;
+        try {
+          const body = new FormData();
+          body.append('file', file);
+          const res = await fetch(`/api${kind().path}${checked ? '?save=1' : ''}`, { method: 'POST', credentials: 'same-origin', body });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw Object.assign(new Error(data.error || 'นำเข้าไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), { details: data.details });
+          if (data.saved) { toast(`นำเข้าแล้ว ${kind().summary(data)}`); $('#imFile').value = ''; reset(); return; }
+          $('#imResult').innerHTML = `<p class="font-display font-semibold">ตรวจแล้ว ยังไม่ได้บันทึก</p><p>${esc(kind().summary(data))}</p>`;
+          $('#imResult').hidden = false;
+          checked = true;
+          btn.textContent = 'ยืนยันนำเข้า';
+        } catch (err) {
+          reset();
+          const list = err.details?.problems || [];
+          $('#imProblems').innerHTML = `<p class="font-display font-semibold">${esc(err.message)}</p>${list.length ? `<ul class="mt-1 grid gap-0.5">${list.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}`;
+          $('#imProblems').hidden = false;
+        } finally { btn.disabled = false; }
+      });
     }
+    // What the import box offers: the route that checks (and with ?save=1 saves) a file, its form, how to say the result
+    const IMPORTS = {
+      events: { label: 'ปฏิทินงาน (กิจกรรม)', path: '/admin/import/events', template: '/api/admin/import/events/template.xlsx', summary: (r) => `เพิ่มใหม่ ${num(r.added)} กิจกรรม · ข้ามเพราะมีอยู่แล้ว ${num(r.skipped)} กิจกรรม` },
+      phonebook: { label: 'สมุดโทรศัพท์', path: '/phonebook/import', template: '/api/phonebook/template.xlsx', summary: (r) => `เพิ่มใหม่ ${num(r.added)} · อัปเดต ${num(r.updated)} · เหมือนเดิม ${num(r.unchanged)} หน่วยงาน` },
+    };
 
     // ================= Usage history =================
     const auditState = { action: '', q: '', from: '', to: '', offset: 0 };

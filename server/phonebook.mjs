@@ -141,7 +141,7 @@ function matching(q) {
 function decode(buf) {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { return new TextDecoder('windows-874').decode(buf); }
 }
-async function openSheet(f) {
+export async function openSheet(f) {
   const wb = new ExcelJS.Workbook();
   const ext = extname(f.originalname).toLowerCase();
   const csv = ext === '.csv';

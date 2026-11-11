@@ -1,14 +1,23 @@
-// Data export for the admin (chanon.html → นำเข้า / ส่งออก): one Excel workbook per module, or all of them.
+// Data export and import for the admin (chanon.html → นำเข้า / ส่งออก), as Excel.
 // - GET /api/admin/export               the modules the page offers
 // - GET /api/admin/export/<module>.xlsx  one module; all.xlsx = every module, a sheet each
 // Never exported: sessions, calendar feed tokens, Google ids, file paths under uploads/.
+// - GET  /api/admin/import/events/template.xlsx    the form for calendar events
+// - POST /api/admin/import/events[?save=1]        check the file (counts and problems); save=1 adds the events
+//   A row whose รหัส is an event already there, or with the same name and start, is left as it is.
+import { join } from 'node:path';
 import ExcelJS from 'exceljs';
 import { Router } from 'express';
+import multer from 'multer';
 import { ACTIONS, audit } from './audit.mjs';
 import { requireAdmin } from './auth.mjs';
-import { query } from './db.mjs';
+import { checkEvent, createEvent } from './calendar.mjs';
+import { query, tx } from './db.mjs';
+import { UPLOAD_DIR, removeTemp } from './files.mjs';
 import { HttpError } from './http.mjs';
+import { openSheet } from './phonebook.mjs';
 import { sheet } from './reports.mjs';
+import { limit } from './security.mjs';
 
 export const router = Router();
 router.use('/admin', requireAdmin);
@@ -128,3 +137,134 @@ router.get('/admin/export/:file', async (req, res) => {
   await wb.xlsx.write(res);
   res.end();
 });
+
+// ---- Import: calendar events ----
+const MAX_FILE = 2 * 1024 * 1024;
+const MAX_ROWS = 500;
+const MAX_PROBLEMS = 20;
+const upload = multer({ dest: join(UPLOAD_DIR, 'tmp'), limits: { fileSize: MAX_FILE, files: 1, fields: 0 }, defParamCharset: 'utf8' }).single('file');
+const importLimit = limit('admin-import', { max: 30, windowMs: 10 * 60 * 1000 });
+
+// The headers of the export's กิจกรรม sheet, so an exported file comes back in
+const EVENT_COLUMNS = { id: 'รหัส', title: 'ชื่อกิจกรรม', type: 'ประเภท', location: 'สถานที่', start: 'เริ่ม', end: 'สิ้นสุด', visibility: 'การมองเห็น', description: 'รายละเอียด', note: 'บันทึกภายใน' };
+const HEADER_OF = Object.fromEntries(Object.entries(EVENT_COLUMNS).map(([k, h]) => [h, k]));
+const TYPE_OF = { ประชุม: 'meeting', กิจกรรม: 'activity', 'ถ่ายภาพ/วิดีโอ': 'media', 'อื่นๆ': 'other', meeting: 'meeting', activity: 'activity', media: 'media', other: 'other' };
+const VISIBILITY_OF = { ภายใน: 'internal', สาธารณะ: 'public', internal: 'internal', public: 'public' };
+const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// A cell as a Bangkok time: an Excel date, 2026-12-01 09:00, 1/12/2569 09:00 or 1 ธ.ค. 2569 09:00 (the export's form)
+export function whenOf(v) {
+  let y, m, d, h, min;
+  if (v instanceof Date) [y, m, d, h, min] = [v.getUTCFullYear(), v.getUTCMonth() + 1, v.getUTCDate(), v.getUTCHours(), v.getUTCMinutes()]; // Excel keeps the wall clock as UTC
+  else {
+    const s = String(v ?? '').trim();
+    let x;
+    if ((x = /^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2})[:.](\d{2})/.exec(s))) [y, m, d, h, min] = x.slice(1).map(Number);
+    else if ((x = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2})[:.](\d{2})/.exec(s))) [d, m, y, h, min] = x.slice(1).map(Number);
+    else if ((x = /^(\d{1,2})\s*([ก-๙.]+)\s*(\d{4})\D+(\d{1,2})[:.](\d{2})/.exec(s))) [d, m, y, h, min] = [x[1], MONTHS.indexOf(x[2]) + 1, x[3], x[4], x[5]].map(Number);
+    else return null;
+  }
+  if (y > 2400) y -= 543;
+  if (!(m >= 1 && m <= 12 && d >= 1 && h <= 23 && min <= 59)) return null;
+  const p = (n) => String(n).padStart(2, '0');
+  const iso = `${y}-${p(m)}-${p(d)}T${p(h)}:${p(min)}:00+07:00`;
+  return new Date(Date.parse(iso) + 7 * 3600000).getUTCDate() === d ? iso : null; // 31 เม.ย. is not a day
+}
+// The export put an apostrophe before text Excel could run as a formula; take it off again
+const unsafe = (s) => s.replace(/^'(?=[=+\-@\t\r])/, '');
+
+function eventRows(ws) {
+  if (!ws) throw new HttpError(400, 'ไม่พบข้อมูลในไฟล์');
+  let cols = null;
+  const rows = [];
+  ws.eachRow((r, line) => {
+    if (!cols) {
+      const found = {};
+      r.eachCell((c, n) => { const k = HEADER_OF[c.text.trim()]; if (k) found[k] = n; });
+      if (found.title && found.start) cols = found;
+      return;
+    }
+    const text = (k) => (cols[k] ? unsafe(r.getCell(cols[k]).text.trim()) : '');
+    const value = (k) => (cols[k] ? r.getCell(cols[k]).value : null);
+    const row = { line, id: text('id'), title: text('title'), type: text('type'), location: text('location'), start: value('start'), end: value('end'),
+      visibility: text('visibility'), description: text('description'), note: text('note') };
+    if (row.title || row.start || row.end || row.location) rows.push(row);
+  });
+  if (!cols) throw new HttpError(400, `ไม่พบหัวตาราง ต้องมีคอลัมน์ ${EVENT_COLUMNS.title} และ ${EVENT_COLUMNS.start}`);
+  if (!rows.length) throw new HttpError(400, 'ไม่พบข้อมูลในไฟล์');
+  if (rows.length > MAX_ROWS) throw new HttpError(400, `นำเข้าได้ครั้งละไม่เกิน ${MAX_ROWS} กิจกรรม`);
+  return rows;
+}
+
+// Every row through the calendar's own checks; any wrong row stops the whole file
+async function checkEvents(rows) {
+  const problems = [], good = [];
+  for (const r of rows) {
+    try {
+      const startAt = whenOf(r.start), endAt = whenOf(r.end);
+      if (!startAt) throw new HttpError(400, 'อ่านวันเวลาเริ่มไม่ได้ ใช้แบบ 2569-12-01 09:00 หรือ 1/12/2569 09:00');
+      if (!endAt) throw new HttpError(400, 'อ่านวันเวลาสิ้นสุดไม่ได้ ใช้แบบ 2569-12-01 12:00 หรือ 1/12/2569 12:00');
+      const d = await checkEvent({ title: r.title, type: r.type ? TYPE_OF[r.type.replace(/\s/g, '')] ?? r.type : 'other', location: r.location || null, startAt, endAt,
+        visibility: r.visibility ? VISIBILITY_OF[r.visibility] ?? r.visibility : 'internal', description: r.description || null, internalNote: r.note || null, assignees: [] });
+      good.push({ ...d, id: UUID.test(r.id) ? r.id : null, line: r.line });
+    } catch (err) {
+      if (!(err instanceof HttpError)) throw err;
+      problems.push(`แถว ${r.line}: ${Object.values(err.details ?? {}).join(' ') || err.message}`);
+    }
+  }
+  if (problems.length) throw new HttpError(400, `ไฟล์มีข้อมูลที่ต้องแก้ ${problems.length} แถว ยังไม่ได้นำเข้า`, { problems: problems.slice(0, MAX_PROBLEMS) });
+  return good;
+}
+
+router.get('/admin/import/events/template.xlsx', async (req, res) => {
+  const wb = new ExcelJS.Workbook();
+  const cols = Object.entries(EVENT_COLUMNS).filter(([k]) => k !== 'id');
+  sheet(wb, 'กิจกรรม', cols.map(([key, header]) => ({ header, key, width: ['title', 'description', 'note'].includes(key) ? 40 : 20, style: { numFmt: '@' } })), []);
+  sheet(wb, 'วิธีกรอก', [{ header: 'ช่อง', key: 'k', width: 18 }, { header: 'วิธีกรอก', key: 'v', width: 90 }], [
+    { k: EVENT_COLUMNS.title, v: 'จำเป็น ไม่เกิน 200 ตัวอักษร' },
+    { k: EVENT_COLUMNS.type, v: 'ประชุม, กิจกรรม, ถ่ายภาพ/วิดีโอ หรือ อื่น ๆ (เว้นว่าง = อื่น ๆ)' },
+    { k: `${EVENT_COLUMNS.start} / ${EVENT_COLUMNS.end}`, v: 'จำเป็น เช่น 2569-12-01 09:00 หรือ 1/12/2569 09:00 (ปี พ.ศ. หรือ ค.ศ.) เวลาสิ้นสุดต้องหลังเวลาเริ่ม' },
+    { k: EVENT_COLUMNS.visibility, v: 'ภายใน หรือ สาธารณะ (เว้นว่าง = ภายใน) กิจกรรมสาธารณะแสดงบนหน้าแรก' },
+    { k: EVENT_COLUMNS.note, v: 'เห็นเฉพาะทีม PR และผู้ดูแลระบบ' },
+    { k: 'กิจกรรมซ้ำ', v: 'แถวที่ชื่อและเวลาเริ่มตรงกับกิจกรรมที่มีอยู่จะข้าม ไม่สร้างซ้ำ เพิ่มผู้รับมอบหมายในหน้าปฏิทินหลังนำเข้า' },
+  ]);
+  res.set({
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': `attachment; filename="events-template.xlsx"; filename*=UTF-8''${encodeURIComponent('แบบฟอร์มนำเข้ากิจกรรม.xlsx')}`,
+  });
+  await wb.xlsx.write(res);
+  res.end();
+});
+
+router.post('/admin/import/events', importLimit, (req, res, next) => upload(req, res, async (err) => {
+  const f = req.file;
+  try {
+    if (err) throw new HttpError(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400, err.code === 'LIMIT_FILE_SIZE' ? 'ไฟล์ใหญ่เกิน 2 MB' : 'อัปโหลดไฟล์ไม่สำเร็จ');
+    if (!f) throw new HttpError(400, 'เลือกไฟล์ที่จะนำเข้า');
+    const rows = await checkEvents(eventRows(await openSheet(f)));
+    const save = req.query.save === '1';
+    const result = await tx(async (c) => {
+      const there = (await c.query('select id, title, start_at from events where id = any($1::uuid[]) or (title = any($2) and start_at = any($3::timestamptz[]))',
+        [rows.map((r) => r.id).filter(Boolean), rows.map((r) => r.title), rows.map((r) => r.start)])).rows;
+      const ids = new Set(there.map((e) => e.id)), keys = new Set(there.map((e) => `${e.title}|${e.start_at.getTime()}`));
+      const fresh = [];
+      for (const r of rows) {
+        const key = `${r.title}|${new Date(r.start).getTime()}`;
+        if ((r.id && ids.has(r.id)) || keys.has(key)) continue;
+        keys.add(key); // the same event twice in the file is added once
+        fresh.push(r);
+      }
+      const counts = { added: fresh.length, skipped: rows.length - fresh.length };
+      if (!save) return counts;
+      for (const r of fresh) await createEvent(c, r, req.user);
+      await audit(c, req.user, 'event.import', null, `นำเข้ากิจกรรมจากไฟล์ เพิ่ม ${counts.added} ข้าม ${counts.skipped} กิจกรรม`, counts);
+      return counts;
+    });
+    res.json({ ...result, saved: save });
+  } catch (e) {
+    next(e);
+  } finally {
+    if (f) await removeTemp([f]);
+  }
+}));
