@@ -30,7 +30,7 @@
     .code-area { font-family: "Noto Sans Thai", ui-monospace, monospace; font-size: 14px; line-height: 1.75; tab-size: 2; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=74de7b3fae">
+  <link rel="stylesheet" href="/assets/app.css?v=4da118ce25">
 </head>
 <body class="app">
   <a href="#panel" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] rounded-xl bg-royal px-4 py-2 text-white dark:text-bg">ข้ามไปที่การตั้งค่า</a>
@@ -56,7 +56,7 @@
     const $ = (s) => document.querySelector(s);
     const SECTIONS = [
       ['users', 'ผู้ใช้และบทบาท'], ['org', 'ผังหน่วยงาน'], ['categories', 'ประเภทข่าว'], ['docCategories', 'หมวดเอกสาร'], ['phoneEditors', 'สิทธิ์แก้ไขสมุดโทรศัพท์'], ['phoneViewers', 'สิทธิ์ดูสมุดโทรศัพท์'], ['media', 'ภาพและวิดีโอ'],
-      ['review', 'เวลาตรวจข่าว'], ['messages', 'ข้อความแจ้งเตือน'], ['mail', 'อีเมลแจ้งเตือน'], ['requests', 'คำขอข้อมูลส่วนบุคคล'], ['retention', 'ระยะเวลาเก็บข้อมูล'], ['backups', 'สำรองข้อมูล'], ['audit', 'ประวัติการใช้งาน'],
+      ['review', 'เวลาตรวจข่าว'], ['messages', 'ข้อความแจ้งเตือน'], ['mail', 'อีเมลแจ้งเตือน'], ['requests', 'คำขอข้อมูลส่วนบุคคล'], ['retention', 'ระยะเวลาเก็บข้อมูล'], ['backups', 'สำรองข้อมูล'], ['transfer', 'นำเข้า / ส่งออก'], ['audit', 'ประวัติการใช้งาน'],
     ];
     const PLATFORM = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
     const MSG = { published: 'เมื่อเผยแพร่แล้ว', revise: 'เมื่อขอให้แก้ไข', writing: 'เมื่อ PR รับไปเขียนข่าว' };
@@ -548,6 +548,28 @@
         </div>`;
     }
 
+    // ================= Export (server/transfer.mjs) =================
+    async function transfer() {
+      const r = await api('/admin/export').catch((err) => { toast(err.message, true); return null; });
+      if (!r) return;
+      const link = (key, label, main) => `<a href="/api/admin/export/${key}.xlsx" download class="press ${main ? 't-spring h-10 rounded-full bg-brand px-4 font-semibold text-white dark:text-bg hover:-translate-y-0.5' : 't-quick h-9 rounded-full border border-line-strong px-4 hover:bg-line'} inline-flex items-center font-display text-[14px]">${esc(label)}</a>`;
+      $('#panel').innerHTML = head('นำเข้า / ส่งออก', 'ดาวน์โหลดข้อมูลเป็นไฟล์ Excel (.xlsx) วันที่เป็น พ.ศ. ไฟล์มีข้อมูลส่วนบุคคล เก็บในที่ปลอดภัยและลบเมื่อใช้เสร็จ การส่งออกทุกครั้งบันทึกในประวัติการใช้งาน') + `
+        <div class="grid max-w-[860px] gap-4 p-5 sm:px-6">
+          <section class="rounded-card border border-line p-4" aria-labelledby="exTitle">
+            <div class="flex flex-wrap items-center gap-2"><h2 id="exTitle" class="mr-auto font-display text-[17px] font-semibold">ส่งออกข้อมูล</h2>${link('all', 'ดาวน์โหลดทั้งหมด', true)}</div>
+            <p class="mt-1 text-[13px] text-ink2">ทุกโมดูลในไฟล์เดียว แยกชีต หรือเลือกเฉพาะโมดูล</p>
+            <ul class="mt-3 flex flex-wrap gap-2">${r.modules.map((m) => `<li>${link(m.key, m.label)}</li>`).join('')}</ul>
+          </section>
+          <section class="rounded-card border border-line p-4" aria-labelledby="imTitle">
+            <h2 id="imTitle" class="font-display text-[17px] font-semibold">นำเข้าข้อมูล</h2>
+            <ul class="mt-2 grid gap-1 text-[14px]">
+              <li><a href="/pr-import.html" class="underline underline-offset-2 hover:text-brand focus-visible:text-brand active:opacity-70">นำเข้าข่าวย้อนหลัง</a></li>
+              <li><a href="/phonebook.html" class="underline underline-offset-2 hover:text-brand focus-visible:text-brand active:opacity-70">นำเข้าสมุดโทรศัพท์จาก Excel / CSV</a></li>
+            </ul>
+          </section>
+        </div>`;
+    }
+
     // ================= Usage history =================
     const auditState = { action: '', q: '', from: '', to: '', offset: 0 };
     async function audit() {
@@ -592,7 +614,7 @@
     }
 
     // ================= Routing (#section) =================
-    const RENDER = { users, org, categories, docCategories, phoneEditors, phoneViewers, media, review, messages, mail, requests, retention, backups, audit };
+    const RENDER = { users, org, categories, docCategories, phoneEditors, phoneViewers, media, review, messages, mail, requests, retention, backups, transfer, audit };
     function show() {
       const id = SECTIONS.some(([k]) => k === location.hash.slice(1)) ? location.hash.slice(1) : 'users';
       document.querySelectorAll('#secNav a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.sec === id)));
