@@ -63,6 +63,65 @@ services:
       db:
         condition: service_healthy
 
+  # Off-site copy: idles until a Coolify scheduled task runs rclone in it (ops/COOLIFY.md §5).
+  # Remote "sru" is defined only by environment variables, so no config file or secret lives in the repo.
+  offsite:
+    image: rclone/rclone:1.68.2
+    restart: unless-stopped
+    init: true
+    entrypoint: ["sleep", "infinity"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      TZ: Asia/Bangkok
+      HOME: /tmp
+      RCLONE_CONFIG: /tmp/rclone.conf
+      RCLONE_CACHE_DIR: /tmp/rclone-cache
+      RCLONE_CONFIG_SRU_TYPE: drive
+      RCLONE_CONFIG_SRU_SCOPE: drive.file
+      RCLONE_CONFIG_SRU_TOKEN: ${RCLONE_DRIVE_TOKEN:-}
+      RCLONE_CONFIG_SRU_TEAM_DRIVE: ${RCLONE_DRIVE_SHARED_ID:-}
+    volumes:
+      - backups:/backups:ro
+      - uploads:/uploads:ro
+
+  # TEMPORARY, for the move from the old server (ops/COOLIFY.md §4): pulls the dump and uploads/ down from Google Drive
+  # with the same remote as offsite, because Coolify gives no SSH. Writable on purpose, so it is a separate container;
+  # remove it once the move is done. Runs as root only to hand the files to the app user (1000) after copying.
+  restore:
+    image: rclone/rclone:1.68.2
+    restart: unless-stopped
+    init: true
+    entrypoint: ["sleep", "infinity"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    environment:
+      TZ: Asia/Bangkok
+      HOME: /tmp
+      RCLONE_CONFIG: /tmp/rclone.conf
+      RCLONE_CACHE_DIR: /tmp/rclone-cache
+      RCLONE_CONFIG_SRU_TYPE: drive
+      RCLONE_CONFIG_SRU_SCOPE: drive.file
+      RCLONE_CONFIG_SRU_TOKEN: ${RCLONE_DRIVE_TOKEN:-}
+      RCLONE_CONFIG_SRU_TEAM_DRIVE: ${RCLONE_DRIVE_SHARED_ID:-}
+    volumes:
+      - backups:/backups   # the dump lands in /backups/restore, which the db container also sees
+      - uploads:/uploads
+
 volumes:
   pgdata:
   uploads:
