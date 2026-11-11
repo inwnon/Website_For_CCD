@@ -80,7 +80,7 @@ docker exec -u 0 app-xxxx chown -R 1000:1000 /app/uploads
    sh -c 'mkdir -p /backups/db && pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /backups/db/prsru-$(date +%Y%m%d-%H%M).dump && find /backups/db -name "*.dump" -mtime +30 -delete'
    ```
 2. **สำเนานอกเครื่อง** (ฐานข้อมูล + ไฟล์อัปโหลด) ไป Google Drive ของบัญชีหน่วยงาน ทำในหน้าเว็บ Coolify ทั้งหมด ไม่ต้อง SSH ใช้ container `offsite` (rclone) ที่อ่าน volume ได้อย่างเดียว
-   1. ขอ token หนึ่งครั้งบนคอมพิวเตอร์ของตัวเอง: ดาวน์โหลด rclone จาก rclone.org/downloads แล้วรัน `rclone authorize "drive" "drive.file"` → เบราว์เซอร์เปิด → ล็อกอินบัญชี @sru.ac.th ของหน่วยงาน (ไม่ใช่บัญชีส่วนตัว) → คัดลอกข้อความ `{"access_token":...}` ทั้งก้อนที่ขึ้นใน terminal
+   1. ขอ token หนึ่งครั้งบนคอมพิวเตอร์ของตัวเอง: ดาวน์โหลด rclone จาก rclone.org/downloads แล้วรัน `rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlLmZpbGUifQ"` (ข้อความท้ายคือ `{"scope":"drive.file"}` แบบ base64 ที่ rclone ต้องการ; บน Windows ใช้ `.clone.exe` และถ้าขึ้น SmartScreen ให้ `Unblock-File .clone.exe` ก่อน) → เบราว์เซอร์เปิด → ล็อกอินบัญชี @sru.ac.th ของหน่วยงาน (ไม่ใช่บัญชีส่วนตัว) → คัดลอกข้อความ `{"access_token":...}` ทั้งก้อนที่ขึ้นใน terminal
    2. Environment Variables: `RCLONE_DRIVE_TOKEN` = ข้อความจากข้อ 1 (ติ๊ก **Is Secret**) · ถ้าจะเก็บใน Shared drive ของหน่วยงาน ใส่ `RCLONE_DRIVE_SHARED_ID` = รหัสท้าย URL ของ Shared drive นั้น (ไม่ใส่ = My Drive ของบัญชีที่ล็อกอิน) แล้ว Deploy
    3. Scheduled Tasks → เพิ่มงาน · Container `offsite` · Frequency `30 3 * * *` · Command:
       ```sh
