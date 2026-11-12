@@ -22,10 +22,11 @@ import { Router } from 'express';
 import { audit } from './audit.mjs';
 import { requireAdmin } from './auth.mjs';
 import { pgTool, run } from './backup.mjs';
-import { query } from './db.mjs';
+import { query, registerEnumArrays } from './db.mjs';
 import { UPLOAD_DIR } from './files.mjs';
 import { HttpError } from './http.mjs';
 import { limit } from './security.mjs';
+import { load as loadSettings } from './settings.mjs';
 
 export const router = Router();
 router.use('/admin/restore', requireAdmin, (req, res, next) => {
@@ -140,6 +141,9 @@ router.post('/admin/restore/db', runLimit, async (req, res) => {
       throw new HttpError(400, `กู้คืนไม่สำเร็จ ฐานข้อมูลยังเป็นแบบเดิม: ${String(err.message).split(': ').slice(1).join(': ').slice(0, 300)}`);
     }
     await run(process.execPath, ['server/migrate.mjs']); // a dump from an older version gets the newer tables
+    // The restore made the enum types anew (new OIDs) and brought its own settings: what this process learnt at startup is stale
+    await registerEnumArrays();
+    await loadSettings();
     await query('delete from sessions');
     // The restored users table has its own ids: find this account in it again (or only the email)
     const me = (await query('select id, email from users where lower(email) = lower($1)', [req.user.email])).rows[0] ?? { email: req.user.email };
