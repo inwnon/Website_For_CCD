@@ -10,6 +10,8 @@ services:
       POSTGRES_DB: ${PGDATABASE:-prsru}
       POSTGRES_USER: ${PGUSER:-prsru}
       POSTGRES_PASSWORD: ${PGPASSWORD:?Set PGPASSWORD in Coolify}
+      # postgres listens on PGPORT; the app below reads the same value, so the two always match
+      PGPORT: ${PGPORT:-5433}
       TZ: Asia/Bangkok
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -41,7 +43,7 @@ services:
       TRUST_PROXY: uniquelocal
       PGHOST: db
       PG_DUMP_VIA: local   # pg_restore installed in this image (server/restore.mjs)
-      PGPORT: 5433
+      PGPORT: ${PGPORT:-5433}   # the port db listens on (set above from the same value)
       PGDATABASE: ${PGDATABASE:-prsru}
       PGUSER: ${PGUSER:-prsru}
       PGPASSWORD: ${PGPASSWORD:?Set PGPASSWORD in Coolify}
