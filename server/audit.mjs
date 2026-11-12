@@ -58,6 +58,8 @@ export const ACTIONS = {
   'role.switch': 'สลับบทบาท (ผู้พัฒนาระบบ)',
   'settings.update': 'ตั้งค่าระบบ',
   'data.export': 'ส่งออกข้อมูลเป็น Excel',
+  'data.restore': 'กู้คืนฐานข้อมูลทั้งหมดจากไฟล์',
+  'data.restore_files': 'กู้คืนไฟล์อัปโหลดจากไฟล์บีบอัด',
   // เล่มสรุปข่าว (removed): kept for the history it left
   'digest.update': 'จัดเล่มสรุปข่าว (ยกเลิกแล้ว)',
   'digest.publish': 'เผยแพร่เล่มสรุปข่าว (ยกเลิกแล้ว)',
