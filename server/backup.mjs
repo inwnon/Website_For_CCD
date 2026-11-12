@@ -32,14 +32,25 @@ export function run(cmd, args, { out, input, env, shell } = {}) {
     let text = '', err = '';
     if (out) p.stdout.pipe(out); else p.stdout.on('data', (c) => { text += c; });
     p.stderr.on('data', (c) => { err += c; });
-    if (input) createReadStream(input).pipe(p.stdin);
+    if (input) {
+      const src = createReadStream(input);
+      // The program may stop reading early (pg_restore --list reads only the table of contents at the start):
+      // writing on is then EPIPE, which must not bring the whole app down; the exit code decides
+      p.stdin.on('error', (/** @type {NodeJS.ErrnoException} */ e) => { src.destroy(); if (e.code !== 'EPIPE' && e.code !== 'ECONNRESET') fail(e); });
+      src.on('error', fail);
+      src.pipe(p.stdin);
+    }
     p.on('error', fail);
     p.on('close', (code) => (code === 0 ? done(text) : fail(new Error(`${cmd} ${args.slice(0, 3).join(' ')}… exited ${code}: ${err.trim().slice(0, 400)}`))));
   });
 }
 // pg_dump / pg_restore / psql in the project's database container, or installed here
 export function pgTool(tool, args, opts = {}) {
-  if ((process.env.PG_DUMP_VIA || 'docker') === 'local') return run(tool, args, opts);
+  if ((process.env.PG_DUMP_VIA || 'docker') === 'local') {
+    // Installed here: pg_restore reads the file itself (no pipe, and it can seek)
+    if (tool === 'pg_restore' && opts.input) return run(tool, [...args, opts.input], { ...opts, input: undefined });
+    return run(tool, args, opts);
+  }
   return run('docker', ['compose', 'exec', '-T', 'db', tool, ...args], opts);
 }
 export const sha256 = async (file) => { const h = createHash('sha256'); await pipeline(createReadStream(file), h); return h.digest('hex'); };
