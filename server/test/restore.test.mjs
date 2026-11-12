@@ -2,9 +2,26 @@
 // get 403 before any file is touched; and the archive check keeps every entry inside uploads/.
 // The restore itself is not run here: it would replace the test database.
 import assert from 'node:assert/strict';
+import { rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, test } from 'node:test';
+import { run } from '../backup.mjs';
 import { checkEntries } from '../restore.mjs';
 import { login, request } from './helpers.mjs';
+
+// A program that stops reading its input early (pg_restore --list reads only the start of a dump) must not crash
+// the app with EPIPE: this brought the app down on the first real restore
+test('a program that exits before reading all its input is fine', async () => {
+  const big = join(tmpdir(), `restore-epipe-${process.pid}.bin`);
+  await writeFile(big, Buffer.alloc(16 * 1024 * 1024, 1));
+  try {
+    assert.equal(await run(process.execPath, ['-e', 'process.stdout.write("ok")'], { input: big }), 'ok');
+    await assert.rejects(run(process.execPath, ['-e', 'process.exit(3)'], { input: big }), /exited 3/);
+  } finally {
+    await rm(big, { force: true });
+  }
+});
 
 const ID = '00000000-0000-4000-8000-000000000000';
 const piece = () => ({ 'Content-Type': 'application/octet-stream' });
