@@ -309,18 +309,8 @@
         </div>
       </section>
 
-      <!-- Shelf: featured (right under the hero so a story shows in the first screen) -->
-      <section id="featured" class="mt-8" aria-labelledby="featured-title">
-        <div class="reveal mb-6">
-          <p class="font-display text-[14px] font-medium text-brand">ช่วงนี้มีอะไรเกิดขึ้นบ้างนะ</p>
-          <h2 id="featured-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวเด่นสัปดาห์นี้</h2>
-        </div>
-        <div id="featuredGrid" data-limit="2" data-more="แสดงข่าวเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
-        <p id="featuredEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ทีม PR ยังไม่ได้เลือกข่าวเด่น</p>
-      </section>
-
       <!-- Time filter -->
-      <div class="reveal mt-shelf flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="reveal mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 class="font-display text-[19px] font-semibold text-royal">วันนี้อยากอ่านข่าวช่วงไหน?</h2>
           <p class="text-[13px] text-ink2">เลือกช่วงเวลาเพื่อกรองข่าวล่าสุด</p>
@@ -354,6 +344,16 @@
           <span class="min-w-0"><span class="block text-center font-display text-[clamp(17px,2vw,24px)] font-bold text-royal sm:whitespace-nowrap sm:text-left">ปฏิทินกิจกรรม</span><span class="hidden text-[13px] text-ink2 sm:block">ข่าวและกิจกรรมรายวัน</span></span>
         </a>
       </div>
+
+      <!-- Shelf: featured (under the time filter and category tiles) -->
+      <section id="featured" class="mt-shelf" aria-labelledby="featured-title">
+        <div class="reveal mb-6">
+          <p class="font-display text-[14px] font-medium text-brand">ช่วงนี้มีอะไรเกิดขึ้นบ้างนะ</p>
+          <h2 id="featured-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">ข่าวเด่นสัปดาห์นี้</h2>
+        </div>
+        <div id="featuredGrid" data-limit="2" data-more="แสดงข่าวเพิ่มเติม" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <p id="featuredEmpty" class="hidden rounded-card border border-dashed border-line p-10 text-center text-ink2">ทีม PR ยังไม่ได้เลือกข่าวเด่น</p>
+      </section>
 
       <!-- Shelf: latest -->
       <section id="latest" class="cv-auto mt-shelf" aria-labelledby="latest-title">
