@@ -710,6 +710,7 @@
     const IMPORTS = {
       events: { label: 'ปฏิทินงาน (กิจกรรม)', path: '/admin/import/events', template: '/api/admin/import/events/template.xlsx', summary: (r) => `เพิ่มใหม่ ${num(r.added)} กิจกรรม · ข้ามเพราะมีอยู่แล้ว ${num(r.skipped)} กิจกรรม` },
       phonebook: { label: 'สมุดโทรศัพท์', path: '/phonebook/import', template: '/api/phonebook/template.xlsx', summary: (r) => `เพิ่มใหม่ ${num(r.added)} · อัปเดต ${num(r.updated)} · เหมือนเดิม ${num(r.unchanged)} หน่วยงาน` },
+      users: { label: 'ผู้ใช้และบทบาท', path: '/admin/import/users', template: '/api/admin/import/users/template.xlsx', summary: (r) => `ให้บทบาทใหม่ ${num(r.added)} · เปลี่ยนบทบาท ${num(r.changed)} · กลับเป็นตามโดเมนอีเมล ${num(r.removed)} · ไม่เปลี่ยน ${num(r.unchanged)} คน` },
     };
 
     // ================= Usage history =================
@@ -737,7 +738,7 @@
       $('#aNext').addEventListener('click', () => { auditState.offset += 50; loadAudit(); });
       loadAudit(true);
     }
-    const TONE = { 'privacy.erase': 'bg-red-soft text-brand', 'privacy.reject': 'bg-gold-soft text-gold', 'news.withdraw': 'bg-red-soft text-brand', 'settings.update': 'bg-gold-soft text-gold', 'role.set': 'bg-purple-soft text-purple', 'role.remove': 'bg-purple-soft text-purple', 'news.import': 'bg-sky-soft text-sky' };
+    const TONE = { 'privacy.erase': 'bg-red-soft text-brand', 'privacy.reject': 'bg-gold-soft text-gold', 'news.withdraw': 'bg-red-soft text-brand', 'settings.update': 'bg-gold-soft text-gold', 'role.set': 'bg-purple-soft text-purple', 'role.remove': 'bg-purple-soft text-purple', 'role.import': 'bg-purple-soft text-purple', 'news.import': 'bg-sky-soft text-sky' };
     async function loadAudit(first) {
       const p = new URLSearchParams({ limit: 50, offset: auditState.offset });
       for (const k of ['action', 'q', 'from', 'to']) if (auditState[k]) p.set(k, auditState[k]);

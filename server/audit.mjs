@@ -31,6 +31,7 @@ export const ACTIONS = {
   'event.update': 'แก้ไขกิจกรรมในปฏิทิน',
   'event.cancel': 'ยกเลิกกิจกรรมในปฏิทิน',
   'event.import': 'นำเข้ากิจกรรมจากไฟล์',
+  'role.import': 'นำเข้าบทบาทจากไฟล์',
   'request.create': 'ส่งคำขอใช้บริการ',
   'request.approve': 'อนุมัติคำขอใช้บริการ',
   'request.reject': 'ไม่อนุมัติคำขอใช้บริการ',
