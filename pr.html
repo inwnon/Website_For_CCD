@@ -110,6 +110,8 @@
     .font-display { line-height: 1.3; }
     .tight { letter-spacing: -0.03em; }
     .bg-grad { background: var(--grad); }
+    /* Publish progress (estimated): pr.html moves it with transform only */
+    .pub-bar { transform: scaleX(0); transform-origin: left; }
 
     a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
       outline: 3px solid rgb(var(--focus));
@@ -577,9 +579,13 @@
           </div>
         </div>
       </div>
-      <div class="flex shrink-0 flex-wrap justify-end gap-3 border-t border-line px-6 py-3">
-        <button type="button" data-close class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl px-5 font-display text-[15px] font-medium">ยกเลิก</button>
-        <button id="pubOk" type="submit" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5">เผยแพร่</button>
+      <div class="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-line px-6 py-3">
+        <div id="pubProg" class="mr-auto min-w-[200px] flex-1" hidden>
+          <p class="flex items-baseline justify-between gap-3 text-[14px]"><span id="pubProgLabel" class="font-display font-medium"></span><span id="pubProgPct" class="font-display font-semibold tabular-nums text-royal" aria-hidden="true">0%</span></p>
+          <div id="pubProgBar" class="mt-1.5 h-2 overflow-hidden rounded-full bg-surface2" role="progressbar" aria-labelledby="pubProgLabel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="pub-bar block h-full rounded-full bg-grad"></span></div>
+        </div>
+        <button type="button" data-close class="hover-fill press t-quick inline-flex h-11 items-center rounded-2xl px-5 font-display text-[15px] font-medium disabled:opacity-60">ยกเลิก</button>
+        <button id="pubOk" type="submit" class="bg-grad press t-spring inline-flex h-11 items-center gap-2 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">เผยแพร่</button>
       </div>
     </form>
   </dialog>
@@ -1309,6 +1315,39 @@
         $$('input[name=pcat]').forEach((b) => { if (b !== e.target && (solo(e.target.value) || solo(b.value))) b.checked = false; });
       }
     });
+    // Publishing is one request with nothing to measure, so the bar is an estimate: it eases toward 90% over about
+    // 2 s + 0.6 s a picture, then fills to 100% when the server answers. The dialog cannot be closed meanwhile.
+    let pubBusy = false;
+    $('#pubDlg').addEventListener('cancel', (e) => { if (pubBusy) e.preventDefault(); });
+    function pubProgress(label, pictures) {
+      const box = $('#pubProg'), bar = $('#pubProgBar'), fill = bar.firstElementChild, pct = $('#pubProgPct');
+      const lock = $$('#pubDlg [data-close], #pubOk');
+      const tau = (2000 + 600 * pictures) / 2.3;
+      const t0 = performance.now();
+      let raf = 0;
+      const set = (p) => {
+        const n = Math.round(p);
+        fill.style.transform = `scaleX(${p / 100})`;
+        pct.textContent = `${n}%`;
+        bar.setAttribute('aria-valuenow', String(n));
+      };
+      const tick = (now) => { set(90 * (1 - Math.exp(-(now - t0) / tau))); raf = requestAnimationFrame(tick); };
+      pubBusy = true;
+      lock.forEach((b) => { b.disabled = true; });
+      $('#pubProgLabel').textContent = label;
+      set(0);
+      box.hidden = false;
+      raf = requestAnimationFrame(tick);
+      return {
+        async stop(ok) {
+          cancelAnimationFrame(raf);
+          if (ok) { set(100); await new Promise((r) => { setTimeout(r, 400); }); }
+          box.hidden = true;
+          pubBusy = false;
+          lock.forEach((b) => { b.disabled = false; });
+        },
+      };
+    }
     $('#pubForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       clearPubErrors();
@@ -1323,12 +1362,11 @@
         featured: $('#pFeatured').checked, publishAt: later ? new Date($('#pAt').value).toISOString() : undefined, message: $('#pMsg').value,
         bodySize: null, bodyLeading: pubTools.get().leading,
       };
-      const ok = $('#pubOk');
-      ok.disabled = true;
+      const prog = pubProgress(pubMode === 'edit' ? 'กำลังบันทึกการแก้ไข' : later ? 'กำลังตั้งเวลาเผยแพร่' : 'กำลังเผยแพร่', 1 + (body.gallery.length || 0));
       const r = await applyChange(pubMode === 'edit'
         ? api(`/pr/submissions/${encodeURIComponent(s.ref)}/edit`, { method: 'PUT', body })
         : api(`/pr/submissions/${encodeURIComponent(s.ref)}/publish`, { method: 'POST', body }), pubMode === 'edit' ? 'บันทึกการแก้ไขแล้ว ยังไม่เผยแพร่' : later ? 'ตั้งเวลาเผยแพร่แล้ว' : 'เผยแพร่แล้ว');
-      ok.disabled = false;
+      await prog.stop(r === true);
       if (r === true) { $('#pubDlg').close(); return; }
       $('#pubError').textContent = r.message;
       $('#pubError').hidden = false;
