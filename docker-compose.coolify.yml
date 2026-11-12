@@ -42,7 +42,7 @@ services:
       # Coolify's proxy runs in its own container on a private Docker network
       TRUST_PROXY: uniquelocal
       PGHOST: db
-      PG_DUMP_VIA: local   # pg_restore installed in this image (server/restore.mjs)
+      PG_DUMP_VIA: local   # pg_dump installed in this image (server/backup.mjs)
       PGPORT: ${PGPORT:-5433}   # the port db listens on (set above from the same value)
       PGDATABASE: ${PGDATABASE:-prsru}
       PGUSER: ${PGUSER:-prsru}
