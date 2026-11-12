@@ -155,3 +155,76 @@ describe('นำเข้ากิจกรรม', () => {
     assert.equal(whenOf(''), null);
   });
 });
+
+const PEOPLE = ['import-a@sru.ac.th', 'import-b@sru.ac.th', 'import-c@sru.ac.th'];
+const rolesBook = async (rows) => {
+  const wb = new ExcelJS.Workbook();
+  wb.addWorksheet('ผู้ใช้').addRows([['อีเมล', 'ชื่อที่แสดง', 'บทบาทที่กำหนด', 'หน่วยงานของบทบาท'], ...rows]);
+  return Buffer.from(await wb.xlsx.writeBuffer());
+};
+const sendRoles = (who, buf, save = false) => {
+  const fd = new FormData();
+  fd.append('file', new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'users.xlsx');
+  return who.call('POST', `/api/admin/import/users${save ? '?save=1' : ''}`, fd);
+};
+const team = async () => (await query('select email, role::text, unit from pr_team where email = any($1) order by email', [PEOPLE])).rows;
+const dropRoles = async () => {
+  await query('delete from pr_team where email = any($1)', [PEOPLE]);
+  await query("delete from audit_log where target = any($1) or (action = 'role.import' and actor_email = 'admin@sru.ac.th')", [PEOPLE]);
+};
+
+describe('นำเข้าบทบาทผู้ใช้', () => {
+  before(dropRoles);
+  after(dropRoles);
+
+  test('only the admin may import roles or get the form', async () => {
+    const buf = await rolesBook([[PEOPLE[0], '', 'ทีม PR', '']]);
+    for (const as of ['pr', 'staff', 'external', 'executive']) {
+      const u = await login(as);
+      assert.equal((await sendRoles(u, buf)).status, 403, as);
+      assert.equal((await u.call('GET', '/api/admin/import/users/template.xlsx')).status, 403, as);
+    }
+    const t = await admin.call('GET', '/api/admin/import/users/template.xlsx');
+    assert.equal(t.status, 200);
+    assert.deepEqual(headers((await book(t.body)).getWorksheet('ผู้ใช้')), ['อีเมล', 'บทบาทที่กำหนด', 'หน่วยงานของบทบาท']);
+    assert.deepEqual(await team(), [], 'nobody got a role');
+  });
+
+  test('check, save, then change and take away; blank roles and developer accounts are left as they are', async () => {
+    const buf = await rolesBook([
+      [PEOPLE[0], 'ก', 'ทีม PR', ''],
+      [PEOPLE[1].toUpperCase(), '', 'coordinator', 'กองกลาง'],
+      [PEOPLE[2], '', '', ''],
+      ['satearnpong.nis@sru.ac.th', '', 'ทีม PR', ''],
+    ]);
+    const check = await sendRoles(admin, buf);
+    assert.equal(check.status, 200, JSON.stringify(check.body));
+    assert.deepEqual(check.body, { added: 2, changed: 0, removed: 0, unchanged: 2, saved: false });
+    assert.deepEqual(await team(), [], 'checking saves nothing');
+
+    assert.deepEqual((await sendRoles(admin, buf, true)).body, { added: 2, changed: 0, removed: 0, unchanged: 2, saved: true });
+    assert.deepEqual(await team(), [{ email: PEOPLE[0], role: 'pr', unit: null }, { email: PEOPLE[1], role: 'coordinator', unit: 'กองกลาง' }]);
+    assert.equal((await query("select 1 from audit_log where action = 'role.set' and target = any($1)", [PEOPLE])).rows.length, 2);
+    assert.equal((await query("select 1 from audit_log where action = 'role.import' and actor_email = 'admin@sru.ac.th'")).rows.length, 1);
+
+    const next = await sendRoles(admin, await rolesBook([[PEOPLE[0], '', 'ตามโดเมนอีเมล', ''], [PEOPLE[1], '', 'ประชาสัมพันธ์หน่วยงาน', 'กองกลาง'], [PEOPLE[2], '', 'executive', '']]), true);
+    assert.deepEqual(next.body, { added: 1, changed: 0, removed: 1, unchanged: 1, saved: true });
+    assert.deepEqual(await team(), [{ email: PEOPLE[1], role: 'coordinator', unit: 'กองกลาง' }, { email: PEOPLE[2], role: 'executive', unit: null }]);
+    assert.equal((await query("select 1 from audit_log where action = 'role.remove' and target = $1", [PEOPLE[0]])).rows.length, 1);
+  });
+
+  test('a wrong row stops the whole file and names its line', async () => {
+    const before = await team();
+    const r = await sendRoles(admin, await rolesBook([
+      [PEOPLE[0], '', 'ผู้ดูแลระบบ', ''],
+      [PEOPLE[0], '', 'ทีม PR', ''],
+      ['ไม่ใช่อีเมล', '', 'ทีม PR', ''],
+      [PEOPLE[2], '', 'หัวหน้า', ''],
+      [PEOPLE[1], '', 'coordinator', 'หน่วยที่ไม่มีจริง'],
+      ['admin@sru.ac.th', '', 'ทีม PR', ''],
+    ]), true);
+    assert.equal(r.status, 400);
+    assert.deepEqual(r.body.details.problems.map((p) => p.split(':')[0]), ['แถว 3', 'แถว 4', 'แถว 5', 'แถว 6', 'แถว 7']);
+    assert.deepEqual(await team(), before, 'nothing was saved');
+  });
+});

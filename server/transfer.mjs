@@ -5,12 +5,15 @@
 // - GET  /api/admin/import/events/template.xlsx    the form for calendar events
 // - POST /api/admin/import/events[?save=1]        check the file (counts and problems); save=1 adds the events
 //   A row whose รหัส is an event already there, or with the same name and start, is left as it is.
+// - GET  /api/admin/import/users/template.xlsx     the form for users' roles
+// - POST /api/admin/import/users[?save=1]         same for roles (pr_team): a blank role leaves the person as is, people not in the file too
 import { join } from 'node:path';
 import ExcelJS from 'exceljs';
 import { Router } from 'express';
 import multer from 'multer';
+import { checkRole, applyRole, ROLE_TH } from './admin.mjs';
 import { ACTIONS, audit } from './audit.mjs';
-import { requireAdmin } from './auth.mjs';
+import { DEVELOPERS, requireAdmin } from './auth.mjs';
 import { checkEvent, createEvent } from './calendar.mjs';
 import { query, tx } from './db.mjs';
 import { UPLOAD_DIR, removeTemp } from './files.mjs';
@@ -259,6 +262,101 @@ router.post('/admin/import/events', importLimit, (req, res, next) => upload(req,
       if (!save) return counts;
       for (const r of fresh) await createEvent(c, r, req.user);
       await audit(c, req.user, 'event.import', null, `นำเข้ากิจกรรมจากไฟล์ เพิ่ม ${counts.added} ข้าม ${counts.skipped} กิจกรรม`, counts);
+      return counts;
+    });
+    res.json({ ...result, saved: save });
+  } catch (e) {
+    next(e);
+  } finally {
+    if (f) await removeTemp([f]);
+  }
+}));
+
+// ---- Import: users' roles (pr_team) ----
+// The headers of the export's ผู้ใช้ sheet, so an exported file comes back in. A blank role leaves that person as is;
+// ตามโดเมนอีเมล (default) takes a special role away. People not in the file are not touched.
+const USER_COLUMNS = { email: 'อีเมล', role: 'บทบาทที่กำหนด', unit: 'หน่วยงานของบทบาท' };
+const USER_HEADER_OF = Object.fromEntries(Object.entries(USER_COLUMNS).map(([k, h]) => [h, k]));
+const ROLE_OF = Object.fromEntries(Object.entries(ROLE_TH).flatMap(([code, th]) => [[code, code], [th.replace(/\s/g, ''), code]]));
+
+function userRows(ws) {
+  if (!ws) throw new HttpError(400, 'ไม่พบข้อมูลในไฟล์');
+  let cols = null;
+  const rows = [];
+  ws.eachRow((r, line) => {
+    if (!cols) {
+      const found = {};
+      r.eachCell((c, n) => { const k = USER_HEADER_OF[c.text.trim()]; if (k) found[k] = n; });
+      if (found.email && found.role) cols = found;
+      return;
+    }
+    const text = (k) => (cols[k] ? unsafe(r.getCell(cols[k]).text.trim()) : '');
+    const row = { line, email: text('email').toLowerCase(), role: text('role'), unit: text('unit') };
+    if (row.email || row.role || row.unit) rows.push(row);
+  });
+  if (!cols) throw new HttpError(400, `ไม่พบหัวตาราง ต้องมีคอลัมน์ ${USER_COLUMNS.email} และ ${USER_COLUMNS.role}`);
+  if (!rows.length) throw new HttpError(400, 'ไม่พบข้อมูลในไฟล์');
+  if (rows.length > MAX_ROWS) throw new HttpError(400, `นำเข้าได้ครั้งละไม่เกิน ${MAX_ROWS} คน`);
+  return rows;
+}
+
+// Every row through the same checks as the role buttons; any wrong row stops the whole file.
+// Rows without a role and developer accounts (always top rights) are left out, not refused, so an export comes back in.
+function checkUsers(rows, actor) {
+  const problems = [], good = [], seen = new Set();
+  let blank = 0;
+  for (const r of rows) {
+    try {
+      if (r.email && seen.has(r.email)) throw new HttpError(400, 'อีเมลนี้มีซ้ำในไฟล์');
+      seen.add(r.email);
+      if (!r.role) { if (!r.email) throw new HttpError(400, 'อีเมลไม่ถูกต้อง'); blank++; continue; }
+      if (DEVELOPERS.has(r.email)) { blank++; continue; }
+      good.push(checkRole(actor, r.email, ROLE_OF[r.role.replace(/\s/g, '')] ?? r.role, r.unit));
+    } catch (err) {
+      if (!(err instanceof HttpError)) throw err;
+      problems.push(`แถว ${r.line}: ${err.message}`);
+    }
+  }
+  if (problems.length) throw new HttpError(400, `ไฟล์มีข้อมูลที่ต้องแก้ ${problems.length} แถว ยังไม่ได้นำเข้า`, { problems: problems.slice(0, MAX_PROBLEMS) });
+  return { good, blank };
+}
+
+router.get('/admin/import/users/template.xlsx', async (req, res) => {
+  const wb = new ExcelJS.Workbook();
+  sheet(wb, 'ผู้ใช้', Object.entries(USER_COLUMNS).map(([key, header]) => ({ header, key, width: key === 'role' ? 24 : 36, style: { numFmt: '@' } })), []);
+  sheet(wb, 'วิธีกรอก', [{ header: 'ช่อง', key: 'k', width: 18 }, { header: 'วิธีกรอก', key: 'v', width: 90 }], [
+    { k: USER_COLUMNS.email, v: 'จำเป็น อีเมล Google ของคนนั้น' },
+    { k: USER_COLUMNS.role, v: `${Object.values(ROLE_TH).filter((t) => t !== ROLE_TH.default).join(', ')} หรือ ${ROLE_TH.default} (ยกเลิกบทบาทพิเศษ) เว้นว่าง = ไม่เปลี่ยน` },
+    { k: USER_COLUMNS.unit, v: `จำเป็นเฉพาะ ${ROLE_TH.coordinator}: ชื่อหน่วยงานตามโครงสร้างองค์กรของระบบ` },
+    { k: 'คนที่ไม่อยู่ในไฟล์', v: 'บทบาทเดิมยังอยู่ ไม่ถูกเปลี่ยน บัญชีผู้พัฒนาระบบมีสิทธิ์สูงสุดเสมอและไม่ถูกเปลี่ยน' },
+  ]);
+  res.set({
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': `attachment; filename="users-template.xlsx"; filename*=UTF-8''${encodeURIComponent('แบบฟอร์มนำเข้าบทบาทผู้ใช้.xlsx')}`,
+  });
+  await wb.xlsx.write(res);
+  res.end();
+});
+
+router.post('/admin/import/users', importLimit, (req, res, next) => upload(req, res, async (err) => {
+  const f = req.file;
+  try {
+    if (err) throw new HttpError(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400, err.code === 'LIMIT_FILE_SIZE' ? 'ไฟล์ใหญ่เกิน 2 MB' : 'อัปโหลดไฟล์ไม่สำเร็จ');
+    if (!f) throw new HttpError(400, 'เลือกไฟล์ที่จะนำเข้า');
+    const { good, blank } = checkUsers(userRows(await openSheet(f)), req.user);
+    const save = req.query.save === '1';
+    const result = await tx(async (c) => {
+      const now = new Map((await c.query('select email, role::text, unit from pr_team where email = any($1)', [good.map((r) => r.email)])).rows.map((t) => [t.email, t]));
+      const counts = { added: 0, changed: 0, removed: 0, unchanged: blank };
+      const todo = good.filter((r) => {
+        const t = now.get(r.email);
+        const kind = r.role === 'default' ? (t ? 'removed' : 'unchanged') : !t ? 'added' : t.role !== r.role || (t.unit ?? null) !== r.unit ? 'changed' : 'unchanged';
+        counts[kind]++;
+        return kind !== 'unchanged';
+      });
+      if (!save) return counts;
+      for (const r of todo) await applyRole(c, req.user, r);
+      await audit(c, req.user, 'role.import', null, `นำเข้าบทบาทจากไฟล์ เพิ่ม ${counts.added} เปลี่ยน ${counts.changed} ยกเลิก ${counts.removed} คน`, counts);
       return counts;
     });
     res.json({ ...result, saved: save });

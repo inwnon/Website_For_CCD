@@ -17,7 +17,7 @@ import { ALL_PLATFORMS, DEFAULTS, KEYS, LABELS, all, remember, save } from './se
 export const router = Router();
 router.use('/admin', requireAdmin);
 
-const ROLE_TH = { default: 'ตามโดเมนอีเมล', intern: 'นักศึกษาฝึกงาน สสอ.', coordinator: 'ประชาสัมพันธ์หน่วยงาน', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ' };
+export const ROLE_TH = { default: 'ตามโดเมนอีเมล', intern: 'นักศึกษาฝึกงาน สสอ.', coordinator: 'ประชาสัมพันธ์หน่วยงาน', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ' };
 
 // ---- Settings ----
 router.get('/admin/settings', (req, res) => {
@@ -68,30 +68,38 @@ router.get('/admin/users', async (req, res) => {
   });
 });
 
-router.put('/admin/roles', async (req, res) => {
-  const email = str(req.body?.email, 200, 'อีเมล')?.toLowerCase();
-  const role = req.body?.role;
+// One role change, checked: the email, the role and its unit as stored. Used by PUT /admin/roles and the import (transfer.mjs).
+export function checkRole(actor, emailIn, role, unitIn) {
+  const email = str(emailIn, 200, 'อีเมล')?.toLowerCase();
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpError(400, 'อีเมลไม่ถูกต้อง');
-  if (!ROLE_TH[role]) throw new HttpError(400, 'บทบาทไม่ถูกต้อง');
-  const unit = role === 'coordinator' ? str(req.body?.unit, 200, 'หน่วยงาน') : null;
+  if (!Object.hasOwn(ROLE_TH, role)) throw new HttpError(400, 'บทบาทไม่ถูกต้อง');
+  const unit = role === 'coordinator' ? str(unitIn, 200, 'หน่วยงาน') : null;
   if (role === 'coordinator' && !allUnits().includes(unit)) throw new HttpError(400, 'เลือกหน่วยงานที่ประชาสัมพันธ์หน่วยงานดูแล');
   if (DEVELOPERS.has(email)) throw new HttpError(409, 'บัญชีผู้พัฒนาระบบมีสิทธิ์สูงสุดเสมอ เปลี่ยนบทบาทจากหน้านี้ไม่ได้');
-  if (email === req.user.email && role !== 'admin') throw new HttpError(409, 'เปลี่ยนบทบาทของตัวเองไม่ได้ ให้ผู้ดูแลระบบคนอื่นเปลี่ยนให้');
-  await tx(async (c) => {
-    if (role === 'default') {
-      const was = (await c.query('delete from pr_team where email = $1 returning role', [email])).rows[0];
-      if (was?.role === 'admin' && !(await c.query("select 1 from pr_team where role = 'admin'")).rowCount) {
-        throw new HttpError(409, 'ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน');
-      }
-      await c.query('update users set role = $2 where email = $1', [email, domainRole(email)]);
-      await audit(c, req.user, 'role.remove', email, `ยกเลิกบทบาทพิเศษของ ${email} (กลับเป็น${ROLE_TH.default})`, { was: was?.role });
-    } else {
-      await c.query(`insert into pr_team (email, role, unit) values ($1, $2, $3)
-        on conflict (email) do update set role = $2, unit = $3`, [email, role, unit]);
-      await c.query('update users set role = $2 where email = $1', [email, role]);
-      await audit(c, req.user, 'role.set', email, `กำหนดให้ ${email} เป็น${ROLE_TH[role]}${unit ? ` (${unit})` : ''}`, { role, unit });
+  if (email === actor.email && role !== 'admin') throw new HttpError(409, 'เปลี่ยนบทบาทของตัวเองไม่ได้ ให้ผู้ดูแลระบบคนอื่นเปลี่ยนให้');
+  return { email, role, unit };
+}
+
+// Saves a checked role change inside transaction c, with its audit entry
+export async function applyRole(c, actor, { email, role, unit }) {
+  if (role === 'default') {
+    const was = (await c.query('delete from pr_team where email = $1 returning role', [email])).rows[0];
+    if (was?.role === 'admin' && !(await c.query("select 1 from pr_team where role = 'admin'")).rowCount) {
+      throw new HttpError(409, 'ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน');
     }
-  });
+    await c.query('update users set role = $2 where email = $1', [email, domainRole(email)]);
+    await audit(c, actor, 'role.remove', email, `ยกเลิกบทบาทพิเศษของ ${email} (กลับเป็น${ROLE_TH.default})`, { was: was?.role });
+  } else {
+    await c.query(`insert into pr_team (email, role, unit) values ($1, $2, $3)
+      on conflict (email) do update set role = $2, unit = $3`, [email, role, unit]);
+    await c.query('update users set role = $2 where email = $1', [email, role]);
+    await audit(c, actor, 'role.set', email, `กำหนดให้ ${email} เป็น${ROLE_TH[role]}${unit ? ` (${unit})` : ''}`, { role, unit });
+  }
+}
+
+router.put('/admin/roles', async (req, res) => {
+  const change = checkRole(req.user, req.body?.email, req.body?.role, req.body?.unit);
+  await tx((c) => applyRole(c, req.user, change));
   res.json({ ok: true });
 });
 
