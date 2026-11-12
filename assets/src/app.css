@@ -120,21 +120,3 @@
   .hdr-auto.hdr-away { transform: translateY(-100%); box-shadow: none; }
 }
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) { .hdr-auto { transition: none; } }
-
-/* Phones: the main menu row hides behind the ☰ button (auth.js adds it and toggles .nav-open) */
-@media (max-width: 767px) {
-  header > nav[aria-label="เมนูหลัก"]:not(.nav-open) { display: none; }
-  header > nav.nav-open {
-    flex-direction: column; gap: 2px; max-height: 70vh; overflow-y: auto; padding-bottom: 12px;
-    -webkit-mask-image: none; mask-image: none; animation: nav-in .25s cubic-bezier(.22, 1, .36, 1);
-  }
-  header > nav.nav-open > * { width: 100%; justify-content: flex-start; }
-}
-/* Very narrow phones (< 380px): tighter header row so logo + ส่งข่าว + account + ☰ fit without sideways scroll */
-@media (max-width: 379px) {
-  header:has(> nav[aria-label="เมนูหลัก"]) > div:first-child { column-gap: 8px; }
-  header:has(> nav[aria-label="เมนูหลัก"]) > div:first-child > div:last-child { column-gap: 4px; }
-  header:has(> nav[aria-label="เมนูหลัก"]) > div:first-child .logo-crop { width: 40px; height: 40px; }
-}
-@keyframes nav-in { from { opacity: 0; transform: translateY(-8px); } }
-@media (prefers-reduced-motion: reduce) { header > nav.nav-open { animation: none; } }
