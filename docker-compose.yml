@@ -36,7 +36,7 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0       # inside the container; the port below is published on this machine only
       PGHOST: db
-      PG_DUMP_VIA: local   # pg_restore installed in this image (server/restore.mjs)
+      PG_DUMP_VIA: local   # pg_dump installed in this image (server/backup.mjs)
       PGPORT: 5432
       TZ: Asia/Bangkok
     ports:
