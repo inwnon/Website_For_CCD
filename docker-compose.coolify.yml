@@ -41,7 +41,7 @@ services:
       TRUST_PROXY: uniquelocal
       PGHOST: db
       PG_DUMP_VIA: local   # pg_restore installed in this image (server/restore.mjs)
-      PGPORT: 5433
+      PGPORT: 5432   # inside the Docker network; 5433 is only the host port of docker-compose.yml on the dev machine
       PGDATABASE: ${PGDATABASE:-prsru}
       PGUSER: ${PGUSER:-prsru}
       PGPASSWORD: ${PGPASSWORD:?Set PGPASSWORD in Coolify}
