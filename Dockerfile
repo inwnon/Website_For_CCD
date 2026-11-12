@@ -15,6 +15,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Code stays owned by root (read-only for the app); only uploads/ is writable by the app user.
+# pg_dump / pg_restore for the restore button (server/restore.mjs); same major version as the db image
+RUN apk add --no-cache postgresql16-client
 RUN mkdir -p uploads backups && chown node:node uploads
 USER node
 EXPOSE 3000
