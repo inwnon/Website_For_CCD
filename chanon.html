@@ -537,6 +537,21 @@
       }
       return id;
     }
+    // The restore runs in the background: ask how it is going until it ends. A few failed asks in a row are fine
+    // (a proxy or a slow server); 404 means the server started again and forgot the job.
+    async function waitFor(job) {
+      for (let misses = 0; ;) {
+        await new Promise((ok) => setTimeout(ok, 3000));
+        let r;
+        try { r = await api(`/restore-status/${job}`); } catch (e) {
+          if (e.status === 404 || ++misses > 20) throw e;
+          continue;
+        }
+        misses = 0;
+        if (r.state === 'done') return r;
+        if (r.state === 'failed') throw new Error(r.error);
+      }
+    }
     const RESTORE_CONFIRM = 'กู้คืนทั้งหมด';
     function restore() {
       const box = (k, title, text, accept, extra) => `
@@ -557,7 +572,7 @@
         <div class="grid max-w-[860px] gap-4 p-5 sm:px-6">
           <p class="rounded-card border border-[rgb(var(--red)/.4)] bg-red-soft p-4 text-[14px] text-brand" role="note"><span class="font-display font-semibold">ข้อมูลบนเว็บนี้จะถูกแทนที่ทั้งหมด</span> ระบบเก็บสำเนาฐานข้อมูลก่อนกู้คืนไว้ 3 ชุดล่าสุด และทุกคนรวมทั้งคุณจะต้องล็อกอินใหม่หลังกู้คืนฐานข้อมูล</p>
           ${box('rsDb', '1. ฐานข้อมูล', 'ไฟล์ .dump จาก pg_dump -Fc (เช่น prsru.dump) ถ้าเกิดข้อผิดพลาดระหว่างกู้คืน ฐานข้อมูลจะยังเป็นแบบเดิม', '.dump',
-            `<label class="grid gap-1 text-[13px]">พิมพ์ <b>${RESTORE_CONFIRM}</b> เพื่อยืนยัน<input id="rsDbConfirm" type="text" autocomplete="off" class="field h-10 rounded-xl px-3 text-[14px] sm:w-[280px]"></label>`)}
+            `<label class="grid gap-1 text-[13px]"><span>พิมพ์ <b>${RESTORE_CONFIRM}</b> เพื่อยืนยัน</span><input id="rsDbConfirm" type="text" autocomplete="off" class="field h-10 rounded-xl px-3 text-[14px] sm:w-[280px]"></label>`)}
           ${box('rsFiles', '2. ไฟล์ภาพและเอกสาร', 'ไฟล์ .tar.gz ของโฟลเดอร์ uploads (เช่น uploads.tar.gz) ไฟล์ที่ชื่อซ้ำจะถูกเขียนทับ ไฟล์อื่นที่มีอยู่ไม่ถูกลบ', '.gz,.tgz', '')}
         </div>`;
       const go = (k, after) => $(`#${k}Form`).addEventListener('submit', async (ev) => {
@@ -585,11 +600,13 @@
         }
       });
       go('rsDb', async (id, text) => {
-        const r = await api('/admin/restore/db', { method: 'POST', body: { id, confirm: RESTORE_CONFIRM } });
+        const { job } = await api('/admin/restore/db', { method: 'POST', body: { id, confirm: RESTORE_CONFIRM } });
+        const r = await waitFor(job);
         text.innerHTML = `กู้คืนฐานข้อมูลแล้ว (${num(r.tables)} ตาราง) สำเนาก่อนกู้คืน: ${esc(r.safety)} · <a href="${window.loginUrl('chanon.html#restore')}" class="font-semibold underline underline-offset-2 hover:text-brand focus-visible:text-brand active:opacity-70">ล็อกอินใหม่</a> แล้วทำขั้นที่ 2`;
       });
       go('rsFiles', async (id, text) => {
-        const r = await api('/admin/restore/files', { method: 'POST', body: { id } });
+        const { job } = await api('/admin/restore/files', { method: 'POST', body: { id } });
+        const r = await waitFor(job);
         text.textContent = `กู้คืนไฟล์แล้ว ${num(r.files)} ไฟล์`;
         toast('กู้คืนไฟล์ภาพและเอกสารแล้ว');
       });

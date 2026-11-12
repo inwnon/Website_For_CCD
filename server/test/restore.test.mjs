@@ -23,10 +23,16 @@ describe('กู้คืนทั้งระบบ', () => {
     assert.equal((await request('POST', '/api/admin/restore/db', { id: ID, confirm: 'กู้คืนทั้งหมด' })).status, 401);
   });
 
-  test('an archive made with tar -czf uploads.tar.gz uploads unpacks without its top folder', () => {
-    assert.equal(checkEntries(['uploads/', 'uploads/news/', 'uploads/news/a.webp'], ['d', 'd', '-']), 1);
-    assert.equal(checkEntries(['./', './news/a.webp'], ['d', '-']), 0);
-    assert.equal(checkEntries(['news/a.webp', 'documents/b.pdf'], ['-', '-']), 0);
+  test('an archive made with tar -czf uploads.tar.gz uploads unpacks without its top folder; tmp/ and .restore/ are skipped', () => {
+    assert.deepEqual(checkEntries(['uploads/', 'uploads/news/', 'uploads/news/a.webp', 'uploads/tmp/', 'uploads/tmp/x', 'uploads/.restore/b.dump'], ['d', 'd', '-', 'd', '-', '-']),
+      { strip: 1, exclude: ['uploads/tmp', 'uploads/.restore'], files: 1 });
+    assert.deepEqual(checkEntries(['./', './news/a.webp', './tmp/x'], ['d', '-', '-']), { strip: 0, exclude: ['./tmp', './.restore'], files: 1 });
+    assert.deepEqual(checkEntries(['news/a.webp', 'documents/b.pdf'], ['-', '-']), { strip: 0, exclude: ['tmp', '.restore'], files: 2 });
+  });
+
+  test('the job status needs a well-formed token and forgets unknown jobs', async () => {
+    assert.equal((await request('GET', '/api/restore-status/nope')).status, 400);
+    assert.equal((await request('GET', `/api/restore-status/${'0'.repeat(32)}`)).status, 404);
   });
 
   test('entries that could land outside uploads/ are refused', () => {
@@ -38,8 +44,7 @@ describe('กู้คืนทั้งระบบ', () => {
       [['news\\..\\x'], ['-']],
       [['news/link'], ['l']],
       [['news/hard'], ['h']],
-      [['tmp/restore-x.part'], ['-']],
-      [['uploads/.restore/before.dump'], ['-']],
+      [['uploads/tmp/../../x'], ['-']],
       [[], []],
     ];
     for (const [names, kinds] of bad) assert.throws(() => checkEntries(names, kinds), { status: 400 }, JSON.stringify(names));
