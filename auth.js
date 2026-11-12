@@ -333,6 +333,31 @@
     addEventListener('resize', fade, { passive: true });
     fade();
 
+    // Phones (< 768px, see app.css): a ☰ button next to the account button opens the menu as a list under the header
+    const login = header.querySelector('#login');
+    if (login) {
+      nav.id ||= 'mainNav';
+      const ICON = { open: '<path d="M4 7h16M4 12h16M4 17h16"/>', close: '<path d="M6 6l12 12M18 6 6 18"/>' };
+      const navBtn = document.createElement('button');
+      navBtn.type = 'button';
+      navBtn.className = 'hover-fill press t-quick grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line-strong md:hidden';
+      navBtn.setAttribute('aria-controls', nav.id);
+      const setNav = (open, back) => {
+        nav.classList.toggle('nav-open', open);
+        navBtn.setAttribute('aria-expanded', String(open));
+        navBtn.setAttribute('aria-label', open ? 'ปิดเมนู' : 'เปิดเมนู');
+        navBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">${open ? ICON.close : ICON.open}</svg>`;
+        if (back) navBtn.focus();
+      };
+      setNav(false);
+      login.after(navBtn);
+      navBtn.addEventListener('click', () => setNav(!nav.classList.contains('nav-open')));
+      nav.addEventListener('click', (e) => { if (/** @type {Element} */ (e.target).closest('a')) setNav(false); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && nav.classList.contains('nav-open')) setNav(false, true); });
+      document.addEventListener('click', (e) => { if (nav.classList.contains('nav-open') && !header.contains(/** @type {Node} */ (e.target))) setNav(false); });
+      matchMedia('(min-width: 768px)').addEventListener('change', (e) => { if (e.matches) setNav(false); });
+    }
+
     header.classList.add('hdr-auto');
     let lastY = scrollY;
     let ticking = false;
@@ -342,7 +367,7 @@
       requestAnimationFrame(() => {
         const y = scrollY;
         if (Math.abs(y - lastY) > 8) {
-          const away = y > lastY && y > header.offsetHeight && !header.contains(document.activeElement);
+          const away = y > lastY && y > header.offsetHeight && !header.contains(document.activeElement) && !nav.classList.contains('nav-open');
           header.classList.toggle('hdr-away', away);
           lastY = y;
         }
