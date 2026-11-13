@@ -197,7 +197,7 @@
       .js .reveal { opacity: 1; transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=657b9a2b8c">
+  <link rel="stylesheet" href="/assets/app.css?v=69e51dcfbc">
 </head>
 
 <body class="min-h-screen">
@@ -385,7 +385,7 @@
         <div class="reveal mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <div>
             <p class="font-display text-[14px] font-medium text-brand">ฟังข่าวสารประจำวันของมหาวิทยาลัย</p>
-            <h2 id="soundline-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">วิดีโอเสียงตามสาย</h2>
+            <h2 id="soundline-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">วิดีโอเสียงตามสาย <span id="soundCount" class="kind-n ml-1 inline-block align-middle" hidden></span></h2>
           </div>
           <div class="flex shrink-0 items-center gap-1">
           <button id="soundToggle" type="button" aria-controls="soundGrid" aria-expanded="true" class="hover-fill press t-quick inline-flex h-11 items-center gap-1.5 rounded-full px-3 font-display text-[15px] font-medium text-ink2 hover:text-ink">
@@ -633,17 +633,22 @@
       if (!off && !soundLoaded) loadSoundline();
     });
 
+    // A folded shelf asks for one story only, to show how many there are
     async function loadSoundline() {
-      if (soundOff()) return;
-      soundLoaded = true;
+      const off = soundOff();
       const grid = $('#soundGrid');
-      grid.innerHTML = skeleton(4);
+      if (!off) { soundLoaded = true; grid.innerHTML = skeleton(4); }
       try {
-        const { items } = await api(`/news/search?${new URLSearchParams({ cat: 'วิดีโอเสียงตามสาย', sort: 'newest', limit: 4 })}`);
+        const { items, total } = await api(`/news/search?${new URLSearchParams({ cat: 'วิดีโอเสียงตามสาย', sort: 'newest', limit: off ? '1' : '4' })}`);
+        const count = $('#soundCount');
+        count.textContent = `${total.toLocaleString('th-TH')} คลิป`;
+        count.hidden = !total;
+        if (off) return;
         grid.innerHTML = items.map(card).join('');
         $('#soundEmpty').classList.toggle('hidden', items.length > 0);
         reveal(grid);
       } catch (err) {
+        if (off) return;
         grid.innerHTML = '';
         $('#soundEmpty').textContent = `โหลดวิดีโอเสียงตามสายไม่สำเร็จ: ${err.message}`;
         $('#soundEmpty').classList.remove('hidden');
