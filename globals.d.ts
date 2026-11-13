@@ -15,6 +15,7 @@ interface Window {
   // other shared scripts
   arrivalsRepaint: () => void;
   onArrivals?: (items: any[]) => void;
+  onRequestArrivals?: (requests: any[]) => void;
   BannerView: any;
   DESK: any;
   EventForm: any;

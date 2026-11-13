@@ -58,6 +58,23 @@ describe('submitting', () => {
     assert.equal((await pr.call('POST', `/api/requests/${r.id}/approve`, { assignees: [] })).status, 409);
     assert.equal((await one(`select count(*)::int n from audit_log where action = 'request.cancel' and target = $1`, [r.id])).n, 1);
   });
+  test('a new request reaches PR and admin through /api/pr/arrivals (the urgent alert), no one else', async () => {
+    for (const who of [secretary, executive, staff, student, external]) assert.equal((await who.call('GET', '/api/pr/arrivals')).status, 403);
+    const first = (await pr.call('GET', '/api/pr/arrivals')).body;
+    assert.deepEqual(first.requests, [], 'the first answer only sets the time to ask from');
+    const r = await submit({ title: 'ขอช่างภาพด่วน' });
+    for (const who of [pr, admin]) {
+      const next = (await who.call('GET', `/api/pr/arrivals?since=${encodeURIComponent(first.now)}`)).body;
+      const hit = next.requests.find((x) => x.id === r.id);
+      assert.ok(hit, 'the new request is in the alert');
+      assert.equal(hit.title, 'ขอช่างภาพด่วน');
+      assert.equal(hit.location, 'หอประชุมทดสอบ');
+      assert.ok(hit.requester);
+    }
+    await secretary.call('POST', `/api/requests/${r.id}/cancel`, {});
+    const gone = (await pr.call('GET', `/api/pr/arrivals?since=${encodeURIComponent(first.now)}`)).body;
+    assert.ok(!gone.requests.some((x) => x.id === r.id), 'a cancelled request is not shown');
+  });
 });
 
 describe('deciding', () => {
