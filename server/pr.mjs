@@ -47,7 +47,16 @@ router.get('/pr/arrivals', async (req, res) => {
      from submission_events e join submissions s on s.id = e.submission_id join users u on u.id = s.sender_id
      where e.status in ('sent', 'resent') and e.at > $1 and e.at <= $2 and s.status <> 'rejected'
      order by s.id, e.at desc limit 50`, [since, now])).rows.sort((a, b) => b.at - a.at);
-  res.json({ now, unread: await prUnreadCount(), items: rows.map((r) => ({ ref: r.ref, type: r.type, title: r.title, unit: r.unit, again: r.kind === 'resent', at: r.at, sender: r.sender })) });
+  // คำขอใช้บริการ that came in over the same span: the most urgent, shown in the middle of the screen
+  const asks = (await query(
+    `select r.id, r.title, r.type, r.start_at, r.location, coalesce(nullif(trim(concat_ws(' ', u.first_name, u.last_name)), ''), u.name, u.email) requester
+     from service_requests r left join users u on u.id = r.requester_id
+     where r.status = 'pending' and r.created_at > $1 and r.created_at <= $2 order by r.created_at desc limit 20`, [since, now])).rows;
+  res.json({
+    now, unread: await prUnreadCount(),
+    items: rows.map((r) => ({ ref: r.ref, type: r.type, title: r.title, unit: r.unit, again: r.kind === 'resent', at: r.at, sender: r.sender })),
+    requests: asks.map((r) => ({ id: r.id, title: r.title, type: r.type, startAt: r.start_at, location: r.location, requester: r.requester })),
+  });
 });
 
 router.get('/pr/submissions', async (req, res) => {

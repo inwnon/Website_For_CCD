@@ -75,7 +75,12 @@
 @keyframes arrive-in { from { opacity: 0; transform: translateY(16px) scale(.97); } }
 @keyframes bell-ring { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(16deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-4deg); } }
 .alert-switch:hover { border-color: rgb(var(--purple) / .45); }
-@media (prefers-reduced-motion: reduce) { .arrivals-card, .arrivals-bell svg { animation: none; } }
+/* คำขอใช้บริการใหม่: the card pops up in the middle of the screen, the bell keeps swinging while it rings */
+.request-alert::backdrop { background: rgb(10 11 32 / .6); }
+.request-alert[open] { animation: request-pop .55s cubic-bezier(.34, 1.56, .64, 1); }
+.request-alert .arrivals-bell svg { animation-iteration-count: 4; }
+@keyframes request-pop { from { opacity: 0; transform: scale(.85); } }
+@media (prefers-reduced-motion: reduce) { .arrivals-card, .arrivals-bell svg, .request-alert[open], .request-alert .arrivals-bell svg { animation: none; } }
 
 /* Every news card looks the same whatever its kind: plain surface, hairline border, soft shadow.
    Only the chip on the picture keeps the kind's colour: ข่าวพร้อมภาพ royal, วิดีโอ red, อินโฟกราฟิก gold. */
