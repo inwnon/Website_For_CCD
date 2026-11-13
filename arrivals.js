@@ -135,7 +135,7 @@
     }
     const first = asked[0], more = asked.length - 1;
     dlg.querySelector('#raTitle').textContent = first.again ? 'ผู้ขอส่งข้อมูลเพิ่มเติมแล้ว' : 'มีคำขอใช้บริการใหม่';
-    const set =(k, v) => { dlg.querySelector(`[data-ra="${k}"]`).textContent = v || '-'; };
+    const set = (k, v) => { dlg.querySelector(`[data-ra="${k}"]`).textContent = v || '-'; };
     set('title', first.title); set('type', ASK[first.type]); set('when', when(first.startAt)); set('location', first.location); set('requester', first.requester);
     const moreEl = /** @type {HTMLElement} */ (dlg.querySelector('[data-ra-more]'));
     moreEl.hidden = more < 1;
