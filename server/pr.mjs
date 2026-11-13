@@ -37,7 +37,7 @@ router.use('/pr', (req, res, next) => (/^\/(import|collections)(\/|$)/.test(req.
 
 // แจ้งเตือนงานใหม่ (arrivals.js): work sent or sent again since `since` (at most a day back), newest first, and the
 // server's time to ask from next, and unread: all work with something new for the PR team (the red badges).
-// The back-office pages ask every 20 seconds.
+// The back-office pages ask every 30 seconds (a tab in the background every 90).
 router.get('/pr/arrivals', async (req, res) => {
   const now = new Date();
   const asked = new Date(String(req.query.since || ''));

@@ -10,7 +10,7 @@
 // it is closed; window.onRequestArrivals(requests) is called with them (requests.html refreshes its list)
 (function () {
   const KEY = 'deskAlerts';
-  const EVERY = 20000;
+  const EVERY = 30000;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let on = true;
   try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) {}
