@@ -44,6 +44,8 @@ router.get('/me/data', requireUser, limit('export', { max: 10, windowMs: HOUR })
       where a.user_id = $1 order by e.start_at desc`, [u.id])).rows,
     serviceRequests: (await query(`select created_at, title, type, start_at, end_at, location, details, status, review_note, reviewed_at from service_requests
       where requester_id = $1 order by created_at desc`, [u.id])).rows,
+    serviceRequestMessages: (await query(`select m.created_at, r.title request, m.kind, m.body, (select array_agg(f.file_name) from service_request_files f where f.message_id = m.id) files
+      from service_request_messages m join service_requests r on r.id = m.request_id where m.author_id = $1 or r.requester_id = $1 order by m.created_at desc`, [u.id])).rows,
     documentsUploaded: (await query(`select v.created_at, d.title, v.version, v.file_name from document_versions v join documents d on d.id = v.document_id
       where v.uploaded_by = $1 order by v.created_at desc`, [u.id])).rows,
     notifications: (await query('select created_at, kind, ref_id, text, read_at from notifications where user_id = $1 order by id desc', [u.id])).rows,

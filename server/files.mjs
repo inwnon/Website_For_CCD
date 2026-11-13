@@ -5,6 +5,7 @@
 //   drafts/{draft id}/...                  the same for a draft (drafts.mjs); moved to submissions/ when it is sent
 //   media/{news id}/...                    published story images (/media/..., audience checked in news.mjs)
 //   documents/{document id}/{random id}.{ext}         every version of a document (documents.mjs)
+//   requests/{request id}/{random id}.{ext}           files sent with a service request or an answer to it (requests.mjs)
 //   events/{event id}/{banner id}.webp     แบนเนอร์กำหนดการ of a calendar event (calendar.mjs)
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
@@ -118,9 +119,10 @@ export async function storeUploads(submissionId, uploads, startPositions = {}, f
   return rows;
 }
 
-// Moves a temp upload into the document's folder under a random name and returns the path. Pictures lose where they were taken.
-export async function storeDocument(documentId, f) {
-  const dir = join('documents', documentId);
+// Moves a temp upload into the document's (or folder 'requests': the service request's) folder under a random name and
+// returns the path. Pictures lose where they were taken.
+export async function storeDocument(documentId, f, folder = 'documents') {
+  const dir = join(folder, documentId);
   await mkdir(abs(dir), { recursive: true });
   if (/\.(jpe?g|png)$/i.test(f.originalname)) await stripGps(f.path);
   const path = join(dir, randomUUID() + extname(f.originalname).toLowerCase()).replaceAll('\\', '/');
@@ -144,7 +146,8 @@ export async function storeBanner(eventId, f) {
 }
 
 export const removeStored = (path) => Promise.all([rm(abs(path), { force: true }), rm(abs(webPath(path)), { force: true })]);
-export const removeSubmissionDir = (submissionId) => rm(abs(join('submissions', submissionId)), { recursive: true, force: true });
+export const removeRequestDir = (requestId) => rm(abs(join('requests', requestId)), { recursive: true, force: true });
+export const removeSubmissionDir =(submissionId) => rm(abs(join('submissions', submissionId)), { recursive: true, force: true });
 export const removeDraftDir = (draftId) => rm(abs(join('drafts', draftId)), { recursive: true, force: true });
 
 // Moves a stored file (and its web copy) into another submission's folder; returns the new path

@@ -25,12 +25,13 @@
   <style>
     /* One colour per status, always with its name in words */
     .st-pending { background: rgb(var(--gold-soft)); color: rgb(var(--gold)); }
+    .st-info { background: rgb(var(--sky-soft)); color: rgb(var(--sky)); }
     .st-approved { background: rgb(var(--royal-soft)); color: rgb(var(--royal)); }
     .st-rejected { background: rgb(var(--red-soft)); color: rgb(var(--red)); }
     .st-cancelled { background: rgb(var(--surface-2)); color: rgb(var(--ink-2)); }
     .seg[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=dd8cf59a14">
+  <link rel="stylesheet" href="/assets/app.css?v=526b4876a3">
   <script src="thai-date.js" defer></script>
 </head>
 <body class="app">
@@ -71,6 +72,7 @@
           <div class="flex w-full flex-wrap gap-0.5 rounded-2xl bg-surface2 p-1 sm:w-fit" role="group" aria-label="กรองตามสถานะ">
             <button type="button" data-status="" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">ทั้งหมด</button>
             <button type="button" data-status="pending" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">รอพิจารณา</button>
+            <button type="button" data-status="info" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">รอข้อมูลเพิ่ม</button>
             <button type="button" data-status="approved" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">อนุมัติแล้ว</button>
             <button type="button" data-status="rejected" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">ไม่อนุมัติ</button>
             <button type="button" data-status="cancelled" class="seg press t-quick h-11 rounded-xl px-3 flex-auto whitespace-nowrap font-display text-[15px] font-medium text-ink2">ยกเลิกแล้ว</button>
@@ -128,6 +130,12 @@
         <span class="font-display text-[15px] font-semibold">รายละเอียด</span>
         <textarea id="fDetails" rows="4" maxlength="2000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]"></textarea>
       </label>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ไฟล์แนบ <span class="font-normal text-ink2">(ไม่บังคับ)</span></span>
+        <input id="fFiles" type="file" multiple accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]" aria-describedby="filesHint filesErr">
+        <span id="filesHint" class="text-[14px] leading-[1.6] text-ink2">เช่น กำหนดการ หนังสือเชิญ ไม่เกิน 5 ไฟล์ · PDF, Word, Excel, PowerPoint ไม่เกิน 20 MB · JPG, PNG ไม่เกิน 10 MB</span>
+        <span id="filesErr" data-err="files" class="text-[14px] font-medium text-brand" hidden></span>
+      </label>
       <p data-err="form" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
       <div class="flex flex-wrap justify-end gap-2">
         <button id="formClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
@@ -145,9 +153,35 @@
       <dl id="viewFacts" class="grid gap-x-4 gap-y-1 text-[15px] sm:grid-cols-[110px_minmax(0,1fr)]"></dl>
       <div id="viewDecision" class="grid gap-1 rounded-2xl bg-surface2 px-4 py-3 text-[15px]" hidden></div>
       <a id="viewEvent" class="press t-quick inline-flex min-h-11 items-center justify-self-start font-display text-[15px] font-semibold text-royal hover:underline" hidden>เปิดในปฏิทินงาน</a>
+      <section id="viewFilesBox" class="grid gap-1.5" aria-labelledby="viewFilesTitle" hidden>
+        <h3 id="viewFilesTitle" class="font-display text-[15px] font-semibold text-ink2">ไฟล์แนบ</h3>
+        <ul id="viewFiles" class="grid gap-1.5"></ul>
+      </section>
+      <section id="viewThreadBox" class="grid gap-2" aria-labelledby="viewThreadTitle" hidden>
+        <h3 id="viewThreadTitle" class="font-display text-[15px] font-semibold text-ink2">ขอข้อมูลเพิ่มเติม</h3>
+        <ol id="viewThread" class="grid gap-2"></ol>
+      </section>
+      <!-- The requester, while PR waits for more -->
+      <form id="replyForm" class="grid gap-3 rounded-2xl border border-line-strong p-4" aria-labelledby="replyTitle" novalidate hidden>
+        <h3 id="replyTitle" class="font-display text-[17px] font-semibold">ส่งข้อมูลเพิ่มเติมให้ทีม PR</h3>
+        <label class="grid gap-1.5">
+          <span class="font-display text-[15px] font-semibold">ข้อความ</span>
+          <textarea id="fReply" rows="3" maxlength="2000" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]" aria-describedby="replyErr"></textarea>
+        </label>
+        <label class="grid gap-1.5">
+          <span class="font-display text-[15px] font-semibold">ไฟล์แนบ</span>
+          <input id="fReplyFiles" type="file" multiple accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" class="field min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]" aria-describedby="replyHint replyErr">
+          <span id="replyHint" class="text-[14px] leading-[1.6] text-ink2">ไม่เกิน 5 ไฟล์ · PDF, Word, Excel, PowerPoint ไม่เกิน 20 MB · JPG, PNG ไม่เกิน 10 MB</span>
+        </label>
+        <p id="replyErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+        <button id="replyGo" type="submit" class="bg-grad press t-spring h-11 justify-self-end rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60 max-sm:w-full">ส่งข้อมูลเพิ่มเติม</button>
+      </form>
       <div class="flex flex-wrap justify-end gap-2">
         <button id="viewClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
         <button id="viewCancel" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium text-brand hover:-translate-y-0.5" hidden>ยกเลิกคำขอ</button>
+        <button id="viewAsk" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-2xl border border-line-strong px-5 font-display text-[15px] font-medium hover:-translate-y-0.5" hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.3-2.4 2.3M12 14.5h.01"/></svg>ขอข้อมูลเพิ่มเติม
+        </button>
         <button id="viewReject" type="button" class="hover-fill press t-quick h-11 rounded-2xl border border-line-strong px-5 font-display text-[15px] font-medium" hidden>ไม่อนุมัติ</button>
         <button id="viewApprove" type="button" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5" hidden>อนุมัติ</button>
       </div>
@@ -198,6 +232,25 @@
     </form>
   </dialog>
 
+  <dialog id="askDlg" class="desk-dlg max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="askDlgTitle">
+    <form id="askDlgForm" class="grid gap-4 p-5 sm:p-6" novalidate>
+      <div>
+        <h2 id="askDlgTitle" class="font-display text-[21px] font-semibold">ขอข้อมูลเพิ่มเติม</h2>
+        <p id="askDlgName" class="mt-1 text-[14px] font-medium [overflow-wrap:anywhere]"></p>
+      </div>
+      <label class="grid gap-1.5">
+        <span class="font-display text-[15px] font-semibold">ต้องการข้อมูลหรือไฟล์อะไรเพิ่ม <span class="text-brand">*</span></span>
+        <textarea id="fAskNote" rows="4" maxlength="2000" placeholder="เช่น ขอกำหนดการ จำนวนช่างภาพที่ต้องการ และชื่อผู้ประสานงาน" class="field rounded-2xl px-4 py-3 text-[15px] leading-[1.7]" aria-describedby="askDlgHint askDlgErr"></textarea>
+        <span id="askDlgHint" class="text-[14px] leading-[1.6] text-ink2">ผู้ขอจะได้รับแจ้งในระบบและทางอีเมล คำขอจะอยู่ที่ "รอข้อมูลเพิ่ม" จนกว่าผู้ขอจะตอบกลับ</span>
+      </label>
+      <p id="askDlgErr" class="text-[14px] font-medium text-brand" role="alert" hidden></p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="askDlgClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
+        <button id="askDlgGo" type="submit" class="bg-grad press t-spring h-11 rounded-2xl px-6 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5 disabled:opacity-60">ส่งคำขอข้อมูล</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="offDlg" class="desk-dlg w-[min(440px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float" aria-labelledby="offTitle" aria-describedby="offName">
     <div class="grid gap-3 p-5 sm:p-6">
       <h2 id="offTitle" class="font-display text-[21px] font-semibold">ยกเลิกคำขอนี้?</h2>
@@ -238,8 +291,22 @@
     const { toast, dayTime } = DESK;
     const $ = (s) => document.querySelector(s);
     const TYPES = { photo: 'ถ่ายภาพ', video: 'ถ่ายวิดีโอ', news: 'เขียนข่าว', other: 'อื่น ๆ' };
-    const STATUS = { pending: 'รอพิจารณา', approved: 'อนุมัติแล้ว', rejected: 'ไม่อนุมัติ', cancelled: 'ยกเลิกแล้ว' };
-    const FIELDS = { title: '#fTitle', type: '#fType', location: '#fLocation', startAt: '#fStart', endAt: '#fEnd' };
+    const STATUS = { pending: 'รอพิจารณา', info: 'รอข้อมูลเพิ่ม', approved: 'อนุมัติแล้ว', rejected: 'ไม่อนุมัติ', cancelled: 'ยกเลิกแล้ว' };
+    const MAX_FILES = 5;
+
+    // window.api sends JSON; files go as multipart. A proxy in front of the app answers an oversized file without JSON.
+    async function sendForm(path, data, files) {
+      const body = new FormData();
+      body.append('data', JSON.stringify(data));
+      for (const f of files) body.append('files', f);
+      const res = await fetch(`/api${path}`, { method: 'POST', credentials: 'same-origin', body });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) throw Object.assign(new Error(out.error || (res.status === 413 ? 'ไฟล์ใหญ่เกินกำหนด' : 'ส่งไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')), { status: res.status, details: out.details });
+      return out;
+    }
+    const tooMany = (input) => (input.files.length > MAX_FILES ? `แนบได้ไม่เกิน ${MAX_FILES} ไฟล์` : '');
+    const size = (n) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+    const FIELDS = { title: '#fTitle', type: '#fType', location: '#fLocation', startAt: '#fStart', endAt: '#fEnd', files: '#fFiles' };
     const state = { items: [], status: '', asked: 0, open: null, reviews: false, admin: false, submits: false, who: null, access: [], acc: null };
 
     // Everything from the server goes in as text nodes, never as HTML
@@ -252,6 +319,15 @@
       }
       n.append(...kids.flat().filter((x) => x != null && x !== false));
       return n;
+    }
+    // Paper-clip icon for a file link (an SVG needs its namespace)
+    function clip() {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      for (const [k, v] of Object.entries({ width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', class: 'shrink-0 text-royal' })) svg.setAttribute(k, String(v));
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', 'm21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5');
+      svg.append(p);
+      return svg;
     }
     const pill = (s) => el('span', { class: `st-${s} inline-flex rounded-full px-3 py-0.5 font-display text-[13px] font-semibold` }, STATUS[s]);
 
@@ -307,7 +383,9 @@
       const when = (v) => (v ? `${v}:00+07:00` : null);
       const body = { title: $('#fTitle').value, type: $('#fType').value, location: $('#fLocation').value, startAt: when($('#fStart').value), endAt: when($('#fEnd').value), details: $('#fDetails').value };
       try {
-        await api('/requests', { method: 'POST', body });
+        const many = tooMany($('#fFiles'));
+        if (many) throw Object.assign(new Error(many), { details: { files: many } });
+        await sendForm('/requests', body, [...$('#fFiles').files]);
         $('#formDlg').close();
         toast('ส่งคำขอแล้ว ทีม PR จะพิจารณาและแจ้งผลให้ทราบ');
         await load();
@@ -325,7 +403,11 @@
     }
 
     // ---- One request ----
-    function openView(r) {
+    // The list has no files or messages: the dialog asks for the whole request first
+    async function openView(r) {
+      if (!r.messages) {
+        try { r = (await api(`/requests/${encodeURIComponent(r.id)}`)).request; } catch (err) { toast(err.message, true); return; }
+      }
       state.open = r;
       const fact = (k, v) => [el('dt', { class: 'font-display font-semibold text-ink2' }, k), el('dd', { class: 'mb-1 [overflow-wrap:anywhere] sm:mb-0 whitespace-pre-line' }, v)];
       $('#viewTitle').textContent = r.title;
@@ -342,11 +424,58 @@
       }
       $('#viewEvent').hidden = !r.eventId;
       if (r.eventId) $('#viewEvent').href = `calendar.html?id=${r.eventId}`;
-      const pending = r.status === 'pending';
-      $('#viewCancel').hidden = !(pending && state.submits);
-      $('#viewReject').hidden = !(pending && state.reviews);
-      $('#viewApprove').hidden = !(pending && state.reviews);
-      $('#viewDlg').showModal();
+      const fileLink = (f) => el('li', {},
+        el('a', { href: `/api/requests/${encodeURIComponent(r.id)}/files/${encodeURIComponent(f.id)}`, download: f.name, class: 'hover-fill press t-quick inline-flex min-h-11 max-w-full items-center gap-2 rounded-2xl border border-line px-3 py-1.5 text-[15px] hover:-translate-y-0.5' },
+          clip(),
+          el('span', { class: 'min-w-0 font-medium [overflow-wrap:anywhere]' }, f.name),
+          el('span', { class: 'shrink-0 text-[13px] text-ink2' }, size(f.size))));
+      const first = r.files.filter((f) => !f.messageId);
+      $('#viewFilesBox').hidden = !first.length;
+      $('#viewFiles').replaceChildren(...first.map(fileLink));
+      $('#viewThreadBox').hidden = !r.messages.length;
+      $('#viewThread').replaceChildren(...r.messages.map((m) => {
+        const ask = m.kind === 'ask';
+        const files = r.files.filter((f) => f.messageId === m.id);
+        return el('li', { class: `grid gap-1.5 rounded-2xl px-4 py-3 text-[15px] ${ask ? 'bg-sky-soft' : 'bg-surface2'}` },
+          el('p', { class: 'font-display text-[14px] font-semibold' }, `${ask ? `ทีม PR ขอข้อมูลเพิ่มเติม${m.author ? ` (${m.author})` : ''}` : 'ผู้ขอตอบกลับ'} · ${dayTime(m.createdAt)}`),
+          m.body ? el('p', { class: 'leading-[1.7] [overflow-wrap:anywhere] whitespace-pre-line' }, m.body) : null,
+          files.length ? el('ul', { class: 'grid gap-1.5' }, files.map(fileLink)) : null);
+      }));
+      const open = r.status === 'pending' || r.status === 'info';
+      const mine = state.submits && r.status === 'info' && r.requesterId === state.me;
+      $('#replyForm').hidden = !mine;
+      if (mine) { $('#replyForm').reset(); $('#replyErr').hidden = true; }
+      $('#viewCancel').hidden = !(open && state.submits);
+      $('#viewAsk').hidden = !(r.status === 'pending' && state.reviews);
+      $('#viewReject').hidden = !(open && state.reviews);
+      $('#viewApprove').hidden = !(open && state.reviews);
+      if (!$('#viewDlg').open) $('#viewDlg').showModal();
+    }
+
+    async function reply(ev) {
+      ev.preventDefault();
+      const btn = $('#replyGo'), box = $('#replyErr');
+      box.hidden = true;
+      const many = tooMany($('#fReplyFiles'));
+      if (many) { box.textContent = many; box.hidden = false; return; }
+      btn.disabled = true;
+      try {
+        const r = await sendForm(`/requests/${state.open.id}/reply`, { body: $('#fReply').value }, [...$('#fReplyFiles').files]);
+        toast('ส่งข้อมูลเพิ่มเติมแล้ว ทีม PR จะพิจารณาต่อ');
+        openView(r.request);
+        load();
+      } catch (err) {
+        box.textContent = Object.values(err.details || {})[0] || err.message;
+        box.hidden = false;
+        if (err.status === 409) load();
+      } finally { btn.disabled = false; }
+    }
+    function openAsk() {
+      $('#viewDlg').close();
+      $('#askDlgName').textContent = state.open.title;
+      $('#fAskNote').value = '';
+      $('#askDlgErr').hidden = true;
+      $('#askDlg').showModal();
     }
 
     // The three decisions end the same way. If someone else got there first, the list is refreshed behind the dialog.
@@ -496,6 +625,7 @@
       }
       state.reviews = user.role === 'pr' || user.role === 'admin';
       state.admin = user.role === 'admin';
+      state.me = user.id;
       // Secretaries, and staff PR let in; an executive only reads
       state.submits = state.admin || (!state.reviews && user.role !== 'executive');
       if (state.reviews) state.status = 'pending';
@@ -511,6 +641,13 @@
       $('#viewApprove').addEventListener('click', openOk);
       $('#viewReject').addEventListener('click', openNo);
       $('#viewCancel').addEventListener('click', openOff);
+      $('#viewAsk').addEventListener('click', openAsk);
+      $('#replyForm').addEventListener('submit', reply);
+      $('#askDlgClose').addEventListener('click', () => $('#askDlg').close());
+      $('#askDlgForm').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        act($('#askDlgGo'), $('#askDlgErr'), $('#askDlg'), 'ask', { note: $('#fAskNote').value }, 'ส่งคำขอข้อมูลเพิ่มเติมถึงผู้ขอแล้ว');
+      });
       $('#okClose').addEventListener('click', () => $('#okDlg').close());
       $('#noClose').addEventListener('click', () => $('#noDlg').close());
       $('#offClose').addEventListener('click', () => $('#offDlg').close());

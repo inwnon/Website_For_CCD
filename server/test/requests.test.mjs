@@ -1,10 +1,13 @@
 // คำขอใช้บริการ (SPEC.md §2, §4, §8): who sees and decides what, the event an approval makes, notifications and PDPA.
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { after, before, describe, test } from 'node:test';
+import sharp from 'sharp';
 import { one, query, tx } from '../db.mjs';
+import { abs } from '../files.mjs';
 import { erase } from '../privacy.mjs';
 import { restore, snapshot } from './cleanup.mjs';
-import { anon, login } from './helpers.mjs';
+import { anon, form, login } from './helpers.mjs';
 
 const HOUR = 60 * 60 * 1000;
 const later = (hours) => new Date(Date.now() + hours * HOUR).toISOString();
@@ -74,6 +77,93 @@ describe('submitting', () => {
     await secretary.call('POST', `/api/requests/${r.id}/cancel`, {});
     const gone = (await pr.call('GET', `/api/pr/arrivals?since=${encodeURIComponent(first.now)}`)).body;
     assert.ok(!gone.requests.some((x) => x.id === r.id), 'a cancelled request is not shown');
+  });
+});
+
+describe('files and asking for more', () => {
+  const PDF = Buffer.from('%PDF-1.7\nกำหนดการทดสอบ\n');
+  const MB = 1024 * 1024;
+  const pdf = (name = 'กำหนดการ.pdf', buf = PDF) => [name, buf, 'application/pdf'];
+  const send = (files, who = secretary, over = {}) => who.call('POST', '/api/requests', form(body(over), { files }));
+
+  test('a request may carry files; only the allowed types, sizes and count; stored under random names', async () => {
+    const png = await sharp({ create: { width: 8, height: 8, channels: 3, background: 'red' } }).png().toBuffer();
+    const r = await send([pdf(), ['ผัง.png', png, 'image/png']]);
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    assert.deepEqual(r.body.request.files.map((f) => f.name).sort(), ['กำหนดการ.pdf', 'ผัง.png'].sort());
+    assert.ok(r.body.request.files.every((f) => f.messageId === null));
+    const row = await one('select file_path from service_request_files where request_id = $1 and file_name = $2', [r.body.request.id, 'กำหนดการ.pdf']);
+    assert.match(row.file_path, /^requests\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.pdf$/);
+    assert.deepEqual(await readFile(abs(row.file_path)), PDF);
+
+    for (const [name, buf, type] of [['virus.pdf', Buffer.from('MZ\x90\0'), 'application/pdf'], ['a.exe', Buffer.from('MZ'), 'application/octet-stream'], ['a.mp4', Buffer.from('....ftypisom'), 'video/mp4']]) {
+      const res = await send([[name, buf, type]]);
+      assert.equal(res.status, 400, String(name));
+      assert.ok(res.body.details?.files, String(name));
+    }
+    assert.equal((await send([pdf('ใหญ่.pdf', Buffer.concat([PDF, Buffer.alloc(20 * MB)]))])).status, 413);
+    assert.equal((await send(Array.from({ length: 6 }, (_, i) => pdf(`${i}.pdf`)))).status, 400);
+    assert.equal((await send([pdf()], secretary, { title: '' })).status, 400, 'bad fields with files still refused');
+  });
+
+  test('a file downloads only for those who may see the request', async () => {
+    const r = (await send([pdf()])).body.request;
+    const path = `/api/requests/${r.id}/files/${r.files[0].id}`;
+    for (const who of [secretary, pr, admin, executive]) {
+      const d = await who.call('GET', path);
+      assert.equal(d.status, 200);
+      assert.deepEqual(d.body, PDF);
+      assert.match(d.headers.get('content-disposition'), /^attachment/);
+    }
+    for (const who of [staff, student, external]) assert.equal((await who.call('GET', path)).status, 403);
+    assert.equal((await anon.call('GET', path)).status, 401);
+    const other = await submit();
+    assert.equal((await pr.call('GET', `/api/requests/${other.id}/files/${r.files[0].id}`)).status, 404, 'a file of another request');
+    assert.equal((await pr.call('GET', `/api/requests/${r.id}/files/${UUID}`)).status, 404);
+  });
+
+  test('PR asks for more → info; the requester answers with text and files → pending, PR is told, audit_log has both', async () => {
+    const r = await submit();
+    assert.equal((await secretary.call('POST', `/api/requests/${r.id}/ask`, { note: 'x' })).status, 403);
+    assert.equal((await executive.call('POST', `/api/requests/${r.id}/ask`, { note: 'x' })).status, 403);
+    assert.equal((await pr.call('POST', `/api/requests/${r.id}/ask`, { note: ' ' })).status, 400);
+    assert.equal((await secretary.call('POST', `/api/requests/${r.id}/reply`, form({ body: 'ยังไม่ได้ถาม' }))).status, 409, 'nothing was asked yet');
+
+    const asked = await pr.call('POST', `/api/requests/${r.id}/ask`, { note: 'ขอกำหนดการและจำนวนช่างภาพ' });
+    assert.equal(asked.body.request.status, 'info');
+    assert.equal(asked.body.request.messages[0].kind, 'ask');
+    assert.equal(asked.body.request.messages[0].body, 'ขอกำหนดการและจำนวนช่างภาพ');
+    assert.equal((await pr.call('POST', `/api/requests/${r.id}/ask`, { note: 'อีกรอบ' })).status, 409);
+    assert.equal((await notes(secretary, r.id))[0].kind, 'request.info');
+    assert.ok((await one(`select count(*)::int n from email_outbox where kind = 'request.info' and ref = $1`, [r.id])).n >= 1);
+    assert.equal((await secretary.call('GET', '/api/requests?status=info')).body.items.some((x) => x.id === r.id), true);
+
+    const since = (await pr.call('GET', '/api/pr/arrivals')).body.now;
+    assert.equal((await pr.call('POST', `/api/requests/${r.id}/reply`, form({ body: 'PR ตอบเอง' }))).status, 403, 'only the requester answers');
+    assert.equal((await executive.call('POST', `/api/requests/${r.id}/reply`, form({ body: 'x' }))).status, 403);
+    assert.equal((await secretary.call('POST', `/api/requests/${r.id}/reply`, form({ body: '' }))).status, 400, 'text or a file');
+    const replied = await secretary.call('POST', `/api/requests/${r.id}/reply`, form({ body: 'แนบกำหนดการแล้ว ช่างภาพ 2 คน' }, { files: [pdf()] }));
+    assert.equal(replied.status, 200, JSON.stringify(replied.body));
+    const got = replied.body.request;
+    assert.equal(got.status, 'pending');
+    assert.deepEqual(got.messages.map((m) => m.kind), ['ask', 'reply']);
+    assert.equal(got.files[0].messageId, got.messages[1].id, 'the file belongs to the answer');
+    assert.equal((await notes(pr, r.id))[0].kind, 'request.reply');
+    const alert = (await pr.call('GET', `/api/pr/arrivals?since=${encodeURIComponent(since)}`)).body.requests.find((x) => x.id === r.id);
+    assert.equal(alert?.again, true, 'the urgent alert says the requester answered');
+    assert.equal((await secretary.call('POST', `/api/requests/${r.id}/reply`, form({ body: 'ซ้ำ' }))).status, 409);
+    for (const action of ['request.ask', 'request.reply']) {
+      assert.equal((await one('select count(*)::int n from audit_log where action = $1 and target = $2', [action, r.id])).n, 1, action);
+    }
+  });
+
+  test('while waiting for more, PR may still approve or reject and the requester may cancel', async () => {
+    for (const [who, action, b, status] of [[pr, 'approve', { assignees: [] }, 'approved'], [pr, 'reject', { note: 'ไม่ทันเวลา' }, 'rejected'], [secretary, 'cancel', {}, 'cancelled']]) {
+      const r = await submit();
+      await pr.call('POST', `/api/requests/${r.id}/ask`, { note: 'ขอรายละเอียด' });
+      const done = await who.call('POST', `/api/requests/${r.id}/${action}`, b);
+      assert.equal(done.body.request?.status, status, `${action}: ${JSON.stringify(done.body)}`);
+    }
   });
 });
 
