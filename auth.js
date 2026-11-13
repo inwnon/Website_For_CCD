@@ -184,6 +184,8 @@
     .acct-cta { margin: 12px 16px 14px; display: flex; height: 46px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: var(--grad); color: #fff; font: 600 15px Kanit, sans-serif; box-shadow: var(--shadow-glow); transition: transform .45s var(--spring); }
     .acct-cta:hover { transform: translateY(-2px); }
     .acct-cta:active { transform: scale(.97); }
+    .nav-drawer .acct-theme { padding: 6px 16px 10px; font-size: 16px; }
+    @media (max-width: 767px) { body:has(#navBtn) .acct-panel .acct-theme, body:has(#navBtn) .acct-panel .acct-public { display: none; } }
     @media (prefers-reduced-motion: reduce) { .acct-panel, .acct-panel.open, .acct-btn, .acct-cta, .acct-item, .acct-seg button, .acct-roles button { transition: none; } }
   `;
 
@@ -194,7 +196,14 @@
     const dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.toggle('dark', dark);
     document.getElementById('themeToggle')?.setAttribute('aria-checked', String(dark));
+    syncThemeButtons();
   }
+  // The account menu and the phone ☰ menu both carry this row
+  function syncThemeButtons() {
+    const t = themeNow();
+    /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('button[data-theme]')).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.theme === t)));
+  }
+  const themeRow = () => `<div class="acct-theme"><span>ธีม</span><div class="acct-seg" role="group" aria-label="ธีมของหน้าเว็บ">${[['light', 'สว่าง'], ['dark', 'มืด'], ['system', 'ตามเครื่อง']].map(([v, l]) => `<button type="button" data-theme="${v}" aria-pressed="${themeNow() === v}">${l}</button>`).join('')}</div></div>`;
 
   const here = location.pathname.replace(/^\//, '') || 'index.html';
   const item = (href, icon, label, extra = '') => `<a class="acct-item" href="${href}"${href.split(/[?#]/)[0] === here && !/[?#]/.test(href) ? ' aria-current="page"' : ''}>${svg(IC[icon])}<span>${label}</span>${extra}</a>`;
@@ -217,12 +226,10 @@
 
   function menuHtml(me) {
     const u = me.user;
-    const theme = themeNow();
-    const themeRow = `<div class="acct-theme"><span>ธีม</span><div class="acct-seg" role="group" aria-label="ธีมของหน้าเว็บ">${[['light', 'สว่าง'], ['dark', 'มืด'], ['system', 'ตามเครื่อง']].map(([v, l]) => `<button type="button" data-theme="${v}" aria-pressed="${theme === v}">${l}</button>`).join('')}</div></div>`;
     if (!u) {
       return `<div class="acct-intro"><p class="acct-name">ยังไม่ได้เข้าสู่ระบบ</p><p>เข้าสู่ระบบด้วยบัญชี Google เพื่อส่งข่าวถึงงานประชาสัมพันธ์ ติดตามงานที่ส่ง และอ่านข่าวภายในมหาวิทยาลัย</p></div>
         <a class="acct-cta" href="${esc(window.loginUrl())}">${svg(IC.in)}เข้าสู่ระบบ</a>
-        <div class="acct-grp">${themeRow}${item('privacy.html', 'shield', 'นโยบายความเป็นส่วนตัว')}</div>`;
+        <div class="acct-grp acct-public">${themeRow()}${item('privacy.html', 'shield', 'นโยบายความเป็นส่วนตัว')}</div>`;
     }
     const aff = affiliation(u);
     // askable: pages the user may ask for (they open on the request form)
@@ -237,7 +244,7 @@
       <div class="acct-grp">${item('inbox.html', 'inbox', 'ข่าวของฉัน', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${isDesk(u) ? item(ADD_NEWS, 'send', 'เพิ่มข่าว') : window.baseRole(u) !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
       ${prTools}
       ${moduleTools}
-      <div class="acct-grp"><p class="acct-label">บัญชีและการตั้งค่า</p>${item('login.html?profile=1', 'edit', 'แก้ไขโปรไฟล์และสังกัด')}${item('inbox.html#notify', 'bell', 'การแจ้งเตือนทางอีเมล')}${item('privacy.html#rights', 'shield', 'ข้อมูลส่วนบุคคลของฉัน')}${themeRow}</div>
+      <div class="acct-grp"><p class="acct-label">บัญชีและการตั้งค่า</p>${item('login.html?profile=1', 'edit', 'แก้ไขโปรไฟล์และสังกัด')}${item('inbox.html#notify', 'bell', 'การแจ้งเตือนทางอีเมล')}${item('privacy.html#rights', 'shield', 'ข้อมูลส่วนบุคคลของฉัน')}${themeRow()}</div>
       <div class="acct-grp"><button type="button" class="acct-item danger" data-signout>${svg(IC.out)}<span>ออกจากระบบ</span></button></div>`;
   }
 
@@ -289,7 +296,7 @@
     });
     panel.addEventListener('click', async (e) => {
       const t = /** @type {HTMLElement} */ ((/** @type {Element} */ (e.target)).closest('[data-theme]'));
-      if (t) { setTheme(t.dataset.theme); panel.querySelectorAll('[data-theme]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); return; }
+      if (t) { setTheme(t.dataset.theme); return; }
       const sw = /** @type {HTMLElement} */ ((/** @type {Element} */ (e.target)).closest('[data-switch-role]'));
       if (sw) {
         if (sw.getAttribute('aria-pressed') !== 'true') switchRole(sw.dataset.switchRole, [...panel.querySelectorAll('[data-switch-role]')]);
@@ -373,25 +380,13 @@
             </button>
           </div>
           <nav aria-label="เมนูหลัก" class="flex flex-col gap-1"></nav>
-          <div class="mt-auto flex items-center justify-between gap-3 border-t border-line px-4 pt-4">
-            <span id="navThemeLabel" class="font-display text-[16px] font-medium">โหมดมืด</span>
-            <button type="button" role="switch" aria-checked="false" aria-labelledby="navThemeLabel" data-theme-switch class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line-strong bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
-              <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
-              <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
-              <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
-            </button>
+          <div class="mt-auto border-t border-line pt-3">
+            ${themeRow()}
+            <a href="privacy.html" class="hover-fill press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] font-medium"${here === 'privacy.html' ? ' aria-current="page"' : ''}>${svg(IC.shield)}นโยบายความเป็นส่วนตัว</a>
           </div>
         </div>`;
       document.body.append(dlg);
       const list = /** @type {HTMLElement} */ (dlg.querySelector('nav'));
-      // Theme switch: the same setTheme as the account menu, so the header switch follows it
-      const themeSw = /** @type {HTMLButtonElement} */ (dlg.querySelector('[data-theme-switch]'));
-      const syncThemeSw = () => themeSw.setAttribute('aria-checked', String(document.documentElement.classList.contains('dark')));
-      themeSw.addEventListener('click', () => {
-        setTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
-        syncThemeSw();
-        /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('button[data-theme]')).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.theme === themeNow())));
-      });
       const setOpen = (/** @type {boolean} */ open) => navBtn.setAttribute('aria-expanded', String(open));
       const close = (animate = true) => {
         if (!dlg.open) return;
@@ -408,7 +403,7 @@
           link.className = `press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] ${current ? 'bg-royal-soft font-semibold text-royal hover:opacity-90' : 'hover-fill font-medium'}`;
           return link;
         }));
-        syncThemeSw();
+        syncThemeButtons();
         dlg.showModal();
         setOpen(true);
         requestAnimationFrame(() => dlg.classList.add('is-in'));
@@ -417,7 +412,9 @@
       dlg.addEventListener('close', () => { setOpen(false); navBtn.focus(); });
       dlg.addEventListener('click', (e) => {
         const t = /** @type {HTMLElement} */ (e.target);
-        if (t === dlg || t.closest('[data-close]')) close();
+        const th = /** @type {HTMLElement | null} */ (t.closest('[data-theme]'));
+        if (th) setTheme(th.dataset.theme);
+        else if (t === dlg || t.closest('[data-close]')) close();
         else if (t.closest('a')) close(false); // close first so a #section link can scroll the page
       });
       matchMedia('(min-width: 768px)').addEventListener('change', (e) => { if (e.matches) close(false); });
