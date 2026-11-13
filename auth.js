@@ -414,7 +414,8 @@
         const t = /** @type {HTMLElement} */ (e.target);
         const th = /** @type {HTMLElement | null} */ (t.closest('[data-theme]'));
         if (th) setTheme(th.dataset.theme);
-        else if (t === dlg || t.closest('[data-close]')) close();
+        // Backdrop: only to the right of the bar's resting width, so a quick second tap on ☰ while it slides in does not close it
+        else if ((t === dlg && e.clientX > dlg.offsetWidth) || t.closest('[data-close]')) close();
         else if (t.closest('a')) close(false); // close first so a #section link can scroll the page
       });
       matchMedia('(min-width: 768px)').addEventListener('change', (e) => { if (e.matches) close(false); });

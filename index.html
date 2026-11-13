@@ -1053,13 +1053,15 @@
 
     // ---- Start: who is reading decides locked cards ----
     reveal();
+    // Arriving on index.html#latest (menu on other pages): the browser jumps before the shelves above load and
+    // push the section down, so jump again once they are in, unless the reader has moved already
+    const hashTarget = location.hash.length > 1 ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+    let readerMoved = false;
+    if (hashTarget) ['wheel', 'touchmove', 'keydown'].forEach((t) => addEventListener(t, () => { readerMoved = true; }, { once: true, passive: true }));
     (async () => {
       [me] = await Promise.all([window.ME, heroShown]);
-      loadFeatured();
-      loadLatest();
-      loadSoundline();
-      loadSets();
-      loadArchive();
+      await Promise.allSettled([loadFeatured(), loadLatest(), loadSoundline(), loadSets(), loadArchive()]);
+      if (hashTarget && !readerMoved) jumpTo(hashTarget);
     })();
   </script>
 </body>
