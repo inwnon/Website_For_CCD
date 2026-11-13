@@ -363,7 +363,7 @@
         <div class="reveal mb-6 flex items-end justify-between gap-4">
           <div>
             <p id="latestEyebrow" class="font-display text-[14px] font-medium text-brand">อัปเดตจาก 42 หน่วยงาน</p>
-            <h2 id="latest-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">รวมข่าว</h2>
+            <h2 id="latest-title" class="font-display text-[clamp(24px,2.6vw,30px)] font-bold text-royal">รวมข่าวทั้งหมด</h2>
           </div>
           <a id="latestAll" href="search.html" class="press t-spring inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-2 font-display text-[15px] font-medium text-purple hover:translate-x-0.5">ดูทั้งหมด<span id="latestAllNote" class="sr-only"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -718,7 +718,7 @@
       const title = $('#latest-title'), eyebrow = $('#latestEyebrow');
       if (latest.q) { title.textContent = `ผลการค้นหา “${latest.q}”`; eyebrow.textContent = `พบ ${total.toLocaleString('th-TH')} ข่าว`; }
       else if (latest.date) { title.textContent = `ข่าววันที่ ${fmtLong.format(new Date(latest.date + 'T12:00:00+07:00'))}`; eyebrow.textContent = `${total.toLocaleString('th-TH')} ข่าว`; }
-      else { title.textContent = 'รวมข่าว'; eyebrow.textContent = latest.kind ? `เฉพาะ${KIND[latest.kind][0]}` : 'อัปเดตจาก 42 หน่วยงาน'; }
+      else { title.textContent = 'รวมข่าวทั้งหมด';eyebrow.textContent = latest.kind ? `เฉพาะ${KIND[latest.kind][0]}` : 'อัปเดตจาก 42 หน่วยงาน'; }
     }
     async function loadLatest(append = false) {
       const seq = ++latest.seq; // ignore answers to requests that a newer one replaced
@@ -729,10 +729,9 @@
       else if (latest.date) p.set('date', latest.date);
       else if (latest.range !== 'all') p.set('range', latest.range);
       if (latest.kind) p.set('kind', latest.kind);
-      // Under ทั้งหมด the stories on the ข่าวเด่น shelf are not shown again here; once no longer featured they are back by date.
-      // A time range or a search shows every story it matches, the featured ones too
+      // วิดีโอเสียงตามสาย has its own shelf below, so it is left out here; a search or a calendar day shows it
       if (!latest.date) p.set('feed', '1');
-      if (!latest.date && !latest.q && latest.range === 'all') p.set('skipShelf', '1');
+      if (!latest.date && !latest.q) p.set('skipSound', '1');
       if (!append) { p.set('counts', '1'); paintKindCounts(null); }
       moreBtn.disabled = true;
       try {

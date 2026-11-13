@@ -1,5 +1,5 @@
 // ลิงก์วิดีโอเพิ่มเติม (submit.html, pr-import.html → news.html), นักศึกษาฝึกงาน สสอ. (imports only), and the home page
-// ข่าวล่าสุด: ประเภทเนื้อหา and no story twice (the ข่าวเด่น shelf is left out until the story is no longer featured).
+// ข่าวล่าสุด: ประเภทเนื้อหา, ข่าวเด่น included and วิดีโอเสียงตามสาย left out (it has its own shelf).
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { query } from '../db.mjs';
@@ -89,25 +89,26 @@ describe('ข่าวล่าสุด on the home page', () => {
     }
   });
 
-  test('a story on the ข่าวเด่น shelf is not in ข่าวล่าสุด until it is no longer featured', async () => {
-    const i = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', videoUrl: null, title: 'ข่าวเด่นทดสอบไม่ซ้ำ', body: 'ก'.repeat(40) },
-      { photo: [['a.jpg', await img('#468', 400, 300), 'image/jpeg']] }));
-    assert.equal(i.status, 201, JSON.stringify(i.body));
-    const id = i.body.news.id;
-    await query('update news set published_at = now() - interval \'1 minute\' where id = $1', [id]); // the newest story
-    const latest = async () => (await anon.call('GET', '/api/news?feed=1&skipShelf=1&limit=12')).body.items.map((n) => n.id);
-    assert.ok((await latest()).includes(id), 'not featured: in ข่าวล่าสุด');
-
-    await pr.call('POST', `/api/pr/news/${id}/feature`, { featured: true });
-    const shelf = (await anon.call('GET', '/api/news?feed=1&featured=1&limit=4')).body.items.map((n) => n.id);
-    assert.ok(shelf.includes(id), 'on the shelf');
-    const now = await latest();
-    assert.ok(!now.includes(id), 'not twice');
-    assert.ok(shelf.every((s) => !now.includes(s)), 'no shelf story in ข่าวล่าสุด');
-    assert.ok((await anon.call('GET', '/api/news?feed=1&limit=12')).body.items.some((n) => n.id === id), 'without skipShelf the list is as before');
-
-    await pr.call('POST', `/api/pr/news/${id}/feature`, { featured: false });
-    assert.ok((await latest()).includes(id), 'back in its place by date');
+  test('a featured story is in ข่าวล่าสุด too; วิดีโอเสียงตามสาย is not (it has its own shelf), but search and the full feed keep it', async () => {
+    const make = async (fields, files) => {
+      const i = await pr.call('POST', '/api/pr/import', form(fields, files));
+      assert.equal(i.status, 201, JSON.stringify(i.body));
+      await query('update news set published_at = now() - interval \'1 minute\' where id = $1', [i.body.news.id]); // among the newest
+      return i.body.news.id;
+    };
+    const star = await make({ ...IMPORT, kind: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', videoUrl: null, title: 'ข่าวเด่นทดสอบรวมข่าว', body: 'ก'.repeat(40) },
+      { photo: [['a.jpg', await img('#468', 400, 300), 'image/jpeg']] });
+    await pr.call('POST', `/api/pr/news/${star}/feature`, { featured: true });
+    const sound = await make({ ...IMPORT, title: 'เสียงตามสายทดสอบรวมข่าว', categories: ['วิดีโอเสียงตามสาย'] });
+    const latest = (await anon.call('GET', '/api/news?feed=1&skipSound=1&counts=1&limit=12')).body;
+    const ids = latest.items.map((n) => n.id);
+    assert.ok(ids.includes(star), 'featured story in ข่าวล่าสุด');
+    assert.ok(!ids.includes(sound), 'no เสียงตามสาย in ข่าวล่าสุด');
+    const all = (await anon.call('GET', '/api/news?feed=1&counts=1&limit=12')).body;
+    assert.ok(all.items.some((n) => n.id === sound), 'without skipSound the list is as before');
+    assert.equal(latest.kinds.video, all.kinds.video - 1, 'the video badge counts only the cards shown');
+    const shelf = (await anon.call('GET', `/api/news/search?${new URLSearchParams({ cat: 'วิดีโอเสียงตามสาย', sort: 'newest', limit: '4' })}`)).body.items;
+    assert.ok(shelf.some((n) => n.id === sound), 'the เสียงตามสาย shelf still has it');
   });
 });
 
