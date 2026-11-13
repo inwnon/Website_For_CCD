@@ -397,12 +397,20 @@
       };
       navBtn.addEventListener('click', () => {
         // Built from the menu row each time, so both always list the same links
-        list.replaceChildren(...[...nav.querySelectorAll('a')].map((a) => {
+        // Phones: no shortcuts to home-page shelves (readers scroll to them); ปฏิทินกิจกรรม after คลังข่าว instead
+        const links = [...nav.querySelectorAll('a')].filter((a) => !/#(latest|featured)$/.test(a.getAttribute('href') || '')).map((a) => {
           const link = /** @type {HTMLAnchorElement} */ (a.cloneNode(true));
           const current = a.getAttribute('aria-current') === 'page';
           link.className = `press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] ${current ? 'bg-royal-soft font-semibold text-royal hover:opacity-90' : 'hover-fill font-medium'}`;
           return link;
-        }));
+        });
+        const cal = document.createElement('a');
+        cal.href = document.getElementById('archive') ? '#archive' : 'index.html#archive';
+        cal.className = 'hover-fill press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] font-medium';
+        cal.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>ปฏิทินกิจกรรม';
+        const after = links.findIndex((l) => l.textContent.includes('คลังข่าว'));
+        links.splice(after < 0 ? links.length : after + 1, 0, cal);
+        list.replaceChildren(...links);
         syncThemeButtons();
         dlg.showModal();
         setOpen(true);
