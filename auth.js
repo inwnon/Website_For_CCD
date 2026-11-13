@@ -184,6 +184,8 @@
     .acct-cta { margin: 12px 16px 14px; display: flex; height: 46px; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: var(--grad); color: #fff; font: 600 15px Kanit, sans-serif; box-shadow: var(--shadow-glow); transition: transform .45s var(--spring); }
     .acct-cta:hover { transform: translateY(-2px); }
     .acct-cta:active { transform: scale(.97); }
+    .nav-drawer .acct-theme { padding: 6px 16px 10px; font-size: 16px; }
+    @media (max-width: 767px) { body:has(#navBtn) .acct-panel .acct-theme, body:has(#navBtn) .acct-panel .acct-public { display: none; } }
     @media (prefers-reduced-motion: reduce) { .acct-panel, .acct-panel.open, .acct-btn, .acct-cta, .acct-item, .acct-seg button, .acct-roles button { transition: none; } }
   `;
 
@@ -194,7 +196,14 @@
     const dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.toggle('dark', dark);
     document.getElementById('themeToggle')?.setAttribute('aria-checked', String(dark));
+    syncThemeButtons();
   }
+  // The account menu and the phone ☰ menu both carry this row
+  function syncThemeButtons() {
+    const t = themeNow();
+    /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('button[data-theme]')).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.theme === t)));
+  }
+  const themeRow = () => `<div class="acct-theme"><span>ธีม</span><div class="acct-seg" role="group" aria-label="ธีมของหน้าเว็บ">${[['light', 'สว่าง'], ['dark', 'มืด'], ['system', 'ตามเครื่อง']].map(([v, l]) => `<button type="button" data-theme="${v}" aria-pressed="${themeNow() === v}">${l}</button>`).join('')}</div></div>`;
 
   const here = location.pathname.replace(/^\//, '') || 'index.html';
   const item = (href, icon, label, extra = '') => `<a class="acct-item" href="${href}"${href.split(/[?#]/)[0] === here && !/[?#]/.test(href) ? ' aria-current="page"' : ''}>${svg(IC[icon])}<span>${label}</span>${extra}</a>`;
@@ -217,12 +226,10 @@
 
   function menuHtml(me) {
     const u = me.user;
-    const theme = themeNow();
-    const themeRow = `<div class="acct-theme"><span>ธีม</span><div class="acct-seg" role="group" aria-label="ธีมของหน้าเว็บ">${[['light', 'สว่าง'], ['dark', 'มืด'], ['system', 'ตามเครื่อง']].map(([v, l]) => `<button type="button" data-theme="${v}" aria-pressed="${theme === v}">${l}</button>`).join('')}</div></div>`;
     if (!u) {
       return `<div class="acct-intro"><p class="acct-name">ยังไม่ได้เข้าสู่ระบบ</p><p>เข้าสู่ระบบด้วยบัญชี Google เพื่อส่งข่าวถึงงานประชาสัมพันธ์ ติดตามงานที่ส่ง และอ่านข่าวภายในมหาวิทยาลัย</p></div>
         <a class="acct-cta" href="${esc(window.loginUrl())}">${svg(IC.in)}เข้าสู่ระบบ</a>
-        <div class="acct-grp">${themeRow}${item('privacy.html', 'shield', 'นโยบายความเป็นส่วนตัว')}</div>`;
+        <div class="acct-grp acct-public">${themeRow()}${item('privacy.html', 'shield', 'นโยบายความเป็นส่วนตัว')}</div>`;
     }
     const aff = affiliation(u);
     // askable: pages the user may ask for (they open on the request form)
@@ -237,7 +244,7 @@
       <div class="acct-grp">${item('inbox.html', 'inbox', 'ข่าวของฉัน', me.unread ? `<span class="acct-n">${me.unread}<span class="sr-only"> รายการใหม่</span></span>` : '')}${isDesk(u) ? item(ADD_NEWS, 'send', 'เพิ่มข่าว') : window.baseRole(u) !== 'external' ? item('submit.html', 'send', 'ส่งข่าว') : ''}</div>
       ${prTools}
       ${moduleTools}
-      <div class="acct-grp"><p class="acct-label">บัญชีและการตั้งค่า</p>${item('login.html?profile=1', 'edit', 'แก้ไขโปรไฟล์และสังกัด')}${item('inbox.html#notify', 'bell', 'การแจ้งเตือนทางอีเมล')}${item('privacy.html#rights', 'shield', 'ข้อมูลส่วนบุคคลของฉัน')}${themeRow}</div>
+      <div class="acct-grp"><p class="acct-label">บัญชีและการตั้งค่า</p>${item('login.html?profile=1', 'edit', 'แก้ไขโปรไฟล์และสังกัด')}${item('inbox.html#notify', 'bell', 'การแจ้งเตือนทางอีเมล')}${item('privacy.html#rights', 'shield', 'ข้อมูลส่วนบุคคลของฉัน')}${themeRow()}</div>
       <div class="acct-grp"><button type="button" class="acct-item danger" data-signout>${svg(IC.out)}<span>ออกจากระบบ</span></button></div>`;
   }
 
@@ -289,7 +296,7 @@
     });
     panel.addEventListener('click', async (e) => {
       const t = /** @type {HTMLElement} */ ((/** @type {Element} */ (e.target)).closest('[data-theme]'));
-      if (t) { setTheme(t.dataset.theme); panel.querySelectorAll('[data-theme]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); return; }
+      if (t) { setTheme(t.dataset.theme); return; }
       const sw = /** @type {HTMLElement} */ ((/** @type {Element} */ (e.target)).closest('[data-switch-role]'));
       if (sw) {
         if (sw.getAttribute('aria-pressed') !== 'true') switchRole(sw.dataset.switchRole, [...panel.querySelectorAll('[data-switch-role]')]);
@@ -354,5 +361,72 @@
       });
     }, { passive: true });
     header.addEventListener('focusin', () => header.classList.remove('hdr-away'));
+
+    // Phones: the ☰ button (in place of the logo) opens the menu row as a side bar from the left.
+    // A modal <dialog> keeps focus inside, closes on Esc and makes the page behind inert.
+    const navBtn = document.getElementById('navBtn');
+    if (navBtn) {
+      const dlg = document.createElement('dialog');
+      dlg.id = 'navDrawer';
+      dlg.className = 'nav-drawer';
+      dlg.setAttribute('aria-label', 'เมนูหลัก');
+      dlg.innerHTML = `
+        <div class="flex h-full flex-col overflow-y-auto px-4 pb-6 pt-3">
+          <div class="mb-3 flex items-center gap-3">
+            <span class="logo-crop h-10 w-10 shrink-0"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
+            <span class="min-w-0 flex-1 font-display text-[19px] font-semibold"><span class="text-brand">SRU</span> <span class="text-royal">News Hub</span></span>
+            <button type="button" data-close class="hover-fill press t-quick grid h-11 w-11 shrink-0 place-items-center rounded-full" aria-label="ปิดเมนู">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+          </div>
+          <nav aria-label="เมนูหลัก" class="flex flex-col gap-1"></nav>
+          <div class="mt-auto border-t border-line pt-3">
+            ${themeRow()}
+            <a href="privacy.html" class="hover-fill press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] font-medium"${here === 'privacy.html' ? ' aria-current="page"' : ''}>${svg(IC.shield)}นโยบายความเป็นส่วนตัว</a>
+          </div>
+        </div>`;
+      document.body.append(dlg);
+      const list = /** @type {HTMLElement} */ (dlg.querySelector('nav'));
+      const setOpen = (/** @type {boolean} */ open) => navBtn.setAttribute('aria-expanded', String(open));
+      const close = (animate = true) => {
+        if (!dlg.open) return;
+        dlg.classList.remove('is-in');
+        setOpen(false);
+        if (!animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { dlg.close(); return; }
+        setTimeout(() => dlg.close(), 280);
+      };
+      navBtn.addEventListener('click', () => {
+        // Built from the menu row each time, so both always list the same links
+        // Phones: no shortcuts to home-page shelves (readers scroll to them); ปฏิทินกิจกรรม after คลังข่าว instead
+        const links = [...nav.querySelectorAll('a')].filter((a) => !/#(latest|featured)$/.test(a.getAttribute('href') || '')).map((a) => {
+          const link = /** @type {HTMLAnchorElement} */ (a.cloneNode(true));
+          const current = a.getAttribute('aria-current') === 'page';
+          link.className = `press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] ${current ? 'bg-royal-soft font-semibold text-royal hover:opacity-90' : 'hover-fill font-medium'}`;
+          return link;
+        });
+        const cal = document.createElement('a');
+        cal.href = document.getElementById('archive') ? '#archive' : 'index.html#archive';
+        cal.className = 'hover-fill press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] font-medium';
+        cal.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>ปฏิทินกิจกรรม';
+        const after = links.findIndex((l) => l.textContent.includes('คลังข่าว'));
+        links.splice(after < 0 ? links.length : after + 1, 0, cal);
+        list.replaceChildren(...links);
+        syncThemeButtons();
+        dlg.showModal();
+        setOpen(true);
+        requestAnimationFrame(() => dlg.classList.add('is-in'));
+      });
+      dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+      dlg.addEventListener('close', () => { setOpen(false); navBtn.focus(); });
+      dlg.addEventListener('click', (e) => {
+        const t = /** @type {HTMLElement} */ (e.target);
+        const th = /** @type {HTMLElement | null} */ (t.closest('[data-theme]'));
+        if (th) setTheme(th.dataset.theme);
+        // Backdrop: only to the right of the bar's resting width, so a quick second tap on ☰ while it slides in does not close it
+        else if ((t === dlg && e.clientX > dlg.offsetWidth) || t.closest('[data-close]')) close();
+        else if (t.closest('a')) close(false); // close first so a #section link can scroll the page
+      });
+      matchMedia('(min-width: 768px)').addEventListener('change', (e) => { if (e.matches) close(false); });
+    }
   }
 })();
