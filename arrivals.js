@@ -134,6 +134,7 @@
       dlg.addEventListener('close', () => { stopRing(); asked = []; });
     }
     const first = asked[0], more = asked.length - 1;
+    dlg.querySelector('#raTitle').textContent = first.again ? 'ผู้ขอส่งข้อมูลเพิ่มเติมแล้ว' : 'มีคำขอใช้บริการใหม่';
     const set = (k, v) => { dlg.querySelector(`[data-ra="${k}"]`).textContent = v || '-'; };
     set('title', first.title); set('type', ASK[first.type]); set('when', when(first.startAt)); set('location', first.location); set('requester', first.requester);
     const moreEl = /** @type {HTMLElement} */ (dlg.querySelector('[data-ra-more]'));
@@ -175,7 +176,7 @@
           startRing();
           if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
             try {
-              const n = new Notification(asks.length > 1 ? `มีคำขอใช้บริการใหม่ ${asks.length} คำขอ` : 'มีคำขอใช้บริการใหม่',
+              const n = new Notification(asks.length > 1 ? `มีคำขอใช้บริการใหม่ ${asks.length} คำขอ` : asks[0].again ? 'ผู้ขอส่งข้อมูลเพิ่มเติมแล้ว' : 'มีคำขอใช้บริการใหม่',
                 { body: `${asks[0].title}\n${asks[0].requester || ''}`, tag: 'pr-requests', icon: '/assets/img/icon-180.png', requireInteraction: true });
               n.onclick = () => { window.focus(); n.close(); };
             } catch (e) {}

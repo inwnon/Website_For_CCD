@@ -160,6 +160,25 @@ export async function requestDecided(db, r) {
   if (!wants(u.notify, 'status')) return;
   await enqueue(db, { kind, ref: r.id, to: u.email, subject: text, title: approved ? 'ทีม PR อนุมัติคำขอของคุณแล้ว' : 'ทีม PR ไม่อนุมัติคำขอของคุณ', lines: requestLines(r), quote: r.review_note || undefined, button: requestButton(r) });
 }
+// PR asks the requester for more (note: what PR wants), and the requester's answer back to the PR team
+export async function requestInfoAsked(db, r, note) {
+  const u = (await db.query('select id, email, notify from users where id = $1 and erased_at is null', [r.requester_id])).rows[0];
+  if (!u) return;
+  const text = `ทีม PR ขอข้อมูลเพิ่มเติม: ${r.title}`;
+  await db.query('insert into notifications (user_id, kind, ref_id, text) values ($1, $2, $3, $4)', [u.id, 'request.info', r.id, text]);
+  if (!wants(u.notify, 'status')) return;
+  await enqueue(db, { kind: 'request.info', ref: r.id, to: u.email, subject: text, title: 'ทีม PR ขอข้อมูลเพิ่มเติมสำหรับคำขอของคุณ', lines: requestLines(r), quote: note, button: requestButton(r) });
+}
+export async function requestReplied(db, r, user, body) {
+  const text = `ผู้ขอส่งข้อมูลเพิ่มเติมแล้ว: ${r.title}`;
+  const rows = (await db.query(`select u.id, t.email, u.notify from pr_team t left join users u on u.email = t.email where t.role in ('pr', 'admin')`)).rows;
+  for (const u of rows) {
+    if (u.email === user.email) continue;
+    if (u.id) await db.query('insert into notifications (user_id, kind, ref_id, text) values ($1, $2, $3, $4)', [u.id, 'request.reply', r.id, text]);
+    if (!wants(u.notify, 'prNew')) continue;
+    await enqueue(db, { kind: 'request.reply', ref: r.id, to: u.email, subject: text, title: 'ผู้ขอส่งข้อมูลเพิ่มเติมแล้ว', lines: requestLines(r), quote: body, button: requestButton(r) });
+  }
+}
 // A staff account asks to use คำขอใช้บริการ (a.id is the request_access row), and the answer back
 const accessButton = { label: 'เปิดหน้าคำขอใช้บริการ', href: link('requests.html') };
 export async function accessAsked(db, a, user) {
