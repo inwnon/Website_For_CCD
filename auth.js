@@ -373,9 +373,25 @@
             </button>
           </div>
           <nav aria-label="เมนูหลัก" class="flex flex-col gap-1"></nav>
+          <div class="mt-auto flex items-center justify-between gap-3 border-t border-line px-4 pt-4">
+            <span id="navThemeLabel" class="font-display text-[16px] font-medium">โหมดมืด</span>
+            <button type="button" role="switch" aria-checked="false" aria-labelledby="navThemeLabel" data-theme-switch class="group press t-quick relative inline-flex h-11 w-[78px] shrink-0 items-center rounded-full border border-line-strong bg-surface2 p-1 hover:border-[rgb(var(--purple)/.45)]">
+              <span class="t-spring absolute left-1 top-1 h-[34px] w-[34px] rounded-full bg-grad shadow-glow group-hover:scale-[1.06] dark:translate-x-[34px]" aria-hidden="true"></span>
+              <span class="relative grid h-[34px] w-[34px] place-items-center text-white dark:text-ink2" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+              <span class="relative grid h-[34px] w-[34px] place-items-center text-ink2 dark:text-white" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span>
+            </button>
+          </div>
         </div>`;
       document.body.append(dlg);
       const list = /** @type {HTMLElement} */ (dlg.querySelector('nav'));
+      // Theme switch: the same setTheme as the account menu, so the header switch follows it
+      const themeSw = /** @type {HTMLButtonElement} */ (dlg.querySelector('[data-theme-switch]'));
+      const syncThemeSw = () => themeSw.setAttribute('aria-checked', String(document.documentElement.classList.contains('dark')));
+      themeSw.addEventListener('click', () => {
+        setTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+        syncThemeSw();
+        /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('button[data-theme]')).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.theme === themeNow())));
+      });
       const setOpen = (/** @type {boolean} */ open) => navBtn.setAttribute('aria-expanded', String(open));
       const close = (animate = true) => {
         if (!dlg.open) return;
@@ -392,6 +408,7 @@
           link.className = `press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] ${current ? 'bg-royal-soft font-semibold text-royal hover:opacity-90' : 'hover-fill font-medium'}`;
           return link;
         }));
+        syncThemeSw();
         dlg.showModal();
         setOpen(true);
         requestAnimationFrame(() => dlg.classList.add('is-in'));
