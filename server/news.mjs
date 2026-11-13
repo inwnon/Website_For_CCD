@@ -1,7 +1,6 @@
 // Published stories — reading side (index.html, news.html, search.html)
-// - GET    /api/news?feed=1&featured=1&range=today|week|month&date=YYYY-MM-DD&kind=news|video|banner&skipShelf=1&limit=&offset=
-//          skipShelf=1 (ข่าวล่าสุด on the home page): leaves out the stories on the ข่าวเด่น shelf (the newest SHELF featured
-//          ones), so a story is not shown twice; once it is no longer featured it is back in its place by date.
+// - GET    /api/news?feed=1&featured=1&range=today|week|month&date=YYYY-MM-DD&kind=news|video|banner&skipSound=1&limit=&offset=
+//          skipSound=1 (รวมข่าวทั้งหมด on the home page): leaves out วิดีโอเสียงตามสาย, which has its own shelf there.
 //          live stories, newest first (feed=1 is the home page; imported stories (นำเข้าย้อนหลัง) are in it too, at their original date).
 //          Stories the viewer may not read come back as { locked: true } placeholders.
 // - GET    /api/news/search?q=&kind=&cat=&cat=&unit=&from=&to=&sort=relevance|newest&limit=&offset=
@@ -26,6 +25,7 @@ import { HttpError } from './http.mjs';
 import { unitFamily } from './org.mjs';
 import { PLATFORMS, TYPES, albumHost, audienceLabel, plainText } from './rules.mjs';
 import { limit } from './security.mjs';
+import { VIDEO_CATEGORIES } from './settings.mjs';
 import { searchTerms } from './thai.mjs';
 import { ZipArchive } from 'archiver';
 import sharp from 'sharp';
@@ -75,7 +75,6 @@ export function cardOut(n, user) {
 export const router = Router();
 
 // ---- Home page lists and the archive day view ----
-export const SHELF = 4;
 router.get('/news', async (req, res) => {
   const { featured, range, date, kind } = /** @type {Record<string, any>} */ (req.query);
   const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 48);
@@ -85,8 +84,7 @@ router.get('/news', async (req, res) => {
   if (featured === '1') where.push('n.featured');
   // kind is applied last, so counts=1 can count every kind under the same other filters
   const kindAt = TYPES.includes(kind) ? (params.push(kind), params.length) : 0;
-  if (req.query.skipShelf === '1') where.push(`n.id not in (select f.id from news f where f.featured and f.published_at <= now() and f.withdrawn_at is null
-    order by f.published_at desc, f.id limit ${SHELF})`);
+  if (req.query.skipSound === '1') { params.push(VIDEO_CATEGORIES); where.push(`not (n.categories && $${params.length}::text[])`); }
   if (range === 'today') where.push(`${LOCAL_DAY} = ${TODAY}`);
   // Week = Sunday–Saturday, as the calendar on index.html
   if (range === 'week') where.push(`${LOCAL_DAY} between ${TODAY} - extract(dow from ${TODAY})::int and ${TODAY} - extract(dow from ${TODAY})::int + 6`);
