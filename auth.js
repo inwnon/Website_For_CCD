@@ -397,8 +397,8 @@
       };
       navBtn.addEventListener('click', () => {
         // Built from the menu row each time, so both always list the same links
-        // Phones: no shortcuts to home-page shelves (readers scroll to them); ปฏิทินกิจกรรม after คลังข่าว instead
-        const links = [...nav.querySelectorAll('a')].filter((a) => !/#(latest|featured)$/.test(a.getAttribute('href') || '')).map((a) => {
+        // Phones: no shortcut to รวมข่าว (readers scroll to it); ปฏิทินกิจกรรม is re-added after คลังข่าว
+        const links = [...nav.querySelectorAll('a')].filter((a) => !/#(latest|featured|archive)$/.test(a.getAttribute('href') || '')).map((a) => {
           const link = /** @type {HTMLAnchorElement} */ (a.cloneNode(true));
           const current = a.getAttribute('aria-current') === 'page';
           link.className = `press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] ${current ? 'bg-royal-soft font-semibold text-royal hover:opacity-90' : 'hover-fill font-medium'}`;
