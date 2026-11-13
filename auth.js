@@ -354,5 +354,56 @@
       });
     }, { passive: true });
     header.addEventListener('focusin', () => header.classList.remove('hdr-away'));
+
+    // Phones: the ☰ button (in place of the logo) opens the menu row as a side bar from the left.
+    // A modal <dialog> keeps focus inside, closes on Esc and makes the page behind inert.
+    const navBtn = document.getElementById('navBtn');
+    if (navBtn) {
+      const dlg = document.createElement('dialog');
+      dlg.id = 'navDrawer';
+      dlg.className = 'nav-drawer';
+      dlg.setAttribute('aria-label', 'เมนูหลัก');
+      dlg.innerHTML = `
+        <div class="flex h-full flex-col overflow-y-auto px-4 pb-6 pt-3">
+          <div class="mb-3 flex items-center gap-3">
+            <span class="logo-crop h-10 w-10 shrink-0"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
+            <span class="min-w-0 flex-1 font-display text-[19px] font-semibold"><span class="text-brand">SRU</span> <span class="text-royal">News Hub</span></span>
+            <button type="button" data-close class="hover-fill press t-quick grid h-11 w-11 shrink-0 place-items-center rounded-full" aria-label="ปิดเมนู">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+          </div>
+          <nav aria-label="เมนูหลัก" class="flex flex-col gap-1"></nav>
+        </div>`;
+      document.body.append(dlg);
+      const list = /** @type {HTMLElement} */ (dlg.querySelector('nav'));
+      const setOpen = (/** @type {boolean} */ open) => navBtn.setAttribute('aria-expanded', String(open));
+      const close = (animate = true) => {
+        if (!dlg.open) return;
+        dlg.classList.remove('is-in');
+        setOpen(false);
+        if (!animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { dlg.close(); return; }
+        setTimeout(() => dlg.close(), 280);
+      };
+      navBtn.addEventListener('click', () => {
+        // Built from the menu row each time, so both always list the same links
+        list.replaceChildren(...[...nav.querySelectorAll('a')].map((a) => {
+          const link = /** @type {HTMLAnchorElement} */ (a.cloneNode(true));
+          const current = a.getAttribute('aria-current') === 'page';
+          link.className = `press t-quick flex h-12 items-center gap-3 rounded-2xl px-4 font-display text-[16px] ${current ? 'bg-royal-soft font-semibold text-royal hover:opacity-90' : 'hover-fill font-medium'}`;
+          return link;
+        }));
+        dlg.showModal();
+        setOpen(true);
+        requestAnimationFrame(() => dlg.classList.add('is-in'));
+      });
+      dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+      dlg.addEventListener('close', () => { setOpen(false); navBtn.focus(); });
+      dlg.addEventListener('click', (e) => {
+        const t = /** @type {HTMLElement} */ (e.target);
+        if (t === dlg || t.closest('[data-close]')) close();
+        else if (t.closest('a')) close(false); // close first so a #section link can scroll the page
+      });
+      matchMedia('(min-width: 768px)').addEventListener('change', (e) => { if (e.matches) close(false); });
+    }
   }
 })();
