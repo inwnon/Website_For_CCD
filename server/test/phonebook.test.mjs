@@ -539,6 +539,24 @@ describe('importing the layout the PR team writes', () => {
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.equal((await stored(a)).parent_id, (await stored(g)).id);
   });
+  test('a row with only its running number is skipped, not a group', async () => {
+    const [g, a, b] = [unit('กลุ่ม'), unit('หน่วย'), unit('หน่วย')];
+    const csv = `${g},,,\r\nที่,หน่วยงาน,หมายเลขโทรศัพท์สายตรง,เบอร์ภายใน\r\n1,${a},077-913-302,3302\r\n12,,,\r\n13,${b},077-913-303,3303\r\n`;
+    const r = await send(pr, Buffer.concat([BOM, Buffer.from(csv)]), 'phones.csv', true, 'text/csv');
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.added, 3);
+    assert.equal((await stored(b)).parent_id, (await stored(g)).id);
+    assert.equal(await stored('12'), null);
+  });
+  test('a group heading repeated on the next page is one group', async () => {
+    const [g, a, b] = [unit('กลุ่ม'), unit('หน่วย'), unit('หน่วย')];
+    const head = 'ที่,หน่วยงาน,หมายเลขโทรศัพท์สายตรง,เบอร์ภายใน\r\n';
+    const csv = `${g},,,\r\n${head}1,${a},077-913-304,3304\r\n${g},,,\r\n${head}2,${b},077-913-305,3305\r\n`;
+    const r = await send(pr, Buffer.concat([BOM, Buffer.from(csv)]), 'phones.csv', true, 'text/csv');
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.added, 3);
+    assert.equal((await stored(b)).parent_id, (await stored(g)).id);
+  });
   test('the CSV template opens in Excel with Thai headers', async () => {
     const r = await pr.call('GET', '/api/phonebook/template.csv');
     assert.equal(r.status, 200);

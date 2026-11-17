@@ -173,7 +173,14 @@ function readRows(sheet) {
   if (!sheet) throw new HttpError(400, 'ไม่พบข้อมูลในไฟล์');
   let cols = null, group = '', pending = null;
   const rows = [], columns = [], found = new Set();
-  const heading = (line, text) => { group = text; rows.push({ line, parent: '', unitName: text, phoneNumber: '', internalNumber: '', note: '' }); };
+  // A heading written again (a long group printed over several pages) is the same group
+  const headings = new Set();
+  const heading = (line, text) => {
+    group = text;
+    if (headings.has(text.toLowerCase())) return;
+    headings.add(text.toLowerCase());
+    rows.push({ line, parent: '', unitName: text, phoneNumber: '', internalNumber: '', note: '' });
+  };
   sheet.eachRow((r, line) => {
     const texts = [];
     r.eachCell((c, n) => { const t = c.text.trim(); if (t) texts.push([n, t]); });
@@ -187,7 +194,8 @@ function readRows(sheet) {
       for (const k of Object.keys(head)) found.add(k);
       return;
     }
-    const one = new Set(texts.map(([, t]) => t)).size === 1 && !NUMBER.test(texts[0][1]);
+    // Digits alone (a number, or a running number 12 with the rest of its row empty) never name a group
+    const one = new Set(texts.map(([, t]) => t)).size === 1 && !/^[\d\s()/,.+-]+$/.test(texts[0][1]);
     if (!cols) { if (one) pending = { line, text: texts[0][1] }; return; }
     if (one && (texts.length > 1 || texts[0][0] !== cols.unitName)) { heading(line, texts[0][1]); return; }
     const cell = (k) => (cols[k] ? r.getCell(cols[k]).text.trim() : '');
