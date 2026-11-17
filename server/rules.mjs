@@ -63,6 +63,19 @@ export const ALBUM_HOSTS = {
   drive: /^drive\.google\.com$/i,
   photos: /^(photos\.google\.com|photos\.app\.goo\.gl)$/i,
 };
+// Short story link (pages.mjs): news-<no>-<slug>. The slug is English words, lower-case, joined by "-", at most 60 characters.
+export const MAX_SLUG = 60;
+export const slugify = (v) => {
+  const s = String(v || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return s.length > MAX_SLUG ? s.slice(0, MAX_SLUG).replace(/-[^-]*$/, '') || s.slice(0, MAX_SLUG) : s;
+};
+export const newsUrl = (n) => `news-${n.no}${n.slug ? `-${n.slug}` : ''}`;
+// ชื่อลิงก์ the PR team typed: English letters, numbers, spaces and "-" (spaces become "-"); empty = from the English title
+export function slugField(v, titleEn) {
+  const s = str(v, MAX_SLUG, 'ชื่อลิงก์ (ภาษาอังกฤษ)');
+  if (s && /[^A-Za-z0-9\s-]/.test(s)) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', { slug: 'ชื่อลิงก์ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ ตัวเลข และ -' });
+  return slugify(s || titleEn) || null;
+}
 export const albumHost = (url) => {
   try { const h = new URL(url).host; return Object.keys(ALBUM_HOSTS).find((k) => ALBUM_HOSTS[k].test(h)) || 'other'; } catch { return null; }
 };

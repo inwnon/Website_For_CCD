@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path';
 import { after, before, describe, test } from 'node:test';
 import sharp from 'sharp';
 import { query } from '../db.mjs';
+import { MAX_SLUG, newsUrl, slugField, slugify } from '../rules.mjs';
 import { thaiWords, searchTerms } from '../thai.mjs';
 import { restore, snapshot } from './cleanup.mjs';
 import { BASE, ID_STAFF, anon, form, gpsEntries, img, login, request } from './helpers.mjs';
@@ -112,12 +113,50 @@ describe('SEO', () => {
     assert.equal(r.headers.get('x-robots-tag'), null);
     assert.ok(html.includes(`<meta property="og:title" content="${n.title.replace(/"/g, '&quot;')}">`));
     assert.match(html, /<meta property="og:image" content="https?:\/\/[^"]+">/);
-    assert.match(html, /<link rel="canonical" href="[^"]+\/news\.html\?id=/);
+    assert.match(html, /<link rel="canonical" href="[^"]+\/news-\d+(-[a-z0-9-]+)?">/);
     assert.match(html, /<script type="application\/ld\+json">\{"@context":"https:\/\/schema.org","@type":"NewsArticle"/);
     assert.ok(html.includes(`data-i18n="title">${n.title.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</h1>`), 'title in the markup');
     assert.match(html, /<article id="article" lang="th">/);
     if (html.includes('<img id="leadImg" alt="" src=')) assert.fail('the lead photo has the story title as its alt text');
     assert.doesNotMatch(html, /window\.__NEWS = [^;]*<\/script/i, 'no </script> inside the inline JSON');
+  });
+  test('short link /news-<no>-<words>: found by the number, other words 301 to the story link, unknown number 404', async () => {
+    const { no, slug } = (await query('select no, slug from news where id = $1', [publicId])).rows[0];
+    try {
+      await query('update news set slug = $2 where id = $1', [publicId, 'test-short-link']);
+      const r = await request('GET', `/news-${no}-test-short-link`);
+      const html = String(r.body);
+      assert.equal(r.status, 200);
+      assert.ok(html.includes(`/news-${no}-test-short-link">`), 'canonical and og:url are the short link');
+      assert.ok(html.includes(`"id":"${publicId}"`), 'story data in the page');
+      for (const wrong of [`/news-${no}`, `/news-${no}-old-words`]) {
+        const w = await fetch(BASE + wrong + '?x=1', { redirect: 'manual' });
+        assert.equal(w.status, 301, wrong);
+        assert.equal(w.headers.get('location'), `/news-${no}-test-short-link?x=1`);
+      }
+      const card = (await anon.call('GET', '/api/news?limit=48')).body.items.find((n) => n.id === publicId);
+      if (card) assert.equal(card.url, `news-${no}-test-short-link`);
+      assert.equal((await request('GET', `/news.html?id=${publicId}`)).status, 200, 'old links keep working');
+    } finally {
+      await query('update news set slug = $2 where id = $1', [publicId, slug]);
+    }
+    assert.equal((await request('GET', '/news-999999999999')).status, 404);
+  });
+  test('internal story short link: no 301 (the words could tell the title), content hidden', async () => {
+    if (!internalId) return;
+    const { no } = (await query('select no from news where id = $1', [internalId])).rows[0];
+    const r = await fetch(`${BASE}/news-${no}-any-words`, { redirect: 'manual' });
+    assert.equal(r.status, 200);
+    assert.match(r.headers.get('x-robots-tag') || '', /noindex/);
+    assert.ok((await r.text()).includes(`window.NEWS_ID = "${internalId}"`));
+  });
+  test('ชื่อลิงก์: English letters, numbers and "-" only; empty takes the English title', () => {
+    assert.equal(slugField(' Open House 2569 ', null), 'open-house-2569');
+    assert.equal(slugField('', 'SRU wins the Gold Award!'), 'sru-wins-the-gold-award');
+    assert.equal(slugField(null, null), null);
+    for (const bad of ['วันเปิดบ้าน', 'a<b', 'a/b']) assert.throws(() => slugField(bad, null), (/** @type {any} */ e) => e.status === 400 && !!e.details?.slug, bad);
+    assert.ok(slugify('word '.repeat(30)).length <= MAX_SLUG);
+    assert.equal(newsUrl({ no: '12', slug: null }), 'news-12');
   });
   test('a story body leaves out separator-only and punctuation-only lines (copied from Facebook)', async () => {
     const { body } = (await query('select body from news where id = $1', [publicId])).rows[0];
@@ -155,7 +194,8 @@ describe('SEO', () => {
   });
   test('sitemap.xml lists public stories only; robots.txt and back-office pages keep crawlers out', async () => {
     const sm = String((await request('GET', '/sitemap.xml')).body);
-    assert.ok(sm.includes(`/news.html?id=${publicId}</loc>`));
+    const pub = (await query('select no, slug from news where id = $1', [publicId])).rows[0];
+    assert.ok(sm.includes(`/${newsUrl(pub)}</loc>`));
     if (internalId) assert.ok(!sm.includes(internalId));
     const robots = String((await request('GET', '/robots.txt')).body);
     for (const line of ['Disallow: /api/', 'Disallow: /chanon.html', 'Disallow: /pr.html']) assert.ok(robots.includes(line), line);

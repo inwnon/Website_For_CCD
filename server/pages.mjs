@@ -1,4 +1,5 @@
 // Pages rendered on the server, for search engines and link previews (Facebook, LINE) and a faster first paint
+// - GET /news-<no>-<words> the short link of a story (same page as below; canonical); /news.html?id=… keeps working
 // - GET /news.html?id=…   the story's title, summary, body and lead photo are in the HTML, with Open Graph tags,
 //                          JSON-LD (NewsArticle), a canonical URL, and the data the page script needs (window.__NEWS)
 //                          so it renders without waiting for the API. Internal stories: noindex, content only for
@@ -14,7 +15,7 @@ import { Router } from 'express';
 import { loadUser } from './auth.mjs';
 import { query } from './db.mjs';
 import { LIVE, searchPayload, storyPayload } from './news.mjs';
-import { plainText } from './rules.mjs';
+import { newsUrl, plainText } from './rules.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 export const ORIGIN = (process.env.APP_ORIGIN || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '');
@@ -114,9 +115,21 @@ export const router = Router();
 
 router.get('/news.html', loadUser, async (req, res, next) => {
   const id = typeof req.query.id === 'string' ? req.query.id : '';
+  if (!id) return res.set('Cache-Control', 'no-cache').type('html').send(await template());
+  return storyPage(req, res, next, id, `news.html?id=${encodeURIComponent(id)}`);
+});
+
+// The short link: /news-<no> or /news-<no>-<english-words> (rules.mjs newsUrl). Found by the number; other words answer
+// 301 to the story's own link, but only to a reader who may read it (the words could tell the title)
+router.get(/^\/news-(\d{1,15})(?:-[a-z0-9-]*)?$/, loadUser, async (req, res, next) => {
+  const n = (await query('select id from news where no = $1', [req.params[0]])).rows[0];
+  if (!n) return next();
+  return storyPage(req, res, next, n.id, `news-${req.params[0]}`, true);
+});
+
+async function storyPage(req, res, next, id, askedUrl, short = false) {
   let html = await template();
   res.set('Cache-Control', 'no-cache');
-  if (!id) return res.type('html').send(html);
   let data;
   try {
     data = await storyPayload(req, id);
@@ -124,11 +137,17 @@ router.get('/news.html', loadUser, async (req, res, next) => {
     // The page script shows the right message from the API; crawlers get the status and noindex
     if (!err.status) return next(err);
     res.status(err.status === 401 || err.status === 403 ? 200 : err.status).set('X-Robots-Tag', 'noindex');
+    // The story's id for the page script (a short link has no ?id=); the script asks the API and shows its message
+    html = swap(html, '<script>window.SERVER_AUTH = true;</script>', `<script>window.SERVER_AUTH = true; window.NEWS_ID = ${scriptJson(id)};</script>`);
     return res.type('html').send(head(html, { title: err.status === 410 ? 'ข่าวนี้ถูกถอนแล้ว' : err.status === 404 ? 'ไม่พบข่าวนี้' : 'ข่าวภายใน',
-      description: 'ข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี', url: `${ORIGIN}/news.html?id=${encodeURIComponent(id)}`, image: ORIGIN + OG_DEFAULT, robots: 'noindex' }));
+      description: 'ข่าวสารของมหาวิทยาลัยราชภัฏสุราษฎร์ธานี', url: `${ORIGIN}/${askedUrl}`, image: ORIGIN + OG_DEFAULT, robots: 'noindex' }));
   }
   const { story: s, linked, linkedFromAlbum, related, sets, raw } = data;
-  const url = `${ORIGIN}/news.html?id=${s.id}`;
+  if (short && req.path !== `/${s.url}`) {
+    const i = req.originalUrl.indexOf('?');
+    return res.redirect(301, `/${s.url}${i < 0 ? '' : req.originalUrl.slice(i)}`);
+  }
+  const url = `${ORIGIN}/${s.url}`;
   const lead = s.cover || s.gallery[0] || null;
   const image = lead ? ORIGIN + (lead.full || lead.web) : s.videoThumb ? ORIGIN + s.videoThumb : ORIGIN + OG_DEFAULT;
   const description = clip(s.lead || plainText(s.body) || `ข่าวจาก${s.unit}`, 200);
@@ -166,7 +185,7 @@ router.get('/news.html', loadUser, async (req, res, next) => {
   // The data the page script would fetch from /api/news/:id
   html = swap(html, '<script>window.SERVER_AUTH = true;</script>', `<script>window.SERVER_AUTH = true; window.__NEWS = ${scriptJson({ story: s, linked, linkedFromAlbum, related, sets })};</script>`);
   res.type('html').send(html);
-});
+}
 
 // search.html: the first page of results in the page (window.__SEARCH), so the cards and their pictures show without
 // waiting for the script to ask the API. The query string is built exactly as the page script builds it (load() in
@@ -256,7 +275,7 @@ router.get('/robots.txt', (req, res) => {
 
 router.get('/sitemap.xml', async (req, res) => {
   const day = (d) => new Date(d).toISOString().slice(0, 10);
-  const stories = (await query(`select n.id, coalesce(n.updated_at, n.published_at) at from news n where ${LIVE} and 'public' = any(n.audience)
+  const stories = (await query(`select n.no, n.slug, coalesce(n.updated_at, n.published_at) at from news n where ${LIVE} and 'public' = any(n.audience)
     order by n.published_at desc limit 45000`)).rows;
   const latest = stories[0]?.at || new Date();
   /** @type {{ loc: string, lastmod?: string, freq?: string }[]} */
@@ -265,7 +284,7 @@ router.get('/sitemap.xml', async (req, res) => {
     { loc: `${ORIGIN}/search.html`, lastmod: day(latest), freq: 'daily' },
     { loc: `${ORIGIN}/privacy.html`, freq: 'yearly' },
     { loc: `${ORIGIN}/contact.html`, freq: 'monthly' },
-    ...stories.map((n) => ({ loc: `${ORIGIN}/news.html?id=${n.id}`, lastmod: day(n.at) })),
+    ...stories.map((n) => ({ loc: `${ORIGIN}/${newsUrl(n)}`, lastmod: day(n.at) })),
   ];
   res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

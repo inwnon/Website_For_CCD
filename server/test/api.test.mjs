@@ -312,7 +312,8 @@ describe('reading news', () => {
   test('internal story is a locked card for signed-out readers and students', async () => {
     const anon = /** @type {any} */ (await (await fetch(`${BASE}/api/news?limit=48`)).json());
     const card = anon.items.find((n) => n.id === id);
-    assert.deepEqual(Object.keys(card).sort(), ['audience', 'id', 'locked', 'publishedAt']);
+    assert.deepEqual(Object.keys(card).sort(), ['audience', 'id', 'locked', 'publishedAt', 'url']);
+    assert.match(card.url, /^news-\d+$/, 'the number only: the English words could tell the title');
     assert.ok((await student.call('GET', '/api/news?limit=48')).body.items.find((n) => n.id === id).locked);
     assert.equal((await staff.call('GET', '/api/news?limit=48')).body.items.find((n) => n.id === id).title, 'ประกาศภายในสำหรับบุคลากร');
   });

@@ -377,7 +377,7 @@
           <div class="kbody flex flex-1 flex-col p-4">
             <time class="text-[12px] text-ink2" datetime="${esc(n.publishedAt)}">${fmtDay.format(new Date(n.publishedAt))}</time>
             <h3 class="clamp-2 mt-1 font-display text-[17px] font-semibold leading-snug">
-              <a href="news.html?id=${n.id}" class="rounded after:absolute after:inset-0 after:rounded-card hover:text-purple focus-visible:outline-none focus-visible:after:shadow-[inset_0_0_0_3px_rgb(var(--focus))]">${mark(n.title)}</a>
+              <a href="${n.url || 'news.html?id=' + n.id}" class="rounded after:absolute after:inset-0 after:rounded-card hover:text-purple focus-visible:outline-none focus-visible:after:shadow-[inset_0_0_0_3px_rgb(var(--focus))]">${mark(n.title)}</a>
             </h3>
             ${n.snippet ? `<p class="clamp-2 mt-1 text-[14px] text-ink2">${mark(n.snippet)}</p>` : ''}
             <a href="search.html?unit=${encodeURIComponent(n.unit)}" class="relative z-[1] mt-auto inline-flex items-center gap-1 self-start rounded pt-3 text-[13px] text-sky hover:underline">
@@ -402,7 +402,7 @@
               ${n.photos ? `<span>${n.photos} ${n.kind === 'video' ? 'ชิ้น' : 'ภาพ'}</span>` : ''}
             </div>
             <h3 class="mt-1.5 font-display text-[18px] font-semibold leading-snug">
-              <a href="news.html?id=${n.id}" class="rounded after:absolute after:inset-0 after:rounded-card hover:text-purple focus-visible:outline-none focus-visible:after:shadow-[inset_0_0_0_3px_rgb(var(--focus))]">${mark(n.title)}</a>
+              <a href="${n.url || 'news.html?id=' + n.id}" class="rounded after:absolute after:inset-0 after:rounded-card hover:text-purple focus-visible:outline-none focus-visible:after:shadow-[inset_0_0_0_3px_rgb(var(--focus))]">${mark(n.title)}</a>
             </h3>
             ${n.snippet ? `<p class="clamp-2 mt-1 text-[14px] text-ink2">${mark(n.snippet)}</p>` : ''}
             <div class="relative z-[1] mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
