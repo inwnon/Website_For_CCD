@@ -36,6 +36,8 @@ export const ACTIONS = {
   'request.approve': 'อนุมัติคำขอใช้บริการ',
   'request.reject': 'ไม่อนุมัติคำขอใช้บริการ',
   'request.cancel': 'ยกเลิกคำขอใช้บริการ',
+  'push.subscribe': 'เปิดแจ้งเตือนบนอุปกรณ์',
+  'push.unsubscribe': 'ปิดแจ้งเตือนบนอุปกรณ์',
   'access.ask': 'ขอสิทธิ์ใช้คำขอใช้บริการ',
   'access.approve': 'ให้สิทธิ์ใช้คำขอใช้บริการ',
   'access.reject': 'ไม่ให้สิทธิ์ใช้คำขอใช้บริการ',

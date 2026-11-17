@@ -2,6 +2,7 @@
 // 1254px PNGs of 0.5–1.8 MB; pages show the logo at about 44px and Hawky at up to about 380px).
 //   logo-96.webp, logo-192.webp   header and footer logo (1× / 2×+ screens)
 //   icon-32.png, icon-180.png     browser tab (the circle only, transparent) and home-screen icons
+//   icon-192.png, icon-512.png    manifest.webmanifest (Android home screen) and Web Push notifications
 //   hawky-480.webp, hawky-640.webp, hawky-960.webp
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -16,6 +17,8 @@ const jobs = [
   ['Logo-CCD.png', 'logo-96.webp', 96, (s) => s.webp({ quality: 86 })],
   ['Logo-CCD.png', 'logo-192.webp', 192, (s) => s.webp({ quality: 86 })],
   ['Logo-CCD.png', 'icon-180.png', 180, (s) => s.png({ compressionLevel: 9, palette: true })],
+  ['Logo-CCD.png', 'icon-192.png', 192, (s) => s.png({ compressionLevel: 9, palette: true })],
+  ['Logo-CCD.png', 'icon-512.png', 512, (s) => s.png({ compressionLevel: 9, palette: true })],
   ['Hawky-bgTran.png', 'hawky-480.webp', 480, (s) => s.webp({ quality: 82, alphaQuality: 90 })],
   ['Hawky-bgTran.png', 'hawky-640.webp', 640, (s) => s.webp({ quality: 80, alphaQuality: 90 })],
   ['Hawky-bgTran.png', 'hawky-960.webp', 960, (s) => s.webp({ quality: 80, alphaQuality: 90 })],

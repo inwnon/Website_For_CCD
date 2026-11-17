@@ -203,7 +203,11 @@ router.post('/me/role', async (req, res) => {
 });
 
 router.post('/auth/logout', async (req, res) => {
-  if (req.sessionId) await query('delete from sessions where id = $1', [req.sessionId]);
+  if (req.sessionId) {
+    // Web Push turned on in this sign-in stops too (a shared computer gets no more notices)
+    await query('delete from push_subscriptions where session_id = $1', [req.sessionId]);
+    await query('delete from sessions where id = $1', [req.sessionId]);
+  }
   res.clearCookie(COOKIE, { path: '/' });
   res.json({ ok: true });
 });

@@ -10,6 +10,7 @@
   <meta name="description" content="ติดตามสถานะงานที่ส่งให้งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี และตอบข้อความจาก PR">
   <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+  <link rel="manifest" href="/manifest.webmanifest">
 
   <script>
     (function () {
@@ -311,7 +312,7 @@
           </a>
           <button id="notifyBtn" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium text-ink2 hover:text-ink" aria-haspopup="dialog">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
-            อีเมลแจ้งเตือน
+            การแจ้งเตือน
           </button>
           <button id="logout" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium text-ink2 hover:text-ink">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l-5-5 5-5M5 12h12"/></svg>
@@ -394,9 +395,10 @@
   <dialog id="notifyDlg" class="w-[min(520px,calc(100vw-24px))] rounded-card border border-line bg-shell p-0 text-ink shadow-float backdrop:bg-[rgb(10_11_32/.5)]" aria-labelledby="notifyTitle">
     <form id="notifyForm" method="dialog" class="grid gap-4 p-6">
       <div>
-        <h2 id="notifyTitle" class="font-display text-[21px] font-semibold">อีเมลแจ้งเตือน</h2>
-        <p id="notifyTo" class="mt-1 text-[14px] text-ink2"></p>
+        <h2 id="notifyTitle" class="font-display text-[21px] font-semibold">การแจ้งเตือน</h2>
       </div>
+      <div data-push></div>
+      <p id="notifyTo" class="text-[14px] text-ink2"></p>
       <ul id="notifyList" class="grid gap-2"></ul>
       <p id="notifyOff" class="rounded-2xl bg-gold-soft px-4 py-3 text-[13px] text-gold" hidden>ระบบยังไม่ได้เปิดการส่งอีเมล ตั้งค่าไว้ก่อนได้ จะมีผลเมื่อเปิดใช้</p>
       <div class="flex justify-end gap-2">
@@ -413,6 +415,7 @@
   <script src="auth.js"></script>
   <script src="shortcuts.js" defer></script>
   <script src="site-config.js"></script>
+  <script src="push.js" defer></script>
   <script>
     const $ = (s, r = document) => r.querySelector(s);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -501,7 +504,7 @@
     async function openNotify() {
       let r;
       try { r = await api('/me/notify'); } catch (err) { announce(err.message); return; }
-      $('#notifyTo').textContent = `ส่งถึง ${r.email}`;
+      $('#notifyTo').textContent = `อีเมลส่งถึง ${r.email}`;
       $('#notifyOff').hidden = r.smtp;
       $('#notifyList').innerHTML = r.prefs.map((p) => `
         <li><label class="flex cursor-pointer items-center gap-4 rounded-2xl bg-surface2/70 px-4 py-3">
