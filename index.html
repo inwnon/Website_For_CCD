@@ -573,7 +573,7 @@
     const card = (n) => n.locked ? lockedCard(n) : `
       <article class="reveal">
         <div class="lift t-spring group relative h-full rounded-card hover:-translate-y-1">
-        <a href="news.html?id=${n.id}" class="kcard kcard-${['video', 'banner'].includes(n.kind) ? n.kind : 'news'} press t-quick flex h-full flex-col overflow-hidden rounded-card border bg-surface">
+        <a href="${n.url || 'news.html?id=' + n.id}" class="kcard kcard-${['video', 'banner'].includes(n.kind) ? n.kind : 'news'} press t-quick flex h-full flex-col overflow-hidden rounded-card border bg-surface">
           <div class="relative aspect-[16/9] overflow-hidden bg-surface2">
             ${coverOf(n)}
             <div class="absolute inset-0 bg-[rgb(38_66_200/.12)] mix-blend-multiply"></div>

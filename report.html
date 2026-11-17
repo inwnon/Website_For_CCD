@@ -275,7 +275,7 @@
             ${reads.top.length ? `<ol class="mt-3 grid gap-1">${reads.top.map((t, i) => `
               <li class="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl px-2 py-1.5 ${i < 3 ? 'bg-surface2/70' : ''}">
                 <span class="grid h-8 w-8 place-items-center rounded-full font-display text-[15px] font-bold ${i < 3 ? 'bg-grad text-white' : 'text-ink2'}">${i + 1}</span>
-                <span class="min-w-0"><a href="news.html?id=${t.id}" target="_blank" rel="noopener" class="block truncate font-display text-[15px] font-medium hover:underline">${esc(t.title)}</a>
+                <span class="min-w-0"><a href="${t.url || 'news.html?id=' + t.id}" target="_blank" rel="noopener" class="block truncate font-display text-[15px] font-medium hover:underline">${esc(t.title)}</a>
                   <span class="block truncate text-[12px] text-ink2">${esc(t.unit)}, ${day(t.publishedAt)}${t.imported ? ', นำเข้าย้อนหลัง' : ''}</span></span>
                 <span class="font-display text-[15px] font-semibold">${num(t.reads)}</span></li>`).join('')}</ol>` : '<p class="mt-3 text-ink2">ยังไม่มียอดอ่านในช่วงนี้</p>'}`)}
           <div class="grid content-start gap-3">

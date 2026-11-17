@@ -503,6 +503,12 @@
             <label for="pTitle" class="block font-display text-[14px] font-medium">หัวข้อข่าว</label>
             <input id="pTitle" maxlength="200" class="field mt-1.5 h-11 w-full rounded-2xl px-4 text-[16px]">
           </div>
+          <div>
+            <label for="pSlug" class="block font-display text-[14px] font-medium">ชื่อลิงก์ภาษาอังกฤษ <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
+            <input id="pSlug" maxlength="60" lang="en" autocomplete="off" spellcheck="false" placeholder="open-house-2569" class="field mt-1.5 h-11 w-full rounded-2xl px-4 text-[15px]" aria-describedby="hint-slug err-slug">
+            <p id="hint-slug" class="mt-1 text-[13px] text-ink2">ลิงก์ข่าวจะเป็น <span lang="en">/news-เลขข่าว-<span id="pSlugShow">ชื่อนี้</span></span> ใช้ได้เฉพาะ a–z ตัวเลข และ - ถ้าเว้นว่างจะใช้หัวข้อภาษาอังกฤษ</p>
+            <p id="err-slug" data-err="slug" class="mt-1 text-[14px] font-medium text-brand" hidden></p>
+          </div>
           <div data-for="news banner">
             <label for="pLead" class="block font-display text-[14px] font-medium">สรุปข่าว <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></label>
             <textarea id="pLead" rows="2" maxlength="300" class="field mt-1.5 w-full resize-none rounded-2xl px-4 py-2.5 text-[15px]"></textarea>
@@ -1247,6 +1253,13 @@
     let albumBox = null;
     const pubAlbums = () => albumBox || (albumBox = VideoLinks($('#pAlbumMore'), { max: 5, placeholder: 'อัลบั้มอื่น หรือโฟลเดอร์ Google Drive', label: 'ลิงก์ภาพเพิ่มเติม', add: 'เพิ่มลิงก์ภาพ' }));
     let pubTools = null;
+    // ชื่อลิงก์: how the link will read (the server makes the same: lower-case, spaces to "-")
+    function showSlug() {
+      const v = ($('#pSlug').value.trim() || $('#pTitleEn').value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+      $('#pSlugShow').textContent = v || 'ชื่อนี้';
+    }
+    $('#pSlug').addEventListener('input', showSlug);
+    $('#pTitleEn').addEventListener('input', showSlug);
     function openPublish(mode = 'publish') {
       pubMode = mode;
       const s = detailData.submission;
@@ -1274,6 +1287,8 @@
       $('#pVideo').value = f.videoMode === 'link' ? f.videoLink || '' : '';
       $('#pTitleEn').value = f.titleEn || '';
       $('#pBodyEn').value = f.bodyEn || '';
+      $('#pSlug').value = pe?.slug || n?.slug || '';
+      showSlug();
       $('#pAlbum').value = f.albumUrl || '';
       pubAlbums().set(f.albumLinks || []);
       $('#pEnBox').open = !!(f.titleEn || f.bodyEn);
@@ -1356,7 +1371,7 @@
       if (later && !$('#pAt').value) { const el = $('[data-err=publishAt]'); el.textContent = 'เลือกวันและเวลาเผยแพร่'; el.hidden = false; $('#pAt').focus(); return; }
       const body = {
         title: $('#pTitle').value, lead: $('#pLead').value, body: $('#pBody').value,
-        titleEn: $('#pTitleEn').value, bodyEn: $('#pBodyEn').value, videoUrl: $('#pVideo').value, albumUrl: $('#pAlbum').value.trim(), albumLinks: pubAlbums().get(),
+        titleEn: $('#pTitleEn').value, bodyEn: $('#pBodyEn').value, slug: $('#pSlug').value, videoUrl: $('#pVideo').value, albumUrl: $('#pAlbum').value.trim(), albumLinks: pubAlbums().get(),
         cover: $('input[name=cover]:checked')?.value, gallery: $$('input[name=gallery]:checked').map((x) => x.value),
         categories: $$('input[name=pcat]:checked').map((x) => x.value), audience: $$('input[name=paud]:checked').map((x) => x.value),
         featured: $('#pFeatured').checked, publishAt: later ? new Date($('#pAt').value).toISOString() : undefined, message: $('#pMsg').value,

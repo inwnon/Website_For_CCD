@@ -23,7 +23,7 @@ import { one, query, tx } from './db.mjs';
 import { abs, sendMedia } from './files.mjs';
 import { HttpError } from './http.mjs';
 import { unitFamily } from './org.mjs';
-import { PLATFORMS, TYPES, albumHost, audienceLabel, plainText } from './rules.mjs';
+import { PLATFORMS, TYPES, albumHost, audienceLabel, newsUrl, plainText } from './rules.mjs';
 import { limit } from './security.mjs';
 import { VIDEO_CATEGORIES } from './settings.mjs';
 import { searchTerms } from './thai.mjs';
@@ -64,9 +64,10 @@ const videoThumb = (n) => (youtubeId(n.video_url) ? `/media/video/${youtubeId(n.
 
 export function cardOut(n, user) {
   const base = { id: n.id, publishedAt: n.published_at, audience: audienceLabel(n.audience) };
-  if (!canRead(n, user)) return { ...base, locked: true };
+  // url: the short link; a story the viewer may not read gets the number only (its English words could tell the title)
+  if (!canRead(n, user)) return { ...base, url: newsUrl({ no: n.no }), locked: true };
   return {
-    ...base, title: n.title, lead: n.lead, unit: n.unit, kind: n.kind, categories: n.categories, featured: n.featured, views: n.views,
+    ...base, url: newsUrl(n), title: n.title, lead: n.lead, unit: n.unit, kind: n.kind, categories: n.categories, featured: n.featured, views: n.views,
     cover: n.cover_path ? mediaUrl(n.cover_path) : null, coverSet: n.cover_path ? srcset(n.cover_path) : null, photos: (n.cover_path ? 1 : 0) + n.gallery.length,
     video: !!n.video_url, videoThumb: videoThumb(n), en: !!(n.title_en || n.body_en), internal: !n.audience.includes('public'),
   };
@@ -243,7 +244,7 @@ export async function storyPayload(req, id) {
   return {
     raw: n,
     story: {
-      id: n.id, kind: n.kind, title: n.title, titleEn: n.title_en, lead: n.lead, body: n.body, bodyEn: n.body_en, unit: n.unit,
+      id: n.id, url: newsUrl(n), kind: n.kind, title: n.title, titleEn: n.title_en, lead: n.lead, body: n.body, bodyEn: n.body_en, unit: n.unit,
       categories: n.categories, audience: audienceLabel(n.audience), internal: !n.audience.includes('public'),
       cover: n.cover_path ? image(n.cover_path) : null, gallery: n.gallery.map(image),
       videoUrl: n.video_url, videoPlatform: platformOf(n.video_url), videoThumb: videoThumb(n),

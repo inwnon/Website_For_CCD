@@ -12,6 +12,7 @@ import { audit } from './audit.mjs';
 import { isPr, requireAdmin, requireUser } from './auth.mjs';
 import { one, pool, query, tx } from './db.mjs';
 import { HttpError } from './http.mjs';
+import { newsUrl } from './rules.mjs';
 import { get } from './settings.mjs';
 import { limit } from './security.mjs';
 
@@ -80,7 +81,8 @@ export async function statusChanged(db, s, status, message, newsId) {
   const m = STATUS_MAIL[status];
   const u = (await db.query('select email, name, notify from users where id = $1', [s.sender_id])).rows[0];
   if (!m || !u || !wants(u.notify, 'status')) return;
-  const path = status === 'published' && newsId ? `news.html?id=${newsId}` : m.path ? m.path(s) : `inbox.html?ref=${encodeURIComponent(s.ref)}`;
+  const story = status === 'published' && newsId ? (await db.query('select no, slug from news where id = $1', [newsId])).rows[0] : null;
+  const path = story ? newsUrl(story) : m.path ? m.path(s) : `inbox.html?ref=${encodeURIComponent(s.ref)}`;
   await enqueue(db, {
     kind: 'submission.status', ref: s.ref, to: u.email, subject: m.subject(s), title: m.title,
     lines: [`${s.ref} · ${s.title}`, `หน่วยงาน ${s.unit}`], quote: message || undefined, button: { label: m.button, href: link(path) },
