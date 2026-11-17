@@ -45,7 +45,7 @@
     #team.open #teamMoreText { margin-left: 0; }
     @media (prefers-reduced-motion: reduce) { .unit-chev { transition: none; } }
   </style>
-  <link rel="stylesheet" href="/assets/app.css?v=526b4876a3">
+  <link rel="stylesheet" href="/assets/app.css?v=a5fe78d5ac">
 </head>
 
 <body class="min-h-screen">
@@ -162,6 +162,12 @@
                   <label for="fbMessage" class="block font-display text-[15px] font-medium">ปัญหาที่พบ <span class="text-brand" aria-hidden="true">*</span></label>
                   <textarea id="fbMessage" rows="4" maxlength="2000" required aria-describedby="fbError" placeholder="เช่น กดส่งข่าวแล้วขึ้นข้อความผิดพลาด" class="field scroll-thin mt-1.5 w-full rounded-2xl px-4 py-3 text-[16px] leading-[1.7]"></textarea>
                 </div>
+                <div>
+                  <label for="fbFiles" class="block font-display text-[15px] font-medium">แนบรูปภาพ <span class="font-sans text-[13px] font-normal text-ink2">(ถ้ามี)</span></label>
+                  <input id="fbFiles" type="file" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" aria-describedby="fbFilesHint" class="field mt-1.5 min-h-12 w-full rounded-2xl px-4 py-3 text-[15px]">
+                  <p id="fbFilesHint" class="mt-1 text-[13px] leading-[1.6] text-ink2">เช่น ภาพหน้าจอที่ขึ้นข้อความผิดพลาด ไม่เกิน 3 รูป · JPG, PNG, WebP รูปละไม่เกิน 5 MB</p>
+                  <ul id="fbThumbs" class="mt-2 flex flex-wrap gap-2" aria-label="รูปที่แนบ" hidden></ul>
+                </div>
                 <div class="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label for="fbPage" class="block font-display text-[15px] font-medium">หน้าที่พบปัญหา <span class="font-sans text-[13px] font-normal text-ink2">(ถ้ามี)</span></label>
@@ -241,6 +247,42 @@
     const num = (n) => n.toLocaleString('th-TH');
 
     // ---- แจ้งปัญหาการใช้งานระบบ → the PR team's box in pr.html ----
+    // Pictures picked so far (several picks add up), each with a small preview and a remove button
+    const MAX_PICS = 3, MAX_PIC = 5 * 1024 * 1024, PIC_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    let pics = [];
+    const picErr = (text) => { const err = $('#fbError'); err.textContent = text; err.hidden = !text; };
+    function drawPics() {
+      const ul = $('#fbThumbs');
+      ul.querySelectorAll('img').forEach((im) => URL.revokeObjectURL(im.src));
+      ul.replaceChildren(...pics.map((f, i) => {
+        const li = document.createElement('li');
+        li.className = 'relative';
+        const im = document.createElement('img');
+        im.src = URL.createObjectURL(f); im.alt = f.name; im.width = 72; im.height = 72;
+        im.className = 'h-[72px] w-[72px] rounded-xl border border-line object-cover';
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'press t-quick absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full border border-line-strong bg-shell text-ink shadow-raised hover:scale-110';
+        b.setAttribute('aria-label', `เอารูป ${f.name} ออก`);
+        b.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+        b.addEventListener('click', () => { pics.splice(i, 1); drawPics(); $('#fbFiles').focus(); });
+        li.append(im, b);
+        return li;
+      }));
+      ul.hidden = !pics.length;
+    }
+    $('#fbFiles').addEventListener('change', (e) => {
+      picErr('');
+      for (const f of e.target.files) {
+        if (!PIC_TYPES.includes(f.type)) { picErr(`ไม่รับไฟล์ ${f.name}: รับเฉพาะรูป JPG, PNG และ WebP`); continue; }
+        if (f.size > MAX_PIC) { picErr(`${f.name} ใหญ่เกิน 5 MB`); continue; }
+        if (pics.length >= MAX_PICS) { picErr(`แนบรูปได้ไม่เกิน ${MAX_PICS} รูป`); break; }
+        pics.push(f);
+      }
+      e.target.value = '';
+      drawPics();
+    });
+
     $('#fbForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = $('#fbMessage'), err = $('#fbError'), btn = $('#fbSend');
@@ -249,10 +291,21 @@
       if (msg.value.trim().length < 10) return fail('เล่าปัญหาที่พบอย่างน้อย 10 ตัวอักษร');
       btn.disabled = true;
       try {
-        await api('/feedback', { method: 'POST', body: { message: msg.value, page: $('#fbPage').value, contact: $('#fbContact').value, website: $('#fbWebsite').value } });
+        // window.api sends JSON; pictures go as multipart. A proxy in front of the app answers an oversized upload without JSON.
+        const body = new FormData();
+        body.append('data', JSON.stringify({ message: msg.value, page: $('#fbPage').value, contact: $('#fbContact').value, website: $('#fbWebsite').value }));
+        for (const f of pics) body.append('files', f);
+        const res = await fetch('/api/feedback', { method: 'POST', credentials: 'same-origin', body });
+        if (!res.ok) {
+          const out = await res.json().catch(() => ({}));
+          throw new Error(out.error || (res.status === 413 ? 'รูปใหญ่เกินกำหนด' : 'ส่งไม่สำเร็จ ลองใหม่อีกครั้ง'));
+        }
         e.target.reset();
+        pics = []; drawPics();
         $('#fbDone').textContent = 'ส่งแล้ว ขอบคุณที่แจ้งให้ทราบ';
-      } catch (ex) { fail(ex.message); } finally { btn.disabled = false; }
+      } catch (ex) {
+        fail(ex.message === 'Failed to fetch' ? 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง' : ex.message);
+      } finally { btn.disabled = false; }
     });
 
     // First letter of the name for the photo circle. Thai names can start with a vowel written before the consonant

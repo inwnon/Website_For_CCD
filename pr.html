@@ -284,7 +284,7 @@
     .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=526b4876a3">
+  <link rel="stylesheet" href="/assets/app.css?v=a5fe78d5ac">
 </head>
 
 <body class="app">
@@ -1412,6 +1412,20 @@
           const head = node('p', 'text-[13px] text-ink2', [when(f.createdAt), f.sender || 'ไม่ได้เข้าสู่ระบบ', f.page && `หน้า: ${f.page}`].filter(Boolean).join(' · '));
           const msg = node('p', 'mt-1.5 whitespace-pre-wrap break-words text-[15px] leading-[1.7]', f.message);
           li.append(head, msg);
+          if (f.files?.length) {
+            const pics = node('div', 'mt-3 flex flex-wrap gap-2');
+            f.files.forEach((p, i) => {
+              const src = `/api/pr/feedback/${encodeURIComponent(f.id)}/files/${encodeURIComponent(p.id)}`;
+              const a = node('a', 'press t-quick block overflow-hidden rounded-xl border border-line hover:-translate-y-0.5');
+              a.href = src; a.target = '_blank'; a.rel = 'noopener';
+              a.setAttribute('aria-label', `เปิดรูปที่แนบ ${i + 1}: ${p.name} (แท็บใหม่)`);
+              const im = node('img', 'h-24 w-24 object-cover');
+              im.src = src; im.alt = ''; im.width = 96; im.height = 96; im.loading = 'lazy';
+              a.append(im);
+              pics.append(a);
+            });
+            li.append(pics);
+          }
           if (f.contact) li.append(node('p', 'mt-2 break-words text-[14px]', `ติดต่อกลับ: ${f.contact}`));
           if (f.userAgent) li.append(node('p', 'mt-1 break-words text-[12px] text-ink2', f.userAgent));
           const foot = node('div', 'mt-3 flex flex-wrap items-center justify-end gap-2');
