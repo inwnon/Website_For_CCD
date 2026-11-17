@@ -10,6 +10,7 @@
   <meta name="robots" content="noindex">
   <link rel="icon" href="/assets/img/icon-32.png?v=2" sizes="32x32">
   <link rel="apple-touch-icon" href="/assets/img/icon-180.png">
+  <link rel="manifest" href="/manifest.webmanifest">
   <script>
     (function () {
       var t = null;
@@ -99,6 +100,7 @@
     <div class="grid gap-3 p-5 sm:p-6">
       <h2 id="noteTitle" class="font-display text-[21px] font-semibold">การแจ้งเตือน</h2>
       <ul id="noteList" class="grid gap-2"></ul>
+      <div data-push></div>
       <div class="flex flex-wrap justify-end gap-2">
         <button id="noteAll" type="button" class="press t-quick h-11 rounded-2xl px-4 font-display text-[15px] font-medium hover:-translate-y-0.5">อ่านทั้งหมดแล้ว</button>
         <button id="noteClose" type="button" class="press t-quick h-11 rounded-2xl px-5 font-display text-[15px] font-medium hover:-translate-y-0.5">ปิด</button>
@@ -143,6 +145,7 @@
   <script src="auth.js"></script>
   <script src="arrivals.js"></script>
   <script src="desk.js"></script>
+  <script src="push.js" defer></script>
   <script src="event-form.js"></script>
   <script src="banner-view.js"></script>
   <script>

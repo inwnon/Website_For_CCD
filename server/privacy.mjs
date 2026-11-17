@@ -132,6 +132,7 @@ export async function erase(c, userId) {
   await c.query('update document_works set created_by = null where created_by = $1', [userId]);
   await c.query('delete from document_work_people where user_id = $1', [userId]);
   await c.query('delete from notifications where user_id = $1', [userId]);
+  await c.query('delete from push_subscriptions where user_id = $1', [userId]);
   await c.query('delete from news_reads where reader = $1', [`u:${userId}`]);
   // Unsent emails to this address go, except the confirmation queued just before (privacy.done)
   await c.query(`delete from email_outbox where to_email = $1 and status = 'queued' and kind <> 'privacy.done'`, [u.email]);

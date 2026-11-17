@@ -27,6 +27,7 @@ import { router as phonebookRouter } from './phonebook.mjs';
 import { router as requestsRouter } from './requests.mjs';
 import { dailyIfDue, router as notifyRouter, sendQueued } from './notify.mjs';
 import { purge, router as privacyRouter } from './privacy.mjs';
+import { pushPending, router as pushRouter } from './push.mjs';
 import { httpsOnly, productionProblems, headers as securityHeaders } from './security.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -78,6 +79,7 @@ api.use(reportsRouter);
 api.use(adminRouter);
 api.use(transferRouter);
 api.use(notifyRouter);
+api.use(pushRouter);
 api.use(feedbackRouter);
 api.use(privacyRouter);
 api.use(contactRouter);
@@ -87,7 +89,7 @@ app.use('/api', api);
 // ---- Pages ----
 // Only the site's own files are public: top-level pages/scripts and assets/.
 // server/, uploads/, brand_assets/ (originals for npm run build:images), node_modules/, .env etc. are never served.
-const PUBLIC_FILE = /^\/[\w.-]+\.(html|js|css|png|jpe?g|webp|svg|ico|woff2)$/;
+const PUBLIC_FILE = /^\/[\w.-]+\.(html|js|css|png|jpe?g|webp|svg|ico|woff2|webmanifest)$/;
 // Images of published stories (copied out of submissions when PR publishes); internal stories need sign-in
 app.use('/media', loadUser, media);
 // iCal feeds for calendar apps: no cookie, the private ones are found by their token (ical.mjs)
@@ -140,6 +142,8 @@ async function hourly() {
 setInterval(hourly, 60 * 60 * 1000).unref();
 // Emails waiting in the outbox
 setInterval(() => sendQueued().catch((err) => console.error('mail:', err.message)), 30 * 1000).unref();
+// In-app notices to the phones that turned on Web Push
+setInterval(() => pushPending().catch((err) => console.error('push:', err.message)), 10 * 1000).unref();
 
 await registerEnumArrays();
 await loadSettings();
