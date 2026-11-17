@@ -11,7 +11,7 @@
 //   Two layouts: a หน่วยงานหลัก column, or groups as the PR team writes them (a heading row above each group's table).
 //   One bad row stops the whole file. A unit already here is updated; an empty cell keeps its value.
 //   หน่วยงานหลัก names a unit with no parent, here or in the file; a unit imported before without it moves under it.
-//   Units keep the order of the file. replace (admin only) deletes every unit first, so the book is exactly the file.
+//   Units keep the order of the file; units not in it follow, in their earlier order. replace (admin only) deletes every unit first, so the book is exactly the file.
 // A หน่วยงานหลัก may be only a heading with no number; a sub-unit has at least one.
 // Telephone numbers are stored as 077-913-333 (landline) or 081-234-5678 (mobile).
 // Unit numbers only: no personal data here.
@@ -328,6 +328,14 @@ router.post('/phonebook/import', writer, importLimit, (req, res, next) => upload
       for (const r of changed) {
         await c.query(`update phonebook set parent_id = coalesce($5, parent_id), phone_number = coalesce($2, phone_number), internal_number = coalesce($3, internal_number),
           note = coalesce($4, note), updated_at = now() where id = $1`, [r.id, r.phone, r.internal, r.note, r.move ? top.get(r.parent.toLowerCase()).id : null]);
+      }
+      // Units the file does not have follow it, in the order they had, so two files never interleave
+      const inFile = new Set(placed.map((p) => p.id));
+      let next = Math.max(0, ...rows.map((r) => r.line));
+      if (!replace) {
+        all.filter((e) => !inFile.has(e.id))
+          .sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || byName.compare(a.unit_name, b.unit_name))
+          .forEach((e) => placed.push({ id: e.id, position: ++next }));
       }
       await c.query('update phonebook p set position = v.position from unnest($1::uuid[], $2::int[]) v(id, position) where p.id = v.id',
         [placed.map((p) => p.id), placed.map((p) => p.position)]);
