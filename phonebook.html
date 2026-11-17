@@ -348,7 +348,7 @@
         state.items = r.items;
         state.matches = r.matches || null;
         paint(q);
-      } catch (err) { toast(err.message, true); }
+      } catch (err) { if (asked === state.asked) toast(err.message, true); }
     }
 
     // ---- Form ----
