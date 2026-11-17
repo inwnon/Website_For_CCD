@@ -246,6 +246,13 @@ describe('importing a file', () => {
     assert.deepEqual(r.body.details.problems.map((p) => p.match(/^แถว (\d+)/)[1]), ['3', '4', '7'], 'a name with no number is a หน่วยงานหลัก');
     assert.equal(await stored(good), null);
   });
+  test('a file with some units puts them first; the others follow in their earlier order', async () => {
+    const [a, b, c] = [unit('ก'), unit('ข'), unit('ค')];
+    assert.equal((await send(pr, await sheet([[a, '077-913-311', '', ''], [b, '077-913-312', '', '']]), 'phones.xlsx', true)).status, 200);
+    assert.equal((await send(pr, await sheet([[c, '077-913-313', '', '']]), 'phones.xlsx', true)).status, 200);
+    const order = (await pr.call('GET', '/api/phonebook')).body.items.map((x) => x.unitName);
+    assert.ok(order.indexOf(c) < order.indexOf(a) && order.indexOf(a) < order.indexOf(b), order.filter((n) => [a, b, c].includes(n)).join(' / '));
+  });
   test('columns may come in any order; numbers Excel stored as numbers keep their zero', async () => {
     const name = unit();
     const r = await send(pr, await sheet([['เวลาราชการ', 1234, 77913333, name]], ['หมายเหตุ', 'เบอร์ภายใน', 'เบอร์โทรศัพท์', 'หน่วยงาน']), 'phones.xlsx', true);
