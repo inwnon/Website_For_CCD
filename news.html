@@ -422,7 +422,7 @@
 
           <!-- ช่องทางการติดต่อ from the sender: a link or a phone number -->
           <section id="contactSec" class="reveal mt-10 flex flex-wrap items-center gap-3 rounded-card border border-line bg-surface p-4 shadow-raised sm:p-5" aria-labelledby="contact-title" hidden>
-            <h2 id="contact-title" class="font-display text-[17px] font-semibold text-royal" data-i18n="contactTitle">ติดต่อสอบถาม</h2>
+            <h2 id="contact-title" class="font-display text-[17px] font-semibold text-royal" data-i18n="contactTitle">สอบถามรายละเอียดเพิ่มเติม :</h2>
             <a id="contactLink" href="#" class="lift press t-spring inline-flex min-h-[44px] min-w-0 max-w-full items-center gap-2 rounded-2xl border border-line bg-shell px-4 py-2 font-display text-[15px] font-medium text-ink shadow-raised hover:-translate-y-0.5">
               <span id="contactIcon" class="shrink-0 text-brand" aria-hidden="true"></span>
               <span id="contactText" class="min-w-0 break-all"></span>
@@ -563,7 +563,7 @@
         btnGallery: `ดูภาพทั้งหมด ${n} ภาพ`, btnShare: 'แชร์',
         videoTitle: 'วิดีโอประกอบข่าว', galleryTitle: 'ภาพข่าว', galleryNote: n > 1 ? 'แตะภาพเพื่อขยาย และดาวน์โหลดขนาดต้นฉบับ' : 'ภาพทั้งหมดของกิจกรรมนี้อยู่ที่ลิงก์ภายนอก',
         btnZip: `ดาวน์โหลดภาพทั้งหมด (${n} ภาพ)`, btnAlbum: ALBUM[s.albumHost] ? `ดูรูปภาพเพิ่มเติมบน ${ALBUM[s.albumHost]}` : 'ดูรูปภาพเพิ่มเติม',
-        contactTitle: 'ติดต่อสอบถาม',
+        contactTitle: 'สอบถามรายละเอียดเพิ่มเติม :',
         submitted: `${s.byPr ? 'เผยแพร่โดย' : 'ส่งข่าวโดย'} ${s.submittedBy || s.unit}`, reviewed: `ตรวจทานโดย งานสื่อสารองค์กร${s.reviewedBy ? ` (${s.reviewedBy})` : ''}`, body: paragraphs(s.body),
       } : {
         caption: `News photos · ${n} photo${n === 1 ? '' : 's'}`, credit: `${creditOf(s, 1)}: ${s.credit || 'SRU Public Relations'}`,
