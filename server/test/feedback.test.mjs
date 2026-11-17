@@ -1,9 +1,11 @@
 // แจ้งปัญหาการใช้งานระบบ: anyone sends, only the PR team and admin read and close, every close in audit_log.
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
+import sharp from 'sharp';
 import { query } from '../db.mjs';
+import { removeFeedbackDir } from '../files.mjs';
 import { restore, snapshot } from './cleanup.mjs';
-import { anon, login } from './helpers.mjs';
+import { anon, gpsPhoto, login } from './helpers.mjs';
 
 const MARK = 'ทดสอบแจ้งปัญหา';
 let snap, pr, admin, staff, external, secretary;
@@ -15,6 +17,8 @@ before(async () => {
   [pr, admin, staff, external, secretary] = await Promise.all(['pr', 'admin', 'staff', 'external', 'secretary'].map(login));
 });
 after(async () => {
+  const ids = (await query('select id from feedback where message like $1', [`${MARK}%`])).rows.map((r) => r.id);
+  await Promise.all(ids.map(removeFeedbackDir));
   await query('delete from feedback where message like $1', [`${MARK}%`]);
   await restore(snap);
 });
@@ -47,6 +51,46 @@ describe('ส่งแจ้งปัญหา', () => {
     const before = (await latest())?.id;
     const r = await send(staff, { website: 'http://spam.example' });
     assert.equal(r.status, 201);
+    assert.equal((await latest())?.id, before);
+  });
+});
+
+describe('แนบรูปภาพ', () => {
+  // multipart: "data" JSON + pictures in "files" ([name, buffer, type])
+  const withFiles = (who, files, over = {}) => {
+    const fd = new FormData();
+    fd.append('data', JSON.stringify({ message: `${MARK} หน้าส่งข่าวแสดงผิด ${Date.now()}`, ...over }));
+    for (const [name, buf, type] of files) fd.append('files', new Blob([buf], { type }), name);
+    return who.call('POST', '/api/feedback', fd);
+  };
+  const png = () => sharp({ create: { width: 40, height: 30, channels: 3, background: 'red' } }).png().toBuffer();
+
+  test('ไม่เข้าสู่ระบบก็แนบรูปได้ รูปถูกแปลงเป็น WebP ไม่มีพิกัด และทีม PR เปิดดูได้', async () => {
+    const r = await withFiles(anon, [['จอ.png', await png(), 'image/png'], ['มือถือ.jpg', await gpsPhoto(), 'image/jpeg']]);
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const f = await latest();
+    const list = await pr.call('GET', '/api/pr/feedback');
+    const item = list.body.items.find((i) => i.id === String(f.id));
+    assert.deepEqual(item.files.map((x) => x.name), ['จอ.png', 'มือถือ.jpg']);
+    const pic = await fetch(`${process.env.TEST_BASE || 'http://localhost:3000'}/api/pr/feedback/${f.id}/files/${item.files[1].id}`, { headers: { cookie: pr.cookie } });
+    assert.equal(pic.status, 200);
+    const meta = await sharp(Buffer.from(await pic.arrayBuffer())).metadata();
+    assert.equal(meta.format, 'webp');
+    assert.equal(meta.exif, undefined);
+    for (const who of [anon, staff, external, secretary]) {
+      assert.ok([401, 403].includes((await who.call('GET', `/api/pr/feedback/${f.id}/files/${item.files[0].id}`)).status));
+    }
+    // A picture asked for under another report, or a made-up id
+    assert.equal((await pr.call('GET', `/api/pr/feedback/1/files/${item.files[0].id}`)).status, 404);
+    assert.equal((await pr.call('GET', `/api/pr/feedback/${f.id}/files/abc`)).status, 404);
+  });
+  test('ไฟล์ที่ไม่ใช่รูป รูปปลอม และเกิน 3 รูป ถูกปฏิเสธ', async () => {
+    const before = (await latest())?.id;
+    assert.equal((await withFiles(staff, [['เอกสาร.pdf', Buffer.from('%PDF-1.4\n%%EOF'), 'application/pdf']])).status, 400);
+    assert.equal((await withFiles(staff, [['ปลอม.png', Buffer.from('not really a picture'), 'image/png']])).status, 400);
+    const p = await png();
+    assert.equal((await withFiles(staff, [1, 2, 3, 4].map((n) => [`${n}.png`, p, 'image/png']))).status, 400);
+    assert.equal((await withFiles(staff, [['จอ.png', p, 'image/png']], { message: 'สั้น' })).status, 400);
     assert.equal((await latest())?.id, before);
   });
 });

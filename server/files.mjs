@@ -7,6 +7,7 @@
 //   documents/{document id}/{random id}.{ext}         every version of a document (documents.mjs)
 //   requests/{request id}/{random id}.{ext}           files sent with a service request or an answer to it (requests.mjs)
 //   events/{event id}/{banner id}.webp     แบนเนอร์กำหนดการ of a calendar event (calendar.mjs)
+//   feedback/{feedback id}/{random id}.webp           pictures sent with แจ้งปัญหาการใช้งาน, re-encoded (feedback.mjs)
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { copyFile, mkdir, rename, rm } from 'node:fs/promises';
@@ -144,6 +145,21 @@ export async function storeBanner(eventId, f) {
   }
   return { id, path };
 }
+
+// A picture sent with แจ้งปัญหาการใช้งาน (anyone may send one): re-encoded as WebP, which drops GPS and every other EXIF field
+// and anything hidden in the file. Returns { path, size }; a picture that will not decode is refused.
+export async function storeScreenshot(feedbackId, f) {
+  const dir = join('feedback', String(feedbackId));
+  await mkdir(abs(dir), { recursive: true });
+  const path = join(dir, `${randomUUID()}.webp`).replaceAll('\\', '/');
+  try {
+    const { size } = await sharp(f.path).rotate().resize(WEB_SIZE, WEB_SIZE, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 85 }).toFile(abs(path));
+    return { path, size };
+  } catch {
+    throw new HttpError(400, `${f.originalname} ไม่ใช่ไฟล์ภาพที่เปิดได้`, { files: `${f.originalname} ไม่ใช่ไฟล์ภาพที่เปิดได้` });
+  }
+}
+export const removeFeedbackDir = (feedbackId) => rm(abs(join('feedback', String(feedbackId))), { recursive: true, force: true });
 
 export const removeStored = (path) => Promise.all([rm(abs(path), { force: true }), rm(abs(webPath(path)), { force: true })]);
 export const removeRequestDir = (requestId) => rm(abs(join('requests', requestId)), { recursive: true, force: true });
