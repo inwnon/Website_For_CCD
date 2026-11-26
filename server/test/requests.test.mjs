@@ -286,13 +286,16 @@ describe('PDPA', () => {
 
     const u = await one(`insert into users (email, name, role) values ($1, 'ผู้ขอทดสอบ', 'staff') returning id`, [TEMP_EMAIL]);
     const row = await one(`insert into service_requests (requester_id, title, type, start_at, end_at, location) values ($1, 'ของผู้ขอ', 'photo', $2, $3, 'ที่ใด') returning id`, [u.id, later(24), later(25)]);
+    // Waiting for the requester's answer (รอข้อมูลเพิ่ม): nobody can answer any more either
+    const asked = await one(`insert into service_requests (requester_id, title, type, start_at, end_at, location, status) values ($1, 'รอข้อมูลจากผู้ขอ', 'photo', $2, $3, 'ที่ใด', 'info') returning id`, [u.id, later(24), later(25)]);
     try {
       await tx((c) => erase(c, u.id));
       const gone = await one('select requester_id, status from service_requests where id = $1', [row.id]);
       assert.equal(gone.requester_id, null);
       assert.equal(gone.status, 'cancelled');
+      assert.equal((await one('select status from service_requests where id = $1', [asked.id])).status, 'cancelled');
     } finally {
-      await query('delete from service_requests where id = $1', [row.id]);
+      await query('delete from service_requests where id = any($1)', [[row.id, asked.id]]);
     }
   });
 });

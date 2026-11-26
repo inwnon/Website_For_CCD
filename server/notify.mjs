@@ -205,10 +205,9 @@ export async function accessDecided(db, a) {
 
 // ---- Daily summary (08:00 Bangkok) ----
 export async function daily() {
-  await eventReminders();
   const days = get('review').days;
   const queue = (await query(`select s.ref, s.title, s.unit, s.status, s.sent_at,
-      (select count(*)::int - 1 from generate_series(s.sent_at::date, now()::date, '1 day') d where extract(isodow from d) < 6) work_days
+      (select greatest(count(*)::int - 1, 0) from generate_series(s.sent_at::date, now()::date, '1 day') d where extract(isodow from d) < 6) work_days
     from submissions s where s.status in ('review', 'writing') order by s.sent_at`)).rows;
   const late = queue.filter((r) => r.work_days > days);
   const team = await prTeam(null, 'prDaily');
@@ -223,16 +222,30 @@ export async function daily() {
     }
   }
 }
-// Runs daily() once per Bangkok day, from 08:00
+const bangkokHour = (now) => Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Bangkok' }).format(now));
+// Runs daily() once per Bangkok day, from 08:00. If it fails the day is given back, so the next hour tries again.
 export async function dailyIfDue() {
   const now = new Date();
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Bangkok' }).format(now));
-  if (hour < 8) return false;
+  if (bangkokHour(now) < 8) return false;
   const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(now);
-  const claimed = await one(`insert into job_runs (name, last_day) values ('daily', $1) on conflict (name) do update set last_day = $1
-    where job_runs.last_day < $1 returning name`, [day]);
+  const claimed = await one(`with was as (select last_day from job_runs where name = 'daily')
+    insert into job_runs (name, last_day) values ('daily', $1) on conflict (name) do update set last_day = $1
+    where job_runs.last_day < $1 returning (select last_day from was) was`, [day]);
   if (!claimed) return false;
-  await daily();
+  try {
+    await daily();
+  } catch (err) {
+    if (claimed.was) await query(`update job_runs set last_day = $2 where name = 'daily' and last_day = $1`, [day, claimed.was]);
+    else await query(`delete from job_runs where name = 'daily' and last_day = $1`, [day]);
+    throw err;
+  }
+  return true;
+}
+// Day-before reminders, every hour from 08:00 (Bangkok): an event moved to tomorrow, or a person assigned to it,
+// after the morning run is still reminded that day (reminded_at keeps each person to one reminder)
+export async function remindersIfDue(now = new Date()) {
+  if (bangkokHour(now) < 8) return false;
+  await eventReminders();
   return true;
 }
 
@@ -242,14 +255,19 @@ export async function sendQueued() {
   if (sending) return;
   sending = true;
   try {
-    const rows = (await query(`select * from email_outbox where status = 'queued' order by id limit 20`)).rows;
-    for (const r of rows) {
+    // Claimed first (leased for 10 minutes): with two app processes each email is sent by one of them only
+    const rows = await tx(async (c) => (await c.query(`update email_outbox set next_at = now() + interval '10 minutes' where id in (
+        select id from email_outbox where status = 'queued' and next_at <= now() order by id limit 20 for update skip locked)
+      returning *`)).rows);
+    for (const r of rows.sort((a, b) => Number(a.id) - Number(b.id))) {
       if (!transport) { await query(`update email_outbox set status = 'skipped', error = 'ยังไม่ได้ตั้งค่า SMTP' where id = $1`, [r.id]); continue; }
       try {
         await transport.sendMail({ from: FROM, to: r.to_email, subject: r.subject, text: r.body, html: r.html });
         await query(`update email_outbox set status = 'sent', sent_at = now(), tries = tries + 1, error = null where id = $1`, [r.id]);
       } catch (err) {
-        await query(`update email_outbox set tries = tries + 1, error = $2, status = case when tries + 1 >= 3 then 'failed' else 'queued' end where id = $1`, [r.id, String(err.message).slice(0, 500)]);
+        // Waits 5, 15, 45, 135 then 405 minutes; given up after the 6th try (about 10 hours)
+        await query(`update email_outbox set tries = tries + 1, error = $2, next_at = now() + make_interval(mins => 5 * power(3, tries)::int),
+          status = case when tries + 1 >= 6 then 'failed' else 'queued' end where id = $1`, [r.id, String(err.message).slice(0, 500)]);
       }
     }
   } finally {

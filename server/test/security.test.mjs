@@ -238,6 +238,19 @@ describe('PDPA: retention', () => {
     assert.equal(s.files.length, 0);
     assert.ok(s.filesRemovedAt);
   });
+  test('work sent again after its files were removed is no longer marked so, and is watched again', async () => {
+    const r = await staff.call('POST', '/api/submissions', form({ ...NEWS, title: 'งานที่ส่งใหม่หลังลบไฟล์' }, { photo: [['a.jpg', await img('#468'), 'image/jpeg']] }));
+    const { ref } = r.body.submission;
+    assert.equal((await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'revise', message: 'ขอภาพใหม่' })).status, 200);
+    const id = (await query('select id from submissions where ref = $1', [ref])).rows[0].id;
+    await query(`update submission_events set at = now() - interval '200 days' where submission_id = $1`, [id]);
+    await purge();
+    assert.ok((await staff.call('GET', `/api/submissions/${ref}`)).body.submission.filesRemovedAt);
+    const again = await staff.call('PUT', `/api/submissions/${ref}`, form(NEWS, { photo: [['ใหม่.jpg', await img('#864'), 'image/jpeg']] }));
+    assert.equal(again.status, 200, JSON.stringify(again.body));
+    assert.equal(again.body.submission.filesRemovedAt, undefined);
+    assert.equal((await query('select files_purged_at from submissions where id = $1', [id])).rows[0].files_purged_at, null);
+  });
   test('the period is a setting (30–3650 days) and is shown to readers', async () => {
     assert.equal((await admin.call('PUT', '/api/admin/settings/retention', { value: { days: 10 } })).status, 400);
     assert.equal((await admin.call('PUT', '/api/admin/settings/retention', { value: { days: 365 } })).status, 200);

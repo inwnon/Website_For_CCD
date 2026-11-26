@@ -26,7 +26,7 @@ const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 const span = () => [new Date(Date.now() - PAST_DAYS * DAY_MS), new Date(Date.now() + AHEAD_DAYS * DAY_MS)];
 
 // RFC 5545 §3.3.11 text, §3.1 lines of at most 75 octets (a continuation starts with a space), CRLF
-const escape = (s) => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const escape = (s) => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r\n|\r|\n/g, '\\n');
 function fold(line) {
   const out = [];
   let cur = '', bytes = 0, max = 75;
@@ -41,14 +41,14 @@ function fold(line) {
 }
 const stamp = (d) => new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 
-/** @param {string} name @param {{ id: string, title: string, location?: string, start_at: Date, end_at: Date, details?: string }[]} events */
+/** @param {string} name @param {{ id: string, title: string, location?: string, start_at: Date, end_at: Date, updated_at: Date, details?: string }[]} events */
 function calendar(name, events) {
-  const now = stamp(new Date());
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SRU Corporate Communication//Calendar//TH', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     `X-WR-CALNAME:${escape(name)}`, 'X-WR-TIMEZONE:Asia/Bangkok', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H'];
   for (const e of events) {
-    // The UID is stable but does not reveal the event's id
-    lines.push('BEGIN:VEVENT', `UID:${sha256(`event:${e.id}`).slice(0, 32)}@${HOST}`, `DTSTAMP:${now}`, `DTSTART:${stamp(e.start_at)}`, `DTEND:${stamp(e.end_at)}`,
+    // The UID is stable but does not reveal the event's id. DTSTAMP is the last change: the time of the fetch
+    // would make every event look changed to the calendar app on each refresh
+    lines.push('BEGIN:VEVENT', `UID:${sha256(`event:${e.id}`).slice(0, 32)}@${HOST}`, `DTSTAMP:${stamp(e.updated_at)}`, `DTSTART:${stamp(e.start_at)}`, `DTEND:${stamp(e.end_at)}`,
       `SUMMARY:${escape(e.title)}`);
     if (e.location) lines.push(`LOCATION:${escape(e.location)}`);
     if (e.details) lines.push(`DESCRIPTION:${escape(e.details)}`);
@@ -65,7 +65,7 @@ export const feeds = Router();
 feeds.use(limit('ical', { max: 120, windowMs: 10 * 60 * 1000, by: 'ip' }));
 
 feeds.get('/public.ics', async (req, res) => {
-  const rows = (await query(`select id, title, location, start_at, end_at from events
+  const rows = (await query(`select id, title, location, start_at, end_at, updated_at from events
     where visibility = 'public' and status = 'scheduled' and end_at >= $1 and start_at < $2 order by start_at limit ${MAX_EVENTS}`, span())).rows;
   send(res, calendar('ปฏิทินกิจกรรม มรส.', rows), 'public, max-age=900');
 });
@@ -78,7 +78,7 @@ feeds.get('/u/:file', async (req, res) => {
   const right = rightOf(user, 'calendar');
   if (!right) return notFound(res);
   const [from, to] = span();
-  const rows = (await query(`select e.id, e.title, e.location, e.start_at, e.end_at, e.description, a.duty from events e
+  const rows = (await query(`select e.id, e.title, e.location, e.start_at, e.end_at, e.updated_at, e.description, a.duty from events e
       left join event_assignments a on a.event_id = e.id and a.user_id = $3
     where e.status = 'scheduled' and e.end_at >= $1 and e.start_at < $2 and ($4::boolean is false or a.user_id is not null)
     order by e.start_at limit ${MAX_EVENTS}`, [from, to, user.id, right === 'own'])).rows;

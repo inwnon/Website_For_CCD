@@ -206,7 +206,7 @@ router.put('/submissions/:ref', requireUser, universityOnly, uploads, acceptUplo
         const sets = COLUMNS.filter((k) => k !== 'type').map((k, i) => `${k} = $${i + 3}`).join(', ');
         const values = COLUMNS.filter((k) => k !== 'type').map((k) => (k === 'people' ? JSON.stringify(row[k]) : row[k]));
         // The sender's new version replaces what PR had edited (แก้ไขข่าว on pr.html) of the old one
-        const u = (await c.query(`update submissions set status = $2, pr_unread = true, sender_unread = false, pr_edit = null, ${sets} where id = $1 returning *`, [s.id, firstStatus(row), ...values])).rows[0];
+        const u = (await c.query(`update submissions set status = $2, pr_unread = true, sender_unread = false, pr_edit = null, files_purged_at = null, ${sets} where id = $1 returning *`, [s.id, firstStatus(row), ...values])).rows[0];
         await c.query(`insert into submission_events (submission_id, status, actor_id) values ($1, 'resent', $3), ($1, $2, $3)`, [s.id, u.status, req.user.id]);
         await toPrTeam(c, 'pr.resent', u, req.user, row.note || undefined);
         if (gone.length) await c.query('delete from submission_files where id = any($1)', [gone.map((f) => f.id)]);

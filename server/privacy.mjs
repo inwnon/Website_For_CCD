@@ -125,7 +125,7 @@ export async function erase(c, userId) {
   await c.query('delete from saved_news where user_id = $1', [userId]);
   await c.query('delete from event_assignments where user_id = $1', [userId]);
   // Service requests stay (the office's record of its work) without the person; one still waiting will not be answered
-  await c.query(`update service_requests set requester_id = null, status = case when status = 'pending' then 'cancelled' else status end where requester_id = $1`, [userId]);
+  await c.query(`update service_requests set requester_id = null, status = case when status in ('pending', 'info') then 'cancelled' else status end where requester_id = $1`, [userId]);
   // Documents stay too (university records rules), without who uploaded them
   await c.query('update documents set uploaded_by = null where uploaded_by = $1', [userId]);
   await c.query('update document_versions set uploaded_by = null where uploaded_by = $1', [userId]);
