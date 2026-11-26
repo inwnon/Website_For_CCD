@@ -424,7 +424,7 @@
       const q = new URLSearchParams();
       if (save) q.set('save', '1');
       if ($('#fReplace').checked) q.set('replace', '1');
-      const res = await fetch(`/api/phonebook/import${q.size ? `?${q}` : ''}`, { method: 'POST', credentials: 'same-origin', body });
+      const res = await fetch(`/api/phonebook/import${q.toString() ? `?${q}` : ''}`, { method: 'POST', credentials: 'same-origin', body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw Object.assign(new Error(data.error || 'นำเข้าไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), { details: data.details });
       return data;

@@ -99,17 +99,21 @@
             <input id="userQ" type="search" placeholder="ค้นหาชื่อ อีเมล หรือหน่วยงาน" value="${esc(usersState.q)}" class="field ml-auto h-10 w-full rounded-full px-4 text-[14px] sm:w-[280px]">
           </div>
           <div id="userList" class="grid gap-1"></div>
+          <nav id="userPager" aria-label="หน้ารายชื่อผู้ใช้" class="mt-3 flex flex-wrap items-center justify-between gap-2" hidden></nav>
         </div>`;
       const form = $('#grant');
       const syncUnit = () => { form.querySelector('[data-unitbox]').hidden = form.role.value !== 'coordinator'; };
       form.role.addEventListener('change', syncUnit); syncUnit();
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const btn = form.querySelector('button');
+        if (btn.disabled) return;
+        btn.disabled = true;
         try {
           await api('/admin/roles', { method: 'PUT', body: { email: form.email.value, role: form.role.value, unit: form.unit.value } });
           toast(`ให้สิทธิ์ ${form.email.value} แล้ว`);
           form.reset(); syncUnit(); loadUsers();
-        } catch (err) { toast(err.message, true); }
+        } catch (err) { toast(err.message, true); } finally { btn.disabled = false; }
       });
       let t;
       $('#userQ').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => { usersState.q = e.target.value.trim(); usersState.offset = 0; loadUsers(); }, 250); });
@@ -132,7 +136,20 @@
           <input data-unit list="unitList" value="${esc(u.coordUnit || '')}" placeholder="หน่วยงานที่ดูแล" aria-label="หน่วยงานที่ ${esc(u.email)} ดูแล" class="field h-10 rounded-xl px-3 text-[14px]" ${u.role === 'coordinator' ? '' : 'hidden'}>
           <button type="button" data-apply class="press t-quick h-10 rounded-xl border border-line-strong px-4 font-display text-[14px] font-medium hover:-translate-y-0.5" hidden>บันทึก</button>
         </div>`).join('') : '<p class="rounded-2xl border border-dashed border-line p-8 text-center text-ink2">ไม่พบผู้ใช้</p>';
+      // 50 a page: the rest were out of reach except by searching
+      const pager = $('#userPager');
+      pager.hidden = r.total <= 50;
+      const pageBtn = (dir, label, off) => `<button type="button" data-userpage="${dir}" class="press t-quick h-10 rounded-xl border border-line-strong px-4 font-display text-[14px] font-medium hover:-translate-y-0.5 disabled:opacity-60" ${off ? 'disabled' : ''}>${label}</button>`;
+      pager.innerHTML = `${pageBtn(-1, 'ก่อนหน้า', usersState.offset === 0)}
+        <p class="text-[14px] text-ink2" aria-live="polite">${num(usersState.offset + 1)}–${num(usersState.offset + r.items.length)} จาก ${num(r.total)} คน</p>
+        ${pageBtn(1, 'ถัดไป', usersState.offset + 50 >= r.total)}`;
     }
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-userpage]');
+      if (!b || b.disabled) return;
+      usersState.offset = Math.max(0, usersState.offset + Number(b.dataset.userpage) * 50);
+      loadUsers();
+    });
     document.addEventListener('click', (e) => { const b = e.target.closest('[data-rolef]'); if (b) { usersState.role = b.dataset.rolef; usersState.offset = 0; loadUsers(); } });
     document.addEventListener('change', (e) => {
       const row = e.target.closest('[data-email]');
@@ -368,8 +385,8 @@
           <iframe id="mailFrame" title="ตัวอย่างอีเมล" sandbox="" class="h-[60vh] w-full bg-[#F5F4FF]"></iframe>
         </dialog>`;
       $('#mailTest').addEventListener('click', async (e) => {
-        e.currentTarget.disabled = true;
-        try { await api('/admin/mail/test', { method: 'POST' }); toast(`ส่งอีเมลทดสอบถึง ${me.email} แล้ว`); setTimeout(mail, 1500); } catch (err) { toast(err.message, true); e.currentTarget.disabled = false; }
+        const btn = e.currentTarget; btn.disabled = true;
+        try { await api('/admin/mail/test', { method: 'POST' }); toast(`ส่งอีเมลทดสอบถึง ${me.email} แล้ว`); setTimeout(mail, 1500); } catch (err) { toast(err.message, true); btn.disabled = false; }
       });
       // #panel stays between sections: bind once
       if (!mail.bound) mail.bound = $('#panel').addEventListener('click', async (e) => {
@@ -416,8 +433,8 @@
         } catch (err) { toast(Object.values(err.details || {})[0] || err.message, true); }
       });
       $('#panel').querySelectorAll('[data-editor]').forEach((li) => li.querySelector('[data-revoke]').addEventListener('click', async (e) => {
-        e.currentTarget.disabled = true;
-        try { await api(`/admin/phonebook-editors/${encodeURIComponent(li.dataset.editor)}`, { method: 'DELETE' }); toast('ยกเลิกสิทธิ์แล้ว'); phoneEditors(); } catch (err) { toast(err.message, true); e.currentTarget.disabled = false; }
+        const btn = e.currentTarget; btn.disabled = true;
+        try { await api(`/admin/phonebook-editors/${encodeURIComponent(li.dataset.editor)}`, { method: 'DELETE' }); toast('ยกเลิกสิทธิ์แล้ว'); phoneEditors(); } catch (err) { toast(err.message, true); btn.disabled = false; }
       }));
     }
 
@@ -448,8 +465,8 @@
         } catch (err) { toast(Object.values(err.details || {})[0] || err.message, true); }
       });
       $('#panel').querySelectorAll('[data-viewer]').forEach((li) => li.querySelector('[data-revoke]').addEventListener('click', async (e) => {
-        e.currentTarget.disabled = true;
-        try { await api(`/admin/phonebook-viewers/${encodeURIComponent(li.dataset.viewer)}`, { method: 'DELETE' }); toast('ยกเลิกสิทธิ์แล้ว'); phoneViewers(); } catch (err) { toast(err.message, true); e.currentTarget.disabled = false; }
+        const btn = e.currentTarget; btn.disabled = true;
+        try { await api(`/admin/phonebook-viewers/${encodeURIComponent(li.dataset.viewer)}`, { method: 'DELETE' }); toast('ยกเลิกสิทธิ์แล้ว'); phoneViewers(); } catch (err) { toast(err.message, true); btn.disabled = false; }
       }));
     }
 
@@ -486,13 +503,15 @@
         li.querySelector('[data-erase]')?.addEventListener('click', async (e) => {
           const x = r.items.find((i) => String(i.id) === id);
           if (!confirm(`ลบข้อมูลส่วนบุคคลของ ${x.email}? ทำย้อนกลับไม่ได้`)) return;
-          e.currentTarget.disabled = true;
-          try { await api(`/admin/requests/${id}/erase`, { method: 'POST', body: {} }); toast('ลบข้อมูลแล้ว และแจ้งผู้ขอทางอีเมลแล้ว'); requests(); } catch (err) { toast(err.message, true); e.currentTarget.disabled = false; }
+          const btn = e.currentTarget; btn.disabled = true;
+          try { await api(`/admin/requests/${id}/erase`, { method: 'POST', body: {} }); toast('ลบข้อมูลแล้ว และแจ้งผู้ขอทางอีเมลแล้ว'); requests(); } catch (err) { toast(err.message, true); btn.disabled = false; }
         });
-        li.querySelector('[data-reject]')?.addEventListener('click', async () => {
+        li.querySelector('[data-reject]')?.addEventListener('click', async (e) => {
+          const btn = e.currentTarget;
           const note = prompt('เหตุผลที่ยังลบไม่ได้ (ผู้ขอจะเห็นข้อความนี้)');
           if (!note) return;
-          try { await api(`/admin/requests/${id}/reject`, { method: 'POST', body: { note } }); toast('บันทึกแล้ว และแจ้งผู้ขอทางอีเมลแล้ว'); requests(); } catch (err) { toast(err.message, true); }
+          btn.disabled = true;
+          try { await api(`/admin/requests/${id}/reject`, { method: 'POST', body: { note } }); toast('บันทึกแล้ว และแจ้งผู้ขอทางอีเมลแล้ว'); requests(); } catch (err) { toast(err.message, true); btn.disabled = false; }
         });
       });
     }

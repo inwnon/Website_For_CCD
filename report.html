@@ -193,7 +193,7 @@
       }
       const max = Math.max(1, ...buckets.map((b) => b.n));
       return `<div class="flex h-[250px] items-end gap-[3px]" role="img" aria-label="ยอดอ่านตามช่วงเวลา สูงสุด ${num(max)} ครั้ง">
-        ${buckets.map((b, i) => `<span class="tip flex h-full flex-1 items-end" tabindex="0" data-tip="${b.label}: ${num(b.n)}">
+        ${buckets.map((b, i) => `<span class="tip flex h-full flex-1 items-end" data-tip="${b.label}: ${num(b.n)}">
           <span class="bar block w-full rounded-t-md bg-grad" style="height:${Math.max(2, (b.n / max) * 100)}%; animation-delay:${Math.min(i * 12, 400)}ms; opacity:${b.n ? 1 : .25}"></span></span>`).join('')}
       </div>
       <div class="mt-2 flex justify-between text-[12px] text-ink2"><span>${buckets[0]?.label || ''}</span><span>${buckets.at(-1)?.label || ''}</span></div>`;
@@ -217,7 +217,8 @@
       const cell = (n, kinds) => {
         const a = n ? 0.14 + (n / max) * 0.86 : 0;
         const tip = n ? Object.entries(kinds || {}).map(([k, v]) => `${KIND[k]} ${v}`).join(', ') : 'ไม่มีข่าว';
-        return `<td class="cell w-[52px] px-0.5 py-0.5"><span class="tip" tabindex="0" data-tip="${tip}" style="background: rgb(var(--purple) / ${a.toFixed(2)}); color: ${a > .55 ? '#fff' : 'rgb(var(--ink))'}">${n || '·'}</span></td>`;
+        // Not a tab stop each (a 90-day range made dozens): screen readers read the breakdown in the table cell instead
+        return `<td class="cell w-[52px] px-0.5 py-0.5"><span class="tip" data-tip="${tip}" style="background: rgb(var(--purple) / ${a.toFixed(2)}); color: ${a > .55 ? '#fff' : 'rgb(var(--ink))'}"><span aria-hidden="true">${n || '·'}</span><span class="sr-only">${n ? `${n} ข่าว: ${tip}` : tip}</span></span></td>`;
       };
       const chips = [['all', 'ทุกประเภท'], ...Object.entries(KIND)].map(([k, l]) => `<button type="button" data-kind="${k}" aria-pressed="${k === kindFilter}" class="press t-quick h-9 rounded-full px-4 font-display text-[14px] font-semibold">${l}</button>`).join('');
       return `<div class="flex flex-wrap items-center justify-between gap-3">
@@ -312,7 +313,8 @@
     $('#from').addEventListener('change', load);
     $('#to').addEventListener('change', load);
     $('#unit').addEventListener('change', load);
-    $('#report').addEventListener('click', (e) => { const b = e.target.closest('[data-kind]'); if (b && last) { kindFilter = b.dataset.kind; render(last); } });
+    // The chips are drawn again with the table: focus goes back to the one just pressed, not to the top of the page
+    $('#report').addEventListener('click', (e) => { const b = e.target.closest('[data-kind]'); if (b && last) { kindFilter = b.dataset.kind; render(last); $(`#report [data-kind="${kindFilter}"]`)?.focus(); } });
     $('#xlsx').addEventListener('click', () => { location.href = '/api/reports/export.xlsx?' + query(); });
 
     DESK.start({ page: 'report', allow: ['pr', 'admin'] }).then((user) => {
