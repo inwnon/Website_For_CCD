@@ -70,8 +70,10 @@ const MODULES = {
     ['tags', 'แท็ก', 24], ['access_level', 'ทีม / ส่วนตัว', 12], ['version', 'เวอร์ชัน', 10], ['file_name', 'ชื่อไฟล์', 32], ['people', 'ผู้เกี่ยวข้อง', 36],
     ['uploaded_by', 'ผู้อัปโหลด', 28], ['created_at', 'เพิ่มเมื่อ', 20], ['archived_at', 'ลบเมื่อ', 20],
   ]]] },
-  phonebook: { label: 'สมุดโทรศัพท์', sheets: [['สมุดโทรศัพท์', `select g.unit_name parent, p.unit_name, p.phone_number, p.internal_number, p.note
-      from phonebook p left join phonebook g on g.id = p.parent_id order by p.position nulls last, p.unit_name`, [
+  phonebook: { label: 'สมุดโทรศัพท์', sheets: [['สมุดโทรศัพท์', `with recursive tree as (select id, unit_name::text path from phonebook where parent_id is null
+        union all select p.id, tree.path || ' > ' || p.unit_name from phonebook p join tree on p.parent_id = tree.id)
+      select g.path parent, p.unit_name, p.phone_number, p.internal_number, p.note
+      from phonebook p left join tree g on g.id = p.parent_id order by p.position nulls last, p.unit_name`, [
     ['parent', 'หน่วยงานหลัก', 36], ['unit_name', 'หน่วยงาน', 40], ['phone_number', 'หมายเลขโทรศัพท์', 20], ['internal_number', 'เบอร์ภายใน', 14], ['note', 'หมายเหตุ', 32],
   ]]] },
   users: { label: 'ผู้ใช้และบทบาท', sheets: [['ผู้ใช้', `select u.email, u.name, u.first_name, u.last_name, u.role, t.role team_role, t.unit team_unit, u.unit, u.sub_unit, u.position,

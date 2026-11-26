@@ -214,6 +214,18 @@ function readRows(sheet) {
 
 const tooMany = (problems) => new HttpError(400, `ไฟล์มีข้อมูลที่ต้องแก้ ${problems.length} แถว ยังไม่ได้นำเข้า`, { problems: problems.slice(0, MAX_PROBLEMS) });
 
+// The หน่วยงานหลัก column: a name, or for a unit deeper down the whole way from the top, "คณะ > สาขา > ห้องปฏิบัติการ"
+// (a name alone cannot tell two units of the same name apart). Spaces around ">" do not count.
+const SEP = ' > ';
+const lc = (s) => s.toLowerCase();
+function parentPath(v) {
+  const s = str(v, 600, 'หน่วยงานหลัก');
+  if (!s) return null;
+  const parts = s.split(/\s*>\s*/).map((t) => t.trim());
+  if (parts.some((t) => !t || t.length > 200)) throw new HttpError(400, 'หน่วยงานหลักเขียนไม่ถูก ใช้ชื่อหน่วยงานคั่นด้วย > เช่น คณะ > สาขา');
+  return parts.join(SEP);
+}
+
 // Throws 400 listing the lines that are wrong; a unit twice under the same หน่วยงานหลัก is one of them
 function checkRows(rows) {
   const problems = [];
@@ -221,7 +233,7 @@ function checkRows(rows) {
   const good = [];
   for (const r of rows) {
     try {
-      const d = { ...checkEntry({ ...r, parentId: null }), parent: str(r.parent, 200, 'หน่วยงานหลัก'), line: r.line };
+      const d = { ...checkEntry({ ...r, parentId: null }), parent: parentPath(r.parent), line: r.line };
       const key = `${d.parent?.toLowerCase() ?? ''}|${d.unit.toLowerCase()}`;
       if (seen.has(key)) throw new HttpError(400, `มีชื่อ ${d.unit} ซ้ำในไฟล์`);
       seen.add(key);
@@ -235,27 +247,32 @@ function checkRows(rows) {
   return good;
 }
 
-// Sorts the rows into new units and changes to units here. Units with no parent come first, so a new หน่วยงานหลัก
-// is saved before the units under it. A unit imported before without a parent moves once, and not when the file
-// also has it as a หน่วยงานหลัก: then the file's row becomes a new unit of the same name.
+// Sorts the rows into new units and changes to units here. Parents come first (fewest levels above them), so a new
+// หน่วยงานหลัก is saved before the units under it, at any depth. A unit imported before without a parent moves once,
+// and not when the file also has it as a หน่วยงานหลัก: then the file's row becomes a new unit of the same name.
+// nodes: every unit by its path from the top (lower case), those here now and, as they are saved, the new ones.
 function planImport(rows, all) {
-  const top = new Map(all.filter((e) => !e.parent_id).map((e) => [e.unit_name.toLowerCase(), e]));
-  const under = new Map(all.map((e) => [`${e.parent_id ?? ''}|${e.unit_name.toLowerCase()}`, e]));
+  const byId = new Map(all.map((e) => [e.id, e]));
+  const pathOf = (e) => (byId.has(e.parent_id) ? `${pathOf(byId.get(e.parent_id))}${SEP}${e.unit_name}` : e.unit_name);
+  const nodes = new Map(all.map((e) => [lc(pathOf(e)), e]));
+  const fullOf = (r) => lc(r.parent ? `${r.parent}${SEP}${r.unit}` : r.unit);
+  const depth = (r) => (r.parent ? r.parent.split(SEP).length : 0);
+  const inFile = new Set(rows.map(fullOf));
   const parents = new Set(all.map((e) => e.parent_id).filter(Boolean));
-  const newTop = new Set(rows.filter((r) => !r.parent && !top.has(r.unit.toLowerCase())).map((r) => r.unit.toLowerCase()));
-  const staysTop = new Set(rows.map((r) => (r.parent || r.unit).toLowerCase()));
+  const staysTop = new Set(rows.map((r) => lc(r.parent ? r.parent.split(SEP)[0] : r.unit)));
   const moved = new Set();
   const fresh = [], changed = [], problems = [], placed = [];
-  for (const r of [...rows].sort((a, b) => Number(Boolean(a.parent)) - Number(Boolean(b.parent)))) {
-    const parent = r.parent ? top.get(r.parent.toLowerCase()) : null;
-    if (r.parent && !parent && !newTop.has(r.parent.toLowerCase())) {
+  for (const r of [...rows].sort((a, b) => depth(a) - depth(b))) {
+    const parent = r.parent ? nodes.get(lc(r.parent)) : null;
+    if (r.parent && !parent && !inFile.has(lc(r.parent))) {
       problems.push(`แถว ${r.line}: ไม่พบหน่วยงานหลัก ${r.parent} ใส่หน่วยงานหลักเป็นแถวของตัวเองในไฟล์ก่อน`);
       continue;
     }
-    const was = r.parent && !parent ? null : under.get(`${parent?.id ?? ''}|${r.unit.toLowerCase()}`);
-    const loose = r.parent && !was && !staysTop.has(r.unit.toLowerCase()) && top.get(r.unit.toLowerCase());
+    const was = nodes.get(fullOf(r));
+    const loose = r.parent && !was && !staysTop.has(lc(r.unit)) && nodes.get(lc(r.unit));
     if (loose && loose.id !== parent?.id && !parents.has(loose.id) && !moved.has(loose.id)) {
       moved.add(loose.id);
+      nodes.set(fullOf(r), loose); // units under it in the file find it here
       changed.push({ ...r, id: loose.id, move: true });
       placed.push({ id: loose.id, position: r.line });
     } else if (!was) fresh.push(r);
@@ -265,7 +282,7 @@ function planImport(rows, all) {
     }
   }
   if (problems.length) throw tooMany(problems);
-  return { fresh, changed, top, placed };
+  return { fresh, changed, nodes, placed, fullOf };
 }
 
 router.get('/phonebook', requireModule('phonebook'), async (req, res) => {
@@ -320,19 +337,19 @@ router.post('/phonebook/import', writer, importLimit, (req, res, next) => upload
     const result = await tx(async (c) => {
       await lockTree(c);
       const all = (await c.query('select * from phonebook for update')).rows;
-      const { fresh, changed, top, placed } = planImport(rows, replace ? [] : all);
+      const { fresh, changed, nodes, placed, fullOf } = planImport(rows, replace ? [] : all);
       const counts = { added: fresh.length, updated: changed.length, unchanged: rows.length - fresh.length - changed.length, removed: replace ? all.length : 0 };
       if (!save) return counts;
       if (replace) await c.query('delete from phonebook');
       for (const r of fresh) {
-        const parentId = r.parent ? top.get(r.parent.toLowerCase()).id : null;
+        const parentId = r.parent ? nodes.get(lc(r.parent)).id : null;
         const row = (await c.query('insert into phonebook (unit_name, parent_id, phone_number, internal_number, note, position) values ($1, $2, $3, $4, $5, $6) returning *',
           [r.unit, parentId, r.phone, r.internal, r.note, r.line])).rows[0];
-        if (!parentId) top.set(row.unit_name.toLowerCase(), row);
+        nodes.set(fullOf(r), row);
       }
       for (const r of changed) {
         await c.query(`update phonebook set parent_id = coalesce($5, parent_id), phone_number = coalesce($2, phone_number), internal_number = coalesce($3, internal_number),
-          note = coalesce($4, note), updated_at = now() where id = $1`, [r.id, r.phone, r.internal, r.note, r.move ? top.get(r.parent.toLowerCase()).id : null]);
+          note = coalesce($4, note), updated_at = now() where id = $1`, [r.id, r.phone, r.internal, r.note, r.move ? nodes.get(lc(r.parent)).id : null]);
       }
       // Units the file does not have follow it, in the order they had, so two files never interleave
       const inFile = new Set(placed.map((p) => p.id));
