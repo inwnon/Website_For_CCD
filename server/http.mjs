@@ -44,6 +44,18 @@ export function parseCookies(header = '') {
   return out;
 }
 
+// A list offset from the query string: a whole number from 0 (Infinity or 1e21 would break the SQL)
+export const offsetOf = (v, max = 1_000_000) => {
+  const n = Math.trunc(Number(v));
+  return Number.isFinite(n) && n > 0 ? Math.min(n, max) : 0;
+};
+
+// A numeric record id from the URL, or 0 (no row has it) when PostgreSQL's integer cannot hold it
+export const intId = (v) => {
+  const n = Number(v);
+  return Number.isSafeInteger(n) && n > 0 && n <= 2147483647 ? n : 0;
+};
+
 // Trimmed string or null; throws if longer than max
 export function str(v, max, label) {
   if (v == null) return null;

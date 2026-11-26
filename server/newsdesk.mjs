@@ -24,9 +24,9 @@ import { audit } from './audit.mjs';
 import { addToSets } from './collections.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, acceptUpload, publishFile, removeMedia, removeTemp } from './files.mjs';
-import { HttpError, str } from './http.mjs';
+import { HttpError, offsetOf, str } from './http.mjs';
 import { allUnits } from './org.mjs';
-import { AUDIENCES, CHANNELS, CREDIT_KINDS, MAX_CATS, PLATFORMS, SOLO_MSG, TYPES, albumSet, albumUrl, audienceLabel, bodyLeading, bodySize, categories, creditKindOf, creditMissing, newsUrl, slugField, soloOk, videoLinks } from './rules.mjs';
+import { AUDIENCES, CHANNELS, CREDIT_KINDS, MAX_CATS, PLATFORMS, SOLO_MSG, TYPES, albumSet, albumUrl, audienceLabel, bodyLeading, bodySize, categories, creditKindOf, creditMissing, isDate, newsUrl, slugField, soloOk, videoLinks } from './rules.mjs';
 import { get } from './settings.mjs';
 import { limit } from './security.mjs';
 
@@ -46,7 +46,7 @@ const SHOW = {
 
 router.get('/pr/news', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 30, 1), 100);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const offset = offsetOf(req.query.offset);
   const params = [];
   const p = (v) => { params.push(v); return `$${params.length}`; };
   const base = [];
@@ -56,7 +56,8 @@ router.get('/pr/news', async (req, res) => {
   const counts = (await query(`select ${Object.entries(SHOW).map(([k, w]) => `count(*) filter (where ${w})::int ${k}`).join(', ')}, count(*)::int "all"
     from news n ${base.length ? `where ${base.join(' and ')}` : ''}`, params)).rows[0];
   const where = [...base];
-  if (SHOW[/** @type {string} */ (req.query.show)]) where.push(SHOW[/** @type {string} */ (req.query.show)]);
+  const show = Object.hasOwn(SHOW, String(req.query.show)) ? String(req.query.show) : null;
+  if (show) where.push(SHOW[show]);
   const rows = (await query(
     `select n.*, s.ref, s.status submission_status, u.name creator_name, w.name withdrawn_by_name, count(*) over ()::int total
      from news n left join submissions s on s.id = n.submission_id left join users u on u.id = n.created_by left join users w on w.id = n.withdrawn_by
@@ -69,7 +70,7 @@ router.get('/pr/news', async (req, res) => {
   // อัลบั้มข่าว each story is in: their other stories are ข่าวที่เกี่ยวข้อง on their own (news.mjs)
   const albums = rows.length ? (await query('select id, title, items from collections where items && $1::uuid[]', [rows.map((n) => n.id)])).rows : [];
   res.json({
-    counts, total: SHOW[/** @type {string} */ (req.query.show)] ? counts[/** @type {string} */ (req.query.show)] : counts.all,
+    counts, total: show ? counts[show] : counts.all,
     items: rows.map((n) => ({
       id: n.id, title: n.title, unit: n.unit, kind: n.kind, categories: n.categories, audience: audienceLabel(n.audience),
       cover: n.cover_path ? `/media/${n.cover_path}` : null, photos: (n.cover_path ? 1 : 0) + n.gallery.length,
@@ -318,7 +319,7 @@ function checkImport(d, photoCount, opts = { imported: true }) {
   if (more.error) need('videoLinks', false, more.error);
   if (row.video_links.length) need('videoUrl', row.video_url, 'ใส่ลิงก์วิดีโอหลักก่อนลิงก์เพิ่มเติม');
   // Original date (and time): not in the future
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(d.date || '') ? d.date : null;
+  const date = isDate(d.date) ? d.date : null;
   const time = /^\d{2}:\d{2}$/.test(d.time || '') ? d.time : '12:00';
   row.published_at = date ? new Date(`${date}T${time}:00+07:00`) : null;
   need('date', row.published_at && !Number.isNaN(row.published_at.getTime()), 'เลือกวันที่เผยแพร่เดิม');

@@ -273,3 +273,31 @@ describe('Speed on phones: versioned scripts', () => {
     assert.doesNotMatch((await fetch(`${BASE}/site-config.js?v=${v}`)).headers.get('cache-control') || '', /immutable/);
   });
 });
+
+describe('odd query values are answered, not a server error', () => {
+  test('offsets, impossible dates and filter names that are object keys', async () => {
+    const admin = await login('admin');
+    const ok = [
+      [anon, '/api/news?offset=Infinity'], [anon, '/api/news?offset=1e21'], [anon, '/api/news?date=2026-02-30'],
+      [anon, '/api/news/search?q=ข่าว&from=2026-02-30&to=2026-13-01&offset=Infinity'],
+      [pr, '/api/pr/news?show=constructor'], [pr, '/api/pr/news?show=__proto__&offset=Infinity'], [pr, '/api/pr/submissions?offset=1e21'],
+      [pr, '/api/pr/collections/stories?offset=Infinity'],
+      [admin, '/api/admin/users?offset=Infinity'], [admin, '/api/admin/audit?from=2026-02-30&action=constructor&offset=1e21'],
+      [admin, '/api/reports?from=2026-13-01&to=2026-02-30'],
+    ];
+    for (const [who, path] of ok) assert.equal((await who.call('GET', path)).status, 200, path);
+    assert.equal((await request('GET', '/search.html?range=custom&from=2026-02-30')).status, 200);
+    for (const action of ['erase', 'reject']) {
+      assert.equal((await admin.call('POST', `/api/admin/requests/99999999999999999999/${action}`, { note: 'ทดสอบ' })).status, 404, action);
+    }
+  });
+  test('past the last page the total is still the number of matches', async () => {
+    const first = (await anon.call('GET', '/api/news?limit=1')).body;
+    assert.ok(first.total > 0);
+    const past = (await anon.call('GET', `/api/news?limit=1&offset=${first.total + 5}`)).body;
+    assert.deepEqual([past.total, past.items.length, past.hasMore], [first.total, 0, false]);
+    const q = `/api/news/search?q=${encodeURIComponent(first.items[0].title.split(' ')[0])}`;
+    const found = (await anon.call('GET', q)).body;
+    assert.equal((await anon.call('GET', `${q}&offset=${found.total + 5}`)).body.total, found.total);
+  });
+});

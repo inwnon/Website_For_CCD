@@ -19,7 +19,7 @@ import { Router } from 'express';
 import { prUnreadCount, publicUser, requirePr } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, publishImage, removeMedia } from './files.mjs';
-import { HttpError, str } from './http.mjs';
+import { HttpError, offsetOf, str } from './http.mjs';
 import { AUDIENCES, MAX_CATS, SOLO_MSG, albumSet, albumUrl, audienceLabel, bodyLeading, bodySize, categories, slugField, soloOk, videoLinks } from './rules.mjs';
 import { applyRole, checkRole } from './admin.mjs';
 import { audit } from './audit.mjs';
@@ -66,7 +66,7 @@ router.get('/pr/arrivals', async (req, res) => {
 router.get('/pr/submissions', async (req, res) => {
   const { status, type, q, unread } = /** @type {Record<string, any>} */ (req.query);
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const offset = offsetOf(req.query.offset);
   const where = [];
   const params = [];
   const add = (sql, v) => { params.push(v); where.push(sql.replace('?', `$${params.length}`)); };
