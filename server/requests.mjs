@@ -216,9 +216,10 @@ router.post('/requests/:id/ask', reviewer, async (req, res) => {
 
 // The requester answers (text, files or both): the request waits for PR again
 router.post('/requests/:id/reply', requireModule('requests'), uploads, receive, async (req, res) => {
-  const body = str(req.data?.body, 2000, 'ข้อความ') || '';
   const count = /** @type {any[]} */ (req.files || []).length;
+  let body = '';
   try {
+    body = str(req.data?.body, 2000, 'ข้อความ') || '';
     const r = await visible(req);
     if (r.requester_id !== req.user.id) throw new HttpError(403, 'ตอบกลับได้เฉพาะผู้ขอ');
     if (!body && !count) throw new HttpError(400, 'พิมพ์ข้อความหรือแนบไฟล์', { body: 'พิมพ์ข้อความหรือแนบไฟล์' });

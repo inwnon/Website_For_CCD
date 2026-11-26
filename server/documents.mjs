@@ -216,7 +216,7 @@ router.get('/document-works', allowed, async (req, res) => {
   };
   const terms = termConditions(str(req.query.q, 100, 'คำค้น') ?? '', anywhere);
   const matching = `with seen as (
-      ${SELECT} where ($1 or d.access_level = 'team' or d.uploaded_by = $2) and (d.archived_at is not null) = $3 and ($4::text is null or d.category = $4)
+      ${SELECT} where ($1 or d.access_level = 'team' or d.uploaded_by = $2) and (d.archived_at is not null) = $3 and ($1 or not $3 or d.uploaded_by = $2) and ($4::text is null or d.category = $4)
         and ($5::text[] is null or v.mime = any($5)) and ($6::text is null or d.access_level = $6)
         and ($7::int is null or extract(year from d.doc_date - ($9::int is not null)::int * interval '3 months') = $7)
         and ($9::int is null or (extract(month from d.doc_date) between 4 and 9) = ($9 = 1))
@@ -393,6 +393,7 @@ router.post('/documents/:id/restore', allowed, async (req, res) => {
   const { id } = req.params;
   await tx(async (c) => {
     const d = await held(c, id, req.user);
+    if (!isAdmin(req.user) && d.uploaded_by !== req.user.id) throw new HttpError(403, 'กู้คืนได้เฉพาะผู้อัปโหลดและผู้ดูแลระบบ');
     if (!d.archived_at) throw new HttpError(409, 'เอกสารนี้ไม่ได้อยู่ในคลังเก็บ');
     await c.query('update documents set archived_at = null, updated_at = now() where id = $1', [id]);
     await audit(c, req.user, 'document.restore', id, `กู้คืนเอกสาร ${d.title}`);

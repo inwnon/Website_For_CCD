@@ -200,9 +200,7 @@ router.get('/calendar/events/:id', requireModule('calendar'), async (req, res) =
   if (!UUID.test(req.params.id)) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
   const e = await one('select * from events where id = $1', [req.params.id]);
   if (!e) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
-  if (rightOf(req.user, 'calendar') === 'own' && !(await one('select 1 from event_assignments where event_id = $1 and user_id = $2', [e.id, req.user.id]))) {
-    throw new HttpError(403, 'บัญชีนี้ไม่มีสิทธิ์ดูกิจกรรมนี้');
-  }
+  if (!(await sees(req.user, e))) throw new HttpError(403, 'บัญชีนี้ไม่มีสิทธิ์ดูกิจกรรมนี้');
   await respond(res, req, e);
 });
 

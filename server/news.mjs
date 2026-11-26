@@ -364,8 +364,9 @@ async function youtubeThumb(id) {
 media.get('/video/:file', async (req, res) => {
   const id = req.params.file.match(/^([\w-]{6,20})\.webp$/)?.[1];
   if (!id) return res.status(404).end();
-  // Only a video that a live story links to (not an open image proxy)
-  const known = await one(`select 1 from news n where n.video_url like $1 and ${LIVE} limit 1`, [`%${id}%`]);
+  // Only a video that a live story links to (not an open image proxy): the whole id, not a part of one
+  // (id is letters, digits, "_" and "-" only, none of them special in a regular expression outside brackets)
+  const known = await one(`select 1 from news n where n.video_url ~ $1 and ${LIVE} limit 1`, [`(^|[^A-Za-z0-9_-])${id}([^A-Za-z0-9_-]|$)`]);
   if (!known) return res.status(404).end();
   try {
     sendMedia(res, await youtubeThumb(id), 'public, max-age=604800');

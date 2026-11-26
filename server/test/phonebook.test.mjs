@@ -472,6 +472,17 @@ describe('edit rights an admin lends', () => {
     assert.deepEqual(EDITORS.map((e) => list.items.some((x) => x.email === e)), [true, true]);
     assert.ok(list.people.every((p) => ['pr', 'intern'].includes(p.role)));
   });
+  test('a loan ends when the account is no longer PR or intern', async () => {
+    assert.equal((await lend(EDITORS[1])).status, 201);
+    assert.equal((await admin.call('PUT', '/api/admin/roles', { email: EDITORS[1], role: 'default' })).status, 200);
+    try {
+      assert.equal(await one('select 1 from phonebook_editors where email = $1', [EDITORS[1]]), null);
+      assert.equal((await intern.call('GET', '/api/phonebook')).status, 403);
+      assert.equal(await logged('phonebook.revoke', EDITORS[1]) >= 1, true);
+    } finally {
+      intern = await login('intern');
+    }
+  });
   test('only admin lends or takes back, and every change is logged', async () => {
     for (const who of [pr, intern, staff, secretary, executive, coordinator, external]) {
       assert.equal((await who.call('GET', '/api/admin/phonebook-editors')).status, 403);
@@ -479,10 +490,11 @@ describe('edit rights an admin lends', () => {
       assert.equal((await who.call('DELETE', `/api/admin/phonebook-editors/${EDITORS[1]}`)).status, 403);
     }
     assert.equal((await anon.call('GET', '/api/admin/phonebook-editors')).status, 401);
+    const revoked = await logged('phonebook.revoke', EDITORS[1]);
     await lend(EDITORS[1], thaiDay(3));
     await admin.call('DELETE', `/api/admin/phonebook-editors/${EDITORS[1]}`);
     assert.equal(await logged('phonebook.grant', EDITORS[1]) >= 1, true);
-    assert.equal(await logged('phonebook.revoke', EDITORS[1]), 1);
+    assert.equal(await logged('phonebook.revoke', EDITORS[1]), revoked + 1);
     assert.equal((await admin.call('DELETE', `/api/admin/phonebook-editors/${EDITORS[1]}`)).status, 404);
   });
   test('the last day is today or later, and a real date', async () => {

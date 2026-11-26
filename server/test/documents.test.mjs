@@ -189,6 +189,14 @@ describe('finding', () => {
     assert.equal((await pr.call('POST', `/api/documents/${d.id}/restore`, {})).status, 409);
     for (const action of ['document.archive', 'document.restore']) assert.ok(await one('select 1 from audit_log where action = $1 and target = $2', [action, d.id]), action);
   });
+  test('a team document someone else deleted: not in my archive, and I cannot bring it back', async () => {
+    const d = await add({}, file(), admin);
+    assert.equal((await admin.call('POST', `/api/documents/${d.id}/archive`, {})).status, 200);
+    assert.ok(!(await ids(pr, '?archived=1')).includes(d.id));
+    assert.ok((await ids(admin, '?archived=1')).includes(d.id));
+    assert.equal((await pr.call('POST', `/api/documents/${d.id}/restore`, {})).status, 403);
+    assert.equal((await admin.call('POST', `/api/documents/${d.id}/restore`, {})).status, 200);
+  });
   test('pages: each งาน once, the total counts every match, filters still apply', async () => {
     const q = `?q=${encodeURIComponent('งานแบ่งหน้าทดสอบ')}`;
     const made = [];

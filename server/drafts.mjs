@@ -7,7 +7,7 @@
 // - GET    /api/drafts/:id/files/:fileId[?v=web]
 // Sending a draft is POST /api/submissions with data.draftId (submissions.mjs): its files move to the submission.
 import { Router } from 'express';
-import { isUniversity, requireUser } from './auth.mjs';
+import { requireUser, universityOnly } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { acceptUpload, removeDraftDir, removeStored, removeTemp, storeUploads } from './files.mjs';
 import { HttpError } from './http.mjs';
@@ -68,7 +68,6 @@ async function placeFiles(c, draftId, kept, uploads, order = {}) {
 
 export const router = Router();
 const saves = limit('draft', { max: 60, windowMs: 10 * 60 * 1000, message: 'บันทึกร่างบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่' });
-const universityOnly = (req) => { if (!isUniversity(req.user)) throw new HttpError(403, 'การส่งงานเปิดให้บุคลากรและนักศึกษาของมหาวิทยาลัย'); };
 
 router.get('/drafts', requireUser, async (req, res) => {
   const rows = (await query('select * from submission_drafts where sender_id = $1 order by updated_at desc', [req.user.id])).rows;
@@ -82,10 +81,9 @@ router.get('/drafts/:id', requireUser, async (req, res) => {
   res.json({ draft: { ...draftOut(d, files), data: d.data, files: files.map(fileOut(d.id)) } });
 });
 
-router.post('/drafts', requireUser, saves, acceptUpload, async (req, res) => {
+router.post('/drafts', requireUser, universityOnly, saves, acceptUpload, async (req, res) => {
   let stored = [];
   try {
-    universityOnly(req);
     const data = draftData(req.data);
     checkFiles(data.type, [], req.uploads);
     const d = await tx(async (c) => {
@@ -106,10 +104,9 @@ router.post('/drafts', requireUser, saves, acceptUpload, async (req, res) => {
   }
 });
 
-router.put('/drafts/:id', requireUser, saves, acceptUpload, async (req, res) => {
+router.put('/drafts/:id', requireUser, universityOnly, saves, acceptUpload, async (req, res) => {
   let stored = [], gone = [];
   try {
-    universityOnly(req);
     const draft = await findDraft(req.params.id, req.user);
     // The type of a draft can change while it is a draft; files the new type cannot take must be removed first
     const data = draftData(req.data);

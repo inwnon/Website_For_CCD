@@ -96,6 +96,8 @@ describe('creating and changing events', () => {
     assert.equal(await inList(pr), true, 'the team still sees it');
     assert.equal(await inList(secretary), false);
     assert.equal(await inList(student), false);
+    for (const who of [secretary, executive]) assert.equal((await who.call('GET', `/api/calendar/events/${e.id}`)).status, 403, 'nor by its id');
+    assert.equal((await pr.call('GET', `/api/calendar/events/${e.id}`)).status, 200);
     assert.equal((await one(`select count(*)::int n from audit_log where action = 'event.cancel' and target = $1`, [e.id])).n, 1);
   });
 });

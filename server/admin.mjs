@@ -95,6 +95,10 @@ export async function applyRole(c, actor, { email, role, unit }) {
     await c.query('update users set role = $2 where email = $1', [email, role]);
     await audit(c, actor, 'role.set', email, `กำหนดให้ ${email} เป็น${ROLE_TH[role]}${unit ? ` (${unit})` : ''}`, { role, unit });
   }
+  // A phone book edit loan is only for PR and interns (phonebook.mjs): it ends with the role
+  if (!['pr', 'intern'].includes(role) && (await c.query('delete from phonebook_editors where email = $1', [email])).rowCount) {
+    await audit(c, actor, 'phonebook.revoke', email, `ยกเลิกสิทธิ์แก้ไขสมุดโทรศัพท์ของ ${email} เพราะเปลี่ยนบทบาท`, {});
+  }
 }
 
 router.put('/admin/roles', async (req, res) => {
