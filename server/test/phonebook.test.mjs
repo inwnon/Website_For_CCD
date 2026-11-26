@@ -423,6 +423,57 @@ describe('importing units under a หน่วยงานหลัก', () => {
     assert.equal((await stored(sub)).parent_id, before.id);
     assert.ok(await one('select 1 from phonebook where unit_name = $1 and parent_id = $2', [loose, (await stored(top)).id]));
   });
+  test('units three levels deep: the หน่วยงานหลัก column is the path from the top, and names may repeat under different parents', async () => {
+    const [a, b, same, lab] = [unit('คณะ'), unit('คณะ'), unit('สาขา'), unit('ห้องปฏิบัติการ')];
+    const buf = await sheet([
+      ['', a, '', '', ''], ['', b, '', '', ''],
+      [a, same, '077913401', '', ''], [b, same, '077913402', '', ''],
+      [`${a} > ${same}`, lab, '077913403', '', ''], [`${b}  >${same}`, lab, '077913404', '', ''], // spaces around > do not count
+    ], GROUPED);
+    assert.deepEqual(counts((await send(pr, buf)).body), { added: 6, updated: 0, unchanged: 0, removed: 0, saved: false });
+    assert.equal((await send(pr, buf, 'phones.xlsx', true)).status, 200);
+    const parentOf = async (id) => (await one('select parent_id from phonebook where id = $1', [id])).parent_id;
+    const sameUnits = (await query('select id, parent_id from phonebook where unit_name = $1', [same])).rows;
+    assert.equal(sameUnits.length, 2);
+    const labs = (await query('select phone_number, parent_id from phonebook where unit_name = $1', [lab])).rows;
+    assert.equal(labs.length, 2);
+    for (const [top, phone] of [[a, '077-913-403'], [b, '077-913-404']]) {
+      const topId = (await stored(top)).id;
+      const mid = sameUnits.find((u) => u.parent_id === topId);
+      assert.ok(mid, `${top} has its สาขา`);
+      assert.equal(labs.find((l) => l.phone_number === phone).parent_id, mid.id, 'the lab is under the right สาขา');
+      assert.equal(await parentOf(topId), null);
+    }
+    // The same file again changes nothing
+    assert.deepEqual(counts((await send(pr, buf)).body), { added: 0, updated: 0, unchanged: 6, removed: 0, saved: false });
+  });
+  test('an export comes back in as it is, whatever the depth', async () => {
+    const [top, mid, lab] = [unit('คณะ'), unit('สาขา'), unit('ห้องปฏิบัติการ')];
+    const buf = await sheet([['', top, '', '', ''], [top, mid, '077913501', '', ''], [`${top} > ${mid}`, lab, '077913502', '', '']], GROUPED);
+    assert.equal((await send(pr, buf, 'phones.xlsx', true)).status, 200);
+    const exported = await admin.call('GET', '/api/admin/export/phonebook.xlsx');
+    assert.equal(exported.status, 200);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(exported.body);
+    const mine = [];
+    wb.getWorksheet('สมุดโทรศัพท์').eachRow((row, n) => {
+      if (n > 1 && [row.getCell(1).text, row.getCell(2).text].some((t) => t.includes(top))) mine.push(['parent', 'unit', 'phone', 'internal', 'note'].map((_, i) => row.getCell(i + 1).text));
+    });
+    assert.deepEqual(mine.map((m) => m[0]), ['', top, `${top} > ${mid}`], 'the path of each unit above it');
+    const again = await send(pr, await sheet(mine, GROUPED), 'phones.xlsx', true);
+    assert.equal(again.status, 200, JSON.stringify(again.body));
+    assert.deepEqual(counts(again.body), { added: 0, updated: 0, unchanged: 3, removed: 0, saved: true });
+  });
+  test('a path that goes nowhere, or one with an empty step, is a bad row', async () => {
+    const [top, mid, lab] = [unit('คณะ'), unit('สาขา'), unit('ห้องปฏิบัติการ')];
+    const none = await send(pr, await sheet([['', top, '', '', ''], [`${top} > ${mid}`, lab, '077913601', '', '']], GROUPED), 'phones.xlsx', true);
+    assert.equal(none.status, 400);
+    assert.match(none.body.details.problems[0], /^แถว 3: ไม่พบหน่วยงานหลัก .* > /);
+    const empty = await send(pr, await sheet([['', top, '', '', ''], [`${top} > > ${mid}`, lab, '077913602', '', '']], GROUPED), 'phones.xlsx', true);
+    assert.equal(empty.status, 400);
+    assert.match(empty.body.details.problems[0], /^แถว 3: หน่วยงานหลักเขียนไม่ถูก/);
+    assert.equal(await stored(top), null, 'nothing was saved');
+  });
   test('a หน่วยงานหลัก that is nowhere is a bad row', async () => {
     const r = await send(pr, await sheet([[unit('ไม่มี'), unit(), '1234', '', '']], GROUPED), 'phones.xlsx', true);
     assert.equal(r.status, 400);
