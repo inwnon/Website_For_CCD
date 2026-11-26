@@ -878,7 +878,7 @@
     document.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-save]');
       if (!b) return;
-      if (!me.user) { location.href = 'login.html'; return; }
+      if (!me.user) { location.href = window.loginUrl(); return; }
       const id = b.dataset.save;
       const on = !saved.has(id);
       on ? saved.add(id) : saved.delete(id);
@@ -927,7 +927,7 @@
         if (err.status === 410) {
           showState('gone', 'ข่าวนี้ถูกถอนแล้ว', err.details?.reason ? `งานประชาสัมพันธ์ถอนข่าวนี้ออก เหตุผล: ${err.details.reason}` : 'งานประชาสัมพันธ์ถอนข่าวนี้ออกจากเว็บไซต์แล้ว', { label: 'อ่านข่าวอื่นในหน้าแรก', href: 'index.html' }, '410');
         } else if (err.details?.locked && !err.details.signedIn) {
-          showState('lock', 'เข้าสู่ระบบเพื่ออ่านข่าวนี้', `ข่าวนี้เป็นข่าวภายใน ${err.details.audience} ใช้บัญชีอีเมลของมหาวิทยาลัยเพื่ออ่าน`, { label: 'เข้าสู่ระบบ', href: 'login.html' }, '401');
+          showState('lock', 'เข้าสู่ระบบเพื่ออ่านข่าวนี้', `ข่าวนี้เป็นข่าวภายใน ${err.details.audience} ใช้บัญชีอีเมลของมหาวิทยาลัยเพื่ออ่าน`, { label: 'เข้าสู่ระบบ', href: window.loginUrl() }, '401');
         } else if (err.details?.locked) {
           showState('lock', `ข่าวนี้${err.details.audience}`, 'บัญชีของคุณไม่อยู่ในกลุ่มผู้อ่านข่าวนี้ ลองอ่านข่าวอื่นในหน้าแรก', { label: 'กลับหน้าแรก', href: 'index.html' }, '403');
         } else if (err.status === 404) {

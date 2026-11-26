@@ -536,7 +536,7 @@
     // Internal news the viewer may not read: signed out → sign in; signed in to another group → say who it is for
     const lockedView = (n) => me.user
       ? { href: null, title: `ข่าวนี้${n.audience}`, note: 'บัญชีของคุณไม่อยู่ในกลุ่มผู้อ่านข่าวนี้' }
-      : { href: 'login.html', title: 'เข้าสู่ระบบเพื่ออ่านข่าวนี้', note: 'ใช้บัญชีอีเมลของมหาวิทยาลัย' };
+      : { href: window.loginUrl(n.url ? n.url.replace(/^\//, '') : `news.html?id=${n.id}`), title: 'เข้าสู่ระบบเพื่ออ่านข่าวนี้', note: 'ใช้บัญชีอีเมลของมหาวิทยาลัย' };
     const lockedCard = (n) => {
       const v = lockedView(n);
       const tag = v.href ? 'a' : 'div';

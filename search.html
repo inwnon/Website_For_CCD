@@ -298,11 +298,13 @@
 
     // ---- Highlight: wrap every exact match of the search words (fuzzy matches stay unmarked) ----
     const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Matched in the text as written, then each piece escaped: matching the escaped text found "39" inside &#39;
     function mark(text) {
-      const safe = esc(text);
-      const terms = state.terms.map(esc).filter((t) => t.length > 0).sort((a, b) => b.length - a.length);
-      if (!terms.length) return safe;
-      return safe.replace(new RegExp(`(${terms.map(reEsc).join('|')})`, 'gi'), '<mark class="rounded bg-gold-soft px-0.5 text-ink">$1</mark>');
+      const raw = String(text ?? '');
+      const terms = state.terms.filter((t) => t.length > 0).sort((a, b) => b.length - a.length);
+      if (!terms.length) return esc(raw);
+      return raw.split(new RegExp(`(${terms.map(reEsc).join('|')})`, 'gi'))
+        .map((part, i) => (i % 2 ? `<mark class="rounded bg-gold-soft px-0.5 text-ink">${esc(part)}</mark>` : esc(part))).join('');
     }
 
     // ---- Filters → controls ----

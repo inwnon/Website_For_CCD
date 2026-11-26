@@ -346,13 +346,16 @@
     $('#delCancel').addEventListener('click', () => $('#delDlg').close());
     $('#delForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = $('#delForm [type=submit]');
+      if (btn.disabled) return; // a second press while the first is on its way
+      btn.disabled = true;
       try {
         request = (await api('/me/delete-request', { method: 'POST', body: { reason: $('#delReason').value.trim() } })).request;
         $('#delDlg').close();
         paint();
         say('ส่งคำขอลบข้อมูลแล้ว');
         $('#rightsPanel').scrollIntoView({ block: 'center' });
-      } catch (err) { $('#delError').textContent = err.message; $('#delError').hidden = false; }
+      } catch (err) { $('#delError').textContent = err.message; $('#delError').hidden = false; } finally { btn.disabled = false; }
     });
     window.ME.then(async (m) => {
       me = m.user;

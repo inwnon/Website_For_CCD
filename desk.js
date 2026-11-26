@@ -149,7 +149,7 @@
 
     if (me.user) {
       document.getElementById('who').hidden = false;
-      document.getElementById('whoAvatar').textContent = (me.user.name || me.user.email).trim().charAt(0);
+      document.getElementById('whoAvatar').textContent = initial(me.user.name || me.user.email);
       document.getElementById('whoName').textContent = me.user.name || me.user.email;
       document.getElementById('whoRole').textContent = role === 'coordinator' && me.user.coordUnit ? `ประชาสัมพันธ์ ${me.user.coordUnit}` : window.roleName?.(me.user) || ROLE_TH[role] || '';
       document.getElementById('logout').addEventListener('click', async () => {
@@ -168,6 +168,8 @@
   const dayTime = (d) => `${day(d)} ${new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(new Date(d))} น.`;
   const isoDay = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d ? new Date(d) : new Date());
   const num = (n) => Number(n || 0).toLocaleString('th-TH');
+  // First letter for the photo circle: a Thai name can start with a vowel written before its consonant (เ แ โ ใ ไ), "เสถียร" shows ส
+  const initial = (s) => { const t = String(s || '').trim().replace(/^[เแโใไ]/, ''); return (window.Intl?.Segmenter ? [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(t)][0]?.segment : t.charAt(0)) || '?'; };
 
-  window.DESK = { start, toast, esc, day, dayTime, isoDay, num, icon, ROLE_TH };
+  window.DESK = { start, toast, esc, day, dayTime, isoDay, num, icon, initial, ROLE_TH };
 })();

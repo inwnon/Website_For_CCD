@@ -663,15 +663,19 @@
     const $$ = (s, r = document) => [...r.querySelectorAll(s)];
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-    const hm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} น.`;
+    // Bangkok wall clock, read with getUTC*: the same times on a computer set to any other time zone
+    // First letter for the photo circle: a Thai name can start with a vowel written before its consonant (เ แ โ ใ ไ), "เสถียร" shows ส
+    const initial = (s) => { const t = String(s || '').trim().replace(/^[เแโใไ]/, ''); return (window.Intl?.Segmenter ? [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(t)][0]?.segment : t.charAt(0)) || '?'; };
+    const bkk = (x) => new Date(new Date(x).getTime() + 7 * 36e5);
+    const hm = (d) => `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} น.`;
     function when(iso, withTime = true) {
-      const d = new Date(iso), now = new Date();
-      const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+      const d = bkk(iso), now = bkk(Date.now());
+      const day = (x) => Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate());
       const diff = Math.round((day(now) - day(d)) / 864e5);
       const t = withTime ? ' ' + hm(d) : '';
       if (diff === 0) return withTime ? 'วันนี้' + t : hm(d);
       if (diff === 1) return 'เมื่อวาน' + t;
-      return `${d.getDate()} ${TH_MONTHS[d.getMonth()]}${d.getFullYear() === now.getFullYear() && !withTime ? '' : ' ' + (d.getFullYear() + 543)}${t}`;
+      return `${d.getUTCDate()} ${TH_MONTHS[d.getUTCMonth()]}${d.getUTCFullYear() === now.getUTCFullYear() && !withTime ? '' : ' ' + (d.getUTCFullYear() + 543)}${t}`;
     }
     const thDate = (iso) => { if (!iso) return '–'; const [y, m, d] = iso.split('-').map(Number); return `${d} ${TH_MONTHS[m - 1]} ${y + 543}`; };
     const fmtSize = (b) => b >= 1024 ** 3 ? (b / 1024 ** 3).toFixed(1) + ' GB' : b >= 1024 ** 2 ? (b / 1024 ** 2).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
@@ -751,7 +755,7 @@
       api('/pr/config').then((c) => { TEMPLATES = c.messages; CATEGORIES = c.categories || CATEGORIES; VIDEO_CATEGORIES = c.videoCategories || VIDEO_CATEGORIES; }).catch(() => {});
       $('#who').hidden = false;
       $('#listPane').hidden = false;
-      $('#whoAvatar').textContent = (me.name || me.email)[0];
+      $('#whoAvatar').textContent = initial(me.name || me.email);
       $('#whoName').textContent = me.name || me.email;
       $('#whoRole').textContent = window.roleName?.(me) || ROLE_LABEL[me.role];
       window.mountRoleSwitch?.($('#roleSwitch'), me);
@@ -1374,7 +1378,7 @@
         titleEn: $('#pTitleEn').value, bodyEn: $('#pBodyEn').value, slug: $('#pSlug').value, videoUrl: $('#pVideo').value, albumUrl: $('#pAlbum').value.trim(), albumLinks: pubAlbums().get(),
         cover: $('input[name=cover]:checked')?.value, gallery: $$('input[name=gallery]:checked').map((x) => x.value),
         categories: $$('input[name=pcat]:checked').map((x) => x.value), audience: $$('input[name=paud]:checked').map((x) => x.value),
-        featured: $('#pFeatured').checked, publishAt: later ? new Date($('#pAt').value).toISOString() : undefined, message: $('#pMsg').value,
+        featured: $('#pFeatured').checked, publishAt: later ? `${$('#pAt').value}:00+07:00` : undefined, message: $('#pMsg').value,
         bodySize: null, bodyLeading: pubTools.get().leading,
       };
       const prog = pubProgress(pubMode === 'edit' ? 'กำลังบันทึกการแก้ไข' : later ? 'กำลังตั้งเวลาเผยแพร่' : 'กำลังเผยแพร่', 1 + (body.gallery.length || 0));
@@ -1400,7 +1404,7 @@
         const admin = me.role === 'admin';
         $('#teamList').innerHTML = team.map((t) => `
           <li class="flex items-center gap-3 rounded-2xl border border-line px-4 py-3">
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-purple-soft font-display text-[14px] font-semibold text-purple">${esc((t.name || t.email)[0])}</span>
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-purple-soft font-display text-[14px] font-semibold text-purple">${esc(initial(t.name || t.email))}</span>
             <span class="min-w-0 flex-1">
               <span class="block truncate font-display text-[15px] font-medium">${esc(t.name || t.email)}</span>
               <span class="block truncate text-[13px] text-ink2">${t.name ? esc(t.email) + ' · ' : ''}${t.last_login_at ? 'เข้าใช้ล่าสุด ' + when(t.last_login_at) : 'ยังไม่เคยเข้าใช้'}</span>

@@ -302,7 +302,7 @@
         el('div', {},
           el('h3', { class: 'mb-2 text-[14px] font-semibold' }, 'คนที่รับผิดชอบ'),
           e.assignees.length ? el('ul', { class: 'grid gap-2' }, e.assignees.map((a) => el('li', { class: 'flex items-center gap-2.5 text-[14px]' },
-            el('span', { class: 'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-purple-soft font-display font-semibold text-purple', 'aria-hidden': 'true' }, (a.name || '?').trim().charAt(0)),
+            el('span', { class: 'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-purple-soft font-display font-semibold text-purple', 'aria-hidden': 'true' }, DESK.initial(a.name)),
             el('span', { class: 'min-w-0 leading-[1.5]' }, el('span', { class: 'block font-medium' }, a.name || 'ไม่ระบุชื่อ'), el('span', { class: 'block text-[13px] text-ink2' }, a.duty)))))
             : el('p', { class: 'text-[14px] text-ink2' }, 'ยังไม่ได้มอบหมาย')),
         e.internalNote ? el('p', { class: 'rounded-xl bg-surface2 px-3 py-2.5 text-[13px]' }, el('strong', { class: 'font-semibold' }, 'โน้ตภายใน '), '(เห็นเฉพาะทีม PR)', el('br'), e.internalNote) : null,

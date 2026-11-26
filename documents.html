@@ -392,7 +392,7 @@
         state.works = r.items;
         state.total = r.total;
         paintYears(r.years);
-        paint(params.size > 2);
+        paint([...params.keys()].length > 2); // not params.size: Safari before 17 has none
       } catch (err) { toast(err.message, true); }
     }
 
@@ -454,8 +454,9 @@
     function addFiles() {
       const picked = [...$('#fFile').files];
       $('#fFile').value = ''; // The same file can be picked again after it is taken out
+      const tooMany = state.files.length + picked.length > MAX_FILES; // counted before the files are added
       state.files.push(...picked.slice(0, MAX_FILES - state.files.length).map((file) => ({ file, title: file.name.replace(/\.[^.]+$/, ''), error: '' })));
-      if (state.files.length + picked.length > MAX_FILES) showError('file', `เลือกได้ครั้งละไม่เกิน ${MAX_FILES} ไฟล์`);
+      if (tooMany) showError('file', `เลือกได้ครั้งละไม่เกิน ${MAX_FILES} ไฟล์`);
       paintFiles();
     }
     const showUnit = () => { $('#unitBox').hidden = !NEEDS_UNIT.has($('#fCategory').value); };

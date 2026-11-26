@@ -97,7 +97,7 @@
   // นักศึกษาฝึกงาน สสอ. are what their email makes them (a student, usually) everywhere but the import page
   window.baseRole = (u) => u?.baseRole || u?.role;
   // After switching: the PR team cannot open the settings page, so go to the PR desk instead of a "no access" page
-  const afterSwitch = (role) => { if (role === 'pr' && /(^|\/)admin\.html$/.test(location.pathname)) location.href = 'pr.html'; else location.reload(); };
+  const afterSwitch = (role) => { if (role === 'pr' && /(^|\/)(chanon|admin)\.html$/.test(location.pathname)) location.href = 'pr.html'; else location.reload(); };
   async function switchRole(role, buttons) {
     buttons.forEach((b) => { b.disabled = true; });
     try { await api('/me/role', { method: 'POST', body: { role } }); afterSwitch(role); } catch (err) { buttons.forEach((b) => { b.disabled = false; }); alert(err.message); }

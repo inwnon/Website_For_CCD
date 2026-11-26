@@ -97,7 +97,7 @@
     ring = setInterval(urgentChime, RING_EVERY);
     ringStop = setTimeout(stopRing, RING_FOR);
   }
-  const when = (s) => { try { return new Date(s).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' น.'; } catch (e) { return ''; } };
+  const when = (s) => { try { return new Date(s).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }) + ' น.'; } catch (e) { return ''; } };
   const BTN = 'press t-spring inline-flex h-11 w-full items-center sm:w-auto sm:flex-1 justify-center rounded-full px-5 font-display text-[15px] font-semibold hover:-translate-y-0.5';
 
   let dlg = null;
@@ -160,7 +160,12 @@
   });
 
   // ---- Asking the server ----
+  // One question at a time: returning to the tab while the timer's question is on its way would ask with the same
+  // `since` twice, and the same work would be announced (and counted) twice
+  let checking = false;
   async function check() {
+    if (checking) return;
+    checking = true;
     clearTimeout(timer);
     try {
       const r = await api('/pr/arrivals' + (since ? `?since=${encodeURIComponent(since)}` : ''));
@@ -207,6 +212,8 @@
       }
     } catch (e) {
       if (e.status === 401 || e.status === 403) return; // signed out or not the PR team: stop
+    } finally {
+      checking = false;
     }
     timer = setTimeout(check, document.hidden ? EVERY * 3 : EVERY);
   }
@@ -233,11 +240,14 @@
   }
 
   // Start for the PR team only, once the side bar is on the page
+  let team = false;
   Promise.resolve(window.ME).then((me) => {
     const role = me?.user?.role;
     if (role !== 'pr' && role !== 'admin') return;
+    team = true;
     const go = () => { paintSwitch(); paintCount(); check(); };
     if (document.readyState === 'complete') setTimeout(go, 0); else addEventListener('load', go, { once: true });
   });
-  window.arrivalsRepaint = () => { paintSwitch(); paintCount(); };
+  // desk.js calls this on every page: the switch is for the PR team only (no alerts ever reach anyone else)
+  window.arrivalsRepaint = () => { if (team) { paintSwitch(); paintCount(); } };
 })();
