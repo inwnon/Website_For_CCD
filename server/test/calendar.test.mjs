@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import sharp from 'sharp';
 import { one, query, tx } from '../db.mjs';
-import { eventReminders } from '../notify.mjs';
+import { eventReminders, remindersIfDue } from '../notify.mjs';
 import { erase } from '../privacy.mjs';
 import { restore, snapshot } from './cleanup.mjs';
 import { anon, gpsPhoto, img, login } from './helpers.mjs';
@@ -286,6 +286,14 @@ describe('แบนเนอร์กำหนดการ', () => {
 });
 
 describe('notifications', () => {
+  test('reminders also run later in the day (an event moved to tomorrow after 08:00), never before 08:00', async () => {
+    const at = (h) => new Date(`${bkk(0)}T${String(h).padStart(2, '0')}:30:00+07:00`);
+    const e = await create({ startAt: later(24), endAt: later(26), assignees: [{ userId: ids.student, duty: 'ช่างภาพ' }] });
+    assert.equal(await remindersIfDue(at(7)), false);
+    assert.equal((await notes(student, e.id)).filter((n) => n.kind === 'event.reminder').length, 0);
+    assert.equal(await remindersIfDue(at(15)), true);
+    assert.equal((await notes(student, e.id)).filter((n) => n.kind === 'event.reminder').length, 1);
+  });
   test('the day-before reminder goes once, and again if the event moves', async () => {
     const e = await create({ startAt: later(24), endAt: later(26), assignees: [{ userId: ids.student, duty: 'ช่างภาพ' }] });
     await eventReminders();
@@ -348,5 +356,16 @@ describe('PDPA', () => {
     assert.equal((await one('select count(*)::int n from event_assignments where user_id = $1', [id])).n, 0);
     assert.equal((await one('select count(*)::int n from notifications where user_id = $1', [id])).n, 0);
     assert.equal((await pr.call('GET', `/api/calendar/events/${gone.id}`)).status, 200, 'the event stays');
+  });
+});
+
+describe('date ranges', () => {
+  test('an event that ends at midnight belongs to its own day, not the next', async () => {
+    const day = bkk(24 * 6), next = bkk(24 * 7), after = bkk(24 * 8);
+    const e = await create({ title: 'งานจบเที่ยงคืนทดสอบ', visibility: 'public', startAt: `${day}T22:00:00+07:00`, endAt: `${next}T00:00:00+07:00` });
+    const has = async (who, path) => (await who.call('GET', path)).body.items.some((x) => x.id === e.id || x.title === e.title);
+    assert.equal(await has(pr, `/api/calendar/events?from=${day}&to=${day}`), true);
+    assert.equal(await has(pr, `/api/calendar/events?from=${next}&to=${after}`), false);
+    assert.equal(await has(anon, `/api/calendar/public?from=${next}&to=${after}`), false);
   });
 });

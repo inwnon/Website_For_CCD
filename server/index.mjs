@@ -25,7 +25,7 @@ import { feeds as icalFeeds, router as icalRouter } from './ical.mjs';
 import { router as documentsRouter } from './documents.mjs';
 import { router as phonebookRouter } from './phonebook.mjs';
 import { router as requestsRouter } from './requests.mjs';
-import { dailyIfDue, router as notifyRouter, sendQueued } from './notify.mjs';
+import { dailyIfDue, remindersIfDue, router as notifyRouter, sendQueued } from './notify.mjs';
 import { purge, router as privacyRouter } from './privacy.mjs';
 import { pushPending, router as pushRouter } from './push.mjs';
 import { httpsOnly, productionProblems, headers as securityHeaders } from './security.mjs';
@@ -132,6 +132,7 @@ async function hourly() {
     await query('delete from sessions where expires_at < now()');
     // Single reads are kept 90 days; the daily totals (news_reads_daily) stay
     await query("delete from news_reads where at < now() - interval '90 days'");
+    await remindersIfDue();
     await dailyIfDue();
     // PDPA: files of work that was never published, after the retention period
     await purge();

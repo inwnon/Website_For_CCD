@@ -117,9 +117,10 @@ async function saveAssignees(c, eventId, assignees) {
   return assignees.map((a) => a.userId).filter((id) => !before.includes(id));
 }
 // d comes from checkEvent. Inside the caller's transaction (also used by requests.mjs).
+// d.status only from the import (transfer.mjs): an exported cancelled event comes back cancelled
 export async function createEvent(c, d, user) {
-  const row = (await c.query(`insert into events (title, type, location, start_at, end_at, visibility, description, internal_note, created_by)
-    values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`, [d.title, d.type, d.location, d.start, d.end, d.visibility, d.description, d.note, user.id])).rows[0];
+  const row = (await c.query(`insert into events (title, type, location, start_at, end_at, visibility, description, internal_note, created_by, status)
+    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *`, [d.title, d.type, d.location, d.start, d.end, d.visibility, d.description, d.note, user.id, d.status ?? 'scheduled'])).rows[0];
   await eventAssigned(c, row, await saveAssignees(c, row.id, d.assignees));
   await audit(c, user, 'event.create', row.id, `สร้างกิจกรรม ${row.title}`, { assignees: d.assignees.length, visibility: row.visibility });
   return row;
@@ -168,7 +169,7 @@ function receive(req, res, next) {
 router.get('/calendar/public', async (req, res) => {
   const { from, to } = range(req.query);
   const rows = (await query(`select id, title, start_at, end_at, location from events
-    where visibility = 'public' and status = 'scheduled' and start_at < $2 and end_at >= $1 order by start_at limit 500`, [from, to])).rows;
+    where visibility = 'public' and status = 'scheduled' and start_at < $2 and end_at > $1 order by start_at limit 500`, [from, to])).rows;
   const banners = rows.length ? await bannersOf(rows.map((e) => e.id)) : [];
   res.json({ items: rows.map((e) => ({ title: e.title, startAt: e.start_at, endAt: e.end_at, location: e.location, banners: bannerList(banners, e.id) })) });
 });
@@ -187,7 +188,7 @@ router.get('/calendar/people', writer, async (req, res) => {
 router.get('/calendar/events', requireModule('calendar'), async (req, res) => {
   const right = rightOf(req.user, 'calendar');
   const { from, to } = range(req.query);
-  const rows = (await query(`select e.* from events e where e.start_at < $2 and e.end_at >= $1
+  const rows = (await query(`select e.* from events e where e.start_at < $2 and e.end_at > $1
       and ($3::boolean or e.status = 'scheduled')
       and ($4::uuid is null or exists (select 1 from event_assignments a where a.event_id = e.id and a.user_id = $4))
     order by e.start_at limit 500`, [from, to, edits(right), right === 'own' ? req.user.id : null])).rows;

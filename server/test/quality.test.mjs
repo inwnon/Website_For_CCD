@@ -271,3 +271,20 @@ describe('Speed on phones: versioned scripts', () => {
     assert.doesNotMatch((await fetch(`${BASE}/site-config.js?v=${v}`)).headers.get('cache-control') || '', /immutable/);
   });
 });
+
+describe('records kept right', () => {
+  test('every action written to audit_log has a name in the usage history filter', () => {
+    const src = readdirSync(join(ROOT, 'server')).filter((f) => f.endsWith('.mjs')).map((f) => readFileSync(join(ROOT, 'server', f), 'utf8')).join('\n');
+    const used = new Set([...src.matchAll(/audit\([a-z]+, [^,]+, '([a-z_.]+)'/g)].map((m) => m[1]));
+    const known = new Set([...readFileSync(join(ROOT, 'server', 'audit.mjs'), 'utf8').matchAll(/^ {2}'([a-z_.]+)':/gm)].map((m) => m[1]));
+    assert.deepEqual([...used].filter((a) => !known.has(a)), []);
+  });
+  test('counting a read does not change when the story was last edited', async () => {
+    const before = (await query('select updated_at from news where id = $1', [publicId])).rows[0].updated_at;
+    const after = (await query('update news set views = views + 1 where id = $1 returning updated_at', [publicId])).rows[0].updated_at;
+    assert.equal(after.getTime(), before.getTime());
+    const edited = (await query('update news set title = title where id = $1 returning updated_at', [publicId])).rows[0].updated_at;
+    assert.equal(edited.getTime(), before.getTime(), 'nothing changed: still the same');
+    await query('update news set views = views - 1 where id = $1', [publicId]);
+  });
+});

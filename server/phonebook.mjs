@@ -109,9 +109,13 @@ const refused = (err) => {
   if (err.code === '23503') throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', { parentId: 'ไม่พบหน่วยงานหลักนี้ เลือกจากรายการอีกครั้ง' });
   throw err;
 };
+// One change of the tree at a time (until the transaction ends): two requests that check at once, one moving A under B
+// and one moving B under A, would both pass and leave A and B each other's parent
+const lockTree = (c) => c.query("select pg_advisory_xact_lock(hashtext('phonebook.tree'))");
 // Throws 400 when the chosen หน่วยงานหลัก is the unit itself or sits under it
 async function checkParent(c, parentId, id) {
   if (!parentId || !id) return;
+  await lockTree(c);
   const up = await c.query(`with recursive up as (select id, parent_id from phonebook where id = $1
     union all select p.id, p.parent_id from phonebook p join up on p.id = up.parent_id) select 1 from up where id = $2`, [parentId, id]);
   if (up.rows.length) throw new HttpError(400, 'กรุณาตรวจข้อมูลอีกครั้ง', { parentId: 'เลือกหน่วยงานอื่น หน่วยงานนี้อยู่ภายใต้หน่วยงานที่กำลังแก้ไข' });
@@ -314,6 +318,7 @@ router.post('/phonebook/import', writer, importLimit, (req, res, next) => upload
     const replace = req.query.replace === '1';
     if (replace && rightOf(req.user, 'phonebook') !== 'all') throw new HttpError(403, 'แทนที่ข้อมูลทั้งหมดได้เฉพาะผู้ดูแลระบบ');
     const result = await tx(async (c) => {
+      await lockTree(c);
       const all = (await c.query('select * from phonebook for update')).rows;
       const { fresh, changed, top, placed } = planImport(rows, replace ? [] : all);
       const counts = { added: fresh.length, updated: changed.length, unchanged: rows.length - fresh.length - changed.length, removed: replace ? all.length : 0 };
@@ -371,6 +376,7 @@ router.post('/phonebook/move', writer, async (req, res) => {
   }
   if (parentId !== null && !(typeof parentId === 'string' && UUID.test(parentId))) throw new HttpError(400, 'เลือกกลุ่มจากรายการ');
   const moved = await tx(async (c) => {
+    await lockTree(c);
     const units = (await c.query('select * from phonebook where id = any($1) for update', [ids])).rows;
     if (units.length !== ids.length) throw new HttpError(404, 'ไม่พบบางหน่วยงาน โหลดหน้าใหม่แล้วลองอีกครั้ง');
     const names = (list) => list.map((u) => u.unit_name).join(', ');

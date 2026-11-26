@@ -146,6 +146,23 @@ describe('นำเข้ากิจกรรม', () => {
     assert.equal((await query('select 1 from events where title = $1', [`${TITLE} 3`])).rows.length, 0);
   });
 
+  test('the สถานะ column of an export comes back: a cancelled event stays cancelled', async () => {
+    const wb = new ExcelJS.Workbook();
+    wb.addWorksheet('กิจกรรม').addRows([['ชื่อกิจกรรม', 'เริ่ม', 'สิ้นสุด', 'สถานะ', 'การมองเห็น'],
+      [`${TITLE} ยกเลิก`, '2569-12-05 09:00', '2569-12-05 10:00', 'cancelled', 'สาธารณะ'],
+      [`${TITLE} ปกติ`, '2569-12-05 11:00', '2569-12-05 12:00', '', '']]);
+    const r = await sendEvents(admin, Buffer.from(await wb.xlsx.writeBuffer()), true);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const status = async (t) => (await query('select status from events where title = $1', [t])).rows[0]?.status;
+    assert.equal(await status(`${TITLE} ยกเลิก`), 'cancelled');
+    assert.equal(await status(`${TITLE} ปกติ`), 'scheduled');
+    const bad = new ExcelJS.Workbook();
+    bad.addWorksheet('กิจกรรม').addRows([['ชื่อกิจกรรม', 'เริ่ม', 'สิ้นสุด', 'สถานะ'], [`${TITLE} แปลก`, '2569-12-06 09:00', '2569-12-06 10:00', 'เลื่อน']]);
+    const no = await sendEvents(admin, Buffer.from(await bad.xlsx.writeBuffer()));
+    assert.equal(no.status, 400);
+    assert.match(no.body.details.problems[0], /^แถว 2: สถานะ/);
+  });
+
   test('times: Excel dates, ค.ศ. or พ.ศ., and the export form', () => {
     assert.equal(whenOf(new Date(Date.UTC(2026, 11, 1, 9, 30))), '2026-12-01T09:30:00+07:00');
     assert.equal(whenOf('2569-12-01 09:00'), '2026-12-01T09:00:00+07:00');

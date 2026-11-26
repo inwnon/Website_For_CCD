@@ -62,6 +62,19 @@ describe('public feed', () => {
     for (const line of body.split('\r\n')) assert.ok(Buffer.byteLength(line) <= 75, line);
     assert.ok(unfold(body).includes(`SUMMARY:${'ชื่อกิจกรรมยาวมาก'.repeat(8)}`), 'folding keeps Thai characters whole');
   });
+  test('DTSTAMP is the last change of the event, not the time of the fetch', async () => {
+    const e = await create({ title: 'งานตราเวลาฟีด', visibility: 'public' });
+    const { updated_at: at } = await one('select updated_at from events where id = $1', [e.id]);
+    const ics = unfold((await text('/ical/public.ics')).body);
+    const block = ics.split('BEGIN:VEVENT').find((v) => v.includes('SUMMARY:งานตราเวลาฟีด'));
+    assert.equal(block.match(/DTSTAMP:(\S+)/)[1], at.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''));
+  });
+  test('a lone carriage return in a description is escaped, not sent raw', async () => {
+    await create({ title: 'งานขึ้นบรรทัดฟีด', description: 'หนึ่ง\rสอง' });
+    const { body } = await text(await newFeed(pr));
+    assert.ok(!/\r(?!\n)/.test(body), 'bare CR');
+    assert.ok(unfold(body).includes('หนึ่ง\\nสอง'));
+  });
 });
 
 describe('private feed', () => {

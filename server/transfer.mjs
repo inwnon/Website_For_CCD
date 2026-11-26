@@ -149,9 +149,11 @@ const upload = multer({ dest: join(UPLOAD_DIR, 'tmp'), limits: { fileSize: MAX_F
 const importLimit = limit('admin-import', { max: 30, windowMs: 10 * 60 * 1000 });
 
 // The headers of the export's กิจกรรม sheet, so an exported file comes back in
-const EVENT_COLUMNS = { id: 'รหัส', title: 'ชื่อกิจกรรม', type: 'ประเภท', location: 'สถานที่', start: 'เริ่ม', end: 'สิ้นสุด', visibility: 'การมองเห็น', description: 'รายละเอียด', note: 'บันทึกภายใน' };
+const EVENT_COLUMNS = { id: 'รหัส', title: 'ชื่อกิจกรรม', type: 'ประเภท', location: 'สถานที่', start: 'เริ่ม', end: 'สิ้นสุด', status: 'สถานะ', visibility: 'การมองเห็น', description: 'รายละเอียด', note: 'บันทึกภายใน' };
 const HEADER_OF = Object.fromEntries(Object.entries(EVENT_COLUMNS).map(([k, h]) => [h, k]));
 const TYPE_OF = { ประชุม: 'meeting', กิจกรรม: 'activity', 'ถ่ายภาพ/วิดีโอ': 'media', 'อื่นๆ': 'other', meeting: 'meeting', activity: 'activity', media: 'media', other: 'other' };
+// The export writes the stored value; a cancelled event must not come back as scheduled (and public on the home page)
+const STATUS_OF = { scheduled: 'scheduled', cancelled: 'cancelled', ปกติ: 'scheduled', ยกเลิก: 'cancelled' };
 const VISIBILITY_OF = { ภายใน: 'internal', สาธารณะ: 'public', internal: 'internal', public: 'public' };
 const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -190,7 +192,7 @@ function eventRows(ws) {
     }
     const text = (k) => (cols[k] ? unsafe(r.getCell(cols[k]).text.trim()) : '');
     const value = (k) => (cols[k] ? r.getCell(cols[k]).value : null);
-    const row = { line, id: text('id'), title: text('title'), type: text('type'), location: text('location'), start: value('start'), end: value('end'),
+    const row = { line, id: text('id'), title: text('title'), type: text('type'), location: text('location'), start: value('start'), end: value('end'), status: text('status'),
       visibility: text('visibility'), description: text('description'), note: text('note') };
     if (row.title || row.start || row.end || row.location) rows.push(row);
   });
@@ -210,7 +212,9 @@ async function checkEvents(rows) {
       if (!endAt) throw new HttpError(400, 'อ่านวันเวลาสิ้นสุดไม่ได้ ใช้แบบ 2569-12-01 12:00 หรือ 1/12/2569 12:00');
       const d = await checkEvent({ title: r.title, type: r.type ? TYPE_OF[r.type.replace(/\s/g, '')] ?? r.type : 'other', location: r.location || null, startAt, endAt,
         visibility: r.visibility ? VISIBILITY_OF[r.visibility] ?? r.visibility : 'internal', description: r.description || null, internalNote: r.note || null, assignees: [] });
-      good.push({ ...d, id: UUID.test(r.id) ? r.id : null, line: r.line });
+      const status = r.status ? STATUS_OF[r.status] : 'scheduled';
+      if (!status) throw new HttpError(400, 'สถานะต้องเป็น scheduled หรือ cancelled (เว้นว่าง = scheduled)');
+      good.push({ ...d, status, id: UUID.test(r.id) ? r.id : null, line: r.line });
     } catch (err) {
       if (!(err instanceof HttpError)) throw err;
       problems.push(`แถว ${r.line}: ${Object.values(err.details ?? {}).join(' ') || err.message}`);
@@ -222,7 +226,7 @@ async function checkEvents(rows) {
 
 router.get('/admin/import/events/template.xlsx', async (req, res) => {
   const wb = new ExcelJS.Workbook();
-  const cols = Object.entries(EVENT_COLUMNS).filter(([k]) => k !== 'id');
+  const cols = Object.entries(EVENT_COLUMNS).filter(([k]) => k !== 'id' && k !== 'status');
   sheet(wb, 'กิจกรรม', cols.map(([key, header]) => ({ header, key, width: ['title', 'description', 'note'].includes(key) ? 40 : 20, style: { numFmt: '@' } })), []);
   sheet(wb, 'วิธีกรอก', [{ header: 'ช่อง', key: 'k', width: 18 }, { header: 'วิธีกรอก', key: 'v', width: 90 }], [
     { k: EVENT_COLUMNS.title, v: 'จำเป็น ไม่เกิน 200 ตัวอักษร' },
