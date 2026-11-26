@@ -13,7 +13,7 @@ import { Router } from 'express';
 import { requireImport } from './auth.mjs';
 import { audit } from './audit.mjs';
 import { one, query, tx } from './db.mjs';
-import { HttpError, str } from './http.mjs';
+import { HttpError, offsetOf, str } from './http.mjs';
 import { LIVE, cardOut } from './news.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -88,7 +88,7 @@ router.get('/pr/collections', async (req, res) => {
 // Its own route: interns work on sets but have no /pr/news
 router.get('/pr/collections/stories', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const offset = offsetOf(req.query.offset);
   const q = str(req.query.q, 100, 'คำค้น');
   const rows = (await query(`select n.id, n.title, n.unit, n.kind, n.published_at, n.cover_path, count(*) over ()::int total from news n
     where ${LIVE} and ($1::text is null or n.title ilike $1 or n.unit ilike $1)

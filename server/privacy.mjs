@@ -11,7 +11,7 @@ import { audit } from './audit.mjs';
 import { isAdmin, publicUser, requireAdmin, requireUser } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, removeDraftDir, removeSubmissionDir } from './files.mjs';
-import { HttpError, str } from './http.mjs';
+import { HttpError, intId, str } from './http.mjs';
 import { enqueue, link } from './notify.mjs';
 import { limit } from './security.mjs';
 import { get } from './settings.mjs';
@@ -148,7 +148,7 @@ export async function erase(c, userId) {
 }
 
 router.post('/admin/requests/:id/erase', requireAdmin, async (req, res) => {
-  const r = await one('select * from data_requests where id = $1', [Number(req.params.id) || 0]);
+  const r = await one('select * from data_requests where id = $1', [intId(req.params.id)]);
   if (!r) throw new HttpError(404, 'ไม่พบคำขอนี้');
   if (r.status !== 'pending') throw new HttpError(409, 'คำขอนี้ดำเนินการไปแล้ว');
   if (r.user_id === req.user.id) throw new HttpError(409, 'ให้ผู้ดูแลระบบคนอื่นดำเนินการคำขอของคุณ');
@@ -172,7 +172,7 @@ router.post('/admin/requests/:id/erase', requireAdmin, async (req, res) => {
 router.post('/admin/requests/:id/reject', requireAdmin, async (req, res) => {
   const note = str(req.body?.note, 500, 'เหตุผล');
   if (!note) throw new HttpError(400, 'บอกเหตุผลที่ไม่ลบข้อมูล ผู้ขอจะเห็นข้อความนี้');
-  const r = await one(`update data_requests set status = 'rejected', handled_at = now(), handled_by = $2, note = $3 where id = $1 and status = 'pending' returning *`, [Number(req.params.id) || 0, req.user.id, note]);
+  const r = await one(`update data_requests set status = 'rejected', handled_at = now(), handled_by = $2, note = $3 where id = $1 and status = 'pending' returning *`, [intId(req.params.id), req.user.id, note]);
   if (!r) throw new HttpError(404, 'ไม่พบคำขอที่รอดำเนินการ');
   await tx(async (c) => {
     await enqueue(c, { kind: 'privacy.done', ref: String(r.id), to: r.email, subject: 'ผลคำขอลบข้อมูลของคุณ', title: 'ยังลบข้อมูลของคุณไม่ได้', lines: ['ผู้ดูแลระบบพิจารณาคำขอของคุณแล้ว'], quote: note, button: { label: 'ดูรายละเอียด', href: link('privacy.html#rights') } });

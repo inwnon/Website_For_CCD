@@ -385,4 +385,11 @@ describe('PR team', () => {
     assert.equal((await admin.call('DELETE', '/api/pr/team/user@student.sru.ac.th')).status, 200);
     assert.equal((await student.call('GET', '/api/me')).body.user.role, 'student');
   });
+  test('the same safeguards as the roles page: an admin cannot demote or remove themselves', async () => {
+    const admin = await login('admin');
+    assert.equal((await admin.call('POST', '/api/pr/team', { email: 'admin@sru.ac.th', role: 'pr' })).status, 409);
+    assert.equal((await admin.call('DELETE', '/api/pr/team/admin@sru.ac.th')).status, 409);
+    assert.equal((await admin.call('POST', '/api/pr/team', { email: 'not-an-email' })).status, 400);
+    assert.equal((await admin.call('GET', '/api/me')).body.user.role, 'admin');
+  });
 });

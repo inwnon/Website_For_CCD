@@ -902,13 +902,13 @@
         ? 'เลือกคณะ สาขาวิชา และชั้นปีของคุณ'
         : 'ข้อมูลนี้จะแสดงเป็นหน่วยงานผู้ส่งข่าวโดยอัตโนมัติ';
       $('#unitError').textContent = student ? 'กรุณาเลือกคณะ' : 'กรุณาเลือกหน่วยงาน';
-      const opt = (v, cur) => `<option${v === cur ? ' selected' : ''}>${v}</option>`;
+      const opt = (v, cur) => `<option${v === cur ? ' selected' : ''}>${esc(v)}</option>`;
       const groups = student
         ? [{ label: 'คณะ / วิทยาลัย', units: Object.keys(ORG.faculties) }]
         : ORG.staffGroups;
       // Staff: the prompt shows while nothing is picked but is not in the list (hidden + disabled, selected only when empty)
       $('#unit').innerHTML = (student ? '<option value="">เลือกคณะ</option>' : `<option value="" disabled hidden${state.unit ? '' : ' selected'}>เลือกหน่วยงาน</option>`) +
-        groups.map((g) => `<optgroup label="${g.label}">${g.units.map((u) => opt(u, state.unit)).join('')}</optgroup>`).join('');
+        groups.map((g) => `<optgroup label="${esc(g.label)}">${g.units.map((u) => opt(u, state.unit)).join('')}</optgroup>`).join('');
       if (!groups.some((g) => g.units.includes(state.unit))) state.unit = '';
       fillSubUnits();
       fillMajors();
@@ -923,8 +923,8 @@
       $('#subUnitHint').textContent = sub.required ? `หน่วยงานใน${state.unit}` : `เลือกหากคุณสังกัดหน่วยงานย่อยของ${state.unit}`;
       $('#subUnitError').textContent = `กรุณาเลือก${sub.label}`;
       // Required (กอง / งาน): prompt only, not a choice. Optional: "ไม่ได้สังกัดหน่วยงานย่อย" is a real choice and stays in the list
-      $('#subUnit').innerHTML = (sub.required ? `<option value="" disabled hidden${state.subUnit ? '' : ' selected'}>เลือก${sub.label}</option>` : '<option value="">ไม่ได้สังกัดหน่วยงานย่อย</option>') +
-        sub.units.map((u) => `<option${u === state.subUnit ? ' selected' : ''}>${u}</option>`).join('');
+      $('#subUnit').innerHTML = (sub.required ? `<option value="" disabled hidden${state.subUnit ? '' : ' selected'}>เลือก${esc(sub.label)}</option>` : '<option value="">ไม่ได้สังกัดหน่วยงานย่อย</option>') +
+        sub.units.map((u) => `<option${u === state.subUnit ? ' selected' : ''}>${esc(u)}</option>`).join('');
     }
     // Students: faculty → major → track (only for majors that have tracks)
     function fillMajors() {
@@ -937,8 +937,8 @@
       sel.disabled = !list.length;
       if (list.length === 1) state.major = list[0];
       if (!list.includes(state.major)) state.major = '';
-      sel.innerHTML = `<option value="">${list.length ? 'เลือก' + label : 'เลือกคณะก่อน'}</option>` +
-        list.map((m) => `<option${m === state.major ? ' selected' : ''}>${m}</option>`).join('');
+      sel.innerHTML = `<option value="">${list.length ? 'เลือก' + esc(label) : 'เลือกคณะก่อน'}</option>` +
+        list.map((m) => `<option${m === state.major ? ' selected' : ''}>${esc(m)}</option>`).join('');
       fillTracks();
     }
     function fillTracks() {
@@ -947,7 +947,7 @@
       $('#majorField').classList.toggle('lg:col-span-2', !tracks.length);
       if (!tracks.includes(state.track)) state.track = '';
       $('#track').innerHTML = '<option value="">เลือกวิชาเอก</option>' +
-        tracks.map((t) => `<option${t === state.track ? ' selected' : ''}>${t}</option>`).join('');
+        tracks.map((t) => `<option${t === state.track ? ' selected' : ''}>${esc(t)}</option>`).join('');
     }
     $('#unit').addEventListener('change', (e) => { state.unit = e.target.value; showError('#unitError', false, e.target); showError('#subUnitError', false, $('#subUnit')); fillSubUnits(); fillMajors(); });
     $('#subUnit').addEventListener('change', (e) => { state.subUnit = e.target.value; showError('#subUnitError', false, e.target); });

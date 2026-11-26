@@ -10,7 +10,8 @@ import { readStatus } from './backup.mjs';
 import { DEVELOPERS, domainRole, requireAdmin } from './auth.mjs';
 import { ACTIONS, audit } from './audit.mjs';
 import { query, tx } from './db.mjs';
-import { HttpError, str } from './http.mjs';
+import { HttpError, offsetOf, str } from './http.mjs';
+import { isDate } from './rules.mjs';
 import { FILE_ORG, allUnits } from './org.mjs';
 import { ALL_PLATFORMS, DEFAULTS, KEYS, LABELS, all, remember, save } from './settings.mjs';
 
@@ -44,7 +45,7 @@ router.put('/admin/settings/:key', async (req, res) => {
 // ---- Users and roles ----
 router.get('/admin/users', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const offset = offsetOf(req.query.offset);
   const q = str(req.query.q, 100, 'คำค้น');
   const role = ['staff', 'student', 'external', 'intern', 'coordinator', 'secretary', 'executive', 'pr', 'admin'].includes(/** @type {string} */ (req.query.role)) ? req.query.role : null;
   // Everyone who signed in, plus roles given to addresses that have not signed in yet
@@ -95,6 +96,10 @@ export async function applyRole(c, actor, { email, role, unit }) {
     await c.query('update users set role = $2 where email = $1', [email, role]);
     await audit(c, actor, 'role.set', email, `กำหนดให้ ${email} เป็น${ROLE_TH[role]}${unit ? ` (${unit})` : ''}`, { role, unit });
   }
+  // A phone book edit loan is only for PR and interns (phonebook.mjs): it ends with the role
+  if (!['pr', 'intern'].includes(role) && (await c.query('delete from phonebook_editors where email = $1', [email])).rowCount) {
+    await audit(c, actor, 'phonebook.revoke', email, `ยกเลิกสิทธิ์แก้ไขสมุดโทรศัพท์ของ ${email} เพราะเปลี่ยนบทบาท`, {});
+  }
 }
 
 router.put('/admin/roles', async (req, res) => {
@@ -122,15 +127,15 @@ router.get('/admin/backups', async (req, res) => {
 // ---- Usage history ----
 router.get('/admin/audit', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const offset = offsetOf(req.query.offset);
   const params = [];
   const p = (v) => { params.push(v); return `$${params.length}`; };
   const where = [];
-  if (ACTIONS[req.query.action]) where.push(`a.action = ${p(req.query.action)}`);
+  if (Object.hasOwn(ACTIONS, String(req.query.action))) where.push(`a.action = ${p(req.query.action)}`);
   const q = str(req.query.q, 100, 'คำค้น');
   if (q) where.push(`(a.summary ilike ${p(`%${q.replace(/[\\%_]/g, '\\$&')}%`)} or a.actor_email ilike $${params.length} or a.target ilike $${params.length})`);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(String(req.query.from || ''))) where.push(`(a.at at time zone 'Asia/Bangkok')::date >= ${p(req.query.from)}::date`);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(String(req.query.to || ''))) where.push(`(a.at at time zone 'Asia/Bangkok')::date <= ${p(req.query.to)}::date`);
+  if (isDate(req.query.from)) where.push(`(a.at at time zone 'Asia/Bangkok')::date >= ${p(req.query.from)}::date`);
+  if (isDate(req.query.to)) where.push(`(a.at at time zone 'Asia/Bangkok')::date <= ${p(req.query.to)}::date`);
   const rows = (await query(
     `select a.*, u.name actor_name, count(*) over ()::int total from audit_log a left join users u on u.id = a.actor_id
      ${where.length ? `where ${where.join(' and ')}` : ''} order by a.at desc, a.id desc limit ${limit} offset ${offset}`, params)).rows;

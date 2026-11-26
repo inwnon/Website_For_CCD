@@ -9,7 +9,7 @@
 //   events/{event id}/{banner id}.webp     แบนเนอร์กำหนดการ of a calendar event (calendar.mjs)
 //   feedback/{feedback id}/{random id}.webp           pictures sent with แจ้งปัญหาการใช้งาน, re-encoded (feedback.mjs)
 import { randomUUID } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
+import { createWriteStream, mkdirSync } from 'node:fs';
 import { copyFile, mkdir, rename, rm } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
 import multer from 'multer';
@@ -34,12 +34,43 @@ const BANNER_SIZE = 2400;
 // Full-size copies: plain JPEG, not mozjpeg, which takes about ten times as long while the PR team waits to publish
 const FULL_JPEG = { quality: 90 };
 
+// Writes each file to tmp/ and stops it as soon as it passes the limit of its own slot. multer's fileSize limit is
+// one number for every slot (the 100 MB of a banner), so a 15 MB photo slot would otherwise take 100 MB per file
+// onto the disk before being refused.
+const slotStorage = {
+  _handleFile(req, file, cb) {
+    const u = UPLOADS[file.fieldname];
+    const filename = randomUUID() + extname(file.originalname).toLowerCase();
+    const path = join(TMP, filename);
+    const out = createWriteStream(path);
+    let size = 0, settled = false, stopped = false;
+    const done = (err, info) => { if (!settled) { settled = true; cb(err, info); } };
+    const stop = (err) => {
+      if (stopped || settled) return;
+      stopped = true;
+      file.stream.unpipe(out);
+      file.stream.resume();
+      out.once('close', () => rm(path, { force: true }).finally(() => done(err)));
+      out.destroy();
+    };
+    file.stream.on('data', (chunk) => {
+      size += chunk.length;
+      if (u && size > u.maxBytes) {
+        const detail = `${file.originalname} ใหญ่เกิน ${Math.round(u.maxBytes / 1024 / 1024)} MB`;
+        stop(Object.assign(new Error('file too large'), { code: 'LIMIT_FILE_SIZE', detail }));
+      }
+    });
+    file.stream.on('error', stop);
+    out.on('error', stop);
+    out.on('finish', () => done(null, { destination: TMP, filename, path, size }));
+    file.stream.pipe(out);
+  },
+  _removeFile(req, file, cb) { rm(file.path, { force: true }).then(() => cb(null), cb); },
+};
+
 // multipart/form-data: field "data" (JSON) + files in fields photo / attach / art
 const parser = multer({
-  storage: multer.diskStorage({
-    destination: TMP,
-    filename: (req, file, cb) => cb(null, randomUUID() + extname(file.originalname).toLowerCase()),
-  }),
+  storage: slotStorage,
   limits: { fileSize: MAX_BYTES, files: MAX_FILES, fields: 5, fieldSize: 1024 * 1024 },
   defParamCharset: 'utf8', // Thai file names
 }).fields(Object.entries(UPLOADS).map(([name, u]) => ({ name, maxCount: u.max })));
@@ -50,23 +81,28 @@ export const removeTemp = (files) => Promise.all(files.map((f) => rm(f.path, { f
 export function acceptUpload(req, res, next) {
   parser(req, res, async (err) => {
     const files = Object.entries(req.files || {}).flatMap(([kind, list]) => list.map((f) => ({ ...f, kind })));
-    const fail = async (status, msg) => { await removeTemp(files); next(new HttpError(status, msg)); };
-    if (err) {
-      if (err.code === 'LIMIT_FILE_SIZE') return fail(413, 'ไฟล์มีขนาดใหญ่เกินกำหนด');
-      if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT') return fail(400, 'จำนวนไฟล์เกินกำหนด');
-      return fail(400, 'อัปโหลดไฟล์ไม่สำเร็จ');
-    }
-    for (const f of files) {
-      const u = UPLOADS[f.kind];
-      if (!u.accepts(f)) return fail(400, `ไม่รับไฟล์ ${f.originalname}`);
-      if (f.size > u.maxBytes) return fail(413, `${f.originalname} ใหญ่เกิน ${Math.round(u.maxBytes / 1024 / 1024)} MB`);
-      // The content must be what the name says (a renamed .exe is not a .pdf)
-      if (!(await matchesName(f.path, f.originalname))) return fail(400, `${f.originalname} ไม่ใช่ไฟล์ ${extname(f.originalname).slice(1).toUpperCase()} จริง ตรวจไฟล์แล้วแนบใหม่`);
-    }
+    // Express does not catch errors thrown in this callback: an uncaught one would stop the server
+    const fail = (e) => removeTemp(files).catch(() => {}).then(() => next(e));
     try {
-      req.data = JSON.parse(req.body?.data || '{}');
-    } catch {
-      return fail(400, 'ข้อมูลที่ส่งมาไม่ถูกต้อง');
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') throw new HttpError(413, err.detail || 'ไฟล์มีขนาดใหญ่เกินกำหนด');
+        if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT') throw new HttpError(400, 'จำนวนไฟล์เกินกำหนด');
+        throw new HttpError(400, 'อัปโหลดไฟล์ไม่สำเร็จ');
+      }
+      for (const f of files) {
+        const u = UPLOADS[f.kind];
+        if (!u.accepts(f)) throw new HttpError(400, `ไม่รับไฟล์ ${f.originalname}`);
+        if (f.size > u.maxBytes) throw new HttpError(413, `${f.originalname} ใหญ่เกิน ${Math.round(u.maxBytes / 1024 / 1024)} MB`);
+        // The content must be what the name says (a renamed .exe is not a .pdf)
+        if (!(await matchesName(f.path, f.originalname))) throw new HttpError(400, `${f.originalname} ไม่ใช่ไฟล์ ${extname(f.originalname).slice(1).toUpperCase()} จริง ตรวจไฟล์แล้วแนบใหม่`);
+      }
+      try {
+        req.data = JSON.parse(req.body?.data || '{}');
+      } catch {
+        throw new HttpError(400, 'ข้อมูลที่ส่งมาไม่ถูกต้อง');
+      }
+    } catch (e) {
+      return fail(e);
     }
     req.uploads = files;
     next();

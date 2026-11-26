@@ -21,9 +21,9 @@ import { Router } from 'express';
 import { baseRole, isPr, requireUser } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, sendMedia } from './files.mjs';
-import { HttpError } from './http.mjs';
+import { HttpError, offsetOf } from './http.mjs';
 import { unitFamily } from './org.mjs';
-import { PLATFORMS, TYPES, albumHost, audienceLabel, newsUrl, plainText } from './rules.mjs';
+import { PLATFORMS, TYPES, albumHost, isDate, audienceLabel, newsUrl, plainText } from './rules.mjs';
 import { limit } from './security.mjs';
 import { VIDEO_CATEGORIES } from './settings.mjs';
 import { searchTerms } from './thai.mjs';
@@ -31,7 +31,6 @@ import { ZipArchive } from 'archiver';
 import sharp from 'sharp';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
 export const LIVE = 'n.published_at <= now() and n.withdrawn_at is null';
 export const LOCAL_DAY = "(n.published_at at time zone 'Asia/Bangkok')::date";
 const TODAY = "(now() at time zone 'Asia/Bangkok')::date";
@@ -79,7 +78,7 @@ export const router = Router();
 router.get('/news', async (req, res) => {
   const { featured, range, date, kind } = /** @type {Record<string, any>} */ (req.query);
   const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 48);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const offset = offsetOf(req.query.offset);
   const where = [LIVE];
   const params = [];
   if (featured === '1') where.push('n.featured');
@@ -90,16 +89,18 @@ router.get('/news', async (req, res) => {
   // Week = Sunday–Saturday, as the calendar on index.html
   if (range === 'week') where.push(`${LOCAL_DAY} between ${TODAY} - extract(dow from ${TODAY})::int and ${TODAY} - extract(dow from ${TODAY})::int + 6`);
   if (range === 'month') where.push(`date_trunc('month', ${LOCAL_DAY}) = date_trunc('month', ${TODAY})`);
-  if (typeof date === 'string' && DAY.test(date)) { params.push(date); where.push(`${LOCAL_DAY} = $${params.length}::date`); }
+  if (isDate(date)) { params.push(date); where.push(`${LOCAL_DAY} = $${params.length}::date`); }
   // counts=1: how many of each kind under these filters (the kind buttons of ข่าวล่าสุด on index.html)
   const kinds = req.query.counts === '1'
     ? Object.fromEntries(TYPES.map((t) => [t, 0]).concat((await query(
       `select n.kind, count(*)::int n from news n where ${where.join(' and ')}${kindAt ? ` and $${kindAt}::text is not null` : ''} group by n.kind`, params)).rows.map((r) => [r.kind, r.n])))
     : undefined;
+  const matching = [...where, ...(kindAt ? [`n.kind = $${kindAt}`] : [])].join(' and ');
   const rows = (await query(
-    `select n.*, count(*) over ()::int total from news n where ${[...where, ...(kindAt ? [`n.kind = $${kindAt}`] : [])].join(' and ')}
+    `select n.*, count(*) over ()::int total from news n where ${matching}
      order by n.published_at desc, n.id limit ${limit} offset ${offset}`, params)).rows;
-  const total = rows[0]?.total ?? 0;
+  // Past the last page there is no row to carry the total: count on its own
+  const total = rows[0]?.total ?? (offset ? (await one(`select count(*)::int n from news n where ${matching}`, params)).n : 0);
   res.json({ total, hasMore: offset + rows.length < total, items: rows.map((n) => cardOut(n, req.user)), ...(kinds ? { kinds } : {}) });
 });
 
@@ -127,7 +128,7 @@ export async function searchPayload(qs, user) {
   // For highlighting and the snippet: the phrases, then their words
   const terms = [...new Set([...parsed.map((t) => t.phrase), ...parsed.flatMap((t) => t.words)])];
   const limit = Math.min(Math.max(Number(qs.limit) || 12, 1), 48);
-  const offset = Math.max(Number(qs.offset) || 0, 0);
+  const offset = offsetOf(qs.offset);
   const params = [readableBy(user)];
   const p = (v) => { params.push(v); return `$${params.length}`; };
   const where = [LIVE, 'n.audience && $1::audience[]'];
@@ -149,14 +150,14 @@ export async function searchPayload(qs, user) {
   if (cats.length) where.push(`n.categories && ${p(cats)}::text[]`);
   const unit = typeof qs.unit === 'string' && qs.unit.trim() ? qs.unit.trim().slice(0, 200) : null;
   if (unit) where.push(`n.unit = any(${p(unitFamily(unit))})`);
-  if (DAY.test(qs.from || '')) where.push(`${LOCAL_DAY} >= ${p(qs.from)}::date`);
-  if (DAY.test(qs.to || '')) where.push(`${LOCAL_DAY} <= ${p(qs.to)}::date`);
+  if (isDate(qs.from)) where.push(`${LOCAL_DAY} >= ${p(qs.from)}::date`);
+  if (isDate(qs.to)) where.push(`${LOCAL_DAY} <= ${p(qs.to)}::date`);
   const byScore = terms.length && qs.sort !== 'newest';
   const rows = (await query(
     `select n.*, ${score.length ? score.join(' + ') : '0'} score, count(*) over ()::int total from news n
      where ${where.join(' and ')}
      order by ${byScore ? 'score desc, ' : ''}n.published_at desc, n.id limit ${limit} offset ${offset}`, params)).rows;
-  const total = rows[0]?.total ?? 0;
+  const total = rows[0]?.total ?? (offset ? (await one(`select count(*)::int n from news n where ${where.join(' and ')}`, params)).n : 0);
   return {
     total, hasMore: offset + rows.length < total, terms,
     items: rows.map((n) => ({ ...cardOut(n, user), snippet: snippet(n, terms) })),
@@ -364,8 +365,9 @@ async function youtubeThumb(id) {
 media.get('/video/:file', async (req, res) => {
   const id = req.params.file.match(/^([\w-]{6,20})\.webp$/)?.[1];
   if (!id) return res.status(404).end();
-  // Only a video that a live story links to (not an open image proxy)
-  const known = await one(`select 1 from news n where n.video_url like $1 and ${LIVE} limit 1`, [`%${id}%`]);
+  // Only a video that a live story links to (not an open image proxy): the whole id, not a part of one
+  // (id is letters, digits, "_" and "-" only, none of them special in a regular expression outside brackets)
+  const known = await one(`select 1 from news n where n.video_url ~ $1 and ${LIVE} limit 1`, [`(^|[^A-Za-z0-9_-])${id}([^A-Za-z0-9_-]|$)`]);
   if (!known) return res.status(404).end();
   try {
     sendMedia(res, await youtubeThumb(id), 'public, max-age=604800');

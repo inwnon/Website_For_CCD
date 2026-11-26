@@ -10,7 +10,7 @@
 // - GET  /api/files/:id[?v=web]            a file of a submission (sender or PR)
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import { isPr, isUniversity, onboarded, requireUser } from './auth.mjs';
+import { isPr, onboarded, requireUser, universityOnly } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { findDraft } from './drafts.mjs';
 import { abs, acceptUpload, moveStored, removeDraftDir, removeStored, removeSubmissionDir, removeTemp, storeUploads, webPath } from './files.mjs';
@@ -123,10 +123,9 @@ const MIN10 = 10 * 60 * 1000;
 const uploads = limit('upload', { max: 30, windowMs: MIN10, message: 'ส่งงานบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่ ข้อมูลในฟอร์มยังอยู่ครบ' });
 const messages = limit('message', { max: 40, windowMs: MIN10, message: 'ส่งข้อความบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่' });
 
-router.post('/submissions', requireUser, uploads, acceptUpload, async (req, res) => {
+router.post('/submissions', requireUser, universityOnly, uploads, acceptUpload, async (req, res) => {
   const user = req.user;
   try {
-    if (!isUniversity(user)) throw new HttpError(403, 'การส่งงานเปิดให้บุคลากรและนักศึกษาของมหาวิทยาลัย');
     if (!onboarded(user)) throw new HttpError(403, 'กรุณากรอกโปรไฟล์ (ชื่อ เบอร์โทรศัพท์ และสังกัด) ให้ครบก่อนส่งงาน');
     // Sending a draft: its files count as attached (those the sender removed on the page excepted)
     const draft = req.data?.draftId ? await findDraft(req.data.draftId, user) : null;
@@ -185,7 +184,7 @@ router.get('/submissions/:ref', requireUser, async (req, res) => {
   res.json({ submission: submissionOut(s, await loadThread([s.id]), s.sender_id === req.user.id ? 'sender' : 'pr') });
 });
 
-router.put('/submissions/:ref', requireUser, uploads, acceptUpload, async (req, res) => {
+router.put('/submissions/:ref', requireUser, universityOnly, uploads, acceptUpload, async (req, res) => {
   try {
     const s = await one('select * from submissions where ref = $1 and sender_id = $2', [req.params.ref, req.user.id]);
     if (!s) throw new HttpError(404, 'ไม่พบงานนี้');

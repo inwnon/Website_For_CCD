@@ -16,11 +16,12 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Router } from 'express';
-import { domainRole, prUnreadCount, publicUser, requirePr } from './auth.mjs';
+import { prUnreadCount, publicUser, requirePr } from './auth.mjs';
 import { one, query, tx } from './db.mjs';
 import { abs, publishImage, removeMedia } from './files.mjs';
-import { HttpError, str } from './http.mjs';
+import { HttpError, offsetOf, str } from './http.mjs';
 import { AUDIENCES, MAX_CATS, SOLO_MSG, albumSet, albumUrl, audienceLabel, bodyLeading, bodySize, categories, slugField, soloOk, videoLinks } from './rules.mjs';
+import { applyRole, checkRole } from './admin.mjs';
 import { audit } from './audit.mjs';
 import { prMessaged, statusChanged } from './notify.mjs';
 import { limit } from './security.mjs';
@@ -65,7 +66,7 @@ router.get('/pr/arrivals', async (req, res) => {
 router.get('/pr/submissions', async (req, res) => {
   const { status, type, q, unread } = /** @type {Record<string, any>} */ (req.query);
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const offset = offsetOf(req.query.offset);
   const where = [];
   const params = [];
   const add = (sql, v) => { params.push(v); where.push(sql.replace('?', `$${params.length}`)); };
@@ -321,26 +322,16 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+// The same checks and side effects as PUT /api/admin/roles (no demoting yourself, at least one admin, loans end)
 router.post('/pr/team', requireAdmin, async (req, res) => {
-  const email = str(req.body?.email, 200, 'อีเมล')?.toLowerCase();
-  const role = req.body?.role === 'admin' ? 'admin' : 'pr';
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpError(400, 'อีเมลไม่ถูกต้อง');
-  await tx(async (c) => {
-    await c.query('insert into pr_team (email, role) values ($1, $2) on conflict (email) do update set role = $2', [email, role]);
-    await c.query('update users set role = $2 where email = $1', [email, role]);
-    await audit(c, req.user, 'role.set', email, `กำหนดให้ ${email} เป็น${role === 'admin' ? 'ผู้ดูแลระบบ' : 'ทีม PR'}`, { role });
-  });
+  const change = checkRole(req.user, req.body?.email, req.body?.role === 'admin' ? 'admin' : 'pr');
+  await tx((c) => applyRole(c, req.user, change));
   res.status(201).json({ ok: true });
 });
 
 router.delete('/pr/team/:email', requireAdmin, async (req, res) => {
-  const email = req.params.email.toLowerCase();
-  if (email === req.user.email) throw new HttpError(409, 'นำตัวเองออกจากทีมไม่ได้');
-  await tx(async (c) => {
-    await c.query('delete from pr_team where email = $1', [email]);
-    await c.query('update users set role = $2 where email = $1', [email, domainRole(email)]);
-    await audit(c, req.user, 'role.remove', email, `นำ ${email} ออกจากทีม`);
-  });
+  const change = checkRole(req.user, req.params.email, 'default');
+  await tx((c) => applyRole(c, req.user, change));
   res.json({ ok: true });
 });
 

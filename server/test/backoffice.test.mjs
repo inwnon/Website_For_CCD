@@ -47,6 +47,10 @@ describe('import (นำเข้าข่าวย้อนหลัง)', () =
     const r = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, unit: 'หน่วยงานที่ไม่มี', date: daysAgo(-3) }));
     assert.equal(r.status, 400);
     assert.ok(r.body.details.unit && r.body.details.date && r.body.details.photos);
+    // 30 February looks like a date but is none: a field error, not a server error
+    const feb30 = await pr.call('POST', '/api/pr/import', form({ ...IMPORT, date: '2026-02-30' }));
+    assert.equal(feb30.status, 400);
+    assert.ok(feb30.body.details.date);
   });
 
   test('imports at the original date, live at once, no submission', async () => {

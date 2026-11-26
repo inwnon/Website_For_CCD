@@ -11,7 +11,7 @@ import { requireBackOffice, rightOf } from './access.mjs';
 import { audit } from './audit.mjs';
 import { isPr, requireAdmin, requireUser } from './auth.mjs';
 import { one, pool, query, tx } from './db.mjs';
-import { HttpError } from './http.mjs';
+import { HttpError, intId } from './http.mjs';
 import { newsUrl } from './rules.mjs';
 import { get } from './settings.mjs';
 import { limit } from './security.mjs';
@@ -313,7 +313,7 @@ router.get('/admin/mail', requireAdmin, async (req, res) => {
   res.json({ smtp: SMTP, from: FROM, items, counts: Object.fromEntries(counts.map((c) => [c.status, c.n])) });
 });
 router.get('/admin/mail/:id', requireAdmin, async (req, res) => {
-  const r = await one('select * from email_outbox where id = $1', [Number(req.params.id) || 0]);
+  const r = await one('select * from email_outbox where id = $1', [intId(req.params.id)]);
   if (!r) throw new HttpError(404, 'ไม่พบอีเมลนี้');
   res.json({ mail: r });
 });
