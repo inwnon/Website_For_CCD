@@ -76,6 +76,17 @@ describe('file content must match the name', () => {
     const docx = await attach({ photo: await img('#468'), attach: ['กำหนดการ.docx', Buffer.from('PK\x03\x04 rest of a zip'), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'] });
     assert.equal(docx.status, 201);
   });
+  test('a photo over its own limit (15 MB) is refused while it arrives, with the limit named', async () => {
+    const big = Buffer.concat([await img('#468', 64, 64), Buffer.alloc(16 * 1024 * 1024)]);
+    const r = await staff.call('POST', '/api/submissions', form(NEWS, { photo: [['ใหญ่.jpg', big, 'image/jpeg']] }));
+    assert.equal(r.status, 413);
+    assert.match(r.body.error, /ใหญ่\.jpg ใหญ่เกิน 15 MB/);
+  });
+  test('an account that may not send is refused before its files are read', async () => {
+    const external = await login('external');
+    const r = await external.call('POST', '/api/drafts', form(NEWS, { photo: [['a.jpg', await img('#468'), 'image/jpeg']] }));
+    assert.equal(r.status, 403);
+  });
 });
 
 describe('access between accounts', () => {

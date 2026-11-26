@@ -46,6 +46,11 @@ export const isCoordinator = (u) => u?.role === 'coordinator';
 // นักศึกษาฝึกงาน สสอ.: imports past stories (pr-import.html) only; elsewhere their baseRole (rules.mjs)
 export const isIntern = (u) => u?.role === 'intern';
 export const isUniversity = (u) => !!u && baseRole(u) !== 'external';
+// Before an upload is read, so an account that may not send never puts files on the disk
+export const universityOnly = (req, res, next) => {
+  if (!isUniversity(req.user)) throw new HttpError(403, 'การส่งงานเปิดให้บุคลากรและนักศึกษาของมหาวิทยาลัย');
+  next();
+};
 
 // Staff (and PR / admin / coordinators, all on @sru.ac.th) give their internal extension; others a phone number
 export const usesExtension = (role) => role !== 'student' && role !== 'external';

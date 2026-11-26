@@ -101,6 +101,8 @@ describe('privacy', () => {
   test('the story page asks for YouTube thumbnails from this server only, and only for videos of stories', async () => {
     assert.equal((await anon.call('GET', '/media/video/AAAAAAAAAAA.webp')).status, 404);
     assert.equal((await anon.call('GET', '/media/video/..%2F..%2F.env')).status, 404);
+    // "_" is a LIKE wildcard: six of them must not match whatever video a story links to
+    assert.equal((await anon.call('GET', '/media/video/______.webp')).status, 404);
   });
 });
 
