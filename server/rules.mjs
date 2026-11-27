@@ -33,9 +33,9 @@ export const BODY_SIZES = [16, 17, 18];
 export const BODY_LEADINGS = ['tight', 'normal', 'loose'];
 export const bodySize = (v) => (v === null || v === undefined || v === '' ? null : BODY_SIZES.includes(Number(v)) ? Number(v) : null);
 export const bodyLeading = (v) => (BODY_LEADINGS.includes(v) ? v : null);
-// In the text: **…** is bold, [size=18]…[/size] a font size, [lh=loose] a paragraph's line spacing (text-tools.js);
+// In the text: **…** is bold, [size=18]…[/size] a font size, [lh=loose] a paragraph's line spacing, [hr] a divider (text-tools.js);
 // plain-text uses (search snippets, descriptions) drop the marks
-export const plainText = (t) => String(t || '').replace(/^\[lh=(tight|normal|loose)\]\s*/gm, '').replace(/\[size=(1[6-9]|20)\]([\s\S]*?)\[\/size\]/g, '$2').replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '$1');
+export const plainText = (t) => String(t || '').replace(/^[ \t]*\[hr\][ \t]*$/gm, '').replace(/^\[lh=(tight|normal|loose)\]\s*/gm, '').replace(/\[size=(1[6-9]|20)\]([\s\S]*?)\[\/size\]/g, '$2').replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '$1');
 const platformOk = (p, url) => get('platforms').includes(p) && PLATFORMS[p]?.test(url);
 export const PLATFORMS = {
   youtube: /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/|live\/)|youtu\.be\/)([\w-]{6,})/i,

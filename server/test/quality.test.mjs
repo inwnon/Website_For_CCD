@@ -160,12 +160,12 @@ describe('SEO', () => {
     assert.ok(slugify('word '.repeat(30)).length <= MAX_SLUG);
     assert.equal(newsUrl({ no: '12', slug: null }), 'news-12');
   });
-  test('a story body leaves out separator-only and punctuation-only lines (copied from Facebook)', async () => {
+  test('a story body shows typed separator lines as typed and [hr] as a divider', async () => {
     const { body } = (await query('select body from news where id = $1', [publicId])).rows[0];
     try {
-      await query('update news set body = $2 where id = $1', [publicId, 'ย่อหน้าแรก\n---------------\n.\nย่อหน้าสอง - ต่อ\n=====\n…\nจบ.']);
+      await query('update news set body = $2 where id = $1', [publicId, 'ย่อหน้าแรก\n---------------\nย่อหน้าสอง - ต่อ\n[hr]\n…\nจบ.']);
       const html = String((await request('GET', `/news.html?id=${publicId}`)).body);
-      assert.ok(html.includes('<p>ย่อหน้าแรก</p><p>ย่อหน้าสอง - ต่อ</p><p>จบ.</p>'), 'only the text paragraphs');
+      assert.ok(html.includes('<p>ย่อหน้าแรก</p><p>---------------</p><p>ย่อหน้าสอง - ต่อ</p><hr class="rule"><p>…</p><p>จบ.</p>'), 'separators kept, [hr] a divider');
     } finally {
       await query('update news set body = $2 where id = $1', [publicId, body]);
     }
