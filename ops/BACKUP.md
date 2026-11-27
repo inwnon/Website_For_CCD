@@ -36,9 +36,7 @@
    BACKUP_OFFSITE_CMD=rsync -aH --delete {dir}/ backup@nas.sru.ac.th:/backups/prsru/
    ```
    - ใช้ `rsync -aH` เพื่อให้ปลายทางเก็บ hard link ด้วย ไม่อย่างนั้นไฟล์ 30 ชุดจะกินที่เต็ม 30 เท่า
-   - ถ้าใช้ rclone (เช่น Google Drive ของมหาวิทยาลัย) ปลายทางไม่รองรับ hard link ให้ส่งเฉพาะฐานข้อมูลและชุดไฟล์ล่าสุด เช่น
-     `rclone sync {dir}/db sru-backup:prsru/db && rclone sync {dir}/media/$(date +%F) sru-backup:prsru/media-latest`
-   - บัญชีที่ใช้ต้องตั้ง SSH key / rclone config ไว้ก่อน (ไม่ต้องใส่รหัสผ่านในคำสั่ง)
+   - บัญชีที่ใช้ต้องตั้ง SSH key ไว้ก่อน (ไม่ต้องใส่รหัสผ่านในคำสั่ง)
    - สำเนานอกเครื่องควรอยู่คนละอาคารหรือคนละระบบกับเซิร์ฟเวอร์ และจำกัดคนเข้าถึง เพราะมีข้อมูลส่วนบุคคล
 3. ตั้งเวลา (`crontab -e` ของผู้ใช้ที่สั่ง docker ได้)
    ```cron
