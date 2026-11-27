@@ -6,7 +6,8 @@
 //   spacing belongs to whole lines, so a word's paragraph gets it.
 // The text is still kept as plain text, one line per paragraph, with marks the story page turns into formatting:
 //   **ข้อความ** = bold, [size=18]ข้อความ[/size] = 18 px, [lh=loose] at the start of a paragraph = its line spacing,
-//   a line of only [hr] = a divider (the เส้นคั่น button); lines typed as ---- or .... stay as typed
+//   lines typed as ---- or .... stay as typed; a line of only [hr] = a divider (no button any more,
+//   kept so stories that have one still show it and keep it when edited)
 //   (the same rules in news.html and server/pages.mjs).
 // The page's own <textarea> stays the field: hidden, but its value is always the marked text, setting its value
 // fills the editor, and it fires "input" as the text changes, so the page code around it works as before.
@@ -101,10 +102,6 @@
         <span class="tt-group" role="radiogroup" aria-labelledby="tt-lh-${n}" aria-describedby="tt-lh-${n}-d"><span id="tt-lh-${n}" class="tt-label">ระยะบรรทัด</span><span id="tt-lh-${n}-d" class="sr-only">ใช้กับย่อหน้าที่เลือก</span>
           <span class="tt-seg">${LEADINGS.map(([k, label]) => `<label><input type="radio" name="tt-lh-${n}" value="${k}"><span>${label}</span></label>`).join('')}</span>
         </span>
-        <span class="tt-sep" aria-hidden="true"></span>
-        <button type="button" class="tt-btn" data-tt="hr" aria-label="แทรกเส้นคั่น" title="แทรกเส้นคั่นที่ตำแหน่งเคอร์เซอร์ (หรือพิมพ์ ---- เองเพื่อให้แสดงตามที่พิมพ์)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3 12h18M8 6h8M8 18h8" opacity=".9"/></svg>
-        </button>
         <span class="tt-note" aria-live="polite">เลือกข้อความแล้วกด B เลือกขนาด หรือระยะบรรทัด</span>`;
 
       // ---- The editor, in the textarea's place ----
@@ -214,15 +211,6 @@
         sync();
         boldBtn.setAttribute('aria-pressed', String(document.queryCommandState('bold')));
         say('เลือกข้อความแล้วกด B หรือเลือกขนาด');
-      });
-      const hrBtn = bar.querySelector('[data-tt=hr]');
-      hrBtn.addEventListener('mousedown', (e) => e.preventDefault()); // keep the cursor
-      hrBtn.addEventListener('click', () => {
-        restore();
-        if (!saved) { say('วางเคอร์เซอร์ตรงที่ต้องการเส้นคั่นก่อน'); return; }
-        document.execCommand('insertHorizontalRule');
-        sync();
-        say('แทรกเส้นคั่นแล้ว');
       });
       select.addEventListener('change', () => {
         const size = Number(select.value);
