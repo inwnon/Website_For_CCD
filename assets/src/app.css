@@ -64,6 +64,8 @@
   :is(.tt-editor, .tt-show) [data-size="16"] { font-size: 16px; }
   :is(.tt-editor, .tt-show) [data-size="17"] { font-size: 17px; }
   :is(.tt-editor, .tt-show) [data-size="18"] { font-size: 18px; }
+  /* A divider ([hr], the เส้นคั่น button), as news.html shows it */
+  :is(.tt-editor, .tt-show) hr { border: 0; height: 2px; width: min(40%, 12rem); margin: 1.2em auto; background: linear-gradient(90deg, transparent, rgb(var(--purple) / .55), transparent); }
   .tt-editor.is-empty::before { content: attr(data-placeholder); position: absolute; color: rgb(var(--ink-2) / .8); pointer-events: none; }
   .tt-editor.is-empty { position: relative; }
 }

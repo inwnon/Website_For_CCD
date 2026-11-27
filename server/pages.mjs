@@ -82,9 +82,9 @@ const LS = new RegExp(String.fromCharCode(0x2028), 'g'), PS = new RegExp(String.
 const BS = String.fromCharCode(92); // a backslash, so "<" and the separators become JSON escape sequences
 const scriptJson = (v) => JSON.stringify(v).replace(/</g, BS + 'u003c').replace(LS, BS + 'u2028').replace(PS, BS + 'u2029');
 // The same as paragraphs() in news.html: a line is a paragraph, **…** is bold, [size=18]…[/size] a font size,
-// [lh=loose] at the start its line spacing; lines of only dashes or punctuation (separators copied from Facebook) are left out
-const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter((p) => p && !/^[-–—_=~*.·•…,\s]+$/.test(p))
-  .map((p) => { const lh = p.match(/^\[lh=(tight|normal|loose)\]\s*/); return `<p${lh && lh[1] !== 'normal' ? ` data-leading="${lh[1]}"` : ''}>${esc(lh ? p.slice(lh[0].length) : p).replace(/\[size=(1[6-9]|20)\]([\s\S]*?)\[\/size\]/g, '<span data-size="$1">$2</span>').replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '<strong>$1</strong>')}</p>`; }).join('');
+// [lh=loose] at the start its line spacing, a line of only [hr] a divider; lines typed as ---- or .... show as typed
+const paragraphs = (t) => (t || '').split(/\n+/).map((p) => p.trim()).filter(Boolean)
+  .map((p) => { if (p === '[hr]') return '<hr class="rule">'; const lh = p.match(/^\[lh=(tight|normal|loose)\]\s*/); return `<p${lh && lh[1] !== 'normal' ? ` data-leading="${lh[1]}"` : ''}>${esc(lh ? p.slice(lh[0].length) : p).replace(/\[size=(1[6-9]|20)\]([\s\S]*?)\[\/size\]/g, '<span data-size="$1">$2</span>').replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '<strong>$1</strong>')}</p>`; }).join('');
 const clip = (t, n) => { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > n ? `${s.slice(0, n - 1)}…` : s; };
 const TH_DATE = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' });
 const TH_TIME = new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });

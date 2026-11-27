@@ -12,7 +12,7 @@ import { ID_STAFF, anon, form, img, login } from './helpers.mjs';
 let snap, staff, pr, ref, newsId;
 const BKK_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' });
 const NEWS = { type: 'news', credit: 'งานประชาสัมพันธ์ทดสอบ', title: 'ข่าวทดสอบการแก้ไขโดยทีม PR', lead: 'คำโปรย', eventDate: '2026-10-12', unit: 'กองกลาง', categories: ['ข่าวการศึกษา'],
-  contentMode: 'own', body: `ย่อหน้าแรกมี **คำสำคัญ** อยู่กลางประโยค [size=18]**ตัวใหญ่และหนา**[/size] ต่อด้วย [size=16]ตัวเล็ก[/size] ${'ก'.repeat(150)}\n[lh=loose]ย่อหน้าที่สอง ระยะบรรทัดกว้าง`, bodySize: '16', bodyLeading: 'loose', audience: ['public'], consent: true };
+  contentMode: 'own', body: `ย่อหน้าแรกมี **คำสำคัญ** อยู่กลางประโยค [size=18]**ตัวใหญ่และหนา**[/size] ต่อด้วย [size=16]ตัวเล็ก[/size] ${'ก'.repeat(150)}\n[lh=loose]ย่อหน้าที่สอง ระยะบรรทัดกว้าง\n----\n[hr]\n....\nย่อหน้าหลังเส้นคั่น`, bodySize: '16', bodyLeading: 'loose', audience: ['public'], consent: true };
 
 before(async () => {
   snap = await snapshot();
@@ -83,9 +83,10 @@ describe('the story page', () => {
     assert.match(html, /<p>ย่อหน้าแรกมี <strong>คำสำคัญ<\/strong> อยู่กลางประโยค/);
     assert.match(html, /<span data-size="18"><strong>ตัวใหญ่และหนา<\/strong><\/span> ต่อด้วย <span data-size="16">ตัวเล็ก<\/span>/, 'sizes on chosen words');
     assert.match(html, /<p data-leading="loose">ย่อหน้าที่สอง ระยะบรรทัดกว้าง<\/p>/, 'line spacing on that paragraph');
-    assert.ok(!/<meta name="description" content="[^"]*(\*\*|\[size|\[lh)/.test(html), 'no marks in the description');
+    assert.match(html, /<p>----<\/p><hr class="rule"><p>\.\.\.\.<\/p>/, 'typed separators as typed, [hr] a divider');
+    assert.ok(!/<meta name="description" content="[^"]*(\*\*|\[size|\[lh|\[hr)/.test(html), 'no marks in the description');
     const found = (await anon.call('GET', `/api/news/search?q=${encodeURIComponent('ตัวใหญ่และหนา')}`)).body.items.find((n) => n.id === newsId);
-    assert.ok(found && !/\*\*|\[size/.test(found.snippet), 'no marks in search results');
+    assert.ok(found && !/\*\*|\[size|\[hr/.test(found.snippet), 'no marks in search results');
   });
 });
 
