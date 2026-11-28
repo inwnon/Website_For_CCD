@@ -680,7 +680,9 @@
       d.hidden = false;
       $('#detailEmpty').classList.add('lg:hidden');
       const canReply = s.status !== 'published';
-      const action = s.status === 'published' && s.url
+      // ตั้งเวลาเผยแพร่: the link opens only once the story is up, so say when instead
+      const later = s.status === 'published' && s.scheduledAt;
+      const action = later ? '' : s.status === 'published' && s.url
         ? `<a href="${esc(s.url)}" class="press t-spring mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-shell px-5 font-display text-[15px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ดูงานที่เผยแพร่ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></a>`
         : s.status === 'revise' ? `<a href="submit.html?edit=${encodeURIComponent(s.ref)}" class="bg-grad press t-spring mt-4 inline-flex h-11 items-center gap-2 rounded-full px-5 font-display text-[15px] font-semibold text-white shadow-glow hover:-translate-y-0.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>แก้ไขงานและส่งอีกครั้ง</a>`
         : '';
@@ -703,8 +705,8 @@
 
         <div class="p-5 sm:p-6">
           <div class="grain relative overflow-hidden rounded-2xl p-5 ${S.cls}">
-            <p class="relative font-display text-[17px] font-semibold">${S.title}</p>
-            <p class="relative mt-1 text-[14px] text-ink">${S.desc}</p>
+            <p class="relative font-display text-[17px] font-semibold">${later ? 'ตั้งเวลาเผยแพร่แล้ว' : S.title}</p>
+            <p class="relative mt-1 text-[14px] text-ink">${later ? `ข่าวจะขึ้นเว็บไซต์ ${when(s.scheduledAt)} เปิดลิงก์ข่าวได้เมื่อถึงเวลา` : S.desc}</p>
             ${action ? `<div class="relative">${action}</div>` : ''}
           </div>
 
