@@ -240,7 +240,7 @@ router.post('/pr/news/:id/restore', async (req, res) => {
   // Work PR deleted or sent back to the sender is not published behind their back: settle it on pr.html first
   const work = n.submission_id ? await one('select status from submissions where id = $1', [n.submission_id]) : null;
   if (work?.status === 'rejected') throw new HttpError(409, 'งานของข่าวนี้ถูกลบที่หลังบ้านแล้ว กู้คืนงานที่หลังบ้านก่อน');
-  if (work?.status === 'revise') throw new HttpError(409, 'งานของข่าวนี้รอผู้ส่งแก้ไขอยู่ เผยแพร่อีกครั้งจากหลังบ้านแทน');
+  if (work?.status === 'revise') throw new HttpError(409, 'งานของข่าวนี้รอผู้ส่งแก้ไขอยู่ ถ้าไม่รอแล้ว ที่หลังบ้านกด “ตรวจต่อ” หรือ “เขียนต่อโดยไม่รอแก้ไข” แล้วเผยแพร่อีกครั้ง');
   await tx(async (c) => {
     await c.query('update news set withdrawn_at = null, withdrawn_reason = null, withdrawn_by = null where id = $1', [n.id]);
     // The story as it was goes back up: an edit PR had not published yet is dropped
