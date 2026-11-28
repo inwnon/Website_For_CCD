@@ -63,6 +63,23 @@ describe('ยกเลิกการเผยแพร่', () => {
     assert.equal((await pr.call('GET', `/api/submissions/${ref}`)).body.submission.status, 'published');
     const row = (await pr.call('GET', `/api/pr/news?q=${encodeURIComponent('หัวข้อใหม่หลังแก้ไข')}`)).body.items.find((n) => n.id === newsId);
     assert.equal(row.submissionStatus, 'published');
+    assert.equal(row.url, (await pr.call('GET', `/api/pr/news/${newsId}`)).body.story.url, 'the short link');
+  });
+  test('restoring does not bring back work PR deleted or sent back to the sender; it drops PR\'s unsaved edit', async () => {
+    await pr.call('POST', `/api/pr/submissions/${ref}/unpublish`);
+    for (const [status, message] of [['rejected'], ['review'], ['revise', 'แก้ภาพปก']]) {
+      assert.equal((await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status, message })).status, 200, status);
+      if (status !== 'review') {
+        assert.equal((await pr.call('POST', `/api/pr/news/${newsId}/restore`)).status, 409, status);
+        assert.equal((await pr.call('GET', `/api/submissions/${ref}`)).body.submission.status, status);
+      }
+    }
+    await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'review' });
+    assert.equal((await pr.call('PUT', `/api/pr/submissions/${ref}/edit`, { title: 'ฉบับที่ PR แก้ค้างไว้' })).status, 200);
+    assert.equal((await pr.call('POST', `/api/pr/news/${newsId}/restore`)).status, 200);
+    const d = (await pr.call('GET', `/api/pr/submissions/${ref}`)).body;
+    assert.equal(d.submission.status, 'published');
+    assert.equal(d.prEdit, null);
   });
 });
 
