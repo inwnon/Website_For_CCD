@@ -241,7 +241,7 @@
         <div class="min-w-0">
           <div class="flex flex-wrap gap-1.5">${badges}</div>
           <h2 class="clamp-2 mt-1 font-display text-[16px] font-semibold leading-snug">
-            ${n.withdrawn ? esc(n.title) : `<a href="${n.url || 'news.html?id=' + n.id}" target="_blank" rel="noopener" class="rounded hover:text-purple hover:underline">${esc(n.title)}</a>`}
+            ${n.withdrawn ? esc(n.title) : `<a href="${esc(n.url)}" target="_blank" rel="noopener" class="rounded hover:text-purple hover:underline">${esc(n.title)}</a>`}
           </h2>
           <p class="mt-0.5 flex flex-wrap gap-x-3 text-[13px] text-ink2">
             <span>${esc(n.unit)}</span><span>${day(n.publishedAt)}</span><span>${KIND[n.kind]}${n.photos ? ` ${n.photos} ${n.kind === 'video' ? 'ชิ้น' : 'ภาพ'}` : ''}</span><span>อ่าน ${num(n.views)} ครั้ง</span>
