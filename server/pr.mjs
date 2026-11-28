@@ -88,6 +88,7 @@ router.get('/pr/submissions', async (req, res) => {
           order by f.kind = 'photo' desc, f.position limit 1) cover_id,
        (select json_build_object('side', m.side, 'text', left(m.body, 160), 'at', m.created_at) from messages m
           where m.submission_id = s.id order by m.created_at desc, m.id desc limit 1) last_message,
+       (select n.published_at from news n where n.id = s.news_id and s.status = 'published' and n.published_at > now()) scheduled_at,
        count(*) over ()::int total
      from submissions s join users u on u.id = s.sender_id ${filtered}
      order by s.pr_unread desc, s.updated_at desc limit ${limit} offset ${offset}`, params)).rows;
@@ -103,6 +104,7 @@ router.get('/pr/submissions', async (req, res) => {
       prWrites: s.content_mode === 'pr', eventDate: s.event_date, sentAt: s.sent_at, updatedAt: s.updated_at, unread: s.pr_unread,
       sender: { name: s.sender_name, email: s.sender_email, role: s.sender_role, position: s.sender_position },
       fileCount: s.file_count, thumb: s.cover_id ? `/api/files/${s.cover_id}?v=web` : null, lastMessage: s.last_message,
+      scheduledAt: s.scheduled_at,
     })),
   });
 });

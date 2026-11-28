@@ -63,6 +63,42 @@ describe('ยกเลิกการเผยแพร่', () => {
     assert.equal((await pr.call('GET', `/api/submissions/${ref}`)).body.submission.status, 'published');
     const row = (await pr.call('GET', `/api/pr/news?q=${encodeURIComponent('หัวข้อใหม่หลังแก้ไข')}`)).body.items.find((n) => n.id === newsId);
     assert.equal(row.submissionStatus, 'published');
+    assert.equal(row.url, (await pr.call('GET', `/api/pr/news/${newsId}`)).body.story.url, 'the short link');
+  });
+  test('restoring does not bring back work PR deleted or sent back to the sender; it drops PR\'s unsaved edit', async () => {
+    await pr.call('POST', `/api/pr/submissions/${ref}/unpublish`);
+    for (const [status, message] of [['rejected'], ['review'], ['revise', 'แก้ภาพปก']]) {
+      assert.equal((await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status, message })).status, 200, status);
+      if (status !== 'review') {
+        assert.equal((await pr.call('POST', `/api/pr/news/${newsId}/restore`)).status, 409, status);
+        assert.equal((await pr.call('GET', `/api/submissions/${ref}`)).body.submission.status, status);
+      }
+    }
+    await pr.call('POST', `/api/pr/submissions/${ref}/status`, { status: 'review' });
+    assert.equal((await pr.call('PUT', `/api/pr/submissions/${ref}/edit`, { title: 'ฉบับที่ PR แก้ค้างไว้' })).status, 200);
+    assert.equal((await pr.call('POST', `/api/pr/news/${newsId}/restore`)).status, 200);
+    const d = (await pr.call('GET', `/api/pr/submissions/${ref}`)).body;
+    assert.equal(d.submission.status, 'published');
+    assert.equal(d.prEdit, null);
+  });
+});
+
+describe('ตั้งเวลาเผยแพร่', () => {
+  test('the sender is told when it goes up, not sent to a link that is not live yet; the desk marks it', async () => {
+    const photo = [['c.jpg', await img('#486', 800, 600), 'image/jpeg']];
+    const s = await staff.call('POST', '/api/submissions', form({ ...NEWS, title: 'ข่าวทดสอบตั้งเวลาเผยแพร่' }, { photo }));
+    assert.equal(s.status, 201, JSON.stringify(s.body));
+    const r = s.body.submission.ref;
+    const at = new Date(Date.now() + 3 * 864e5);
+    assert.equal((await publish(r, { title: 'ข่าวทดสอบตั้งเวลาเผยแพร่', publishAt: at.toISOString() })).status, 201);
+    const mail = (await query("select subject, body from email_outbox where ref = $1 and kind = 'submission.status' order by id desc limit 1", [r])).rows[0];
+    assert.match(mail.subject, /ตั้งเวลาเผยแพร่/);
+    assert.match(mail.body, new RegExp(`inbox\\.html\\?ref=${r}`));
+    assert.doesNotMatch(mail.body, /\/news-\d+/);
+    const item = (await pr.call('GET', `/api/pr/submissions?status=published&q=${r}`)).body.items.find((x) => x.ref === r);
+    assert.equal(new Date(item.scheduledAt).getTime(), at.getTime());
+    const live = (await pr.call('GET', `/api/pr/submissions?status=published&q=${ref}`)).body.items.find((x) => x.ref === ref);
+    assert.equal(live.scheduledAt, null, 'a live story is not marked');
   });
 });
 

@@ -871,6 +871,7 @@
               <span class="mt-1 flex items-center gap-1.5">
                 ${state.status ? '' : `<span class="shrink-0 whitespace-nowrap rounded-full ${S.cls} px-2 font-display text-[12px] font-semibold leading-5">${S.label}</span>`}
                 ${s.prWrites && s.status === 'review' ? '<span class="shrink-0 whitespace-nowrap rounded-full bg-gold-soft px-2 font-display text-[12px] font-semibold leading-5 text-gold">ให้ PR เขียน</span>' : ''}
+                ${s.scheduledAt ? `<span class="shrink-0 whitespace-nowrap rounded-full bg-sky-soft px-2 font-display text-[12px] font-semibold leading-5 text-sky" title="เผยแพร่ ${when(s.scheduledAt)}">ตั้งเวลา</span>` : ''}
                 <span class="min-w-0 truncate text-[12px] text-ink2">${lm ? `${lm.side === 'pr' ? 'PR: ' : ''}${esc(lm.text)}` : esc(s.sender.name || s.sender.email)}</span>
               </span>
             </span>
@@ -947,13 +948,16 @@
     const btn = (attrs, label, primary) => primary
       ? `<button type="button" ${attrs} class="bg-grad press t-spring inline-flex h-10 items-center gap-2 rounded-full px-5 font-display text-[14px] font-semibold text-white shadow-glow hover:-translate-y-0.5">${label}</button>`
       : `<button type="button" ${attrs} class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${label}</button>`;
+    // ตั้งเวลาเผยแพร่: published, but the story goes up later
+    const scheduled = (s) => { const n = detailData?.news; return s.status === 'published' && !!n && !n.withdrawn_at && new Date(n.published_at) > new Date(); };
+    const withdrawn = (s) => s.status === 'published' && !!detailData?.news?.withdrawn_at;
     function actionsFor(s) {
       const a = [];
       // Work taken back with ยกเลิกการเผยแพร่ goes out again into the same story
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="publish"', s.newsId ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่', true));
       // แก้ไขข่าว: PR edits the work itself (kept until it is published), or the story once it is on the site
       if (['review', 'writing', 'revise'].includes(s.status)) a.push(btn('data-act="edit"', `${ic.pen}แก้ไขข่าว`));
-      if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}&amp;back=${encodeURIComponent(`pr.html?ref=${s.ref}`)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
+      if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}&amp;back=${encodeURIComponent(`pr.html?status=published&ref=${s.ref}`)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
       if (s.status === 'review' && s.type === 'news') a.push(btn('data-act="writing"', 'รับไปเขียนข่าว'));
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="revise"', 'ขอให้แก้ไข'));
       // Work the PR team writes goes back to "PR กำลังเขียน", the rest to "รอตรวจ"
@@ -961,7 +965,9 @@
       if (s.status !== 'published' && s.status !== 'rejected') a.push(btn('data-act="delete"', `${ic.trash}ลบข่าว`));
       if (s.status === 'rejected') a.push(btn('data-act="review"', 'กู้คืนไปที่รอตรวจ'));
       if (s.status === 'published') a.push(btn('data-act="unpublish"', 'ยกเลิกการเผยแพร่'));
-      if (s.status === 'published' && s.url) a.push(`<a href="${esc(s.url)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ดูข่าวที่เผยแพร่ ${ic.out}</a>`);
+      // ถอนข่าว on pr-news takes the story off the site but leaves the work published: คืนข่าว is there too
+      if (withdrawn(s)) a.push(`<a href="pr-news.html?show=withdrawn" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ไปที่ข่าวที่ถอนแล้ว ${ic.out}</a>`);
+      else if (s.status === 'published' && s.url) a.push(`<a href="${esc(s.url)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">${scheduled(s) ? 'ดูตัวอย่างข่าว' : 'ดูข่าวที่เผยแพร่'} ${ic.out}</a>`);
       return a.join('');
     }
 
@@ -973,7 +979,8 @@
     function infoHtml(s) {
       const f = s.fields;
       const facts = [];
-      const pe = detailData?.prEdit;
+      // Published work has no edit waiting (an old one left behind is not offered: saving it would fail)
+      const pe = s.status !== 'published' && detailData?.prEdit;
       const edited = pe ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-sky-soft px-4 py-3 text-[14px]"><span class="min-w-0 flex-1"><span class="font-display font-semibold">ทีม PR แก้ไขข่าวนี้แล้ว</span> <span class="text-ink2">โดย ${esc(pe.by || 'ทีม PR')} ${when(pe.at)} ด้านล่างคือฉบับของผู้ส่ง เมื่อเผยแพร่จะใช้ฉบับที่แก้ไข</span></span>${btn('data-act="edit"', 'เปิดฉบับที่แก้ไข')}</div>` : '';
       if (s.type !== 'banner') facts.push(['วันที่จัดกิจกรรม', thDate(f.eventDate)]);
       if (f.place) facts.push(['สถานที่', f.place]);
@@ -1077,7 +1084,7 @@
           <p class="mt-1 text-[13px] text-ink2"><span class="font-medium text-ink">${esc(sender?.name || '–')}</span>${sender?.position ? ` ${esc(sender.position)}` : ''} · ${esc(s.unit)} · <a href="mailto:${esc(sender?.email)}" class="rounded text-royal underline decoration-[rgb(var(--royal)/.45)] underline-offset-2 hover:decoration-[rgb(var(--royal))]">${esc(sender?.email)}</a>${sender?.phone ? ` · <a href="tel:${esc(sender.phone)}" class="rounded text-royal underline decoration-[rgb(var(--royal)/.45)] underline-offset-2 hover:decoration-[rgb(var(--royal))]" title="โทรหาผู้ส่ง">${['student', 'external'].includes(sender.baseRole || sender.role) ? 'โทร' : 'โทรภายใน'} ${esc(sender.phone)}</a>` : ''}</p>
 
           <div class="grain relative mt-3 flex flex-col gap-3 overflow-hidden rounded-2xl px-4 py-3 ${S.cls} md:flex-row md:items-center">
-            <p class="relative min-w-0 flex-1 font-display text-[15px] font-semibold">${S.title}</p>
+            <p class="relative min-w-0 flex-1 font-display text-[15px] font-semibold">${withdrawn(s) ? 'ถอนข่าวออกจากเว็บไซต์แล้ว ผู้อ่านเปิดลิงก์จะเห็นเหตุผลที่ถอน' : scheduled(s) ? `ตั้งเวลาเผยแพร่ ${when(detailData.news.published_at)} ข่าวจะขึ้นเว็บไซต์เมื่อถึงเวลา` : S.title}</p>
             <div id="acts" class="relative flex flex-wrap gap-2">${actionsFor(s)}</div>
           </div>
 
@@ -1130,7 +1137,7 @@
             renderDetail(false);
             $('#replyText').focus();
             toast('ส่งข้อความแล้ว');
-            loadList();
+            loadList(false, true);
           } catch (err) { toast(err.message, true); b.disabled = false; }
         });
       }
@@ -1271,15 +1278,18 @@
       const n = detailData.news;
       const pe = detailData.prEdit;
       const again = !!(n && s.status !== 'published');
+      // The sender sent a new version since ยกเลิกการเผยแพร่: start from it, not from what was on the site
+      const h = (s.history || []).map((x) => x.status);
+      const resent = again && h.slice(h.lastIndexOf('unpublished') + 1).includes('resent');
       // Where the text starts: what PR edited (แก้ไขข่าว), else what was on the site (published before), else what the sender sent
       const f = pe ? { ...s.fields, lead: pe.lead, body: pe.body, desc: pe.body, titleEn: pe.titleEn, bodyEn: pe.bodyEn, albumUrl: pe.albumUrl, albumLinks: pe.albumLinks || s.fields.albumLinks, categories: pe.categories,
           videoMode: pe.videoUrl ? 'link' : s.fields.videoMode, videoLink: pe.videoUrl || s.fields.videoLink, bodySize: pe.bodySize, bodyLeading: pe.bodyLeading }
-        : again ? { ...s.fields, lead: n.lead, body: n.body, desc: n.body, titleEn: n.title_en, bodyEn: n.body_en, albumUrl: n.album_url, albumLinks: n.album_links || [], categories: n.categories,
+        : again && !resent ? { ...s.fields, lead: n.lead, body: n.body, desc: n.body, titleEn: n.title_en, bodyEn: n.body_en, albumUrl: n.album_url, albumLinks: n.album_links || [], categories: n.categories,
           videoMode: n.video_url ? 'link' : s.fields.videoMode, videoLink: n.video_url || s.fields.videoLink, bodySize: n.body_size, bodyLeading: n.body_leading } : s.fields;
       const editing = mode === 'edit';
       $('#pubTitle').textContent = editing ? 'แก้ไขข่าว' : again ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่ขึ้นเว็บไซต์';
       $('#pubSub').textContent = editing ? 'บันทึกฉบับที่ทีม PR แก้ไว้ ยังไม่เผยแพร่ และผู้ส่งไม่เห็นการแก้ไขนี้ เมื่อกด “เผยแพร่” จะใช้ฉบับนี้'
-        : again ? 'ข้อความเริ่มจากฉบับที่เคยเผยแพร่ ข่าวจะกลับมาที่ลิงก์เดิม ยอดอ่านเดิมยังอยู่' : 'ตรวจหัวข้อ เนื้อหา และภาพ ผู้ส่งจะได้รับข้อความแจ้งเมื่อเผยแพร่';
+        : again ? `${resent ? 'ข้อความเริ่มจากฉบับที่ผู้ส่งแก้ไขมาใหม่' : 'ข้อความเริ่มจากฉบับที่เคยเผยแพร่'} ข่าวจะกลับมาที่ลิงก์เดิม ยอดอ่านเดิมยังอยู่` : 'ตรวจหัวข้อ เนื้อหา และภาพ ผู้ส่งจะได้รับข้อความแจ้งเมื่อเผยแพร่';
       $('#pubOk').textContent = editing ? 'บันทึกการแก้ไข' : again ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่';
       $$('#pubForm [data-for]').forEach((el) => { el.hidden = !el.dataset.for.split(' ').includes(s.type); });
       $$('#pubForm [data-pub-only]').forEach((el) => { el.hidden = editing; });
