@@ -310,6 +310,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             ส่งงานใหม่
           </a>
+          <a id="draftsLink" href="#drafts" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium text-purple hover:text-ink" hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+            <span>ร่างที่ยังไม่ส่ง <span id="draftsLinkCount"></span></span>
+          </a>
           <button id="notifyBtn" type="button" class="hover-fill press t-quick inline-flex h-11 items-center gap-2 rounded-full px-4 font-display text-[15px] font-medium text-ink2 hover:text-ink" aria-haspopup="dialog">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
             การแจ้งเตือน
@@ -543,6 +547,8 @@
     }
     function renderDrafts() {
       $('#drafts').hidden = !drafts.length;
+      $('#draftsLink').hidden = !drafts.length;
+      $('#draftsLinkCount').textContent = drafts.length ? `(${drafts.length})` : '';
       $('#draftsCount').textContent = drafts.length ? `(${drafts.length})` : '';
       $('#draftList').innerHTML = drafts.map((d) => {
         const T = TYPE[d.type];
@@ -564,6 +570,11 @@
         </li>`;
       }).join('');
     }
+    $('#draftsLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      $('#drafts').scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      $('#draftsTitle').focus({ preventScroll: true });
+    });
     $('#draftList').addEventListener('click', async (e) => {
       const b = e.target.closest('[data-del-draft]');
       if (!b) return;
