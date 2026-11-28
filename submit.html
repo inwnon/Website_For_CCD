@@ -312,7 +312,7 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
   <script src="thai-date.js" defer></script>
-  <link rel="stylesheet" href="/assets/app.css?v=5a3d85ae50">
+  <link rel="stylesheet" href="/assets/app.css?v=73acbe9283">
 </head>
 
 <body class="min-h-screen">
@@ -1191,10 +1191,11 @@
     // จัดรูปแบบเนื้อหา: bold, font size and line spacing for the story text (news) or the description (video, banner)
     const tools = TextTools.attach([$('#body'), $('#desc')], { onChange: () => scheduleDraft() });
     const toolsOut = () => ({ bodyLeading: tools.get().leading });
-    // ลิงก์วิดีโอเพิ่มเติม (video): each from one of the platforms, as the main link
-    const MAX_MORE = 5;
+    // ลิงก์วิดีโอเพิ่มเติม (video): each box picks its platform, the link must match it (rules.mjs MAX_VIDEO_LINKS)
+    const MAX_MORE = 3;
     const moreVideos = VideoLinks($('#videoLinksBox'), {
       max: MAX_MORE, placeholder: 'วางลิงก์ตอนอื่น หรือลิงก์จากแพลตฟอร์มอื่น',
+      platforms: Object.entries(PLATFORMS).map(([key, p]) => ({ key, label: p.label, ph: p.ph, re: p.re })),
       onChange: () => { scheduleDraft(); if (moreBad() < 0) { setError('#videoLinksError', false); moreVideos.inputs().forEach((x) => x.setAttribute('aria-invalid', 'false')); } },
     });
     // ลิงก์ภาพเพิ่มเติม (news) after the first: up to 5 more, each an https link (rules.mjs albumSet)
@@ -1212,9 +1213,9 @@
       $('#designerLabel').textContent = source ? 'ที่มา' : 'ผู้ออกแบบ';
       $('#designer').placeholder = source ? 'เช่น กระทรวงการอุดมศึกษาฯ หรือชื่อเพจต้นทาง' : 'ชื่อผู้ออกแบบ หรือทีม / บริษัทที่ออกแบบ';
     }
-    const moreBad = () => moreVideos.inputs().findIndex((x) => x.value.trim() && !Object.values(PLATFORMS).some((p) => p.re.test(x.value.trim())));
+    const moreBad = () => moreVideos.inputs().findIndex((x) => x.value.trim() && !PLATFORMS[moreVideos.platformOf(x)]?.re.test(x.value.trim()));
     const platformNames = () => Object.values(PLATFORMS).map((p) => p.label).join(', ');
-    $('#videoLinksInfo').textContent = `วิดีโอที่มีหลายตอน หรือเผยแพร่ไว้หลายที่ ใส่ลิงก์อื่นได้อีกไม่เกิน ${MAX_MORE} ลิงก์ จาก ${platformNames()}`;
+    $('#videoLinksInfo').textContent = `วิดีโอที่มีหลายตอน หรือเผยแพร่ไว้หลายที่ ใส่ลิงก์อื่นได้อีกไม่เกิน ${MAX_MORE} ลิงก์ เลือกแพลตฟอร์มของแต่ละลิงก์ (${platformNames()})`;
     $('#catList').innerHTML = [...CATEGORIES.map((c) => [c, '']), ...VIDEO_CATS.map((c) => [c, ' data-for="video"'])].map(([c, only]) => `<label class="opt chip-opt"${only}><input type="checkbox" name="category" value="${esc(c)}"><span class="opt-box inline-flex h-11 items-center rounded-full border border-line-strong bg-surface px-5 font-display text-[15px] font-medium">${esc(c)}</span></label>`).join('');
 
     // ---- Platform chips (news link + video link) ----
@@ -1850,7 +1851,7 @@
         ['news', '#albumError', !albumOk(), $('#albumUrl')],
         ['news', '#albumLinksError', ab >= 0, moreAlbums.inputs()[ab], null, `ลิงก์ภาพเพิ่มเติมที่ ${ab + 1} ต้องขึ้นต้นด้วย https://`],
         ['video', '#videoError', !videoOk(), $('#videoLink'), '#videoLink', videoMsg],
-        ['video', '#videoLinksError', mb >= 0, moreVideos.inputs()[mb], null, `ลิงก์เพิ่มเติมที่ ${mb + 1} ไม่ใช่ลิงก์วิดีโอจาก ${platformNames()}`],
+        ['video', '#videoLinksError', mb >= 0, moreVideos.inputs()[mb], null, mb >= 0 ? `ลิงก์เพิ่มเติมที่ ${mb + 1} ไม่ตรงกับ ${PLATFORMS[moreVideos.platformOf(moreVideos.inputs()[mb])]?.label || 'แพลตฟอร์มที่เลือก'} ตรวจลิงก์อีกครั้งหรือเปลี่ยนแพลตฟอร์ม` : ''],
         ['banner', '#artError', !up.art.items.length, $('#artDrop'), '#artInput'],
         ['news video banner', '#audError', !audVals().length, $('#audSet'), 'input[name=audience]'],
         ['news video banner', '#contactError', !!contactMsg(), $('#contactValue'), null, contactMsg()],

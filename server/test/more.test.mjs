@@ -26,9 +26,9 @@ describe('ลิงก์วิดีโอเพิ่มเติม', () => {
     const bad = await staff.call('POST', '/api/submissions', form({ ...VIDEO, videoLinks: [MORE[0], 'https://example.com/clip'] }));
     assert.equal(bad.status, 400);
     assert.match(bad.body.details.videoLinks, /ลิงก์เพิ่มเติมที่ 2/);
-    const many = await staff.call('POST', '/api/submissions', form({ ...VIDEO, videoLinks: Array.from({ length: 6 }, (_, i) => `https://youtu.be/abcdefghij${i}`) }));
+    const many = await staff.call('POST', '/api/submissions', form({ ...VIDEO, videoLinks: Array.from({ length: 4 }, (_, i) => `https://youtu.be/abcdefghij${i}`) }));
     assert.equal(many.status, 400);
-    assert.match(many.body.details.videoLinks, /ไม่เกิน 5/);
+    assert.match(many.body.details.videoLinks, /ไม่เกิน 3/);
     // Empty boxes and the main link again are left out
     const ok = await staff.call('POST', '/api/submissions', form({ ...VIDEO, videoLinks: [MORE[0], '', YT, MORE[1], MORE[0]] }));
     assert.equal(ok.status, 201, JSON.stringify(ok.body));
