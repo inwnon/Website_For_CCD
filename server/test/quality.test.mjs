@@ -234,23 +234,27 @@ describe('SEO', () => {
 describe('edit history of stories', () => {
   test('every change is kept with who made it, what changed and the version after it', async () => {
     const before = (await query('select featured, (select count(*)::int from news_revisions where news_id = $1) revs, (select coalesce(max(id), 0) from news_revisions) last from news where id = $1', [publicId])).rows[0];
-    await pr.call('POST', `/api/pr/news/${publicId}/feature`, { featured: !before.featured });
-    await pr.call('POST', `/api/pr/news/${publicId}/withdraw`, { reason: 'ทดสอบประวัติการแก้ไข' });
-    await pr.call('POST', `/api/pr/news/${publicId}/restore`, {});
-    await query('update news set views = views + 1 where id = $1', [publicId]); // a read, not an edit
-    const h = (await pr.call('GET', `/api/pr/news/${publicId}/revisions`)).body.items;
-    assert.equal(h.length, before.revs + 3);
-    assert.deepEqual(h.slice(0, 3).map((x) => x.action), ['restored', 'withdrawn', before.featured ? 'unfeatured' : 'featured']);
-    assert.ok(h.slice(0, 3).every((x) => x.actor?.email === 'pr@sru.ac.th'));
-    assert.equal(h[1].changes.find((c) => c.field === 'withdrawn_reason').to, 'ทดสอบประวัติการแก้ไข');
-    assert.equal(h.at(-1).action, 'created');
-    assert.equal((await staff.call('GET', `/api/pr/news/${publicId}/revisions`)).status, 403);
-    // back as it was
-    await query('alter table news disable trigger news_revision');
-    await query('update news set featured = $2, views = views - 1 where id = $1', [publicId, before.featured]);
-    await query('alter table news enable trigger news_revision');
-    // Only the rows this test made (a story seeded minutes ago keeps its own)
-    await query('delete from news_revisions where news_id = $1 and id > $2', [publicId, before.last]);
+    try {
+      await pr.call('POST', `/api/pr/news/${publicId}/feature`, { featured: !before.featured });
+      await pr.call('POST', `/api/pr/news/${publicId}/withdraw`, { reason: 'ทดสอบประวัติการแก้ไข' });
+      await pr.call('POST', `/api/pr/news/${publicId}/restore`, {});
+      await query('update news set views = views + 1 where id = $1', [publicId]); // a read, not an edit
+      const h = (await pr.call('GET', `/api/pr/news/${publicId}/revisions`)).body.items;
+      // The API returns at most 200 rows (newsdesk.mjs), so a story with a long history is capped
+      assert.equal(h.length, Math.min(200, before.revs + 3));
+      assert.deepEqual(h.slice(0, 3).map((x) => x.action), ['restored', 'withdrawn', before.featured ? 'unfeatured' : 'featured']);
+      assert.ok(h.slice(0, 3).every((x) => x.actor?.email === 'pr@sru.ac.th'));
+      assert.equal(h[1].changes.find((c) => c.field === 'withdrawn_reason').to, 'ทดสอบประวัติการแก้ไข');
+      if (before.revs + 3 <= 200) assert.equal(h.at(-1).action, 'created');
+      assert.equal((await staff.call('GET', `/api/pr/news/${publicId}/revisions`)).status, 403);
+    } finally {
+      // Always back as it was, even when an assert above fails (otherwise 3 rows are left behind on every failed run)
+      await query('alter table news disable trigger news_revision');
+      await query('update news set featured = $2, views = views - 1 where id = $1', [publicId, before.featured]);
+      await query('alter table news enable trigger news_revision');
+      // Only the rows this test made (a story seeded minutes ago keeps its own)
+      await query('delete from news_revisions where news_id = $1 and id > $2', [publicId, before.last]);
+    }
   });
   test('the back office history (audit log) has the mail and privacy actions (and the old เล่มสรุปข่าว ones, for their history)', async () => {
     const { ACTIONS } = await import('../audit.mjs');
