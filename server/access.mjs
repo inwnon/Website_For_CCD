@@ -20,6 +20,8 @@ const MATRIX = {
 // A secretary or executive outside the university's domains stays external: external is always denied.
 function moduleRole(u) {
   if (u.role === 'admin' || u.role === 'pr') return u.role;
+  // A developer viewing the site as an ordinary account (auth.mjs SWITCH_ROLES) gets what that account gets, whatever the email
+  if (u.developer) return u.role;
   const domain = domainRole(u.email);
   return domain !== 'external' && (u.role === 'secretary' || u.role === 'executive') ? u.role : domain;
 }

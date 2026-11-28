@@ -45,8 +45,39 @@ describe('developer role switch', () => {
   });
   test('nobody else can switch; a role that is not one of the two is refused', async () => {
     for (const who of [admin, pr, staff]) assert.equal((await who.call('POST', '/api/me/role', { role: 'admin' })).status, 403);
-    assert.equal((await dev.call('POST', '/api/me/role', { role: 'staff' })).status, 400);
+    assert.equal((await dev.call('POST', '/api/me/role', { role: 'intern' })).status, 400);
     assert.equal((await dev.call('POST', '/api/me/role', { role: 'coordinator' })).status, 400);
+  });
+  test('view as บุคลากร / นักศึกษา / บุคคลภายนอก: what that role sees, and back', async () => {
+    const as = async (role) => {
+      const r = await dev.call('POST', '/api/me/role', { role });
+      assert.equal(r.status, 200, role);
+      return (await dev.call('GET', '/api/me')).body;
+    };
+    const staffMe = await as('staff');
+    assert.equal(staffMe.user.role, 'staff');
+    assert.equal(staffMe.user.developer, true, 'the switch stays so the developer can go back');
+    assert.deepEqual(staffMe.modules, [], 'plain staff have no module until an admin adds them');
+    assert.equal((await dev.call('GET', '/api/admin/users')).status, 403);
+    assert.equal((await dev.call('GET', '/api/pr/queue')).status, 403);
+
+    const studentMe = await as('student');
+    assert.equal(studentMe.user.role, 'student');
+    assert.ok(studentMe.modules.includes('calendar') && studentMe.modules.includes('students'), 'a student gets own calendar and own record');
+    for (const m of ['requests', 'documents', 'phonebook', 'dashboard']) assert.ok(!studentMe.modules.includes(m), `a student has no ${m}`);
+    assert.equal((await dev.call('GET', '/api/pr/queue')).status, 403);
+
+    const externalMe = await as('external');
+    assert.equal(externalMe.user.role, 'external');
+    assert.deepEqual(externalMe.modules, [], 'external: no back-office module');
+    assert.equal((await dev.call('GET', '/api/pr/queue')).status, 403);
+
+    const back = await as('admin');
+    assert.equal(back.user.role, 'admin');
+    assert.equal((await dev.call('GET', '/api/admin/users')).status, 200);
+    const log = (await query("select summary from audit_log where action = 'role.switch' and actor_email = 'satearnpong.nis@sru.ac.th' order by at desc limit 1")).rows[0].summary;
+    assert.equal(log, 'สลับบทบาทจาก บุคคลภายนอก เป็น ผู้พัฒนาระบบ');
+    assert.equal((await (await login('developer')).call('GET', '/api/me')).body.user.role, 'admin', 'a new sign-in starts as ผู้พัฒนาระบบ');
   });
   test('chanon.html cannot change a developer\'s role; the list marks the account', async () => {
     const r = await admin.call('PUT', '/api/admin/roles', { email: 'satearnpong.nis@sru.ac.th', role: 'default' });

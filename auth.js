@@ -80,8 +80,8 @@
   // ---- Header account menu (re-run with window.renderAccountButton() after marking items read) ----
   // The page's <a id="login"> becomes a button that opens a menu: profile, inbox, PR tools, settings, theme, sign out.
   const ROLE_TH = { pr: 'ทีม PR', admin: 'ผู้ดูแลระบบ', coordinator: 'ประชาสัมพันธ์หน่วยงาน', intern: 'นักศึกษาฝึกงาน สสอ.', secretary: 'เลขานุการผู้บริหาร', executive: 'ผู้บริหาร', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
-  // Developer accounts switch between these two (POST /api/me/role); ผู้พัฒนาระบบ has the highest rights
-  const SWITCH = [['pr', 'ทีม PR งานสื่อสารองค์กร'], ['admin', 'ผู้พัฒนาระบบ']];
+  // Developer accounts switch between these (POST /api/me/role); ผู้พัฒนาระบบ has the highest rights, the last three show the site as those accounts see it
+  const SWITCH = [['pr', 'ทีม PR งานสื่อสารองค์กร'], ['admin', 'ผู้พัฒนาระบบ'], ['staff', 'บุคลากร'], ['student', 'นักศึกษา'], ['external', 'บุคคลภายนอก']];
   const roleName = (u) => (u.developer ? Object.fromEntries(SWITCH)[u.role] : ROLE_TH[u.role]) || '';
   window.roleName = roleName;
   // Back-office modules (SPEC.md): the account menu here and the side menu in desk.js show those in me.modules (server/access.mjs).
@@ -96,8 +96,13 @@
   ];
   // นักศึกษาฝึกงาน สสอ. are what their email makes them (a student, usually) everywhere but the import page
   window.baseRole = (u) => u?.baseRole || u?.role;
-  // After switching: the PR team cannot open the settings page, so go to the PR desk instead of a "no access" page
-  const afterSwitch = (role) => { if (role === 'pr' && /(^|\/)(chanon|admin)\.html$/.test(location.pathname)) location.href = 'pr.html'; else location.reload(); };
+  // After switching: the PR team cannot open the settings page, so go to the PR desk; the ordinary roles cannot open either, so go home
+  const afterSwitch = (role) => {
+    const desk = /(^|\/)(chanon|admin|pr)\.html$/.test(location.pathname);
+    if (role === 'pr' && /(^|\/)(chanon|admin)\.html$/.test(location.pathname)) location.href = 'pr.html';
+    else if (desk && role !== 'pr' && role !== 'admin') location.href = 'index.html';
+    else location.reload();
+  };
   async function switchRole(role, buttons) {
     buttons.forEach((b) => { b.disabled = true; });
     try { await api('/me/role', { method: 'POST', body: { role } }); afterSwitch(role); } catch (err) { buttons.forEach((b) => { b.disabled = false; }); alert(err.message); }
@@ -111,6 +116,8 @@
       const on = u.role === k;
       return `<button type="button" data-switch-role="${k}" aria-pressed="${on}" class="press t-quick min-h-10 rounded-xl px-2 py-1.5 font-display text-[12px] leading-tight ${on ? 'bg-shell font-semibold text-purple shadow-raised' : 'font-medium text-ink2 hover:text-ink'}">${l}</button>`;
     }).join('');
+    // Five buttons in two columns: the odd one out spans the row
+    if (SWITCH.length % 2) /** @type {HTMLElement} */ (box.lastElementChild).style.gridColumn = 'span 2';
     box.addEventListener('click', (e) => {
       const b = /** @type {HTMLButtonElement} */ ((/** @type {Element} */ (e.target)).closest('[data-switch-role]'));
       if (b && b.getAttribute('aria-pressed') !== 'true' && !b.disabled) switchRole(b.dataset.switchRole, [...box.querySelectorAll('button')]);
@@ -172,7 +179,7 @@
     .acct-seg button:hover { color: rgb(var(--ink)); }
     .acct-seg button:active { transform: scale(.94); }
     .acct-seg button[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
-    .acct-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 2px 4px 6px; padding: 4px; border-radius: 16px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
+    .acct-roles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin: 2px 4px 6px; padding: 4px; border-radius: 16px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
     .acct-roles button { min-height: 44px; padding: 6px 8px; border-radius: 12px; font: 500 13px/1.35 Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); transition: transform .35s var(--spring); }
     .acct-roles button:hover { color: rgb(var(--ink)); }
     .acct-roles button:active { transform: scale(.96); }
