@@ -947,20 +947,23 @@
     const btn = (attrs, label, primary) => primary
       ? `<button type="button" ${attrs} class="bg-grad press t-spring inline-flex h-10 items-center gap-2 rounded-full px-5 font-display text-[14px] font-semibold text-white shadow-glow hover:-translate-y-0.5">${label}</button>`
       : `<button type="button" ${attrs} class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${label}</button>`;
+    const withdrawn = (s) => s.status === 'published' && !!detailData?.news?.withdrawn_at;
     function actionsFor(s) {
       const a = [];
       // Work taken back with ยกเลิกการเผยแพร่ goes out again into the same story
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="publish"', s.newsId ? 'เผยแพร่อีกครั้ง' : 'เผยแพร่', true));
       // แก้ไขข่าว: PR edits the work itself (kept until it is published), or the story once it is on the site
       if (['review', 'writing', 'revise'].includes(s.status)) a.push(btn('data-act="edit"', `${ic.pen}แก้ไขข่าว`));
-      if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}&amp;back=${encodeURIComponent(`pr.html?ref=${s.ref}`)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
+      if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}&amp;back=${encodeURIComponent(`pr.html?status=published&ref=${s.ref}`)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
       if (s.status === 'review' && s.type === 'news') a.push(btn('data-act="writing"', 'รับไปเขียนข่าว'));
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="revise"', 'ขอให้แก้ไข'));
       if (s.status === 'revise') a.push(btn('data-act="review"', 'ตรวจต่อโดยไม่รอแก้ไข'));
       if (s.status !== 'published' && s.status !== 'rejected') a.push(btn('data-act="delete"', `${ic.trash}ลบข่าว`));
       if (s.status === 'rejected') a.push(btn('data-act="review"', 'กู้คืนไปที่รอตรวจ'));
       if (s.status === 'published') a.push(btn('data-act="unpublish"', 'ยกเลิกการเผยแพร่'));
-      if (s.status === 'published' && s.url) a.push(`<a href="${esc(s.url)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ดูข่าวที่เผยแพร่ ${ic.out}</a>`);
+      // ถอนข่าว on pr-news takes the story off the site but leaves the work published: คืนข่าว is there too
+      if (withdrawn(s)) a.push(`<a href="pr-news.html?show=withdrawn" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ไปที่ข่าวที่ถอนแล้ว ${ic.out}</a>`);
+      else if (s.status === 'published' && s.url) a.push(`<a href="${esc(s.url)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-semibold text-ink shadow-raised hover:-translate-y-0.5">ดูข่าวที่เผยแพร่ ${ic.out}</a>`);
       return a.join('');
     }
 
@@ -972,7 +975,8 @@
     function infoHtml(s) {
       const f = s.fields;
       const facts = [];
-      const pe = detailData?.prEdit;
+      // Published work has no edit waiting (an old one left behind is not offered: saving it would fail)
+      const pe = s.status !== 'published' && detailData?.prEdit;
       const edited = pe ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-sky-soft px-4 py-3 text-[14px]"><span class="min-w-0 flex-1"><span class="font-display font-semibold">ทีม PR แก้ไขข่าวนี้แล้ว</span> <span class="text-ink2">โดย ${esc(pe.by || 'ทีม PR')} ${when(pe.at)} ด้านล่างคือฉบับของผู้ส่ง เมื่อเผยแพร่จะใช้ฉบับที่แก้ไข</span></span>${btn('data-act="edit"', 'เปิดฉบับที่แก้ไข')}</div>` : '';
       if (s.type !== 'banner') facts.push(['วันที่จัดกิจกรรม', thDate(f.eventDate)]);
       if (f.place) facts.push(['สถานที่', f.place]);
@@ -1076,7 +1080,7 @@
           <p class="mt-1 text-[13px] text-ink2"><span class="font-medium text-ink">${esc(sender?.name || '–')}</span>${sender?.position ? ` ${esc(sender.position)}` : ''} · ${esc(s.unit)} · <a href="mailto:${esc(sender?.email)}" class="rounded text-royal underline decoration-[rgb(var(--royal)/.45)] underline-offset-2 hover:decoration-[rgb(var(--royal))]">${esc(sender?.email)}</a>${sender?.phone ? ` · <a href="tel:${esc(sender.phone)}" class="rounded text-royal underline decoration-[rgb(var(--royal)/.45)] underline-offset-2 hover:decoration-[rgb(var(--royal))]" title="โทรหาผู้ส่ง">${['student', 'external'].includes(sender.baseRole || sender.role) ? 'โทร' : 'โทรภายใน'} ${esc(sender.phone)}</a>` : ''}</p>
 
           <div class="grain relative mt-3 flex flex-col gap-3 overflow-hidden rounded-2xl px-4 py-3 ${S.cls} md:flex-row md:items-center">
-            <p class="relative min-w-0 flex-1 font-display text-[15px] font-semibold">${S.title}</p>
+            <p class="relative min-w-0 flex-1 font-display text-[15px] font-semibold">${withdrawn(s) ? 'ถอนข่าวออกจากเว็บไซต์แล้ว ผู้อ่านเปิดลิงก์จะเห็นเหตุผลที่ถอน' : S.title}</p>
             <div id="acts" class="relative flex flex-wrap gap-2">${actionsFor(s)}</div>
           </div>
 
@@ -1129,7 +1133,7 @@
             renderDetail(false);
             $('#replyText').focus();
             toast('ส่งข้อความแล้ว');
-            loadList();
+            loadList(false, true);
           } catch (err) { toast(err.message, true); b.disabled = false; }
         });
       }

@@ -3,7 +3,8 @@
 // - GET  /api/pr/news?q=&show=all|live|imported|withdrawn|scheduled&unit=&limit=&offset=
 // - POST /api/pr/news/:id/feature   { featured }
 // - POST /api/pr/news/:id/withdraw  { reason }      the story page answers 410 with the reason
-// - POST /api/pr/news/:id/restore                  (a story taken back with ยกเลิกการเผยแพร่: its work is published again)
+// - POST /api/pr/news/:id/restore                  (a story taken back with ยกเลิกการเผยแพร่: its work is published again;
+//        409 while that work is deleted or with the sender to fix)
 // - PUT  /api/pr/news/:id/related   { ids }         ข่าวที่เกี่ยวข้อง, up to MAX_RELATED, in this order
 // - GET  /api/pr/news/:id/revisions   every version of the story, newest first (news_revisions, migration 010)
 // - GET  /api/pr/news/:id            the story as the editor needs it (pr-import.html?edit=id)
@@ -72,7 +73,7 @@ router.get('/pr/news', async (req, res) => {
   res.json({
     counts, total: show ? counts[show] : counts.all,
     items: rows.map((n) => ({
-      id: n.id, title: n.title, unit: n.unit, kind: n.kind, categories: n.categories, audience: audienceLabel(n.audience),
+      id: n.id, url: newsUrl(n), title: n.title, unit: n.unit, kind: n.kind, categories: n.categories, audience: audienceLabel(n.audience),
       cover: n.cover_path ? `/media/${n.cover_path}` : null, photos: (n.cover_path ? 1 : 0) + n.gallery.length,
       publishedAt: n.published_at, scheduled: n.published_at > new Date(), featured: n.featured, views: n.views,
       imported: n.imported, sourceUrl: n.source_url, albumUrl: n.album_url, ref: n.ref, createdBy: n.creator_name,
@@ -236,9 +237,14 @@ router.post('/pr/news/:id/withdraw', async (req, res) => {
 router.post('/pr/news/:id/restore', async (req, res) => {
   const n = await story(req.params.id);
   if (!n.withdrawn_at) throw new HttpError(409, 'ข่าวนี้ยังเผยแพร่อยู่');
+  // Work PR deleted or sent back to the sender is not published behind their back: settle it on pr.html first
+  const work = n.submission_id ? await one('select status from submissions where id = $1', [n.submission_id]) : null;
+  if (work?.status === 'rejected') throw new HttpError(409, 'งานของข่าวนี้ถูกลบที่หลังบ้านแล้ว กู้คืนงานที่หลังบ้านก่อน');
+  if (work?.status === 'revise') throw new HttpError(409, 'งานของข่าวนี้รอผู้ส่งแก้ไขอยู่ ถ้าไม่รอแล้ว ที่หลังบ้านกด “ตรวจต่อ” หรือ “เขียนต่อโดยไม่รอแก้ไข” แล้วเผยแพร่อีกครั้ง');
   await tx(async (c) => {
     await c.query('update news set withdrawn_at = null, withdrawn_reason = null, withdrawn_by = null where id = $1', [n.id]);
-    const back = n.submission_id && (await c.query("update submissions set status = 'published' where id = $1 and status <> 'published' returning id", [n.submission_id])).rows[0];
+    // The story as it was goes back up: an edit PR had not published yet is dropped
+    const back = n.submission_id && (await c.query("update submissions set status = 'published', pr_edit = null where id = $1 and status in ('review', 'writing') returning id", [n.submission_id])).rows[0];
     if (back) await c.query("insert into submission_events (submission_id, status, actor_id) values ($1, 'published', $2)", [back.id, req.user.id]);
     await audit(c, req.user, 'news.restore', n.id, `คืนข่าว "${n.title}"`);
   }, req.user);
