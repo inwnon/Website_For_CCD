@@ -703,7 +703,8 @@
                   <span class="block text-[13px] text-ink2">PDF, Word, PowerPoint, Excel · สูงสุด 10 ไฟล์ ไฟล์ละไม่เกิน 20 MB</span>
                 </span>
               </label>
-              <p id="attachError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบเอกสารอย่างน้อย 1 ไฟล์ เพื่อให้ทีม PR เขียนข่าว</p>
+              <p id="attachSkip" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
+<p id="attachError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบเอกสารอย่างน้อย 1 ไฟล์ เพื่อให้ทีม PR เขียนข่าว</p>
               <ul id="attachList" class="mt-3 grid gap-2" aria-label="ไฟล์แนบ"></ul>
             </div>
           </section>
@@ -776,14 +777,15 @@
             </header>
 
             <label id="photoDrop" class="drop grid cursor-pointer place-items-center gap-3 rounded-card border-2 border-dashed border-line px-6 py-10 text-center" aria-describedby="photoHint photoError">
-              <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,.heic" multiple class="sr-only">
+              <input id="photoInput" type="file" accept="image/jpeg,.jfif,.jpe,image/png,image/webp,image/heic,.heic" multiple class="sr-only">
               <span class="drop-icon bg-grad grid h-14 w-14 place-items-center rounded-2xl text-white shadow-glow" aria-hidden="true">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
               </span>
               <span class="font-display text-[17px] font-semibold">ลากภาพมาวางที่นี่ หรือ <span class="text-purple underline underline-offset-4">เลือกจากเครื่อง</span></span>
               <span id="photoHint" class="text-[13px] text-ink2">JPG, PNG, WEBP, HEIC · ระบบลบข้อมูลพิกัด GPS ออกจากทุกภาพก่อนเผยแพร่ · ผู้อ่านข่าวไม่เห็นชื่อไฟล์ภาพ</span>
             </label>
-            <p id="photoError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบภาพข่าวอย่างน้อย <span data-photo-min>1</span> ภาพ</p>
+            <p id="photoSkip" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
+<p id="photoError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบภาพข่าวอย่างน้อย <span data-photo-min>1</span> ภาพ</p>
 
             <div id="photoBar" class="mt-5 flex items-center justify-between gap-3 text-[13px] text-ink2" hidden>
               <p><span id="photoCount" class="font-display font-semibold text-ink">0</span> ภาพ · ลากเพื่อเรียงลำดับ ภาพแรกเป็นภาพปก</p>
@@ -853,13 +855,14 @@
               <h3 class="font-display text-[15px] font-semibold">ภาพหน้าปก <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></h3>
               <p id="coverInfo" class="mt-1 text-[13px] text-ink2">ใช้เป็นภาพบนการ์ดข่าวและหน้าข่าว ควรใส่เมื่อวิดีโออยู่บน Facebook, TikTok หรือ Google Drive ถ้าไม่ใส่และเป็นลิงก์ YouTube ระบบใช้ภาพหน้าปกจาก YouTube</p>
               <label id="coverDrop" class="drop mt-3 grid cursor-pointer place-items-center gap-2 rounded-card border-2 border-dashed border-line px-6 py-7 text-center" aria-describedby="coverHint coverInfo">
-                <input id="coverInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,.heic" class="sr-only">
+                <input id="coverInput" type="file" accept="image/jpeg,.jfif,.jpe,image/png,image/webp,image/heic,.heic" class="sr-only">
                 <span class="drop-icon bg-grad grid h-12 w-12 place-items-center rounded-2xl text-white shadow-glow" aria-hidden="true">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 8"/></svg>
                 </span>
                 <span class="font-display text-[16px] font-semibold">ลากภาพมาวางที่นี่ หรือ <span class="text-purple underline underline-offset-4">เลือกจากเครื่อง</span></span>
                 <span id="coverHint" class="text-[13px] text-ink2">1 ภาพ · JPG, PNG, WEBP, HEIC ไม่เกิน 15 MB · ภาพแนวนอน 16:9 แสดงได้เต็มการ์ด · เลือกภาพใหม่เพื่อแทนภาพเดิม</span>
               </label>
+              <p id="coverSkip" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
               <ul id="coverList" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" aria-label="ภาพหน้าปกของวิดีโอ"></ul>
               <p id="coverOrderHint" class="sr-only">ภาพหน้าปกของวิดีโอ เลือกภาพใหม่เพื่อแทนภาพเดิม</p>
             </div>
@@ -876,14 +879,15 @@
             </header>
 
             <label id="artDrop" class="drop grid cursor-pointer place-items-center gap-3 rounded-card border-2 border-dashed border-line px-6 py-10 text-center" aria-describedby="artHint artError">
-              <input id="artInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" multiple class="sr-only">
+              <input id="artInput" type="file" accept="image/jpeg,.jfif,.jpe,image/png,image/webp,application/pdf,.pdf" multiple class="sr-only">
               <span class="drop-icon bg-grad grid h-14 w-14 place-items-center rounded-2xl text-white shadow-glow" aria-hidden="true">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
               </span>
               <span class="font-display text-[17px] font-semibold">ลากไฟล์งานมาวางที่นี่ หรือ <span class="text-purple underline underline-offset-4">เลือกจากเครื่อง</span></span>
               <span id="artHint" class="text-[13px] text-ink2">ส่งไฟล์ความละเอียดเต็ม หากมีหลายขนาด (เว็บไซต์ / Facebook / จอ LED) แนบได้ทั้งหมด</span>
             </label>
-            <p id="artError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบไฟล์งานอย่างน้อย 1 ไฟล์</p>
+            <p id="artSkip" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
+<p id="artError" class="mt-2 text-[14px] font-medium text-brand" hidden>แนบไฟล์งานอย่างน้อย 1 ไฟล์</p>
 
             <div id="artBar" class="mt-5 flex items-center justify-between gap-3 text-[13px] text-ink2" hidden>
               <p><span id="artCount" class="font-display font-semibold text-ink">0</span> ไฟล์ · ลากเพื่อเรียงลำดับ ไฟล์แรกเป็นไฟล์หลัก</p>
@@ -1334,7 +1338,8 @@
 
     // Files: { id, file (new) | existing (file id on the server: sent work or a draft), name, size, url, badge }.
     // Photos and art files are in page order: drag (mouse, or touch and hold) or arrow keys reorder them; the first is the cover.
-    function uploader({ key, input, drop, list, bar, count, clear, max, maxMB, accepts, grid, noun, hint, onChange }) {
+    function uploader({ key, input, drop, list, bar, count, clear, max, maxMB, accepts, formats, grid, noun, hint, onChange }) {
+      const skipNote = $(`#${key}Skip`);
       const st = { items: [], seq: 0, removed: [] };
       const isImg = (f) => f.type.startsWith('image/');
       const coverWord = key === 'photo' || key === 'cover' ? 'ภาพปก' : 'ไฟล์หลัก';
@@ -1346,12 +1351,15 @@
           st.items = [];
         }
         for (const file of files) {
-          if (!accepts(file)) { skipped.push(`${file.name} ไม่ใช่ไฟล์ที่รองรับ`); continue; }
+          if (!accepts(file)) { skipped.push(`${file.name} ไม่ใช่ไฟล์ที่รองรับ (รับ ${formats})`); continue; }
           if (file.size > maxMB * MB) { skipped.push(`${file.name} ใหญ่เกิน ${maxMB >= 1024 ? maxMB / 1024 + ' GB' : maxMB + ' MB'}`); continue; }
           if (st.items.length >= max) { skipped.push(`แนบได้สูงสุด ${max} ${noun}`); break; }
           st.items.push({ id: ++st.seq, file, name: file.name, size: file.size, url: isImg(file) ? URL.createObjectURL(file) : null });
         }
         render(); onChange();
+        // Shown under the drop zone too: without it a wrong file just does not appear
+        skipNote.textContent = skipped.length ? 'ไม่ได้แนบ: ' + skipped.join(' · ') : '';
+        skipNote.hidden = !skipped.length;
         announce(skipped.length ? 'ข้ามบางไฟล์: ' + skipped.join(', ') : `แนบแล้ว ${st.items.length} ${noun}`);
       }
       // Files already on the server: { id, name, size, thumb }; badge e.g. "ส่งไว้แล้ว"
@@ -1514,19 +1522,20 @@
       };
     }
 
-    // By file name, as the server checks them (UPLOADS in rules.mjs): .jfif, .gif and the like are image/* but refused there
+    // By file name, as the server checks them (UPLOADS in rules.mjs); .jfif and .jpe are JPEG. GIF, BMP and the like are refused there
     const isDoc = (f) => /\.(pdf|docx?|pptx?|xlsx?)$/i.test(f.name);
-    const isPhoto = (f) => /\.(jpe?g|png|webp|heic)$/i.test(f.name);
-    const isArt = (f) => /\.(jpe?g|png|webp|pdf)$/i.test(f.name);
+    const isPhoto = (f) => /\.(jpe?g|jfif|jpe|png|webp|heic)$/i.test(f.name);
+    const isArt = (f) => /\.(jpe?g|jfif|jpe|png|webp|pdf)$/i.test(f.name);
+    const PHOTO_FORMATS = 'JPG, PNG, WEBP, HEIC';
     const up = {
       photo: uploader({ key: 'photo', input: $('#photoInput'), drop: $('#photoDrop'), list: $('#photoList'), bar: $('#photoBar'), count: $('#photoCount'), clear: $('#photoClear'),
-        max: PHOTOS.max, maxMB: 15, grid: true, noun: 'ภาพ', hint: 'photoOrderHint', accepts: isPhoto, onChange: () => onFiles('photo') }),
+        max: PHOTOS.max, maxMB: 15, grid: true, noun: 'ภาพ', hint: 'photoOrderHint', accepts: isPhoto, formats: PHOTO_FORMATS, onChange: () => onFiles('photo') }),
       attach: uploader({ key: 'attach', input: $('#attachInput'), drop: $('#attachDrop'), list: $('#attachList'),
-        max: 10, maxMB: 20, grid: false, noun: 'ไฟล์', accepts: isDoc, onChange: () => onFiles('attach') }),
+        max: 10, maxMB: 20, grid: false, noun: 'ไฟล์', accepts: isDoc, formats: 'PDF, Word, PowerPoint, Excel', onChange: () => onFiles('attach') }),
       art: uploader({ key: 'art', input: $('#artInput'), drop: $('#artDrop'), list: $('#artList'), bar: $('#artBar'), count: $('#artCount'), clear: $('#artClear'),
-        max: 10, maxMB: 100, grid: true, noun: 'ไฟล์', hint: 'artOrderHint', accepts: isArt, onChange: () => onFiles('art') }),
+        max: 10, maxMB: 100, grid: true, noun: 'ไฟล์', hint: 'artOrderHint', accepts: isArt, formats: 'JPG, PNG, WEBP, PDF', onChange: () => onFiles('art') }),
       cover: uploader({ key: 'cover', input: $('#coverInput'), drop: $('#coverDrop'), list: $('#coverList'),
-        max: 1, maxMB: 15, grid: true, noun: 'ภาพ', hint: 'coverOrderHint', accepts: isPhoto, onChange: () => onFiles('cover') }),
+        max: 1, maxMB: 15, grid: true, noun: 'ภาพ', hint: 'coverOrderHint', accepts: isPhoto, formats: PHOTO_FORMATS, onChange: () => onFiles('cover') }),
     };
 
     // ---- Categories: lock the unchosen ones at the limit ----

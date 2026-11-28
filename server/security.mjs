@@ -127,7 +127,7 @@ export async function sniff(path) {
   return null;
 }
 const BY_EXT = {
-  '.jpg': ['jpeg'], '.jpeg': ['jpeg'], '.png': ['png'], '.webp': ['webp'], '.heic': ['heic'], '.pdf': ['pdf'],
+  '.jpg': ['jpeg'], '.jpeg': ['jpeg'], '.jfif': ['jpeg'], '.jpe': ['jpeg'], '.png': ['png'], '.webp': ['webp'], '.heic': ['heic'], '.pdf': ['pdf'],
   '.doc': ['ole'], '.xls': ['ole'], '.ppt': ['ole'], '.docx': ['zip'], '.xlsx': ['zip'], '.pptx': ['zip'],
 };
 // True when the content is what the file name says

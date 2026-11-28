@@ -76,6 +76,17 @@ describe('file content must match the name', () => {
     const docx = await attach({ photo: await img('#468'), attach: ['กำหนดการ.docx', Buffer.from('PK\x03\x04 rest of a zip'), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'] });
     assert.equal(docx.status, 201);
   });
+  test('.jfif and .jpe are JPEG: accepted as news photos and banner art; a GIF is still refused', async () => {
+    const photo = await staff.call('POST', '/api/submissions', form(NEWS, { photo: [['ภาพ.jfif', await img('#468'), 'image/jpeg'], ['ภาพ2.jpe', await img('#486'), 'image/jpeg']] }));
+    assert.equal(photo.status, 201, JSON.stringify(photo.body));
+    const banner = { type: 'banner', categories: ['ข่าวการศึกษา'], designer: 'ทีมกราฟิกทดสอบ', title: 'แบนเนอร์ jfif', desc: 'x', unit: 'กองกลาง', audience: ['public'], consent: true };
+    const art = await staff.call('POST', '/api/submissions', form(banner, { art: [['แบนเนอร์.JFIF', await img('#864'), 'image/jpeg']] }));
+    assert.equal(art.status, 201, JSON.stringify(art.body));
+    const files = (await pr.call('GET', `/api/submissions/${art.body.submission.ref}`)).body.submission.files;
+    assert.ok(files.find((f) => f.kind === 'art')?.thumb, 'web copy made');
+    const gif = await staff.call('POST', '/api/submissions', form(banner, { art: [['a.gif', Buffer.from('GIF89a'), 'image/gif']] }));
+    assert.equal(gif.status, 400);
+  });
   test('a photo over its own limit (15 MB) is refused while it arrives, with the limit named', async () => {
     const big = Buffer.concat([await img('#468', 64, 64), Buffer.alloc(16 * 1024 * 1024)]);
     const r = await staff.call('POST', '/api/submissions', form(NEWS, { photo: [['ใหญ่.jpg', big, 'image/jpeg']] }));
