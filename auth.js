@@ -107,7 +107,13 @@
     buttons.forEach((b) => { b.disabled = true; });
     try { await api('/me/role', { method: 'POST', body: { role } }); afterSwitch(role); } catch (err) { buttons.forEach((b) => { b.disabled = false; }); alert(err.message); }
   }
-  // The two buttons in a back-office side bar (#roleSwitch); shown for developer accounts only
+  // Two rows: the team roles (PR, ผู้พัฒนาระบบ) on top, the three "view as" roles below
+  /** @param {HTMLElement} box */
+  const switchRows = (box) => {
+    box.style.gridTemplateColumns = 'repeat(6, minmax(0, 1fr))';
+    [...box.children].forEach((b, i) => { /** @type {HTMLElement} */ (b).style.gridColumn = i < 2 ? 'span 3' : 'span 2'; });
+  };
+  // The switch buttons in a back-office side bar (#roleSwitch); shown for developer accounts only
   /** @param {HTMLElement} box */
   window.mountRoleSwitch = (box, u) => {
     if (!box || !u?.developer) return;
@@ -116,8 +122,7 @@
       const on = u.role === k;
       return `<button type="button" data-switch-role="${k}" aria-pressed="${on}" class="press t-quick min-h-10 rounded-xl px-2 py-1.5 font-display text-[12px] leading-tight ${on ? 'bg-shell font-semibold text-purple shadow-raised' : 'font-medium text-ink2 hover:text-ink'}">${l}</button>`;
     }).join('');
-    // Five buttons in two columns: the odd one out spans the row
-    if (SWITCH.length % 2) /** @type {HTMLElement} */ (box.lastElementChild).style.gridColumn = 'span 2';
+    switchRows(box);
     box.addEventListener('click', (e) => {
       const b = /** @type {HTMLButtonElement} */ ((/** @type {Element} */ (e.target)).closest('[data-switch-role]'));
       if (b && b.getAttribute('aria-pressed') !== 'true' && !b.disabled) switchRole(b.dataset.switchRole, [...box.querySelectorAll('button')]);
@@ -179,8 +184,10 @@
     .acct-seg button:hover { color: rgb(var(--ink)); }
     .acct-seg button:active { transform: scale(.94); }
     .acct-seg button[aria-pressed="true"] { background: rgb(var(--shell)); color: rgb(var(--ink)); box-shadow: var(--shadow-raised); }
-    .acct-roles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin: 2px 4px 6px; padding: 4px; border-radius: 16px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
+    .acct-roles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; margin: 2px 4px 6px; padding: 4px; border-radius: 16px; background: rgb(var(--surface-2)); border: 1px solid rgb(var(--line)); }
     .acct-roles button { min-height: 44px; padding: 6px 8px; border-radius: 12px; font: 500 13px/1.35 Kanit, "Noto Sans Thai", sans-serif; color: rgb(var(--ink-2)); transition: transform .35s var(--spring); }
+    .acct-roles button { grid-column: span 2; }
+    .acct-roles button:nth-child(-n+2) { grid-column: span 3; }
     .acct-roles button:hover { color: rgb(var(--ink)); }
     .acct-roles button:active { transform: scale(.96); }
     .acct-roles button:focus-visible { outline: 2px solid rgb(var(--focus)); outline-offset: 2px; }
@@ -217,12 +224,15 @@
   const avatar = (u) => (u.avatarUrl ? `<img src="${esc(u.avatarUrl)}" alt="" referrerpolicy="no-referrer">` : esc(([...(u.name || u.email || '?').trim()][0] || '?').toUpperCase()));
   const affiliation = (u) => (u.role === 'external' ? u.org : u.role === 'student' ? u.major || u.unit : u.subUnit || u.unit) || '';
 
-  // เพิ่มข่าว (pr-import.html?mode=add) in place of ส่งข่าว in the header and the menu bar, for the PR team only
+  // เพิ่มข่าว (pr-import.html?mode=add) in place of ส่งข่าว in the header and the menu bar, for the PR team only;
+  // external accounts cannot send, so the button goes (submit.html would only send them on to status.html)
   const ADD_NEWS = 'pr-import.html?mode=add';
   const isDesk = (u) => u?.role === 'pr' || u?.role === 'admin';
   function addNewsButtons(u) {
+    const links = /** @type {NodeListOf<HTMLAnchorElement>} */ (document.querySelectorAll('header a[href="submit.html"], nav a[href="submit.html"]'));
+    if (u && window.baseRole(u) === 'external') { links.forEach((a) => { a.style.display = 'none'; }); return; }
     if (!isDesk(u)) return;
-    /** @type {NodeListOf<HTMLAnchorElement>} */ (document.querySelectorAll('header a[href="submit.html"], nav a[href="submit.html"]')).forEach((a) => {
+    links.forEach((a) => {
       a.href = ADD_NEWS;
       a.removeAttribute('aria-current');
       const w = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
