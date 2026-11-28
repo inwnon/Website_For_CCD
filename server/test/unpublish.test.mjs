@@ -83,6 +83,25 @@ describe('ยกเลิกการเผยแพร่', () => {
   });
 });
 
+describe('ตั้งเวลาเผยแพร่', () => {
+  test('the sender is told when it goes up, not sent to a link that is not live yet; the desk marks it', async () => {
+    const photo = [['c.jpg', await img('#486', 800, 600), 'image/jpeg']];
+    const s = await staff.call('POST', '/api/submissions', form({ ...NEWS, title: 'ข่าวทดสอบตั้งเวลาเผยแพร่' }, { photo }));
+    assert.equal(s.status, 201, JSON.stringify(s.body));
+    const r = s.body.submission.ref;
+    const at = new Date(Date.now() + 3 * 864e5);
+    assert.equal((await publish(r, { title: 'ข่าวทดสอบตั้งเวลาเผยแพร่', publishAt: at.toISOString() })).status, 201);
+    const mail = (await query("select subject, body from email_outbox where ref = $1 and kind = 'submission.status' order by id desc limit 1", [r])).rows[0];
+    assert.match(mail.subject, /ตั้งเวลาเผยแพร่/);
+    assert.match(mail.body, new RegExp(`inbox\\.html\\?ref=${r}`));
+    assert.doesNotMatch(mail.body, /\/news-\d+/);
+    const item = (await pr.call('GET', `/api/pr/submissions?status=published&q=${r}`)).body.items.find((x) => x.ref === r);
+    assert.equal(new Date(item.scheduledAt).getTime(), at.getTime());
+    const live = (await pr.call('GET', `/api/pr/submissions?status=published&q=${ref}`)).body.items.find((x) => x.ref === ref);
+    assert.equal(live.scheduledAt, null, 'a live story is not marked');
+  });
+});
+
 describe('ข่าวที่เกี่ยวข้อง', () => {
   test('PR sets them; the story shows them in order and leaves them out of ข่าวใกล้เคียง', async () => {
     const others = (await query("select id from news where withdrawn_at is null and published_at <= now() and 'public' = any(audience) and id <> $1 order by published_at desc limit 2", [newsId])).rows.map((r) => r.id);
