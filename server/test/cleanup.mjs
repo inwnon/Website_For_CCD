@@ -1,6 +1,6 @@
 // Removes what a test run created, so `npm test` leaves the dev database and uploads/ as it found them.
 // snapshot() before the tests, restore() after: everything the dev-login accounts created since the snapshot is deleted
-// (submissions, drafts, stories, their files, saved stories, read counts, history, emails) and the ref counters and
+// (submissions, drafts, stories, their files, read counts, history, emails) and the ref counters and
 // notification settings, profile photos, names and phones go back to their old values.
 import { readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -30,7 +30,7 @@ export async function restore(snap) {
   try {
     await client.query('begin');
     if (await tableExists('audit_log')) await client.query('delete from audit_log where at >= $1 and (actor_id = any($2) or actor_id is null)', [snap.at, devIds]);
-    await client.query('delete from news where id = any($1)', [news]); // saved_news and read counts cascade
+    await client.query('delete from news where id = any($1)', [news]); // read counts cascade
     if (await tableExists('service_requests')) {
       requests = (await client.query('delete from service_requests where created_at >= $1 and requester_id = any($2) returning id', [snap.at, devIds])).rows.map((r) => r.id); // messages and files cascade
     }
