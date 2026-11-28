@@ -38,7 +38,6 @@ router.get('/me/data', requireUser, limit('export', { max: 10, windowMs: HOUR })
         coalesce((select json_agg(json_build_object('kind', f.kind, 'name', f.name, 'size', f.size, 'mime', f.mime) order by f.kind, f.position)
           from draft_files f where f.draft_id = d.id), '[]') files
       from submission_drafts d where d.sender_id = $1 order by d.updated_at desc`, [u.id])).rows,
-    savedNews: (await query('select n.id, n.title, s.created_at saved_at from saved_news s join news n on n.id = s.news_id where s.user_id = $1 order by s.created_at desc', [u.id])).rows,
     storiesRead: (await query(`select n.title, r.day from news_reads r join news n on n.id = r.news_id where r.reader = $1 order by r.day desc`, [`u:${u.id}`])).rows,
     calendarAssignments: (await query(`select e.title, e.start_at, e.end_at, e.location, a.duty from event_assignments a join events e on e.id = a.event_id
       where a.user_id = $1 order by e.start_at desc`, [u.id])).rows,
@@ -122,7 +121,6 @@ export async function erase(c, userId) {
   await c.query(`update messages set display_name = 'ผู้ส่ง (ลบข้อมูลแล้ว)' where author_id = $1 and side = 'sender'`, [userId]);
   await c.query('delete from sessions where user_id = $1', [userId]);
   await c.query('delete from calendar_feeds where user_id = $1', [userId]);
-  await c.query('delete from saved_news where user_id = $1', [userId]);
   await c.query('delete from event_assignments where user_id = $1', [userId]);
   // Service requests stay (the office's record of its work) without the person; one still waiting will not be answered
   await c.query(`update service_requests set requester_id = null, status = case when status in ('pending', 'info') then 'cancelled' else status end where requester_id = $1`, [userId]);

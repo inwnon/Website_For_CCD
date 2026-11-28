@@ -148,14 +148,6 @@
     .js .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--ease-out), transform .7s var(--spring); }
     .js .reveal.in { opacity: 1; transform: none; }
 
-    .save-btn { transition: transform .45s var(--spring); }
-    .save-btn:hover { transform: scale(1.1); }
-    .save-btn:active { transform: scale(.85); }
-    .save-btn:focus-visible { outline-offset: 2px; border-radius: 9999px; }
-    .save-btn[aria-pressed="true"] svg { fill: currentColor; }
-    @keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
-    .save-btn.pop svg { animation: pop .5s var(--spring); }
-
     .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
     /* Article body: Thai needs generous line-height for stacked vowels/tones */
@@ -321,10 +313,6 @@
                 <span id="tagInternal" class="rounded-full bg-purple-soft px-3 font-display text-[13px] font-semibold leading-7 text-purple" data-i18n="tagInternal"></span>
                 <span id="tagVideo" class="inline-flex items-center gap-1 rounded-full bg-purple-soft px-3 font-display text-[13px] font-semibold leading-7 text-purple"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span data-i18n="tagVideo"></span></span>
               </div>
-              <button id="saveBtn" type="button" data-save="" aria-pressed="false" aria-label="บันทึกข่าวที่ชอบ"
-                class="save-btn grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line-strong bg-shell text-brand shadow-raised">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.6 4.5 7.1 4.5c2 0 3.6 1.1 4.9 2.8 1.3-1.7 2.9-2.8 4.9-2.8 3.5 0 5.7 3.5 4.4 6.8-1.8 4.6-9.3 9.2-9.3 9.2Z"/></svg>
-              </button>
             </div>
 
             <h1 class="mt-4 font-display tight text-[clamp(28px,3.4vw,42px)] font-bold text-royal" data-i18n="title"></h1>
@@ -536,7 +524,6 @@
     const reveal = (root = document) => root.querySelectorAll('.reveal:not(.in)').forEach((el) => io.observe(el));
     const PLATFORM = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
     const ALBUM = { facebook: 'Facebook', drive: 'Google Drive', photos: 'Google Photos' };
-    let me = { user: null };
     let story = null;
     let photos = []; // [{ web, full }]
 
@@ -649,9 +636,7 @@
       $('#tagFeatured').hidden = !s.featured;
       $('#tagInternal').hidden = !s.internal;
       $('#tagVideo').hidden = !s.videoUrl;
-      $('#saveBtn').dataset.save = s.id;
       $('#unitLink').href = `search.html?unit=${encodeURIComponent(s.unit)}`;
-      $('#saveBtn').setAttribute('aria-pressed', String(s.saved));
       $('#pubTime').setAttribute('datetime', s.publishedAt);
       const bodyEl = article.querySelector('.news-body');
       if (s.bodySize) bodyEl.dataset.size = s.bodySize; else delete bodyEl.dataset.size;
@@ -874,28 +859,6 @@
         </div>
       </article>`;
 
-    // ---- Saved (liked) news: the heart beside the story (not on cards), stored in the signed-in account ----
-    let saved = new Set();
-    const applySaved = () => document.querySelectorAll('[data-save]').forEach((b) => b.setAttribute('aria-pressed', String(saved.has(b.dataset.save))));
-    document.addEventListener('click', async (e) => {
-      const b = e.target.closest('[data-save]');
-      if (!b) return;
-      if (!me.user) { location.href = window.loginUrl(); return; }
-      const id = b.dataset.save;
-      const on = !saved.has(id);
-      on ? saved.add(id) : saved.delete(id);
-      applySaved();
-      if (on) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
-      try {
-        await api(`/news/${id}/save`, { method: on ? 'PUT' : 'DELETE' });
-        liveMsg.textContent = on ? 'บันทึกเป็นข่าวที่ชอบแล้ว' : 'นำออกจากข่าวที่ชอบแล้ว';
-      } catch (err) {
-        on ? saved.delete(id) : saved.add(id);
-        applySaved();
-        liveMsg.textContent = `บันทึกไม่สำเร็จ: ${err.message}`;
-      }
-    });
-
     // ---- Theme ----
     const themeSwitch = document.getElementById('themeToggle');
     themeSwitch.setAttribute('aria-checked', document.documentElement.classList.contains('dark'));
@@ -914,15 +877,11 @@
       if (pre) render(pre.story, pre.related, pre.linked, pre.sets, pre.linkedFromAlbum);
       // An old link (news.html?id=…) shows the short one in the address bar, so sharing it shares the short link
       if (pre?.story.url && location.pathname !== `/${pre.story.url}`) history.replaceState(null, '', pre.story.url + location.hash);
-      me = await window.ME;
       try {
-        const [r, s] = await Promise.all([
-          pre || api(`/news/${encodeURIComponent(id)}`),
-          me.user ? api('/me/saved').catch(() => ({ ids: [] })) : { ids: [] },
-        ]);
-        saved = new Set(s.ids);
-        if (!pre) render(r.story, r.related, r.linked, r.sets, r.linkedFromAlbum);
-        applySaved();
+        if (!pre) {
+          const r = await api(`/news/${encodeURIComponent(id)}`);
+          render(r.story, r.related, r.linked, r.sets, r.linkedFromAlbum);
+        }
         // One read per reader per story per day; the server ignores bots
         api(`/news/${encodeURIComponent(id)}/read`, { method: 'POST', body: { ref: document.referrer } }).catch(() => {});
       } catch (err) {

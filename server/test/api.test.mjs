@@ -358,16 +358,6 @@ describe('reading news', () => {
     assert.match(r.headers.get('cache-control'), /public/);
   });
 
-  test('saved stories belong to the account', async () => {
-    assert.equal((await fetch(`${BASE}/api/news/${id}/save`, { method: 'PUT' })).status, 401);
-    assert.equal((await student.call('PUT', `/api/news/${id}/save`)).status, 404);
-    assert.equal((await staff.call('PUT', `/api/news/${id}/save`)).status, 200);
-    assert.ok((await staff.call('GET', '/api/me/saved')).body.ids.includes(id));
-    assert.equal((await staff.call('GET', `/api/news/${id}`)).body.story.saved, true);
-    await staff.call('DELETE', `/api/news/${id}/save`);
-    assert.ok(!(await staff.call('GET', '/api/me/saved')).body.ids.includes(id));
-  });
-
   test('archive counts by month and day', async () => {
     const a = /** @type {any} */ (await (await fetch(`${BASE}/api/news/archive`)).json());
     assert.ok(a.years.length >= 1);

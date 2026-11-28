@@ -8,8 +8,6 @@
 // - GET    /api/news/archive?year=2026      { years, months: { '01': n }, days: { 'YYYY-MM-DD': n } }
 // - GET    /api/news/:id                     full story + linked (ข่าวที่เกี่ยวข้อง, set by PR) + related (nearby) + sets (อัลบั้มข่าว); 401/403 { locked }, 410 { withdrawn }
 // - POST   /api/news/:id/read  { ref }       counts a read: once per reader per story per day, bots ignored
-// - GET    /api/me/saved                     { ids } of the signed-in user's saved stories
-// - PUT    /api/news/:id/save · DELETE /api/news/:id/save
 // - GET    /media/:newsId/:file              story images; internal stories only for readers who may see them
 // - GET    /media/:newsId/photos.zip         all photos of a story in one ZIP (full size when there is one)
 // - GET    /media/video/:youtubeId.webp      a story video's YouTube thumbnail, fetched and kept by this server
@@ -238,7 +236,6 @@ export async function storyPayload(req, id) {
   const related = (await query(
     `select n.* from news n where ${LIVE} and n.id <> $1 and n.audience && $3::audience[] and not (n.id = any($4))
      order by (n.categories && $2) desc, n.published_at desc limit 4`, [n.id, n.categories, readableBy(req.user), shown])).rows;
-  const saved = req.user ? !!(await one('select 1 from saved_news where user_id = $1 and news_id = $2', [req.user.id, n.id])) : false;
   // ข่าวที่เกี่ยวข้อง: the PR team's picks, then (on their own) the other stories of this story's อัลบั้มข่าว, in album order.
   // Worked out when read: a story taken out of the album is no longer related.
   const linkedCards = linkedWithAlbums(linked.map((r) => cardOut(r, req.user)), sets);
@@ -254,7 +251,7 @@ export async function storyPayload(req, id) {
       albumLinks: (n.album_links || []).map((url) => ({ url, host: albumHost(url) })),
       credit: n.credit, creditKind: n.credit_kind, eventDate: n.event_date, place: n.place, featured: n.featured, views: n.views,
       contact: n.contact_kind ? { kind: n.contact_kind, value: n.contact_value } : null,
-      publishedAt: n.published_at, saved, imported: n.imported,
+      publishedAt: n.published_at, imported: n.imported,
       // byPr: written or imported by the PR team (no work sent), so submittedBy is who published it
       byPr: !n.submission_id, submittedBy: n.submitted_by || null, reviewedBy: n.reviewed_by_name || null, bodySize: n.body_size, bodyLeading: n.body_leading,
     },
@@ -313,26 +310,6 @@ router.post('/news/:id/read', limit('read', { by: 'ip', max: 300, windowMs: 10 *
     return true;
   });
   res.json({ counted });
-});
-
-// ---- Saved stories ----
-router.get('/me/saved', requireUser, async (req, res) => {
-  const rows = (await query('select news_id from saved_news where user_id = $1 order by created_at desc', [req.user.id])).rows;
-  res.json({ ids: rows.map((r) => r.news_id) });
-});
-
-router.put('/news/:id/save', requireUser, async (req, res) => {
-  if (!UUID.test(req.params.id)) throw new HttpError(404, 'ไม่พบข่าวนี้');
-  const n = await one(`select n.id, n.audience from news n where n.id = $1 and ${LIVE}`, [req.params.id]);
-  if (!n || !canRead(n, req.user)) throw new HttpError(404, 'ไม่พบข่าวนี้');
-  await query('insert into saved_news (user_id, news_id) values ($1, $2) on conflict do nothing', [req.user.id, n.id]);
-  res.json({ saved: true });
-});
-
-router.delete('/news/:id/save', requireUser, async (req, res) => {
-  if (!UUID.test(req.params.id)) throw new HttpError(404, 'ไม่พบข่าวนี้');
-  await query('delete from saved_news where user_id = $1 and news_id = $2', [req.user.id, req.params.id]);
-  res.json({ saved: false });
 });
 
 // ---- Images (mounted outside /api) ----
