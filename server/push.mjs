@@ -123,7 +123,7 @@ export async function pushPending() {
         select id from notifications where pushed_at is null order by id limit 50 for update skip locked)
       returning id, user_id, kind, ref_id, text, created_at > now() - interval '1 hour' fresh`)).rows);
     for (const n of rows.filter((r) => r.fresh)) {
-      await sendToUser(n.user_id, { title: 'SRU News Hub', body: n.text, url: urlOf(n.kind, n.ref_id), tag: `${n.kind}:${n.ref_id ?? n.id}` });
+      await sendToUser(n.user_id, { title: 'NewsHub.SRU', body: n.text, url: urlOf(n.kind, n.ref_id), tag: `${n.kind}:${n.ref_id ?? n.id}` });
     }
   } finally {
     pushing = false;
@@ -179,7 +179,7 @@ router.post('/push/unsubscribe', requireBackOffice, async (req, res) => {
   res.json({ ok: true });
 });
 router.post('/push/test', requireBackOffice, pushTest, async (req, res) => {
-  const r = await sendToUser(req.user.id, { title: 'SRU News Hub', body: 'ทดสอบการแจ้งเตือน: ถ้าเห็นข้อความนี้ แปลว่าใช้งานได้แล้ว', url: '/calendar.html', tag: 'test' });
+  const r = await sendToUser(req.user.id, { title: 'NewsHub.SRU', body: 'ทดสอบการแจ้งเตือน: ถ้าเห็นข้อความนี้ แปลว่าใช้งานได้แล้ว', url: '/calendar.html', tag: 'test' });
   if (!r.devices) throw new HttpError(400, 'ยังไม่ได้เปิดการแจ้งเตือนบนอุปกรณ์ใด');
   res.json(r);
 });

@@ -58,7 +58,7 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-0}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
-      MAIL_FROM: ${MAIL_FROM:-SRU News Hub <no-reply@sru.ac.th>}
+      MAIL_FROM: ${MAIL_FROM:-NewsHub.SRU <no-reply@sru.ac.th>}
     volumes:
       - uploads:/app/uploads
       - backups:/app/backups:ro

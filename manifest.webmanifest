@@ -1,6 +1,6 @@
 {
-  "name": "SRU News Hub",
-  "short_name": "SRU News Hub",
+  "name": "NewsHub.SRU",
+  "short_name": "NewsHub.SRU",
   "description": "งานประชาสัมพันธ์ มหาวิทยาลัยราชภัฏสุราษฎร์ธานี",
   "lang": "th",
   "start_url": "/calendar.html",

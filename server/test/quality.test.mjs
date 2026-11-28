@@ -177,7 +177,7 @@ describe('SEO', () => {
   });
   test('the home page has Open Graph tags with an image', async () => {
     const html = String((await request('GET', '/')).body);
-    assert.match(html, /<title>SRU News Hub \| งานประชาสัมพันธ์ มรส\.<\/title>/);
+    assert.match(html, /<title>NewsHub.SRU \| งานประชาสัมพันธ์ มรส\.<\/title>/);
     assert.match(html, /<meta property="og:image" content="https?:\/\/[^"]+\/assets\/img\/og-default\.jpg">/);
     assert.match(html, /<meta property="og:title" content="[^"]+">/);
     assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
