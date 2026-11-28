@@ -45,13 +45,13 @@ export const PLATFORMS = {
 };
 const PLATFORM_TH = { youtube: 'YouTube', facebook: 'Facebook', tiktok: 'TikTok', drive: 'Google Drive' };
 
-// ลิงก์วิดีโอเพิ่มเติม: up to MAX_VIDEO_LINKS links after the main one (video_url), each from one of the platforms.
+// ลิงก์วิดีโอเพิ่มเติม: up to MAX_VIDEO_LINKS different links after the main one (video_url), each from one of the platforms.
 // Returns { links, error }: empty boxes dropped, a link given twice (or the main one again) kept once.
-export const MAX_VIDEO_LINKS = 5;
+export const MAX_VIDEO_LINKS = 3;
 export function videoLinks(v, main, platforms = Object.keys(PLATFORMS)) {
   const given = (Array.isArray(v) ? v : []).filter((x) => typeof x === 'string').map((x) => x.trim()).filter(Boolean);
   const links = [...new Set(given)].filter((u) => u !== main);
-  if (given.length > MAX_VIDEO_LINKS) return { links, error: `ใส่ลิงก์วิดีโอเพิ่มเติมได้ไม่เกิน ${MAX_VIDEO_LINKS} ลิงก์` };
+  if (links.length > MAX_VIDEO_LINKS) return { links, error: `ใส่ลิงก์วิดีโอเพิ่มเติมได้ไม่เกิน ${MAX_VIDEO_LINKS} ลิงก์` };
   const bad = given.findIndex((u) => u.length > 500 || !platforms.some((p) => PLATFORMS[p]?.test(u)));
   if (bad >= 0) return { links, error: `ลิงก์เพิ่มเติมที่ ${bad + 1} ไม่ใช่ลิงก์วิดีโอจาก ${platforms.map((p) => PLATFORM_TH[p]).join(', ')}` };
   return { links };

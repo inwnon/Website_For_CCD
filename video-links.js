@@ -4,12 +4,15 @@
 // VideoLinks(box, { max, placeholder, onChange, label, add }) → { get(), set(links), inputs(), focus() }
 //   label / add: what a box and the add button are called (ลิงก์ภาพเพิ่มเติม uses it too: "ลิงก์ภาพเพิ่มเติม", "เพิ่มลิงก์ภาพ")
 //   get(): the links typed, in order, empty boxes left out
+//   platforms: [{ key, label, ph, re }] adds a "ลิงก์จาก" picker to each box; platformOf(input) → the key picked for it.
+//   A link put back with set() picks the platform it matches.
 (function () {
   const BIN = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
   const PLUS = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 
   /** @param {HTMLElement} box */
-  window.VideoLinks = function (box, { max = 5, placeholder = 'https://', onChange = () => {}, label = 'ลิงก์วิดีโอเพิ่มเติม', add: addText = 'เพิ่มลิงก์วิดีโอ' } = {}) {
+  window.VideoLinks = function (box, { max = 5, placeholder = 'https://', onChange = () => {}, label = 'ลิงก์วิดีโอเพิ่มเติม', add: addText = 'เพิ่มลิงก์วิดีโอ', platforms = null } = {}) {
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
     box.innerHTML = `
       <ol class="grid gap-2" data-vl-list></ol>
       <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -25,6 +28,7 @@
         li.querySelector('[data-vl-no]').textContent = String(i + 1);
         li.querySelector('input').setAttribute('aria-label', `${label}ที่ ${i + 1}`);
         li.querySelector('[data-vl-remove]').setAttribute('aria-label', `ลบ${label}ที่ ${i + 1}`);
+        li.querySelector('select')?.setAttribute('aria-label', `แพลตฟอร์มของ${label}ที่ ${i + 1}`);
       });
       const n = rows().length;
       add.hidden = n >= max;
@@ -35,9 +39,20 @@
       li.className = 'flex items-center gap-2';
       li.innerHTML = `
         <span data-vl-no class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-purple-soft font-display text-[14px] font-semibold text-purple" aria-hidden="true"></span>
-        <input type="url" inputmode="url" class="field h-12 min-w-0 flex-1 rounded-2xl px-4 text-[15px]" placeholder="${placeholder}">
+        ${platforms ? `<div class="flex min-w-0 flex-1 flex-wrap gap-2">
+          <select class="field sel h-12 w-full rounded-2xl pl-4 pr-10 text-[15px] sm:w-44">${platforms.map((p) => `<option value="${esc(p.key)}">${esc(p.label)}</option>`).join('')}</select>
+          <input type="url" inputmode="url" class="field h-12 min-w-0 flex-1 basis-48 rounded-2xl px-4 text-[15px]">
+        </div>` : `<input type="url" inputmode="url" class="field h-12 min-w-0 flex-1 rounded-2xl px-4 text-[15px]" placeholder="${placeholder}">`}
         <button type="button" data-vl-remove class="press t-quick grid h-11 w-11 shrink-0 place-items-center rounded-full text-brand hover:bg-red-soft">${BIN}</button>`;
       li.querySelector('input').value = value;
+      const sel = li.querySelector('select');
+      if (sel) {
+        const hit = value && platforms.find((p) => p.re.test(value));
+        if (hit) sel.value = hit.key;
+        const ph = () => { li.querySelector('input').placeholder = platforms.find((p) => p.key === sel.value)?.ph || placeholder; };
+        sel.addEventListener('change', ph);
+        ph();
+      }
       list.appendChild(li);
       return li;
     }
@@ -67,6 +82,7 @@
       get: () => inputs().map((x) => x.value.trim()).filter(Boolean),
       set(links) { list.innerHTML = ''; (links || []).slice(0, max).forEach((l) => addRow(l)); paint(); },
       inputs,
+      platformOf: (input) => input.closest('li')?.querySelector('select')?.value || null,
       focus() { (inputs()[0] || add).focus(); },
     };
   };
