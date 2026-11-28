@@ -250,6 +250,8 @@ router.put('/me/shortcuts', requireUser, limit('shortcuts', { max: 60, windowMs:
 router.put('/me/profile', requireUser, limit('profile', { max: 30, windowMs: 10 * 60 * 1000 }), async (req, res) => {
   const b = req.body || {};
   const role = baseRole(req.user);
+  // A developer viewing as นักศึกษา / บุคคลภายนอก would be checked by that role's form and have their own profile overwritten
+  if (req.user.developer && (role === 'student' || role === 'external')) throw new HttpError(409, 'กำลังดูในฐานะ' + SWITCH_ROLES[role] + ' สลับกลับเป็นผู้พัฒนาระบบก่อนแก้โปรไฟล์');
   const errors = {};
   const p = { unit: null, sub_unit: null, position: null, unit_pr: false, major: null, track: null, year: null, org: null };
 
