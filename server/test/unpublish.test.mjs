@@ -98,3 +98,38 @@ describe('banner คำโปรย', () => {
     assert.equal((await staff.call('GET', `/api/drafts/${d.body.draft.id}`)).body.draft.data.lead, 'โปรยในร่าง');
   });
 });
+
+describe('what readers and the sender are told', () => {
+  const fresh = async (title) => {
+    const photo = [['d.jpg', await img('#648', 800, 600), 'image/jpeg']];
+    const s = await staff.call('POST', '/api/submissions', form({ ...NEWS, title }, { photo }));
+    assert.equal(s.status, 201, JSON.stringify(s.body));
+    return s.body.submission.ref;
+  };
+  const reason = async (id) => (await query('select withdrawn_reason from news where id = $1', [id])).rows[0].withdrawn_reason;
+
+  test('ยกเลิกการเผยแพร่ keeps the reason of an earlier ถอนข่าว; deleting the work drops "back soon"', async () => {
+    const r = await fresh('ข่าวทดสอบเหตุผลการถอน');
+    const id = (await publish(r, { title: 'ข่าวทดสอบเหตุผลการถอน' })).body.news.id;
+    assert.equal((await pr.call('POST', `/api/pr/news/${id}/withdraw`, { reason: 'ข้อมูลในข่าวคลาดเคลื่อน' })).status, 200);
+    assert.equal((await pr.call('POST', `/api/pr/submissions/${r}/unpublish`)).status, 200);
+    assert.equal(await reason(id), 'ข้อมูลในข่าวคลาดเคลื่อน');
+    assert.equal((await publish(r, { title: 'ข่าวทดสอบเหตุผลการถอน' })).status, 201);
+    assert.equal((await pr.call('POST', `/api/pr/submissions/${r}/unpublish`)).status, 200);
+    assert.match(await reason(id), /เผยแพร่อีกครั้ง/);
+    assert.equal((await pr.call('POST', `/api/pr/submissions/${r}/status`, { status: 'rejected' })).status, 200);
+    assert.doesNotMatch(await reason(id), /เผยแพร่อีกครั้ง/);
+    assert.equal((await anon.call('GET', `/api/news/${id}`)).status, 410);
+  });
+
+  test('ตั้งเวลาเผยแพร่: the sender sees when, not a link that does not open yet', async () => {
+    const r = await fresh('ข่าวทดสอบตั้งเวลาในหน้าข่าวของฉัน');
+    const at = new Date(Date.now() + 2 * 864e5);
+    assert.equal((await publish(r, { title: 'ข่าวทดสอบตั้งเวลาในหน้าข่าวของฉัน', publishAt: at.toISOString() })).status, 201);
+    const one = (await staff.call('GET', `/api/submissions/${r}`)).body.submission;
+    assert.equal(new Date(one.scheduledAt).getTime(), at.getTime());
+    const listed = (await staff.call('GET', '/api/submissions')).body.submissions;
+    assert.equal(new Date(listed.find((x) => x.ref === r).scheduledAt).getTime(), at.getTime());
+    assert.equal(listed.find((x) => x.ref === ref).scheduledAt, undefined, 'a live story is not marked');
+  });
+});

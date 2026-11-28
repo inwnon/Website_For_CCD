@@ -46,14 +46,16 @@ async function moveBack({ from, to }) {
 
 // ---- Loading and shaping (shared with pr.mjs) ----
 export async function loadThread(ids) {
-  if (!ids.length) return { events: new Map(), messages: new Map(), files: new Map() };
+  if (!ids.length) return { events: new Map(), messages: new Map(), files: new Map(), scheduled: new Map() };
   const group = (rows) => rows.reduce((m, r) => m.set(r.submission_id, [...(m.get(r.submission_id) || []), r]), new Map());
-  const [ev, msg, files] = await Promise.all([
+  const [ev, msg, files, later] = await Promise.all([
     query('select submission_id, status, at from submission_events where submission_id = any($1) order by at, id', [ids]),
     query('select submission_id, side, display_name, body, created_at from messages where submission_id = any($1) order by created_at, id', [ids]),
     query('select * from submission_files where submission_id = any($1) order by kind, position', [ids]),
+    // ตั้งเวลาเผยแพร่: published work whose story goes up later
+    query("select s.id, n.published_at from submissions s join news n on n.id = s.news_id where s.id = any($1) and s.status = 'published' and n.published_at > now()", [ids]),
   ]);
-  return { events: group(ev.rows), messages: group(msg.rows), files: group(files.rows) };
+  return { events: group(ev.rows), messages: group(msg.rows), files: group(files.rows), scheduled: new Map(later.rows.map((r) => [r.id, r.published_at])) };
 }
 
 // Files come ordered by kind, position; the first photo / art file is the cover
@@ -72,6 +74,7 @@ export function submissionOut(s, t, viewer) {
     audience: audienceLabel(s.audience), audienceValues: s.audience, prWrites: s.content_mode === 'pr',
     unread: pr ? s.pr_unread : s.sender_unread, sentAt: s.sent_at, updatedAt: s.updated_at,
     ...(s.news_id ? { newsId: s.news_id, url: `news.html?id=${s.news_id}` } : {}),
+    ...(t.scheduled?.has(s.id) ? { scheduledAt: t.scheduled.get(s.id) } : {}),
     // The sender's timeline leaves out PR deleting the work and bringing it back
     history: (t.events.get(s.id) || []).filter((e) => pr || e.status !== 'rejected').map((e) => ({ status: e.status, at: e.at })),
     thread: (t.messages.get(s.id) || []).map((m) => ({
