@@ -10,7 +10,7 @@ async function walk(dir) {
   for (const e of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
     const p = join(dir, e.name);
     if (e.isDirectory()) await walk(p);
-    else if (/\.(jpe?g|png|webp|heic)$/i.test(e.name)) { checked++; if (await stripGps(p)) cleaned++; }
+    else if (/\.(jpe?g|jfif|jpe|png|webp|heic)$/i.test(e.name)) { checked++; if (await stripGps(p)) cleaned++; }
   }
 }
 await walk(join(UPLOAD_DIR, 'submissions'));
