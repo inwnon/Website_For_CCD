@@ -79,6 +79,20 @@ describe('developer role switch', () => {
     assert.equal(log, 'สลับบทบาทจาก บุคคลภายนอก เป็น ผู้พัฒนาระบบ');
     assert.equal((await (await login('developer')).call('GET', '/api/me')).body.user.role, 'admin', 'a new sign-in starts as ผู้พัฒนาระบบ');
   });
+  test('the profile is not saved while viewing as นักศึกษา / บุคคลภายนอก: it would overwrite the developer\'s own', async () => {
+    const mine = (await dev.call('GET', '/api/me')).body.user;
+    const row = async () => (await query("select unit, sub_unit, position, org, major, year from users where email = 'satearnpong.nis@sru.ac.th'")).rows[0];
+    const before = await row();
+    const body = { firstName: 'ทดสอบ', lastName: 'ระบบ', phone: '0812345678', org: 'องค์กรทดสอบ', position: 'ตำแหน่งทดสอบ', unit: 'คณะครุศาสตร์', major: 'x', year: 2, consent: true };
+    for (const role of ['external', 'student']) {
+      await dev.call('POST', '/api/me/role', { role });
+      const r = await dev.call('PUT', '/api/me/profile', body);
+      assert.equal(r.status, 409, role);
+    }
+    await dev.call('POST', '/api/me/role', { role: 'admin' });
+    assert.deepEqual(await row(), before, 'the stored profile is untouched');
+    assert.equal((await dev.call('GET', '/api/me')).body.user.firstName, mine.firstName);
+  });
   test('chanon.html cannot change a developer\'s role; the list marks the account', async () => {
     const r = await admin.call('PUT', '/api/admin/roles', { email: 'satearnpong.nis@sru.ac.th', role: 'default' });
     assert.equal(r.status, 409);
