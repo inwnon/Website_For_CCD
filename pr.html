@@ -960,7 +960,8 @@
       if (s.status === 'published' && s.newsId) a.push(`<a href="pr-import.html?edit=${esc(s.newsId)}&amp;back=${encodeURIComponent(`pr.html?status=published&ref=${s.ref}`)}" class="press t-spring inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-shell px-4 font-display text-[14px] font-medium text-ink shadow-raised hover:-translate-y-0.5">${ic.pen}แก้ไขข่าว</a>`);
       if (s.status === 'review' && s.type === 'news') a.push(btn('data-act="writing"', 'รับไปเขียนข่าว'));
       if (s.status === 'review' || s.status === 'writing') a.push(btn('data-act="revise"', 'ขอให้แก้ไข'));
-      if (s.status === 'revise') a.push(btn('data-act="review"', 'ตรวจต่อโดยไม่รอแก้ไข'));
+      // Work the PR team writes goes back to "PR กำลังเขียน", the rest to "รอตรวจ"
+      if (s.status === 'revise') a.push(s.prWrites && s.type === 'news' ? btn('data-act="writing"', 'เขียนต่อโดยไม่รอแก้ไข') : btn('data-act="review"', 'ตรวจต่อโดยไม่รอแก้ไข'));
       if (s.status !== 'published' && s.status !== 'rejected') a.push(btn('data-act="delete"', `${ic.trash}ลบข่าว`));
       if (s.status === 'rejected') a.push(btn('data-act="review"', 'กู้คืนไปที่รอตรวจ'));
       if (s.status === 'published') a.push(btn('data-act="unpublish"', 'ยกเลิกการเผยแพร่'));
@@ -1186,7 +1187,7 @@
         return;
       }
       b.disabled = true;
-      const msg = act === 'writing' ? 'รับงานไปเขียนข่าวแล้ว' : s.status === 'rejected' ? 'กู้คืนงานไปที่รอตรวจแล้ว' : 'ย้ายงานกลับไปที่รอตรวจแล้ว';
+      const msg = act === 'writing' ? (s.status === 'revise' ? 'ย้ายงานไปที่ PR กำลังเขียนแล้ว' : 'รับงานไปเขียนข่าวแล้ว') : s.status === 'rejected' ? 'กู้คืนงานไปที่รอตรวจแล้ว' : 'ย้ายงานกลับไปที่รอตรวจแล้ว';
       const r = await applyChange(api(`/pr/submissions/${encodeURIComponent(s.ref)}/status`, { method: 'POST', body: { status: act, ...(act === 'writing' && TEMPLATES.writing ? { message: TEMPLATES.writing } : {}) } }), msg);
       if (r !== true) { toast(r.message, true); b.disabled = false; }
     }

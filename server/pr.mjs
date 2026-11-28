@@ -136,6 +136,10 @@ router.post('/pr/submissions/:ref/status', async (req, res) => {
   await tx(async (c) => {
     await c.query(`update submissions set status = $2, ${quiet ? '' : 'sender_unread = true, '}pr_unread = false where id = $1`, [s.id, status]);
     await c.query('insert into submission_events (submission_id, status, actor_id) values ($1, $2, $3)', [s.id, status, req.user.id]);
+    // Deleted after ยกเลิกการเผยแพร่: the story it had is not coming back soon, so readers are no longer told it is
+    if (status === 'rejected' && s.news_id) {
+      await c.query('update news set withdrawn_reason = $2 where id = $1 and withdrawn_at is not null and withdrawn_reason = $3', [s.news_id, GONE_REASON, UNPUBLISH_REASON]);
+    }
     if (!quiet) {
       if (str(message, 2000, 'ข้อความ')) await addMessage(c, s, req.user, 'pr', message);
       await statusChanged(c, s, status, str(message, 2000, 'ข้อความ'));
@@ -149,11 +153,14 @@ router.post('/pr/submissions/:ref/status', async (req, res) => {
 // ยกเลิกการเผยแพร่: off the site (readers who open the link see that it is being updated), back in the queue for PR.
 // The sender sees the work as รอ PR ตรวจ again; no email (PR will publish it again or tell them).
 export const UNPUBLISH_REASON = 'ทีมประชาสัมพันธ์กำลังปรับปรุงข่าวนี้ และจะเผยแพร่อีกครั้งเร็ว ๆ นี้';
+const GONE_REASON = 'ทีมประชาสัมพันธ์ถอนข่าวนี้ออกจากเว็บไซต์แล้ว';
 router.post('/pr/submissions/:ref/unpublish', async (req, res) => {
   const s = await findSubmission(req.params.ref, req.user);
   if (s.status !== 'published' || !s.news_id) throw new HttpError(409, 'งานนี้ยังไม่ได้เผยแพร่');
   await tx(async (c) => {
-    await c.query('update news set withdrawn_at = now(), withdrawn_reason = $2, withdrawn_by = $3, featured = false where id = $1', [s.news_id, UNPUBLISH_REASON, req.user.id]);
+    // A story already taken off with ถอนข่าว keeps the reason readers were given
+    await c.query(`update news set withdrawn_at = coalesce(withdrawn_at, now()), withdrawn_reason = case when withdrawn_at is null then $2 else withdrawn_reason end,
+      withdrawn_by = coalesce(withdrawn_by, $3), featured = false where id = $1`, [s.news_id, UNPUBLISH_REASON, req.user.id]);
     await c.query("update submissions set status = 'review', pr_unread = false where id = $1", [s.id]);
     await c.query("insert into submission_events (submission_id, status, actor_id) values ($1, 'unpublished', $2)", [s.id, req.user.id]);
     await audit(c, req.user, 'submission.unpublish', s.ref, `ยกเลิกการเผยแพร่ ${s.ref} กลับไปที่รอตรวจ`, { newsId: s.news_id });
