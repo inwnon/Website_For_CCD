@@ -1,4 +1,4 @@
-# หลังบ้าน SRU News Hub (Node.js + PostgreSQL)
+# หลังบ้าน NewsHub.SRU (Node.js + PostgreSQL)
 
 ## เริ่มใช้งานในเครื่อง (ต้องเปิด Docker Desktop)
 ```sh

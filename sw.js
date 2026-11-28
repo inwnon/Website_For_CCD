@@ -8,7 +8,7 @@ sw.addEventListener('activate', (/** @type {any} */ e) => e.waitUntil(sw.clients
 sw.addEventListener('push', (/** @type {any} */ e) => {
   let d;
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : '' }; }
-  e.waitUntil(sw.registration.showNotification(d.title || 'SRU News Hub', {
+  e.waitUntil(sw.registration.showNotification(d.title || 'NewsHub.SRU', {
     body: d.body || '',
     tag: d.tag || undefined,
     lang: 'th',

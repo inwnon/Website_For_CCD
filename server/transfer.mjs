@@ -127,7 +127,7 @@ router.get('/admin/export/:file', async (req, res) => {
   const key = /^([a-z]+)\.xlsx$/.exec(req.params.file)?.[1];
   if (!key || (key !== 'all' && !Object.hasOwn(MODULES, key))) throw new HttpError(404, 'ไม่พบข้อมูลที่จะส่งออก');
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SRU News Hub';
+  wb.creator = 'NewsHub.SRU';
   wb.created = new Date();
   let rows = 0;
   for (const k of key === 'all' ? Object.keys(MODULES) : [key]) rows += await addModule(wb, MODULES[k]);

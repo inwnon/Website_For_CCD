@@ -19,7 +19,7 @@ import { newsUrl, plainText } from './rules.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 export const ORIGIN = (process.env.APP_ORIGIN || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '');
-const SITE = 'SRU News Hub';
+const SITE = 'NewsHub.SRU';
 const OG_DEFAULT = '/assets/img/og-default.jpg';
 
 // Pages that are not for search results (signed-in tools, sign-in, errors)

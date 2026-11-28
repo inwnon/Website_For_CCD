@@ -391,7 +391,7 @@
         <div class="flex h-full flex-col overflow-y-auto px-4 pb-6 pt-3">
           <div class="mb-3 flex items-center gap-3">
             <span class="logo-crop h-10 w-10 shrink-0"><img src="/assets/img/logo-96.webp" srcset="/assets/img/logo-96.webp 1x, /assets/img/logo-192.webp 2x" alt=""></span>
-            <span class="min-w-0 flex-1 font-display text-[19px] font-semibold"><span class="text-brand">SRU</span> <span class="text-royal">News Hub</span></span>
+            <span class="min-w-0 flex-1 font-display text-[19px] font-semibold"><span class="text-royal">NewsHub</span><span class="text-brand">.SRU</span></span>
             <button type="button" data-close class="hover-fill press t-quick grid h-11 w-11 shrink-0 place-items-center rounded-full" aria-label="ปิดเมนู">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
             </button>
