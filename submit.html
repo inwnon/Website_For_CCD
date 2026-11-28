@@ -815,13 +815,6 @@
               <div id="albumLinksBox" class="mt-3" role="group" aria-label="ลิงก์ภาพเพิ่มเติมอื่น" aria-describedby="albumLinksError"></div>
               <p id="albumLinksError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
             </div>
-            <fieldset class="mt-6">
-              <legend class="mb-2 font-display text-[15px] font-semibold">ลิงก์วิดีโอประกอบข่าว <span class="font-sans text-[13px] font-normal text-ink2">(ไม่บังคับ)</span></legend>
-              <div class="flex flex-wrap gap-2" data-platforms="newsPlatform"></div>
-              <input id="newsVideo" name="newsVideo" type="url" inputmode="url" class="field mt-3 h-14 w-full rounded-2xl px-4 text-[16px]" aria-label="ลิงก์วิดีโอประกอบข่าว" aria-describedby="newsVideoHint newsVideoError">
-              <p id="newsVideoHint" class="mt-2 text-[13px] text-ink2"></p>
-              <p id="newsVideoError" class="mt-2 text-[14px] font-medium text-brand" hidden></p>
-            </fieldset>
 
           </section>
 
@@ -1566,7 +1559,6 @@
     const prWrites = () => radio('contentMode') === 'pr';
     const contentOk = () => radio('contentMode') === 'own' ? val('body').length >= MIN_BODY : prWrites() && up.attach.items.length > 0;
     const videoOk = () => linkOk(val('videoLink'), radio('videoPlatform'));
-    const newsVideoOk = () => !val('newsVideo') || linkOk(val('newsVideo'), radio('newsPlatform'));
     const descOk = () => !TYPES[type].descRequired || !!val('desc');
     const albumOk = () => !val('albumUrl') || /^https:\/\/\S+\.\S+/i.test(val('albumUrl'));
     // Same rules as contact() in rules.mjs
@@ -1825,7 +1817,6 @@
 
     // ---- Video platform ----
     document.querySelectorAll('input[name=videoPlatform]').forEach((r) => r.addEventListener('change', () => { syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint'); if (videoOk()) setError('#videoError', false, $('#videoLink')); }));
-    document.querySelectorAll('input[name=newsPlatform]').forEach((r) => r.addEventListener('change', () => { syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint'); if (newsVideoOk()) setError('#newsVideoError', false, $('#newsVideo')); }));
 
     // ---- English toggle ----
     $('#enToggle').addEventListener('change', (e) => { $('#enFields').hidden = !e.target.checked; update(); });
@@ -1858,7 +1849,6 @@
         ['news', '#creditError', !val('credit'), $('#credit'), null, radio('photoCredit') === 'source' ? 'กรอกที่มาของภาพ' : 'กรอกเครดิตภาพ'],
         ['news', '#albumError', !albumOk(), $('#albumUrl')],
         ['news', '#albumLinksError', ab >= 0, moreAlbums.inputs()[ab], null, `ลิงก์ภาพเพิ่มเติมที่ ${ab + 1} ต้องขึ้นต้นด้วย https://`],
-        ['news', '#newsVideoError', !newsVideoOk(), $('#newsVideo'), null, platformErr('newsPlatform')],
         ['video', '#videoError', !videoOk(), $('#videoLink'), '#videoLink', videoMsg],
         ['video', '#videoLinksError', mb >= 0, moreVideos.inputs()[mb], null, `ลิงก์เพิ่มเติมที่ ${mb + 1} ไม่ใช่ลิงก์วิดีโอจาก ${platformNames()}`],
         ['banner', '#artError', !up.art.items.length, $('#artDrop'), '#artInput'],
@@ -1886,7 +1876,6 @@
       if (id === 'body' && val('body').length >= MIN_BODY) setError('#bodyError', false, e.target);
       if (id === 'eventDate' && val('eventDate')) setError('#dateError', false, e.target);
       if (id === 'unit' && val('unit')) setError('#unitError', false, e.target);
-      if (id === 'newsVideo' && newsVideoOk()) setError('#newsVideoError', false, e.target);
       if (id === 'videoLink' && videoOk()) setError('#videoError', false, e.target);
       if (id === 'albumUrl' && albumOk()) setError('#albumError', false, e.target);
       if (id === 'designer' && val('designer')) setError('#designerError', false, e.target);
@@ -1902,8 +1891,8 @@
 
     // ---- Kept in this browser while typing (text only), so a closed tab or a sign-in loses nothing ----
     const DRAFT_KEY = 'newsDraft';
-    const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'designer', 'producer', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'assigneeName', 'assigneePos', 'titleEn', 'bodyEn', 'newsVideo', 'videoLink', 'credit', 'note', 'albumUrl', 'contactValue'];
-    const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'newsPlatform', 'creditKind', 'photoCredit', 'contactKind'];
+    const DRAFT_FIELDS = ['title', 'lead', 'desc', 'body', 'eventDate', 'place', 'unit', 'designer', 'producer', 'chairName', 'chairPos', 'reporterName', 'reporterPos', 'assigneeName', 'assigneePos', 'titleEn', 'bodyEn', 'videoLink', 'credit', 'note', 'albumUrl', 'contactValue'];
+    const DRAFT_RADIOS = ['contentMode', 'videoPlatform', 'creditKind', 'photoCredit', 'contactKind'];
     let draftTimer = null;
     // A draft opened from ข่าวของฉัน (submit.html?draft=ID) lives on the server; "บันทึกร่าง" saves it there
     let draftId = new URLSearchParams(location.search).get('draft');
@@ -1954,7 +1943,6 @@
       setNote(!!val('note'));
       syncAudience(); syncCats(); syncContentMode(false);
       syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint');
-      syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint');
       const t = new URLSearchParams(location.search).get('type');
       setType(TYPES[t] ? t : d.type, { silent: true });
       update();
@@ -2039,7 +2027,6 @@
       setType(d.type, { silent: true });
       syncAudience(); syncCats(); syncContentMode(false);
       syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint');
-      syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint');
       try { history.replaceState(null, '', `?draft=${encodeURIComponent(d.id)}`); } catch (e) {}
       const at = new Date(d.updatedAt);
       $('#draftState').textContent = `ร่างที่บันทึกไว้ ${at.getDate()} ${TH_MONTHS[at.getMonth()]} ${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')} น.`;
@@ -2052,7 +2039,7 @@
     const SERVER_ERR = {
       title: ['#titleError', '#title'], desc: ['#descError', '#desc'], eventDate: ['#dateError', '#eventDate'], unit: ['#unitError', '#unit'],
       categories: ['#catError', '#catSet'], contentMode: ['#modeError', '#modeSet'], body: ['#bodyError', '#body'], attach: ['#attachError', '#attachDrop'],
-      photo: ['#photoError', '#photoDrop'], newsVideo: ['#newsVideoError', '#newsVideo'], videoLink: ['#videoError', '#videoLink'], art: ['#artError', '#artDrop'],
+      photo: ['#photoError', '#photoDrop'], videoLink: ['#videoError', '#videoLink'], art: ['#artError', '#artDrop'],
       audience: ['#audError', '#audSet'], consent: ['#consentError', '#consent'], albumUrl: ['#albumError', '#albumUrl'],
       videoLinks: ['#videoLinksError', '#videoLinksBox input'], albumLinks: ['#albumLinksError', '#albumLinksBox input'], designer: ['#designerError', '#designer'], credit: ['#creditError', '#credit'],
       contact: ['#contactError', '#contactValue'],
@@ -2060,7 +2047,7 @@
     function payload() {
       return {
         type, title: val('title'), lead: val('lead'), desc: val('desc'), body: val('body'), eventDate: val('eventDate'), place: val('place'), unit: val('unit'),
-        categories: cats(), contentMode: radio('contentMode'), credit: val('credit'), newsVideo: val('newsVideo'), newsPlatform: radio('newsPlatform'),
+        categories: cats(), contentMode: radio('contentMode'), credit: val('credit'),
         videoLink: val('videoLink'), videoPlatform: radio('videoPlatform'), videoLinks: type === 'video' ? moreVideos.get() : [], albumUrl: val('albumUrl'), albumLinks: type === 'news' ? moreAlbums.get() : [],
         designer: val('designer'), creditKind: type === 'banner' ? radio('creditKind') : type === 'news' ? radio('photoCredit') : null, producer: val('producer'),
         chairPrefix: prefixOf('chair'), chairName: val('chairName'), chairPos: val('chairPos'),
@@ -2163,7 +2150,7 @@
           ['หัวข้อข่าว', sub.title], ['หน่วยงานผู้จัด / เจ้าของข่าว', sub.unit], ['วันที่จัดกิจกรรม', thDate(val('eventDate'))],
           ['ประเภทข่าว', cats().join(', ')],
           ['เนื้อหาข่าว', writes ? `ให้ทีม PR เขียนให้ (แนบ ${n('attach')} ไฟล์)` : 'มีเนื้อหาแล้ว'],
-          ['ภาพ', `${n('photo')} ภาพ${val('newsVideo') ? ` · วิดีโอ ${PLATFORMS[radio('newsPlatform')].label}` : ''}${val('albumUrl') || moreAlbums.get().length ? ` · ลิงก์ภาพเพิ่มเติม ${[val('albumUrl'), ...moreAlbums.get()].filter(Boolean).length} ลิงก์` : ''}`],
+          ['ภาพ', `${n('photo')} ภาพ${val('albumUrl') || moreAlbums.get().length ? ` · ลิงก์ภาพเพิ่มเติม ${[val('albumUrl'), ...moreAlbums.get()].filter(Boolean).length} ลิงก์` : ''}`],
           ['บุคคลสำคัญ', people.length ? people.join(', ') : 'ไม่ได้ระบุ'],
           ['ใครเห็นได้', aud],
         ],
@@ -2266,7 +2253,6 @@
     syncCats();
     syncContentMode(false);
     syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint');
-    syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint');
     const startType = new URLSearchParams(location.search).get('type') || draft?.type;
     if (!editRef && TYPES[startType]) setType(startType, { silent: true });
     setupSender(null);
@@ -2315,7 +2301,7 @@
       // Fill the form from what was sent
       const set = (id, v) => { if (v != null) $('#' + id).value = v; };
       set('title', sub.title); set('lead', f.lead); set('desc', f.desc); set('body', f.body); set('eventDate', f.eventDate?.slice(0, 10)); set('place', f.place);
-      set('credit', f.credit); set('newsVideo', f.newsVideo); set('videoLink', f.videoLink); set('titleEn', f.titleEn); set('bodyEn', f.bodyEn); set('albumUrl', f.albumUrl); set('designer', f.designer); set('producer', f.producer); set('contactValue', f.contactValue);
+      set('credit', f.credit); set('videoLink', f.videoLink); set('titleEn', f.titleEn); set('bodyEn', f.bodyEn); set('albumUrl', f.albumUrl); set('designer', f.designer); set('producer', f.producer); set('contactValue', f.contactValue);
       set('note', '');
       tools.set({ size: f.bodySize, leading: f.bodyLeading });
       moreVideos.set(f.videoLinks || []);
@@ -2323,7 +2309,7 @@
       if (![...$('#unit').options].some((o) => o.value === sub.unit)) $('#unit').insertAdjacentHTML('beforeend', `<option>${esc(sub.unit)}</option>`);
       $('#unit').value = sub.unit;
       const pick = (name, v) => { const r = v && document.querySelector(`input[name=${name}][value="${CSS.escape(v)}"]`); if (r) r.checked = true; };
-      pick('contentMode', f.contentMode); pick('newsPlatform', f.newsPlatform); pick('videoPlatform', f.videoPlatform); if (sub.type === 'news') pick('photoCredit', f.creditKind === 'source' ? 'source' : 'photo'); else pick('creditKind', f.creditKind);
+      pick('contentMode', f.contentMode); pick('videoPlatform', f.videoPlatform); if (sub.type === 'news') pick('photoCredit', f.creditKind === 'source' ? 'source' : 'photo'); else pick('creditKind', f.creditKind);
       pick('contactKind', f.contactKind);
       syncCreditKind();
       syncContact();
@@ -2343,7 +2329,6 @@
       document.querySelectorAll('input[name=type]').forEach((r) => { r.disabled = true; });
       syncAudience(); syncCats(); syncContentMode(false);
       syncPlatform('videoPlatform', 'videoLink', 'videoLinkHint');
-      syncPlatform('newsPlatform', 'newsVideo', 'newsVideoHint');
       update();
       document.title = `แก้ไขงาน ${sub.ref} | NewsHub.SRU`;
     }
