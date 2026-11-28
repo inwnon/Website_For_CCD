@@ -37,7 +37,8 @@ const hash = (token) => createHash('sha256').update(token).digest('hex');
 // ผู้พัฒนาระบบ: the highest rights (admin), not given or taken away on chanon.html (pr_team), and may switch to
 // working as the PR team to see the site as they do. DEVELOPER_EMAILS in .env adds more (comma separated).
 export const DEVELOPERS = new Set(['satearnpong.nis@sru.ac.th', ...(process.env.DEVELOPER_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)]);
-export const SWITCH_ROLES = { pr: 'ทีม PR งานสื่อสารองค์กร', admin: 'ผู้พัฒนาระบบ' };
+// pr / admin work as the team; staff / student / external let the developer see the site as those accounts do
+export const SWITCH_ROLES = { pr: 'ทีม PR งานสื่อสารองค์กร', admin: 'ผู้พัฒนาระบบ', staff: 'บุคลากร', student: 'นักศึกษา', external: 'บุคคลภายนอก' };
 
 export const isPr = (u) => u?.role === 'pr' || u?.role === 'admin';
 export const isAdmin = (u) => u?.role === 'admin';
@@ -127,7 +128,7 @@ export async function loadUser(req, res, next) {
         await query('update sessions set expires_at = $2 where id = $1', [req.sessionId, new Date(Date.now() + TTL_MS)]);
       }
       req.user.developer = DEVELOPERS.has(req.user.email);
-      if (req.user.developer) req.user.role = req.user.acting_role === 'pr' ? 'pr' : 'admin';
+      if (req.user.developer) req.user.role = SWITCH_ROLES[req.user.acting_role] ? req.user.acting_role : 'admin';
     }
   }
   next();
