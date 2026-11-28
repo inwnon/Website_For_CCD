@@ -81,7 +81,15 @@ export async function statusChanged(db, s, status, message, newsId) {
   const m = STATUS_MAIL[status];
   const u = (await db.query('select email, name, notify from users where id = $1', [s.sender_id])).rows[0];
   if (!m || !u || !wants(u.notify, 'status')) return;
-  const story = status === 'published' && newsId ? (await db.query('select no, slug from news where id = $1', [newsId])).rows[0] : null;
+  const story = status === 'published' && newsId ? (await db.query('select no, slug, published_at, published_at > now() later from news where id = $1', [newsId])).rows[0] : null;
+  // ตั้งเวลาเผยแพร่: the link does not open until then, so the mail says when and points to the work instead
+  if (story?.later) {
+    return enqueue(db, {
+      kind: 'submission.status', ref: s.ref, to: u.email, subject: `ตั้งเวลาเผยแพร่: ${s.title}`, title: 'งานของคุณตั้งเวลาเผยแพร่บนเว็บไซต์แล้ว',
+      lines: [`${s.ref} · ${s.title}`, `หน่วยงาน ${s.unit}`, `เผยแพร่ ${WHEN.format(story.published_at)} น.`], quote: message || undefined,
+      button: { label: 'ดูสถานะงาน', href: link(`inbox.html?ref=${encodeURIComponent(s.ref)}`) },
+    });
+  }
   const path = story ? newsUrl(story) : m.path ? m.path(s) : `inbox.html?ref=${encodeURIComponent(s.ref)}`;
   await enqueue(db, {
     kind: 'submission.status', ref: s.ref, to: u.email, subject: m.subject(s), title: m.title,
